@@ -107,14 +107,24 @@ If the answer is no, it does not ship.
 
 ---
 
+## Architecture
+
+Magical by Reign is **one master application** — not a new site per customer.
+Every customer creates an *experience* (a database row) that is dynamically
+rendered at its own URL with a uniquely composed design. The full technical
+design lives in **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+
 ## Repository Structure
 
 ```
 Magical-Moments-by-Reign/
-├── README.md          # Project overview & getting started
-├── BLUEPRINT.md       # This document — the source of truth for vision
-├── index.html         # Brand-forward landing page
-└── assets/
-    ├── css/styles.css  # Handcrafted styling & design tokens
-    └── js/main.js      # Gentle, intentional interactions
+├── README.md            # Project overview & getting started
+├── BLUEPRINT.md         # This document — the source of truth for vision
+├── ARCHITECTURE.md      # The one-master-application technical design
+├── prisma/              # Data model (schema) + seed data
+└── src/
+    ├── app/             # Pages, routes, API, server actions, styles
+    │   └── [slug]/      # Dynamic renderer for EVERY customer experience URL
+    ├── components/experience/  # The master markup: sections + renderer
+    └── lib/             # Design engine, experience service, catalog, utils
 ```

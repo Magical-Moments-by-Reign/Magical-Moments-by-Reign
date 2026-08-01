@@ -1,5 +1,7 @@
 # Magical by Reign ✨
 
+> **One master application. Unlimited unique experiences.**
+>
 > An AI-powered platform that transforms life's biggest moments into beautiful,
 > interactive digital experiences that grow with families over time.
 
@@ -9,29 +11,64 @@ Founded by **Tabitha Turner**.
 
 ---
 
-## What's here
+## The core idea
 
-This repository holds the foundation of Magical by Reign:
+Magical by Reign is **not** a website generator that creates a new app per
+customer. It is **one** application that hosts unlimited customer *experiences* —
+weddings, birthdays, memorials, vacations and more — each living at its own
+address like `magicalbyreign.com/smithwedding`, each **uniquely designed** so no
+two ever look alike.
 
-| File / Folder        | Purpose                                                        |
-| -------------------- | ------------------------------------------------------------- |
-| `BLUEPRINT.md`       | The master vision & development blueprint — our source of truth |
-| `index.html`         | A handcrafted, brand-forward landing page                      |
-| `assets/css/`        | Styling & design tokens (palette, type, motion)               |
-| `assets/js/`         | Gentle, intentional interactions                              |
+One codebase. One master markup. A design engine that makes every page feel
+custom-built. See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for how it works, and
+**[BLUEPRINT.md](./BLUEPRINT.md)** for the vision and roadmap.
 
-## View the landing page
+---
 
-It's a static site — no build step required.
+## Tech stack
+
+Next.js 15 (App Router) · TypeScript · Prisma (SQLite in dev → Postgres in prod)
+· React Server Components. AI, payments, and media-storage seams are in place for
+later phases.
+
+## Run it locally
 
 ```bash
-# Open directly
-open index.html
+# 1. Install
+npm install
 
-# …or serve it locally
-python3 -m http.server 8000
-# then visit http://localhost:8000
+# 2. Set up env (SQLite needs zero config)
+cp .env.example .env
+
+# 3. Create the database + seed example experiences
+npm run setup
+
+# 4. Start
+npm run dev
 ```
+
+Then open **http://localhost:3000**:
+
+| Route              | What it is                                                |
+| ------------------ | -------------------------------------------------------- |
+| `/`                | The platform's own marketing site                       |
+| `/create`          | Create a new experience (pick occasion → instant page)  |
+| `/dashboard`       | Every experience, in one place                          |
+| `/smithwedding`    | A live, uniquely-themed sample experience               |
+| `/karlie2027`, `/babyolivia`, `/italy2026`, `/reignlaunch`, `/rememberinggrandpajoe` | more samples — each a different look |
+
+Try **"↻ Regenerate design"** on any experience to watch the engine compose a
+fresh, unique look for the same content.
+
+### Handy scripts
+```bash
+npm run dev        # local dev server
+npm run build      # production build (type-checks everything)
+npm run db:seed    # (re)seed example experiences
+npm run db:reset   # wipe + reseed the local database
+```
+
+---
 
 ## Design principles
 
@@ -39,18 +76,6 @@ python3 -m http.server 8000
 - Beauty always comes before speed.
 - Simplicity always wins.
 - Every feature must make preserving memories easier and more magical.
-
-See [`BLUEPRINT.md`](./BLUEPRINT.md) for the full vision and roadmap.
-
----
-
-## Roadmap at a glance
-
-- **Phase 0 — Foundation** *(current)*: vision, brand, landing page, waitlist
-- **Phase 1** — The first guided magical moment, end-to-end
-- **Phase 2** — Living keepsakes that grow over time
-- **Phase 3** — A full creative studio of moment types
-- **Phase 4** — Scale with soul
 
 ---
 

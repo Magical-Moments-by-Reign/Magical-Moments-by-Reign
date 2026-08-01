@@ -1,0 +1,80 @@
+// ── Magical by Reign — data model ──────────────────────────────
+// ONE master application. Every customer "Experience" is a row here,
+// not a new app. Dynamic per-experience URLs resolve against `slug`.
+//
+// Dev uses SQLite for zero-setup. For production, change `provider`
+// to "postgresql" and update DATABASE_URL. JSON-shaped fields are
+// stored as TEXT for portability and parsed in the app layer
+// (see src/lib/serialize.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A customer / account in the master application.
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  role        String       @default("USER") // USER | ADMIN
+  experiences Experience[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// A single customer experience (wedding, birthday, memorial, …).
+// This is the heart of the platform: one row = one unique, themed,
+// dynamically-rendered page living at magicalbyreign.com/<slug>.
+model Experience {
+  id        String  @id @default(cuid())
+  slug      String  @unique // the public URL segment, e.g. "smithwedding"
+  type      String // wedding | birthday | baby | memorial | vacation | ...
+  title     String
+  subtitle  String?
+  eventDate DateTime?
+
+  status String @default("PUBLISHED") // DRAFT | PUBLISHED | ARCHIVED
+
+  // Reproducible randomness so the design engine is deterministic
+  // per experience (guarantees "no two look identical", regenerable).
+  seed String
+
+  // JSON blobs (stored as TEXT for cross-database portability):
+  designSpec String // the AI/engine-produced DesignSpec (theme, layout, order)
+  content    String // the story content (hero, chapters, gallery, timeline...)
+
+  // Visibility / sharing controls.
+  visibility String  @default("PUBLIC") // PUBLIC | UNLISTED | PRIVATE
+  password   String? // optional gate for PRIVATE experiences
+
+  ownerId String?
+  owner   User?        @relation(fields: [ownerId], references: [id])
+  media   MediaAsset[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+}
+
+// Uploaded media, organized into per-experience folders.
+model MediaAsset {
+  id           String     @id @default(cuid())
+  experienceId String
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  kind         String // IMAGE | VIDEO
+  url          String
+  folder       String     @default("root")
+  caption      String?
+  width        Int?
+  height       Int?
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, folder])
+}
