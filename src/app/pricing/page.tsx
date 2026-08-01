@@ -8,6 +8,7 @@ import AddOnsShop from "@/components/pricing/AddOnsShop";
 import {
   PLANS,
   COMPARISON_ROWS,
+  CONCIERGE,
   getPlan,
   formatPrice,
   LIFETIME_LEGAL,
@@ -105,6 +106,27 @@ export default function PricingPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* Custom Concierge — white-glove, quote-based */}
+      <section className="pp-concierge-sec">
+        <div className="container">
+          <article className="pp-concierge">
+            <div className="pp-concierge__body">
+              <span className="pp-concierge__eyebrow">White-glove service</span>
+              <h2>{CONCIERGE.name}</h2>
+              <p className="pp-concierge__tagline">{CONCIERGE.tagline}</p>
+              <div className="pp-concierge__price">
+                <b>{formatPrice(CONCIERGE.price)}</b>
+                <span>{CONCIERGE.priceKind}</span>
+              </div>
+              <Link href="/contact?reason=concierge" className="btn-gold pp-concierge__cta">{CONCIERGE.cta}</Link>
+            </div>
+            <ul className="pp-concierge__features">
+              {CONCIERGE.features.map((f) => <li key={f}>{f}</li>)}
+            </ul>
+          </article>
         </div>
       </section>
 

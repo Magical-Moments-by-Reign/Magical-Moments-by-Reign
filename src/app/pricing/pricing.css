@@ -245,3 +245,53 @@
 .pp-quiz__result { text-align: center; }
 .pp-quiz__result h3 { font-family: var(--font-display); font-size: 1.8rem; color: #211d29; margin: 0 0 0.3rem; }
 .pp-quiz__progress { font-size: 0.78rem; color: #9a93a2; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.8rem; }
+
+/* ── Premium polish: staggered card entrance + glass sheen ── */
+@media (prefers-reduced-motion: no-preference) {
+  .pp-plans__grid .pp-card { opacity: 0; transform: translateY(24px); animation: pp-rise 0.7s var(--pp-ease, cubic-bezier(0.22,1,0.36,1)) forwards; }
+  .pp-plans__grid .pp-card:nth-child(1) { animation-delay: 0.05s; }
+  .pp-plans__grid .pp-card:nth-child(2) { animation-delay: 0.14s; }
+  .pp-plans__grid .pp-card:nth-child(3) { animation-delay: 0.23s; }
+  .pp-plans__grid .pp-card:nth-child(4) { animation-delay: 0.32s; }
+}
+@keyframes pp-rise { to { opacity: 1; transform: translateY(0); } }
+/* soft glass highlight sweeping the top of each card */
+.pp-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 44%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0));
+  border-radius: 20px 20px 0 0; pointer-events: none;
+}
+
+/* ── Custom Concierge section ── */
+.pp-concierge-sec { padding: 0 0 clamp(3rem, 6vw, 5rem); }
+.pp-concierge {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: center;
+  border-radius: 26px; padding: clamp(2rem, 4vw, 3.4rem);
+  color: var(--cream-100);
+  background:
+    radial-gradient(70% 120% at 12% 0%, rgba(169,140,208,0.28), transparent 60%),
+    radial-gradient(60% 100% at 92% 100%, rgba(198,161,90,0.3), transparent 55%),
+    linear-gradient(150deg, #241f2e, #17131d);
+  border: 1px solid rgba(198,161,90,0.3);
+  box-shadow: 0 40px 80px -50px rgba(0,0,0,0.8);
+}
+.pp-concierge::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%);
+}
+.pp-concierge__eyebrow { font-size: 0.72rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold-soft); }
+.pp-concierge h2 { font-family: var(--font-display); font-size: clamp(1.9rem, 4vw, 2.8rem); margin: 0.4rem 0 0.4rem; color: #fff; }
+.pp-concierge__tagline { color: rgba(248,244,236,0.85); margin: 0 0 1.2rem; max-width: 30rem; }
+.pp-concierge__price { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 1.4rem; }
+.pp-concierge__price b { font-family: var(--font-display); font-size: 2.6rem; color: var(--gold-soft); line-height: 1; }
+.pp-concierge__price span { font-size: 0.82rem; color: rgba(248,244,236,0.6); letter-spacing: 0.04em; }
+.pp-concierge__cta { }
+.pp-concierge__features { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.pp-concierge__features li { position: relative; padding-left: 1.6rem; font-size: 0.92rem; color: rgba(248,244,236,0.9); }
+.pp-concierge__features li::before { content: "✦"; position: absolute; left: 0; color: var(--gold-soft); }
+
+@media (max-width: 760px) {
+  .pp-concierge { grid-template-columns: 1fr; }
+}
