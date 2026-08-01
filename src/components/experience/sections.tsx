@@ -114,8 +114,9 @@ export function Gallery({ content, variant, slug, experienceType }: SectionProps
   const images = (slug ? galleryFor(slug) : undefined) ?? content.gallery;
   if (!images?.length) return null;
   const typeClass = experienceType ? ` mbr-gallery--type-${experienceType}` : "";
+  // Every gallery uses the premium whole-photo showcase — no cropping.
   return (
-    <section className={`mbr-section mbr-gallery mbr-gallery--${variant}${typeClass}`} id="gallery">
+    <section className={`mbr-section mbr-gallery mbr-gallery--${variant} mbr-gallery--showcase${typeClass}`} id="gallery">
       <div className="mbr-container">
         <h2 className="mbr-h2 mbr-center">Gallery</h2>
         <div className="mbr-gallery__grid">

@@ -531,3 +531,33 @@ details.mbr-timeline__card > summary:hover .mbr-h3 { color: var(--mbr-accent); }
 .mbr-wall__rel { color: var(--mbr-muted); font-weight: 400; }
 .mbr-wall__empty { color: var(--mbr-muted); text-align: center; }
 @media (max-width: 560px) { .mbr-wall__row { grid-template-columns: 1fr; } }
+
+/* ================================================================
+   Gallery — premium whole-photo showcase (applies to every gallery)
+   Full pictures, never cropped, generously sized, elegant spacing.
+   ================================================================ */
+.mbr-gallery--showcase .mbr-gallery__grid {
+  display: block; grid-template-columns: none; grid-auto-rows: auto; grid-auto-flow: row;
+  column-count: 3; column-gap: 1.4rem; overflow: visible;
+  max-width: 1180px; margin-left: auto; margin-right: auto;
+}
+.mbr-gallery--showcase .mbr-gallery__item {
+  aspect-ratio: auto; break-inside: avoid; -webkit-column-break-inside: avoid;
+  width: 100%; display: inline-block; margin: 0 0 1.4rem;
+  border-radius: 16px; overflow: hidden; background: var(--mbr-surface);
+  box-shadow: 0 26px 52px -34px rgba(0,0,0,0.5);
+  transition: transform 0.5s var(--mbr-ease), box-shadow 0.5s var(--mbr-ease);
+}
+.mbr-gallery--showcase .mbr-gallery__item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 40px 70px -34px rgba(0,0,0,0.55);
+}
+.mbr-gallery--showcase .mbr-gallery__item img {
+  width: 100%; height: auto; object-fit: contain; display: block;
+}
+.mbr-gallery--showcase .mbr-gallery__item figcaption {
+  padding: 0.9rem 1.1rem 1.1rem; font-size: 0.9rem; color: var(--mbr-muted);
+  font-family: var(--mbr-font-display); font-style: italic; letter-spacing: 0.01em;
+}
+@media (max-width: 1000px) { .mbr-gallery--showcase .mbr-gallery__grid { column-count: 2; } }
+@media (max-width: 600px)  { .mbr-gallery--showcase .mbr-gallery__grid { column-count: 1; max-width: 34rem; } }
