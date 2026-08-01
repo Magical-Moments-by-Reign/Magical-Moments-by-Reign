@@ -1,22 +1,24 @@
 # ── Netlify configuration ───────────────────────────────────────
-# Runs Magical by Reign (Next.js App Router) as a full server app on
-# Netlify. The official Next.js runtime is auto-installed by Netlify;
-# it handles server pages, API routes, and server actions.
+# Magical by Reign is a Next.js (App Router) app. Netlify AUTO-DETECTS
+# Next.js and applies its official Next.js Runtime automatically — so we
+# do NOT declare @netlify/plugin-nextjs here (declaring it manually can
+# conflict with the auto-applied runtime and fail the build).
 #
-# Required environment variables (set in Netlify → Site settings →
-# Environment variables): see DEPLOY.md.
-#   DATABASE_URL          Postgres connection string (Neon/Supabase)
+# We only override the build command so `prisma generate` runs before
+# `next build` (see package.json → "build").
+#
+# Required environment variables (Netlify → Site settings → Environment
+# variables) — see DEPLOY.md:
+#   DATABASE_URL          Postgres connection string (Supabase/Neon)
 #   SOCIAL_TOKEN_KEY      openssl rand -hex 32
 #   NEXT_PUBLIC_BASE_URL  your live URL (e.g. https://magical-m.netlify.app)
 
 [build]
-  # `npm run build` runs `prisma generate && next build`.
   command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
-  # Skip Playwright's browser download during install (dev-only dep).
+  # Don't download Playwright browsers on install (dev-only dependency).
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+  # Don't fail the production install on optional/peer quirks.
+  NPM_FLAGS = "--no-audit --no-fund"
