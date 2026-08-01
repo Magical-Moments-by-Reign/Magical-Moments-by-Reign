@@ -308,3 +308,126 @@
     linear-gradient(180deg, rgba(12,9,16,0.5) 0%, rgba(12,9,16,0.32) 40%, rgba(12,9,16,0.62) 100%),
     radial-gradient(120% 90% at 30% 60%, rgba(12,9,16,0.35), transparent 60%); }
 .mbr-hero--video .mbr-hero__inner { text-shadow: 0 2px 18px rgba(0,0,0,0.45); }
+
+/* ── Celebration of Life — elegant, reverent hero ── */
+.mbr-hero--type-memorial { --mbr-mem-gold: #d8b878; }
+.mbr-hero--type-memorial .mbr-hero__scrim {
+  background:
+    linear-gradient(90deg, rgba(10,8,12,0.78) 0%, rgba(10,8,12,0.5) 42%, rgba(10,8,12,0.12) 72%, rgba(10,8,12,0.35) 100%),
+    linear-gradient(180deg, rgba(10,8,12,0.35) 0%, transparent 30%, rgba(10,8,12,0.55) 100%);
+}
+.mbr-hero--type-memorial .mbr-hero__inner { padding-bottom: 8rem; }
+.mbr-hero--type-memorial .mbr-eyebrow {
+  color: var(--mbr-mem-gold);
+  letter-spacing: 0.42em;
+  display: inline-flex; align-items: center; gap: 0.9rem;
+}
+.mbr-hero--type-memorial .mbr-eyebrow::before,
+.mbr-hero--type-memorial .mbr-eyebrow::after {
+  content: ""; height: 1px; width: 2.4rem;
+  background: linear-gradient(90deg, transparent, var(--mbr-mem-gold), transparent);
+}
+.mbr-hero--type-memorial .mbr-hero__title {
+  color: var(--mbr-mem-gold);
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 500;
+  text-shadow: 0 2px 30px rgba(0,0,0,0.5);
+}
+.mbr-hero--type-memorial .mbr-hero__subhead { color: #f3ece0; opacity: 0.92; font-style: italic; }
+.mbr-hero--type-memorial .mbr-btn--accent {
+  background: linear-gradient(180deg, rgba(28,22,16,0.62), rgba(16,12,9,0.62));
+  border: 1px solid var(--mbr-mem-gold);
+  color: var(--mbr-mem-gold);
+  letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.86rem;
+  padding: 0.95rem 1.9rem; border-radius: 12px;
+  box-shadow: 0 18px 40px -24px rgba(0,0,0,0.8);
+}
+.mbr-hero--type-memorial .mbr-btn--accent:hover { background: var(--mbr-mem-gold); color: #1a130b; }
+
+/* Memory quick-nav (matches the tribute layout) */
+.mbr-hero-nav {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; justify-content: center; flex-wrap: wrap; gap: clamp(1rem, 5vw, 3.4rem);
+  padding: 1.15rem clamp(1.25rem, 5vw, 3rem);
+  border-top: 1px solid rgba(216,184,120,0.4);
+  background: linear-gradient(180deg, rgba(10,8,12,0) 0%, rgba(10,8,12,0.55) 60%);
+  backdrop-filter: blur(2px);
+}
+.mbr-hero-nav__item {
+  display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+  color: #e9dcc4; text-decoration: none; font-size: 0.78rem; letter-spacing: 0.02em;
+  opacity: 0.9; transition: color 0.25s, transform 0.25s, opacity 0.25s;
+}
+.mbr-hero-nav__item svg { width: 22px; height: 22px; color: var(--mbr-mem-gold, #d8b878); }
+.mbr-hero-nav__item:hover { color: #fff; opacity: 1; transform: translateY(-2px); }
+/* With the tribute nav present, the scroll cue would overlap it. */
+.mbr-hero--type-memorial .mbr-scroll { display: none; }
+
+@media (max-width: 640px) {
+  .mbr-hero-nav { gap: 1.1rem 1.6rem; }
+  .mbr-hero-nav__item span { font-size: 0.7rem; }
+}
+
+/* ── Baby Journey — tender, luminous hero ── */
+/* Newborn imagery is bright and warm; a softer, warm-toned scrim keeps
+   it luminous rather than dulling it under a heavy dark overlay. */
+.mbr-hero--type-baby { --mbr-baby-ink: #5a3f3a; }
+.mbr-hero--type-baby .mbr-hero__scrim {
+  background:
+    linear-gradient(180deg, rgba(60,40,38,0.28) 0%, rgba(60,40,38,0.06) 34%, rgba(60,40,38,0.5) 100%),
+    radial-gradient(120% 80% at 28% 46%, rgba(255,245,238,0.34), transparent 58%);
+}
+.mbr-hero--type-baby .mbr-eyebrow {
+  color: #fbeee6; letter-spacing: 0.32em;
+  text-shadow: 0 1px 10px rgba(60,40,38,0.5);
+}
+.mbr-hero--type-baby .mbr-hero__title {
+  color: #fff8f3;
+  font-weight: 500;
+  text-shadow: 0 2px 26px rgba(60,40,38,0.55);
+}
+.mbr-hero--type-baby .mbr-hero__subhead {
+  color: #fdeee6; opacity: 0.95; font-style: italic;
+  text-shadow: 0 1px 14px rgba(60,40,38,0.5);
+}
+.mbr-hero--type-baby .mbr-btn--accent {
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(253,238,230,0.92));
+  color: var(--mbr-baby-ink);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 999px;
+  padding: 0.9rem 1.9rem;
+  box-shadow: 0 16px 38px -22px rgba(60,40,38,0.7);
+}
+.mbr-hero--type-baby .mbr-btn--accent:hover { background: #fff; transform: translateY(-2px); }
+
+/* ── Birthday — festive, radiant hero ── */
+.mbr-hero--type-birthday { --mbr-bday-gold: #f3d271; --mbr-bday-lav: #d8b6f0; }
+.mbr-hero--type-birthday .mbr-hero__scrim {
+  background:
+    linear-gradient(90deg, rgba(24,10,30,0.72) 0%, rgba(24,10,30,0.42) 40%, rgba(24,10,30,0.08) 70%, rgba(24,10,30,0.3) 100%),
+    linear-gradient(180deg, rgba(24,10,30,0.28) 0%, transparent 34%, rgba(24,10,30,0.55) 100%);
+}
+.mbr-hero--type-birthday .mbr-eyebrow {
+  color: var(--mbr-bday-lav); letter-spacing: 0.34em;
+  text-shadow: 0 1px 14px rgba(24,10,30,0.6);
+}
+.mbr-hero--type-birthday .mbr-hero__title {
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 2px 30px rgba(24,10,30,0.65);
+  background: linear-gradient(180deg, #fff 0%, var(--mbr-bday-gold) 140%);
+  -webkit-background-clip: text; background-clip: text;
+}
+.mbr-hero--type-birthday .mbr-hero__subhead {
+  color: #f6ecff; opacity: 0.95;
+  text-shadow: 0 1px 14px rgba(24,10,30,0.6);
+}
+.mbr-hero--type-birthday .mbr-btn--accent {
+  background: linear-gradient(180deg, var(--mbr-bday-gold), #d8ad46);
+  color: #3a2410;
+  border: none; border-radius: 999px;
+  font-weight: 700; letter-spacing: 0.03em;
+  padding: 0.95rem 2rem;
+  box-shadow: 0 18px 42px -20px rgba(243,210,113,0.7);
+}
+.mbr-hero--type-birthday .mbr-btn--accent:hover { transform: translateY(-2px); filter: brightness(1.05); }

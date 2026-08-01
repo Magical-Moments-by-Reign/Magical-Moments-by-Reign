@@ -12,6 +12,9 @@ export interface HeroMedia {
 const DEMO_HERO_MEDIA: Record<string, HeroMedia> = {
   italy2026: { video: "/hero/italy.mp4", poster: "/hero/italy-poster.jpg" },
   thejohnsonhome: { video: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg" },
+  rememberinggrandpajoe: { video: "/hero/grandpa.mp4", poster: "/hero/grandpa-poster.jpg" },
+  babyolivia: { video: "/hero/baby.mp4", poster: "/hero/baby-poster.jpg" },
+  karlie2027: { video: "/hero/karlie.mp4", poster: "/hero/karlie-poster.jpg" },
 };
 
 export function heroMediaFor(

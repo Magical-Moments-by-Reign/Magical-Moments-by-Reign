@@ -3,8 +3,9 @@
 // Prices come from approved PLANS / ADD_ONS via computeTotals().
 
 import { prisma } from "@/lib/db";
-import { computeTotals, toCents, orderNumber, needsShipping, type CartState } from "@/lib/commerce";
+import { computeTotals, toCents, orderNumber, needsShipping, formatPrice, type CartState } from "@/lib/commerce";
 import { getPlan } from "@/lib/plans";
+import { sendEmail, ADMIN_EMAIL, purchaseThankYouEmail, adminOrderNotifyEmail } from "@/lib/email";
 
 export interface CheckoutDetails {
   name: string;
@@ -98,6 +99,17 @@ export async function createOrder(cart: CartState, details: CheckoutDetails): Pr
         : undefined,
     },
   });
+
+  // Thank-you to the customer (with instructions) + admin notification.
+  // Emails must never block or fail the order.
+  const itemLabels = totals.lines.map((l) => (l.qty > 1 ? `${l.label} × ${l.qty}` : l.label));
+  const totalStr = formatPrice(totals.total);
+  const thanks = purchaseThankYouEmail({ name: details.name, number: order.number, items: itemLabels, total: totalStr });
+  const adminNote = adminOrderNotifyEmail({ number: order.number, email: details.email, total: totalStr, items: itemLabels });
+  await Promise.allSettled([
+    sendEmail({ to: details.email, subject: thanks.subject, html: thanks.html, replyTo: ADMIN_EMAIL }),
+    sendEmail({ to: ADMIN_EMAIL, subject: adminNote.subject, html: adminNote.html, replyTo: details.email }),
+  ]);
 
   return { id: order.id, number: order.number, totalCents: order.total };
 }

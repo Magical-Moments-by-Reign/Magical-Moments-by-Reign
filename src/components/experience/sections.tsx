@@ -16,6 +16,26 @@ interface SectionProps {
   slug?: string;
 }
 
+/** A memory quick-nav shown in the hero (e.g. for Celebration of Life).
+ *  Only renders links whose target section actually exists. */
+function heroNav(content: ExperienceContent): { href: string; label: string; icon: keyof typeof HERO_NAV_ICONS }[] {
+  const items: { href: string; label: string; icon: keyof typeof HERO_NAV_ICONS }[] = [];
+  if (content.story?.length) items.push({ href: "#story", label: "His Story", icon: "film" });
+  if (content.gallery?.length) items.push({ href: "#gallery", label: "Photo Gallery", icon: "image" });
+  if (content.timeline?.length) items.push({ href: "#timeline", label: "Favorite Memories", icon: "star" });
+  items.push({ href: "#guestbook", label: "Family Messages", icon: "heart" });
+  if (content.quote?.text) items.push({ href: "#quote", label: "In Loving Memory", icon: "candle" });
+  return items;
+}
+
+const HERO_NAV_ICONS = {
+  film: <path d="M4 4h16v16H4zM4 9h16M4 15h16M9 4v16M15 4v16" />,
+  image: <><rect x="3" y="4" width="18" height="16" rx="1" /><circle cx="9" cy="10" r="1.6" /><path d="M21 16l-5-5-9 9" /></>,
+  star: <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.5 9.2l5.9-.9z" />,
+  heart: <path d="M12 20s-7-4.6-9.3-8.6C1.3 8.9 2.5 6 5.4 6c1.9 0 3 .9 3.9 2.2h1.4C11.6 6.9 12.7 6 14.6 6c2.9 0 4.1 2.9 2.7 5.4C19 15.4 12 20 12 20z" />,
+  candle: <><path d="M12 4c1.2 1 1.2 2.4 0 3.4C10.8 6.4 10.8 5 12 4z" /><rect x="9.5" y="9" width="5" height="10" rx="1" /><path d="M8 21h8" /></>,
+} as const;
+
 export function Hero({ content, variant, experienceType, slug }: SectionProps) {
   const { hero } = content;
   // Per-occasion, immersive CTA (covers older experiences too).
@@ -24,8 +44,10 @@ export function Hero({ content, variant, experienceType, slug }: SectionProps) {
   const target = "#mbr-explore";
   const media = slug ? heroMediaFor(slug, content) : {};
   const hasVideo = Boolean(media.video);
+  const typeClass = experienceType ? ` mbr-hero--type-${experienceType}` : "";
+  const nav = experienceType === "memorial" ? heroNav(content) : [];
   return (
-    <header className={`mbr-hero mbr-hero--${variant}${hasVideo ? " mbr-hero--video" : ""}`} id="top">
+    <header className={`mbr-hero mbr-hero--${variant}${hasVideo ? " mbr-hero--video" : ""}${typeClass}`} id="top">
       {hasVideo ? (
         <div className="mbr-hero__video" aria-hidden="true">
           <video autoPlay muted loop playsInline preload="auto" poster={media.poster}>
@@ -46,6 +68,18 @@ export function Hero({ content, variant, experienceType, slug }: SectionProps) {
           </a>
         )}
       </div>
+      {nav.length > 0 && (
+        <nav className="mbr-hero-nav" aria-label="Explore this tribute">
+          {nav.map((n) => (
+            <a className="mbr-hero-nav__item" href={n.href} key={n.href}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {HERO_NAV_ICONS[n.icon]}
+              </svg>
+              <span>{n.label}</span>
+            </a>
+          ))}
+        </nav>
+      )}
       <a className="mbr-scroll" href={target} aria-label="Scroll to explore">
         <span>Scroll to explore</span>
         <span className="mbr-scroll__chev" aria-hidden="true">⌄</span>

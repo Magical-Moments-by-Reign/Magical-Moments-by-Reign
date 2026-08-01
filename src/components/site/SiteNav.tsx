@@ -8,6 +8,7 @@ export default function SiteNav({ active }: { active?: string }) {
     { label: "Experiences", href: "/create", key: "experiences" },
     { label: "Inspiration Gallery", href: "/dashboard", key: "gallery" },
     { label: "Pricing", href: "/pricing", key: "pricing" },
+    { label: "Business Sites", href: "/business", key: "business" },
     { label: "About", href: "/#how", key: "about" },
     { label: "Contact", href: "/contact", key: "contact" },
   ];
