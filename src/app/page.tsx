@@ -10,6 +10,20 @@ export default function LandingPage() {
 
       {/* Hero */}
       <header className="hero">
+        <div className="hero__media" aria-hidden="true">
+          <video
+            className="hero__video"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster="/hero/hero-poster.jpg"
+          >
+            <source src="/hero/hero.mp4" type="video/mp4" />
+          </video>
+          <div className="hero__overlay" />
+        </div>
         <div className="container hero-inner">
           <span className="eyebrow">One platform · unlimited unique experiences</span>
           <h1>
