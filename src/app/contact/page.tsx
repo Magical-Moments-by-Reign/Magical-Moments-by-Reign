@@ -14,7 +14,14 @@ export default async function ContactPage({
   searchParams: Promise<{ reason?: string; sent?: string; error?: string }>;
 }) {
   const { reason, sent, error } = await searchParams;
-  const initialReason = reason === "business" ? "business" : reason || "general";
+  const initialReason = reason || "general";
+
+  const CONTACT_FAQ = [
+    { q: "How soon will you reply?", a: "We personally read every message and typically reply within one business day." },
+    { q: "What's the Custom Concierge experience?", a: "A white-glove, done-for-you service (starting at $5,000) where our team designs, builds, and produces your entire experience — media curation, cinematic video, custom domain, and lifetime preservation included." },
+    { q: "Can I schedule a consultation?", a: "Yes — choose \"Schedule a consultation\" below and share a couple of times that work. We'll confirm by email and call you." },
+    { q: "Do you offer business websites?", a: "Yes, as a separate custom service. Visit our Business Sites page to start a request." },
+  ];
 
   return (
     <div className="ct">
@@ -47,6 +54,36 @@ export default async function ContactPage({
           </div>
         ) : (
           <ContactExperience initialReason={initialReason} error={Boolean(error)} />
+        )}
+
+        {!sent && (
+          <>
+            {/* Concierge + consultation */}
+            <section className="ct-services">
+              <article className="ct-service ct-service--concierge">
+                <span className="eyebrow" style={{ color: "var(--gold-soft)" }}>White-glove service</span>
+                <h2>Custom Concierge experience</h2>
+                <p>Let our team design, build, and produce your entire experience for you — start to finish. Starting at <strong>$5,000</strong>.</p>
+                <Link href="/contact?reason=concierge#contact-form" className="btn-gold">Request a Concierge experience</Link>
+              </article>
+              <article className="ct-service">
+                <span className="eyebrow" style={{ color: "var(--gold-deep)" }}>Let&apos;s talk</span>
+                <h2>Schedule a consultation</h2>
+                <p>Prefer to talk it through? Book a friendly, no-pressure consultation and we&apos;ll help you choose the perfect experience.</p>
+                <Link href="/contact?reason=consultation#contact-form" className="btn-outline-gold ct-service__outline">Schedule a consultation</Link>
+              </article>
+            </section>
+
+            {/* FAQ */}
+            <section className="ct-faq">
+              <h2 className="ct-faq__title">Frequently asked questions</h2>
+              <div className="ct-faq__list">
+                {CONTACT_FAQ.map((f) => (
+                  <details key={f.q}><summary>{f.q}</summary><p>{f.a}</p></details>
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </main>
 

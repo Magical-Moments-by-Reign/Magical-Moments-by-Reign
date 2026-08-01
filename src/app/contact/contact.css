@@ -62,3 +62,33 @@
   .ct-ask { position: static; }
   .ct-row { grid-template-columns: 1fr; }
 }
+
+/* ── Concierge + consultation services ── */
+.ct-services { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.4rem; margin-top: 3rem; }
+.ct-service { background: #fff; border: 1px solid var(--gray-200); border-radius: 20px; padding: clamp(1.6rem, 3vw, 2.4rem); box-shadow: 0 26px 54px -44px rgba(43,39,50,0.45); }
+.ct-service h2 { font-family: var(--font-display); font-size: clamp(1.5rem, 3vw, 2rem); color: #211d29; margin: 0.4rem 0 0.5rem; }
+.ct-service p { color: #5f5866; margin: 0 0 1.2rem; line-height: 1.6; }
+.ct-service--concierge {
+  color: var(--cream-100); border: 1px solid rgba(198,161,90,0.3);
+  background:
+    radial-gradient(70% 120% at 10% 0%, rgba(169,140,208,0.28), transparent 60%),
+    radial-gradient(60% 100% at 95% 100%, rgba(198,161,90,0.3), transparent 55%),
+    linear-gradient(150deg, #241f2e, #17131d);
+}
+.ct-service--concierge h2 { color: #fff; }
+.ct-service--concierge p { color: rgba(248,244,236,0.85); }
+.ct-service--concierge strong { color: var(--gold-soft); }
+.ct-service__outline { color: var(--gold-deep); border-color: rgba(169,132,63,0.5); }
+
+/* ── Contact FAQ ── */
+.ct-faq { margin-top: 3rem; }
+.ct-faq__title { font-family: var(--font-display); font-size: clamp(1.5rem, 3vw, 2rem); color: #211d29; margin: 0 0 1.2rem; text-align: center; }
+.ct-faq__list { max-width: 44rem; margin: 0 auto; display: grid; gap: 0.7rem; }
+.ct-faq details { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1.2rem; }
+.ct-faq summary { cursor: pointer; font-weight: 600; color: #211d29; list-style: none; }
+.ct-faq summary::-webkit-details-marker { display: none; }
+.ct-faq summary::after { content: "+"; float: right; color: var(--gold-deep); font-weight: 700; }
+.ct-faq details[open] summary::after { content: "–"; }
+.ct-faq p { margin: 0.7rem 0 0; color: #5f5866; line-height: 1.6; font-size: 0.94rem; }
+
+@media (max-width: 760px) { .ct-services { grid-template-columns: 1fr; } }
