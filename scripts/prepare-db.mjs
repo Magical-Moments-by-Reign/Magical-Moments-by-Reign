@@ -24,10 +24,12 @@ try {
   console.log("[db] Applying schema to the database (prisma db push)…");
   run("npx prisma db push --skip-generate");
 } catch {
-  console.error("\n[db] ✖ Could not apply the database schema.");
-  console.error("[db] Make sure DATABASE_URL is your Supabase **Session pooler**");
-  console.error("[db] connection string (port 5432) — the transaction pooler");
-  console.error("[db] (port 6543) does not support creating tables.");
+  console.error("\n[db] ✖ Could not reach the database to apply the schema.");
+  console.error("[db] DATABASE_URL must be the Supabase **Session pooler** string:");
+  console.error("[db]   host  →  aws-0-<region>.pooler.supabase.com   (IPv4, works on Netlify)");
+  console.error("[db]   NOT   →  db.<project>.supabase.co             (direct, IPv6-only, unreachable)");
+  console.error("[db]   NOT   →  ...pooler.supabase.com:6543          (transaction pooler, can't create tables)");
+  console.error("[db] Copy it from Supabase → Connect → 'Session pooler', then redeploy.");
   process.exit(1); // surface the problem in the deploy log
 }
 
