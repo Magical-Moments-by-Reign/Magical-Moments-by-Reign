@@ -1,0 +1,55 @@
+/* ================================================================
+   Shared family journey (public, private link)
+   ================================================================ */
+.shv { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
+.shv .container { width: 100%; max-width: 940px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+.shv-header {
+  padding: clamp(3rem, 7vw, 5rem) 0 clamp(2rem, 4vw, 3rem);
+  background:
+    radial-gradient(55% 80% at 12% 0%, rgba(169,140,208,0.22), transparent 60%),
+    radial-gradient(50% 70% at 92% 8%, rgba(198,161,90,0.22), transparent 55%),
+    linear-gradient(160deg, #221d2b, #17141d);
+  color: var(--cream-100); text-align: center;
+}
+.shv-brand { font-family: var(--font-display); letter-spacing: 0.14em; font-size: 1.1rem; margin-bottom: 1.4rem; }
+.shv-brand span { color: var(--gold-soft); text-transform: uppercase; letter-spacing: 0.4em; font-size: 0.7rem; }
+.shv-eyebrow { color: var(--gold-soft); }
+.shv-header h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.2rem); margin: 0.5rem 0 0.5rem; }
+.shv-header p { color: rgba(248,244,236,0.8); margin: 0 auto; max-width: 40rem; }
+
+.shv-main { padding: clamp(2.5rem, 5vw, 4rem) 0 4rem; }
+.shv-empty { text-align: center; color: #7c7583; }
+
+.shv-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.4rem; }
+.shv-chapter { display: flex; gap: 1.1rem; align-items: stretch; }
+.shv-chapter__index { font-family: var(--font-display); font-size: 1.4rem; color: var(--gold-deep); padding-top: 0.4rem; min-width: 2ch; }
+.shv-card { flex: 1; display: grid; grid-template-columns: 42% 1fr; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; overflow: hidden; color: inherit; box-shadow: 0 24px 50px -44px rgba(43,39,50,0.45); transition: transform 0.3s, box-shadow 0.3s; }
+.shv-card:hover { transform: translateY(-4px); box-shadow: 0 32px 60px -40px rgba(43,39,50,0.5); }
+.shv-card__cover { position: relative; min-height: 170px; background: #14111a; }
+.shv-card__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shv-card__fallback { width: 100%; height: 100%; background: linear-gradient(135deg, #3a3348, #211d29); }
+.shv-card__type { position: absolute; top: 0.7rem; left: 0.7rem; font-size: 0.72rem; font-weight: 700; color: #241f12; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); padding: 0.25rem 0.6rem; border-radius: 999px; }
+.shv-card__body { padding: 1.3rem 1.4rem; display: flex; flex-direction: column; justify-content: center; }
+.shv-card__body h2 { font-family: var(--font-display); font-size: 1.5rem; color: #211d29; margin: 0 0 0.3rem; }
+.shv-card__sub { color: #6a6370; font-size: 0.92rem; margin: 0 0 0.7rem; }
+.shv-card__cta { font-size: 0.86rem; font-weight: 600; color: var(--gold-deep); }
+.shv-locked { text-align: center; color: #9a93a2; font-size: 0.85rem; margin-top: 2.5rem; }
+
+/* Gate (expired / max views / password) */
+.shv--gate { display: grid; place-items: center; padding: 2rem; }
+.shv-gate { max-width: 30rem; text-align: center; background: linear-gradient(160deg, #221d2b, #17141d); color: var(--cream-100); border: 1px solid rgba(198,161,90,0.25); border-radius: 22px; padding: clamp(2rem, 5vw, 3.2rem); }
+.shv-gate__mark { width: 54px; height: 54px; margin: 0 auto 0.8rem; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; font-size: 1.4rem; }
+.shv-gate__brand { font-family: var(--font-display); letter-spacing: 0.14em; margin-bottom: 1.4rem; }
+.shv-gate__brand span { color: var(--gold-soft); text-transform: uppercase; letter-spacing: 0.4em; font-size: 0.62rem; }
+.shv-gate h1 { font-family: var(--font-display); font-size: 1.7rem; margin: 0 0 0.5rem; }
+.shv-gate p { color: rgba(248,244,236,0.8); margin: 0 0 1.2rem; }
+.shv-gate__form { display: flex; flex-direction: column; gap: 0.7rem; }
+.shv-gate__form input { padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid rgba(214,196,160,0.4); background: rgba(255,255,255,0.06); color: var(--cream-100); font: inherit; }
+.shv-gate__err { color: #e6b8a2; font-size: 0.85rem; margin-top: 0.8rem; }
+
+@media (max-width: 640px) {
+  .shv-card { grid-template-columns: 1fr; }
+  .shv-card__cover { aspect-ratio: 16/10; min-height: 0; }
+  .shv-chapter__index { display: none; }
+}

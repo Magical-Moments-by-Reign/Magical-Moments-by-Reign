@@ -400,6 +400,34 @@ model Tribute {
   @@index([experienceId, kind])
 }
 
+// ── Family Journey: private custom share links ──────────────────
+// The owner curates exactly which experiences a link exposes, with
+// optional password, expiry, view cap, and per-link permissions.
+// Experiences NOT selected are never revealed through the link.
+model ShareLink {
+  id            String    @id @default(cuid())
+  token         String    @unique
+  title         String?
+  ownerId       String?
+  includeAll    Boolean   @default(false)
+  experienceIds String    @default("[]") // JSON array of experience ids
+
+  passwordHash  String?
+  expiresAt     DateTime?
+  maxViews      Int?
+  viewCount     Int       @default(0)
+
+  allowDownload  Boolean  @default(false)
+  allowComments  Boolean  @default(false)
+  allowGuestbook Boolean  @default(false)
+
+  role      String   @default("guest") // guest | friend | family | spouse | ...
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([token])
+}
+
 model WebhookEvent {
   id            String   @id @default(cuid())
   squareEventId String   @unique
