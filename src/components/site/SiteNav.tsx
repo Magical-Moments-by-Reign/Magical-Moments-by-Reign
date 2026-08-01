@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CartButton from "@/components/cart/CartButton";
+import MobileNav from "@/components/site/MobileNav";
 
 /** Site-wide navigation with the Magical Moments by Reign logo. */
 export default function SiteNav({ active }: { active?: string }) {
@@ -44,6 +45,7 @@ export default function SiteNav({ active }: { active?: string }) {
         <Link href="/create" className="btn-gold">
           Start your magic ✦
         </Link>
+        <MobileNav links={links} active={active} />
       </div>
     </nav>
   );
