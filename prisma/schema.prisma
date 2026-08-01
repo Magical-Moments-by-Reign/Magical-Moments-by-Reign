@@ -9,10 +9,16 @@
 
 generator client {
   provider = "prisma-client-js"
+  // "native" for local dev; the rhel target is the engine Netlify's
+  // serverless functions (AWS Lambda / Amazon Linux) need at runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  // Postgres in every environment (Netlify's serverless filesystem is
+  // ephemeral, so a file-based SQLite database cannot be used there).
+  // A free Neon/Supabase database works for local dev too — see DEPLOY.md.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -27,9 +27,8 @@ custom-built. See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for how it works, and
 
 ## Tech stack
 
-Next.js 15 (App Router) · TypeScript · Prisma (SQLite in dev → Postgres in prod)
-· React Server Components. AI, payments, and media-storage seams are in place for
-later phases.
+Next.js 15 (App Router) · TypeScript · Prisma + **Postgres** · React Server
+Components. AI, payments, and media-storage seams are in place for later phases.
 
 ## Run it locally
 
@@ -37,15 +36,19 @@ later phases.
 # 1. Install
 npm install
 
-# 2. Set up env (SQLite needs zero config)
+# 2. Point at a Postgres database (a free Neon database works great —
+#    see DEPLOY.md). Copy the example env and set DATABASE_URL.
 cp .env.example .env
+#    then edit .env → DATABASE_URL="postgresql://…"
 
-# 3. Create the database + seed example experiences
+# 3. Create the tables + seed example experiences
 npm run setup
 
 # 4. Start
 npm run dev
 ```
+
+> **Deploying?** See **[DEPLOY.md](./DEPLOY.md)** for a step-by-step Netlify + Neon guide.
 
 Then open **http://localhost:3000**:
 
