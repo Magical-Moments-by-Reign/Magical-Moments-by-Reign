@@ -7,7 +7,7 @@ export default function SiteNav({ active }: { active?: string }) {
   const links = [
     { label: "Home", href: "/", key: "home" },
     { label: "Experiences", href: "/create", key: "experiences" },
-    { label: "Inspiration Gallery", href: "/dashboard", key: "gallery" },
+    { label: "Inspiration Gallery", href: "/inspiration", key: "gallery" },
     { label: "Pricing", href: "/pricing", key: "pricing" },
     { label: "Business Sites", href: "/business", key: "business" },
     { label: "About", href: "/#how", key: "about" },

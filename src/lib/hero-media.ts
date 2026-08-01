@@ -15,6 +15,7 @@ const DEMO_HERO_MEDIA: Record<string, HeroMedia> = {
   rememberinggrandpajoe: { video: "/hero/grandpa.mp4", poster: "/hero/grandpa-poster.jpg" },
   babyolivia: { video: "/hero/baby.mp4", poster: "/hero/baby-poster.jpg" },
   karlie2027: { video: "/hero/karlie.mp4", poster: "/hero/karlie-poster.jpg" },
+  smithwedding: { video: "/hero/wedding.mp4", poster: "/hero/wedding-poster.jpg" },
 };
 
 export function heroMediaFor(

@@ -7,6 +7,7 @@
 import type { DesignSpec, ExperienceContent } from "@/types";
 import { ctaLabelFor } from "@/lib/content";
 import { heroMediaFor } from "@/lib/hero-media";
+import { galleryFor } from "@/lib/gallery-media";
 
 interface SectionProps {
   content: ExperienceContent;
@@ -107,14 +108,16 @@ export function Story({ content, variant }: SectionProps) {
   );
 }
 
-export function Gallery({ content, variant }: SectionProps) {
-  if (!content.gallery?.length) return null;
+export function Gallery({ content, variant, slug }: SectionProps) {
+  // Prefer a curated gallery for this experience; fall back to content.
+  const images = (slug ? galleryFor(slug) : undefined) ?? content.gallery;
+  if (!images?.length) return null;
   return (
     <section className={`mbr-section mbr-gallery mbr-gallery--${variant}`} id="gallery">
       <div className="mbr-container">
         <h2 className="mbr-h2 mbr-center">Gallery</h2>
         <div className="mbr-gallery__grid">
-          {content.gallery.map((g, i) => (
+          {images.map((g, i) => (
             <figure className="mbr-gallery__item" key={i}>
               {/* Customer media; external hosts, so a plain img is used. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
