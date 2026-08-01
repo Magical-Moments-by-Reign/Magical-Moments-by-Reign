@@ -1,22 +1,12 @@
 import Link from "next/link";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 
 export default function LandingPage() {
   return (
     <>
-      <nav className="nav">
-        <Link href="/" className="brand">
-          Magical <span>by Reign</span>
-        </Link>
-        <div className="nav-links">
-          <a href="#how">How it works</a>
-          <a href="#moments">Moments</a>
-          <Link href="/dashboard">Dashboard</Link>
-          <Link href="/create" className="btn btn-primary">
-            Create an experience
-          </Link>
-        </div>
-      </nav>
+      <SiteNav active="home" />
 
       {/* Hero */}
       <header className="hero">
@@ -113,15 +103,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="container">
-          <p className="brand">
-            Magical <span>by Reign</span>
-          </p>
-          <p>Preserving life&apos;s biggest moments, one magical experience at a time.</p>
-          <small>© {new Date().getFullYear()} Magical by Reign · Founded by Tabitha Turner</small>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }
