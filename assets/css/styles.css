@@ -1,0 +1,339 @@
+/* ============================================================
+   Magical by Reign — Handcrafted styling
+   "Beauty always comes before speed."
+   ============================================================ */
+
+:root {
+  /* Palette --------------------------------------------------- */
+  --plum-900: #1e1226;
+  --plum-800: #2b1b3d;
+  --plum-700: #3d2957;
+  --plum-500: #6b4a8f;
+  --gold-500: #c9a34e;
+  --gold-400: #d8bd7b;
+  --gold-200: #eadcc0;
+  --ivory:    #f8f3ec;
+  --cream:    #fbf8f3;
+  --rose:     #d8a0a6;
+  --ink:      #2a2130;
+  --muted:    #6f6577;
+
+  /* Type ------------------------------------------------------ */
+  --font-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Space & motion ------------------------------------------- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --maxw: 1120px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--cream);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.1;
+  margin: 0 0 0.4em;
+  letter-spacing: 0.01em;
+}
+
+p { margin: 0 0 1.1em; }
+
+a { color: inherit; text-decoration: none; }
+
+.container {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 5vw, 3rem);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gold-500);
+  margin-bottom: 1rem;
+  display: inline-block;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  padding: 0.95rem 2.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease),
+              background 0.4s var(--ease), color 0.4s var(--ease);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-400));
+  color: var(--plum-900);
+  box-shadow: 0 12px 30px -12px rgba(201, 163, 78, 0.7);
+}
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -12px rgba(201, 163, 78, 0.85); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ivory);
+  border-color: rgba(234, 220, 192, 0.4);
+}
+.btn-ghost:hover { border-color: var(--gold-400); color: var(--gold-200); }
+
+/* ============================================================
+   Navigation
+   ============================================================ */
+.nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.4rem clamp(1.25rem, 5vw, 3rem);
+  transition: background 0.5s var(--ease), padding 0.5s var(--ease),
+              box-shadow 0.5s var(--ease);
+}
+.nav.scrolled {
+  background: rgba(30, 18, 38, 0.85);
+  backdrop-filter: blur(14px);
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  box-shadow: 0 10px 30px -20px rgba(0,0,0,0.8);
+}
+.brand {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--ivory);
+  letter-spacing: 0.02em;
+}
+.brand span { color: var(--gold-400); }
+.nav-links { display: flex; gap: 2rem; align-items: center; }
+.nav-links a {
+  color: rgba(248, 243, 236, 0.85);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s var(--ease);
+}
+.nav-links a:hover { color: var(--gold-400); }
+.nav-links .btn { padding: 0.6rem 1.4rem; }
+.nav-toggle { display: none; }
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--ivory);
+  background:
+    radial-gradient(1200px 800px at 75% 15%, rgba(107, 74, 143, 0.55), transparent 60%),
+    radial-gradient(900px 700px at 10% 90%, rgba(201, 163, 78, 0.18), transparent 55%),
+    linear-gradient(160deg, var(--plum-900), var(--plum-800) 55%, var(--plum-700));
+}
+.hero-inner { position: relative; z-index: 2; max-width: 760px; padding: 8rem 0 6rem; }
+.hero h1 {
+  font-size: clamp(2.8rem, 7vw, 5.2rem);
+  margin-bottom: 0.5rem;
+}
+.hero h1 .accent {
+  font-style: italic;
+  color: var(--gold-400);
+}
+.hero .lede {
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  color: rgba(248, 243, 236, 0.82);
+  max-width: 34em;
+  margin-bottom: 2.2rem;
+}
+.hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+/* floating sparkles */
+.sparkle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold-200), rgba(216, 189, 123, 0));
+  opacity: 0.7;
+  animation: float 9s var(--ease) infinite;
+  pointer-events: none;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
+  50%      { transform: translateY(-26px) scale(1.15); opacity: 0.85; }
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 2rem; left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  color: rgba(248,243,236,0.6);
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  animation: nudge 2.4s ease-in-out infinite;
+}
+@keyframes nudge { 0%,100%{ transform: translate(-50%,0);} 50%{ transform: translate(-50%,8px);} }
+
+/* ============================================================
+   Sections
+   ============================================================ */
+section { padding: clamp(4.5rem, 10vw, 8rem) 0; }
+
+.section-head { max-width: 640px; margin: 0 auto 3.5rem; text-align: center; }
+.section-head h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); color: var(--plum-800); }
+.section-head p { color: var(--muted); font-size: 1.1rem; }
+
+/* Philosophy strip */
+.philosophy { background: var(--plum-900); color: var(--ivory); text-align: center; }
+.philosophy .lines { max-width: 780px; margin: 0 auto; }
+.philosophy .line {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+  line-height: 1.35;
+  margin: 0;
+  color: rgba(248,243,236,0.35);
+  transition: color 0.6s var(--ease);
+}
+.philosophy .line.lit { color: var(--ivory); }
+.philosophy .line em { color: var(--gold-400); font-style: italic; }
+
+/* Pillars grid */
+.pillars { background: var(--ivory); }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+.card {
+  background: var(--cream);
+  border: 1px solid rgba(201, 163, 78, 0.18);
+  border-radius: 20px;
+  padding: 2.2rem 1.9rem;
+  transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease),
+              border-color 0.5s var(--ease);
+}
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 26px 50px -30px rgba(43, 27, 61, 0.5);
+  border-color: rgba(201, 163, 78, 0.5);
+}
+.card .icon {
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--plum-700), var(--plum-500));
+  color: var(--gold-200);
+  margin-bottom: 1.2rem;
+  font-size: 1.4rem;
+}
+.card h3 { color: var(--plum-800); font-size: 1.5rem; }
+.card p { color: var(--muted); margin: 0; font-size: 0.98rem; }
+
+/* Moments showcase */
+.moments { background: linear-gradient(180deg, var(--cream), var(--ivory)); }
+.moment-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.moment {
+  position: relative;
+  border-radius: 16px;
+  padding: 2.4rem 1.2rem;
+  text-align: center;
+  color: var(--ivory);
+  overflow: hidden;
+  min-height: 170px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  transition: transform 0.5s var(--ease);
+}
+.moment:hover { transform: translateY(-6px); }
+.moment span.emoji { font-size: 2rem; margin-bottom: 0.5rem; }
+.moment h3 { font-size: 1.35rem; margin: 0; }
+.moment:nth-child(1) { background: linear-gradient(160deg, #6b4a8f, #3d2957); }
+.moment:nth-child(2) { background: linear-gradient(160deg, #b06a72, #6b3a54); }
+.moment:nth-child(3) { background: linear-gradient(160deg, #c9a34e, #8a6b2a); }
+.moment:nth-child(4) { background: linear-gradient(160deg, #4a6b8f, #29385a); }
+.moment:nth-child(5) { background: linear-gradient(160deg, #7a8f4a, #3f5729); }
+
+/* CTA / waitlist */
+.cta {
+  background:
+    radial-gradient(900px 600px at 80% 20%, rgba(107,74,143,0.5), transparent 60%),
+    linear-gradient(160deg, var(--plum-900), var(--plum-800));
+  color: var(--ivory);
+  text-align: center;
+}
+.cta h2 { font-size: clamp(2rem, 5vw, 3.4rem); }
+.cta p { color: rgba(248,243,236,0.8); max-width: 40em; margin: 0 auto 2rem; }
+.waitlist {
+  display: flex; gap: 0.75rem; justify-content: center;
+  max-width: 520px; margin: 0 auto; flex-wrap: wrap;
+}
+.waitlist input {
+  flex: 1 1 260px;
+  padding: 0.95rem 1.3rem;
+  border-radius: 999px;
+  border: 1px solid rgba(234,220,192,0.35);
+  background: rgba(248,243,236,0.06);
+  color: var(--ivory);
+  font-size: 1rem;
+  font-family: var(--font-body);
+}
+.waitlist input::placeholder { color: rgba(248,243,236,0.5); }
+.waitlist input:focus { outline: none; border-color: var(--gold-400); }
+.form-note { margin-top: 1rem; font-size: 0.85rem; color: rgba(248,243,236,0.55); }
+.form-note.success { color: var(--gold-400); }
+
+/* Footer */
+.footer {
+  background: var(--plum-900);
+  color: rgba(248,243,236,0.6);
+  text-align: center;
+  padding: 3rem 0 2.4rem;
+}
+.footer .brand { font-size: 1.2rem; margin-bottom: 0.6rem; display: inline-block; }
+.footer small { display: block; margin-top: 0.6rem; font-size: 0.8rem; }
+
+/* ============================================================
+   Reveal-on-scroll
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+}
+.reveal.in { opacity: 1; transform: none; }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 720px) {
+  .nav-links { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
