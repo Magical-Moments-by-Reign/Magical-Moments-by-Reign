@@ -75,6 +75,25 @@ const DEMO_GALLERY: Record<string, GalleryItem[]> = {
     { url: "/gallery/karlie/10.jpg", caption: "Sparkler magic" },
     { url: "/gallery/karlie/11.jpg", caption: "Best friends forever" },
   ],
+  rememberinggrandpajoe: [
+    { url: "/gallery/grandpa/01.jpg", caption: "Golden years by the water" },
+    { url: "/gallery/grandpa/02.jpg", caption: "A boy from the start" },
+    { url: "/gallery/grandpa/03.jpg", caption: "A young man with dreams" },
+    { url: "/gallery/grandpa/04.jpg", caption: "The open road" },
+    { url: "/gallery/grandpa/05.jpg", caption: "City days" },
+    { url: "/gallery/grandpa/06.jpg", caption: "The love of his life" },
+    { url: "/gallery/grandpa/07.jpg", caption: "An honest day's work" },
+    { url: "/gallery/grandpa/08.jpg", caption: "Story time" },
+    { url: "/gallery/grandpa/09.jpg", caption: "Their wedding day" },
+    { url: "/gallery/grandpa/10.jpg", caption: "Grandpa's girl" },
+    { url: "/gallery/grandpa/11.jpg", caption: "His favorite chair" },
+    { url: "/gallery/grandpa/12.jpg", caption: "A new generation" },
+    { url: "/gallery/grandpa/13.jpg", caption: "The morning paper" },
+    { url: "/gallery/grandpa/14.jpg", caption: "Father and son" },
+    { url: "/gallery/grandpa/15.jpg", caption: "The whole family" },
+    { url: "/gallery/grandpa/16.jpg", caption: "Generations" },
+    { url: "/gallery/grandpa/17.jpg", caption: "Forever in our hearts" },
+  ],
 };
 
 export function galleryFor(slug: string): GalleryItem[] | undefined {
