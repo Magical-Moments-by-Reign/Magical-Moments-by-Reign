@@ -1,0 +1,84 @@
+/* ================================================================
+   Custom Business Websites — pitch + request
+   ================================================================ */
+.biz { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
+.biz .container { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+/* Hero */
+.biz-hero {
+  position: relative;
+  padding: clamp(3.5rem, 9vw, 7rem) 0 clamp(3rem, 7vw, 5.5rem);
+  background:
+    radial-gradient(55% 80% at 12% 0%, rgba(169,140,208,0.24), transparent 60%),
+    radial-gradient(50% 70% at 92% 8%, rgba(198,161,90,0.22), transparent 55%),
+    linear-gradient(160deg, #221d2b, #17141d);
+  color: var(--cream-100);
+  overflow: hidden;
+}
+.biz-hero__inner { position: relative; max-width: 44rem; }
+.biz-hero__eyebrow { color: var(--gold-soft); }
+.biz-hero__title { font-family: var(--font-display); font-weight: 500; line-height: 1.02; font-size: clamp(2.4rem, 6.5vw, 4.4rem); margin: 0.6rem 0 1.1rem; }
+.biz-hero__title span { display: block; }
+.biz-hero__title .accent { color: var(--gold-soft); font-family: var(--font-script, var(--font-display)); font-style: italic; }
+.biz-hero__lede { font-size: clamp(1rem, 2.2vw, 1.2rem); line-height: 1.6; color: rgba(248,244,236,0.82); max-width: 40rem; margin: 0 0 1.8rem; }
+.biz-hero__actions { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
+.biz-hero__note { margin: 1.4rem 0 0; font-size: 0.8rem; color: rgba(248,244,236,0.55); }
+
+/* Sections */
+.biz-section { padding: clamp(3rem, 6vw, 5rem) 0; }
+.biz-section--alt { background: var(--ivory, #f3ece0); }
+.biz .section-head--left { max-width: 44rem; margin-bottom: 2.2rem; }
+.biz .section-head--left h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 2.6rem); color: #211d29; margin: 0.4rem 0 0.6rem; }
+
+/* Includes grid */
+.biz-inc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.biz-inc { background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: 1.5rem 1.4rem; box-shadow: 0 24px 48px -44px rgba(43,39,50,0.5); transition: transform 0.25s, box-shadow 0.25s; }
+.biz-inc:hover { transform: translateY(-4px); box-shadow: 0 30px 56px -40px rgba(43,39,50,0.55); }
+.biz-inc__icon { display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, rgba(198,161,90,0.18), rgba(169,140,208,0.18)); font-size: 1.35rem; margin-bottom: 0.9rem; }
+.biz-inc h3 { font-family: var(--font-display); font-size: 1.2rem; color: #211d29; margin: 0 0 0.35rem; }
+.biz-inc p { font-size: 0.92rem; color: #5f5866; line-height: 1.55; margin: 0; }
+
+/* Steps */
+.biz-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; }
+.biz-step { position: relative; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: 1.5rem 1.3rem; }
+.biz-step__n { font-family: var(--font-display); font-size: 1.6rem; color: var(--gold-deep); letter-spacing: 0.04em; }
+.biz-step h3 { font-family: var(--font-display); font-size: 1.15rem; color: #211d29; margin: 0.5rem 0 0.35rem; }
+.biz-step p { font-size: 0.9rem; color: #5f5866; line-height: 1.55; margin: 0; }
+
+/* Form */
+.biz-form-wrap { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 2rem; align-items: start; }
+.biz-form-intro { position: sticky; top: 90px; }
+.biz-form-intro h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 2.4rem); color: #211d29; margin: 0.4rem 0 0.6rem; }
+.biz-form { background: #fff; border: 1px solid var(--gray-200); border-radius: 22px; padding: clamp(1.5rem, 3vw, 2.4rem); box-shadow: 0 28px 58px -44px rgba(43,39,50,0.5); display: grid; gap: 1rem; }
+.biz-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.biz-row--3 { grid-template-columns: 1fr 1fr 1fr; }
+.biz-field { display: grid; gap: 0.4rem; }
+.biz-field span { font-size: 0.8rem; font-weight: 600; color: #4a4551; }
+.biz-field input, .biz-field select, .biz-field textarea { width: 100%; padding: 0.75rem 0.9rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
+.biz-field input:focus, .biz-field select:focus, .biz-field textarea:focus { outline: none; border-color: var(--lavender); }
+.biz-field textarea { resize: vertical; }
+.biz-submit { justify-self: start; margin-top: 0.3rem; }
+.biz-form__fine { font-size: 0.76rem; color: #9a93a2; margin: 0; }
+.biz-error { background: #fbe9e9; color: #8a2f2f; padding: 0.8rem 1rem; border-radius: 10px; font-size: 0.9rem; }
+
+/* Confirmation */
+.biz-main { padding: 3rem 0 5rem; }
+.biz-confirm { max-width: 40rem; margin: 2rem auto; text-align: center; background: #fff; border: 1px solid var(--gray-200); border-radius: 22px; padding: clamp(2rem, 5vw, 3.4rem); box-shadow: 0 30px 60px -44px rgba(43,39,50,0.5); }
+.biz-confirm__badge { width: 64px; height: 64px; margin: 0 auto 1rem; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; font-size: 1.8rem; }
+.biz-confirm h1 { font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 2.3rem); color: #211d29; margin: 0.4rem 0 0.6rem; }
+.biz-confirm p { color: #5f5866; margin: 0 auto 0.6rem; max-width: 34rem; }
+.biz-confirm__number { font-size: 1.05rem; color: #211d29; }
+.biz-confirm__number strong { font-family: var(--font-display); color: var(--gold-deep); letter-spacing: 0.05em; }
+.biz-confirm__hint { font-size: 0.86rem; color: #7c7583; }
+.biz-confirm__actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-top: 1.4rem; }
+
+@media (max-width: 900px) {
+  .biz-inc-grid { grid-template-columns: 1fr 1fr; }
+  .biz-steps { grid-template-columns: 1fr 1fr; }
+  .biz-form-wrap { grid-template-columns: 1fr; }
+  .biz-form-intro { position: static; }
+}
+@media (max-width: 620px) {
+  .biz-inc-grid, .biz-steps { grid-template-columns: 1fr; }
+  .biz-row, .biz-row--3 { grid-template-columns: 1fr; }
+}

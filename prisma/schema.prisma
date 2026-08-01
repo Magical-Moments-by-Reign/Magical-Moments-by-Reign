@@ -314,3 +314,26 @@ model WebhookEvent {
   processed     Boolean  @default(false)
   createdAt     DateTime @default(now())
 }
+
+// ── Custom business website requests (quote-based, separate service) ──
+model CustomWebsiteRequest {
+  id          String   @id @default(cuid())
+  number      String   @unique // MMR-CW-XXXXXX
+  name        String
+  email       String
+  phone       String?
+  business    String?
+  projectType String?
+  budget      String?
+  timeline    String?
+  details     String
+  status      String   @default("NEW") // NEW | ACCEPTED | IN_PROGRESS | COMPLETE | DECLINED
+  jotformUrl  String?
+  notes       String?
+  acceptedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}

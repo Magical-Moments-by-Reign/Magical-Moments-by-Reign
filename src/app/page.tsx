@@ -124,7 +124,7 @@ export default function LandingPage() {
                 domain, custom quote, and a direct consultation.
               </p>
             </div>
-            <Link href="/contact?reason=business" className="btn-gold">Contact us for a business website</Link>
+            <Link href="/business" className="btn-gold">Explore custom business websites</Link>
           </div>
         </div>
       </section>
