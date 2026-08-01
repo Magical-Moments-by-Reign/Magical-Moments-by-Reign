@@ -5,15 +5,21 @@
 // unique pages.
 
 import type { DesignSpec, ExperienceContent } from "@/types";
+import { ctaLabelFor } from "@/lib/content";
 
 interface SectionProps {
   content: ExperienceContent;
   spec: DesignSpec;
   variant: string;
+  experienceType?: string;
 }
 
-export function Hero({ content, variant }: SectionProps) {
+export function Hero({ content, variant, experienceType }: SectionProps) {
   const { hero } = content;
+  // Per-occasion, immersive CTA (covers older experiences too).
+  const ctaLabel = experienceType ? ctaLabelFor(experienceType) : hero.ctaLabel;
+  // Scroll to the first content section after the hero.
+  const target = "#mbr-explore";
   return (
     <header className={`mbr-hero mbr-hero--${variant}`} id="top">
       <div className="mbr-hero__bg" aria-hidden="true" />
@@ -21,12 +27,16 @@ export function Hero({ content, variant }: SectionProps) {
         <span className="mbr-eyebrow">{hero.eyebrow}</span>
         <h1 className="mbr-hero__title">{hero.headline}</h1>
         {hero.subhead && <p className="mbr-hero__subhead">{hero.subhead}</p>}
-        {hero.ctaLabel && (
-          <a className="mbr-btn mbr-btn--accent" href="#story">
-            {hero.ctaLabel}
+        {ctaLabel && (
+          <a className="mbr-btn mbr-btn--accent" href={target}>
+            {ctaLabel}
           </a>
         )}
       </div>
+      <a className="mbr-scroll" href={target} aria-label="Scroll to explore">
+        <span>Scroll to explore</span>
+        <span className="mbr-scroll__chev" aria-hidden="true">⌄</span>
+      </a>
     </header>
   );
 }

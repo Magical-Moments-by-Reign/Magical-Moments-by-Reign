@@ -225,21 +225,34 @@ export interface AddOn {
   name: string;
   description: string;
   price: number;
-  priceSuffix?: string;
+  unit: string; // "each" | "per 25 GB" | "per year" | "per contributor bundle"
+  icon: string; // OccasionIcon key
+  receive: string; // what the customer gets
+  quantitySelectable: boolean;
+  maxQty: number; // 1 = one per experience
+  recurring: boolean; // e.g. extra domain renews annually
+  requiresShipping: boolean;
+  requiresAck?: string; // acknowledgment text shown at checkout
+  bundleSize?: number; // e.g. contributors per bundle
+  bestWith?: PlanId; // "Best with…" suggestion
 }
 
 export const ADD_ONS: AddOn[] = [
-  { id: "ai-video", name: "Additional AI video generations", description: "Extra AI-crafted video moments for your experience.", price: 29, priceSuffix: "each" },
-  { id: "storage", name: "Additional storage", description: "Add 25 GB of photo & video storage.", price: 19 },
-  { id: "extra-domain", name: "Extra custom domain", description: "Point a second custom address at your experience.", price: 39, priceSuffix: "/yr" },
-  { id: "keepsake-book", name: "Printed keepsake book", description: "A beautifully bound book of your Magical Moment.", price: 119 },
-  { id: "highlight-film", name: "Downloadable highlight film", description: "A shareable highlight film of your memories.", price: 79 },
-  { id: "priority-design", name: "Priority design service", description: "Move to the front of the design queue.", price: 99 },
-  { id: "copy-review", name: "Professional copy review", description: "A human editor polishes your words.", price: 79 },
-  { id: "extended-uploads", name: "Extended guest upload period", description: "Give guests more time to add their memories.", price: 39 },
-  { id: "family-contributors", name: "Additional family contributors", description: "Invite more loved ones to collaborate.", price: 29 },
-  { id: "rush", name: "Rush creation", description: "Expedited creation for time-sensitive moments.", price: 149 },
+  { id: "ai-video", name: "Additional AI video generation", description: "Extra AI-crafted video moments for your experience.", price: 29, unit: "each", icon: "sparkle", receive: "One additional AI-generated video clip.", quantitySelectable: true, maxQty: 20, recurring: false, requiresShipping: false, bestWith: "diamond" },
+  { id: "storage", name: "Additional storage", description: "More room for photos & videos.", price: 19, unit: "per 25 GB", icon: "home", receive: "An extra 25 GB of media storage.", quantitySelectable: true, maxQty: 40, recurring: false, requiresShipping: false },
+  { id: "extra-domain", name: "Extra custom domain", description: "Point a second custom address at your experience.", price: 39, unit: "per year", icon: "star", receive: "One additional custom domain for a year.", quantitySelectable: true, maxQty: 10, recurring: true, requiresShipping: false, requiresAck: "I understand domain registration and availability are subject to confirmation, and extra domains renew annually.", bestWith: "diamond" },
+  { id: "keepsake-book", name: "Printed keepsake book", description: "A beautifully bound book of your Magical Moment.", price: 119, unit: "each", icon: "gift", receive: "One printed, bound keepsake book (shipped).", quantitySelectable: true, maxQty: 20, recurring: false, requiresShipping: true },
+  { id: "highlight-film", name: "Downloadable highlight film", description: "A shareable highlight film of your memories.", price: 79, unit: "each", icon: "trophy", receive: "One downloadable highlight film.", quantitySelectable: true, maxQty: 10, recurring: false, requiresShipping: false },
+  { id: "priority-design", name: "Priority design service", description: "Move to the front of the design queue.", price: 99, unit: "per experience", icon: "crown", receive: "Priority placement in the design queue.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false },
+  { id: "copy-review", name: "Professional copy review", description: "A human editor polishes your words.", price: 79, unit: "per experience", icon: "heart", receive: "A professional edit of your written content.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false },
+  { id: "extended-uploads", name: "Extended guest upload period", description: "Give guests more time to add their memories.", price: 39, unit: "per experience", icon: "balloon", receive: "An extended window for guest uploads.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false },
+  { id: "family-contributors", name: "Additional family contributors", description: "Invite more loved ones to collaborate.", price: 29, unit: "per bundle of 3", icon: "tree", receive: "A bundle of 3 additional family contributors.", quantitySelectable: true, maxQty: 10, recurring: false, requiresShipping: false, bundleSize: 3 },
+  { id: "rush", name: "Rush creation", description: "Expedited creation for time-sensitive moments.", price: 149, unit: "per experience", icon: "plane", receive: "Expedited creation of your experience.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false, requiresAck: "I understand rush availability must be confirmed by the Magical Moments by Reign team." },
 ];
+
+export function getAddOn(id: string): AddOn | undefined {
+  return ADD_ONS.find((a) => a.id === id);
+}
 
 export function formatPrice(n: number): string {
   return `$${n.toLocaleString("en-US")}`;

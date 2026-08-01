@@ -172,3 +172,145 @@ model SocialShareTarget {
 
   @@index([shareId])
 }
+
+// ── Commerce: customers, orders, payments ───────────────────────
+model Customer {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String?
+  phone            String?
+  squareCustomerId String?
+  orders           Order[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  number            String   @unique // MMR-YYYYMMDD-####
+  customerId        String?
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  experienceId      String?
+  planId            String?
+  experienceTitle   String?
+  experienceType    String?
+  eventDate         DateTime?
+  customDomain      String?
+
+  // amounts in cents (USD)
+  subtotal          Int
+  discount          Int      @default(0)
+  tax               Int      @default(0)
+  total             Int
+  recurringAnnual   Int      @default(0)
+  currency          String   @default("USD")
+  couponCode        String?
+
+  paymentStatus     String   @default("PENDING") // PENDING | PAID | FAILED | REFUNDED
+  fulfillmentStatus String   @default("UNFULFILLED") // UNFULFILLED | IN_PROGRESS | FULFILLED
+  squarePaymentId   String?
+  squareOrderId     String?
+  notes             String?
+
+  billingAddressId  String?
+  billingAddress    Address? @relation("billing", fields: [billingAddressId], references: [id])
+  shippingAddressId String?
+  shippingAddress   Address? @relation("shipping", fields: [shippingAddressId], references: [id])
+
+  items         OrderItem[]
+  payments      Payment[]
+  refunds       Refund[]
+  domainRequest DomainRequest?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentStatus])
+  @@index([fulfillmentStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind      String // plan | addon
+  refId     String // planId or addonId
+  label     String
+  unitPrice Int // cents
+  quantity  Int
+  amount    Int // cents
+  recurring Boolean @default(false)
+
+  @@index([orderId])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount          Int
+  currency        String   @default("USD")
+  status          String   @default("PENDING") // PENDING | COMPLETED | FAILED
+  squarePaymentId String?
+  idempotencyKey  String   @unique
+  error           String?
+  createdAt       DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model Refund {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount         Int
+  reason         String?
+  squareRefundId String?
+  status         String   @default("PENDING") // PENDING | COMPLETED | FAILED
+  createdAt      DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model Address {
+  id          String  @id @default(cuid())
+  name        String?
+  line1       String
+  line2       String?
+  city        String
+  region      String
+  postal      String
+  country     String  @default("US")
+  phone       String?
+  billingFor  Order[] @relation("billing")
+  shippingFor Order[] @relation("shipping")
+}
+
+model Coupon {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  kind      String // percent | amount
+  value     Int // percent (0-100) or cents
+  active    Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model DomainRequest {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  requested String
+  status    String   @default("PENDING") // PENDING | CONFIRMED | UNAVAILABLE
+  createdAt DateTime @default(now())
+}
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  squareEventId String   @unique
+  type          String
+  payload       String // raw JSON
+  processed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}

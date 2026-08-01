@@ -7,6 +7,35 @@
 import type { ExperienceContent } from "@/types";
 import { getExperienceType } from "@/lib/experience-types";
 
+/** Per-occasion primary hero button label (immersive, not generic). */
+export const CTA_LABELS: Record<string, string> = {
+  vacation: "▶ Begin the Journey",
+  wedding: "♥ Experience Our Love Story",
+  birthday: "🎉 Celebrate With Us",
+  baby: "👶 Welcome Our Little One",
+  graduation: "🎓 Celebrate the Achievement",
+  anniversary: "❤️ Relive Our Love Story",
+  proposal: "💍 Watch the Proposal",
+  military: "🎖 Honor the Journey",
+  memorial: "🕊 Celebrate Their Legacy",
+  newhome: "🏡 Take the House Tour",
+  sweet16: "✨ Step Into the Celebration",
+  firstbirthday: "🎈 Celebrate the First Year",
+  quinceanera: "👑 Step Into the Celebration",
+  sports: "🏆 Relive Every Season",
+  prom: "🌟 Step Into the Night",
+  bridalshower: "🎁 Join the Celebration",
+  babyshower: "🍼 Welcome the Little One",
+  genderreveal: "🎉 See the Surprise",
+  reunion: "🌳 Gather With Us",
+  retirement: "🌇 Celebrate the Journey",
+  custom: "✦ Step Into the Story",
+};
+
+export function ctaLabelFor(type: string): string {
+  return CTA_LABELS[type] ?? "✦ Step Into the Story";
+}
+
 function placeholderImages(seed: string, count: number) {
   return Array.from({ length: count }, (_, i) => ({
     url: `https://picsum.photos/seed/${encodeURIComponent(seed)}-${i}/900/1100`,
@@ -36,7 +65,7 @@ export function buildDefaultContent({ type, title, subtitle, seed }: ContentInpu
       eyebrow,
       headline: title,
       subhead: subtitle || "Handcrafted with love by Magical Moments by Reign.",
-      ctaLabel: "Explore the story",
+      ctaLabel: ctaLabelFor(type),
     },
     story: [
       { heading: "How it began", body: "Every great story has a beginning. This is where yours starts — the small moments that grew into something unforgettable." },

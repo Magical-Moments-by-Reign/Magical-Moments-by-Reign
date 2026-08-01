@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CartButton from "@/components/cart/CartButton";
 
 /** Site-wide navigation with the Magical Moments by Reign logo. */
 export default function SiteNav({ active }: { active?: string }) {
@@ -35,6 +36,7 @@ export default function SiteNav({ active }: { active?: string }) {
       </div>
 
       <div className="site-nav__actions">
+        <CartButton />
         <Link href="/dashboard" className="btn-outline-gold">
           Log in
         </Link>

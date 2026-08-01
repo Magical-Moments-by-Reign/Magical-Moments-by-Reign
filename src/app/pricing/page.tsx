@@ -3,10 +3,11 @@ import Link from "next/link";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PlanQuiz from "@/components/pricing/PlanQuiz";
+import AddPlanButton from "@/components/pricing/AddPlanButton";
+import AddOnsShop from "@/components/pricing/AddOnsShop";
 import {
   PLANS,
   COMPARISON_ROWS,
-  ADD_ONS,
   getPlan,
   formatPrice,
   LIFETIME_LEGAL,
@@ -80,9 +81,7 @@ export default function PricingPage() {
 
                   {plan.savingsNote && <p className="pp-savings">{plan.savingsNote}</p>}
 
-                  <Link href={`/checkout?plan=${plan.id}`} className="btn-gold pp-card__cta">
-                    {plan.cta}
-                  </Link>
+                  <AddPlanButton planId={plan.id} label={plan.cta} className="btn-gold pp-card__cta" />
 
                   <div className="pp-bestfor">
                     <p className="pp-bestfor__label">Best for</p>
@@ -222,25 +221,18 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Add-ons */}
-      <section className="pp-addons">
+      {/* Add-ons shop */}
+      <section className="pp-section" style={{ background: "var(--cream-200)" }} id="add-ons">
         <div className="container">
-          <div className="pp-section__head pp-on-dark">
-            <h2>Make It <em>Even More</em> Magical</h2>
-            <p>Optional add-ons you can include with any plan at checkout.</p>
+          <div className="pp-section__head">
+            <h2>Make Your Moment <em>Even More</em> Magical</h2>
+            <p>Personalize your experience with optional upgrades designed to make your story even more memorable.</p>
           </div>
-          <div className="pp-addons__grid">
-            {ADD_ONS.map((a) => (
-              <div className="pp-addon" key={a.id}>
-                <div className="pp-addon__top">
-                  <span className="pp-addon__name">{a.name}</span>
-                  <span className="pp-addon__price">{formatPrice(a.price)}{a.priceSuffix ? ` ${a.priceSuffix}` : ""}</span>
-                </div>
-                <p className="pp-addon__desc">{a.description}</p>
-              </div>
-            ))}
-          </div>
-          <p className="pp-addons__note">Add-ons are selected after you choose a plan, at checkout.</p>
+          <AddOnsShop />
+          <p className="pp-addons__note" style={{ color: "#7a7280", textAlign: "center", marginTop: "1.6rem" }}>
+            USD · taxes may apply · add-ons may be limited by plan · domain availability is not guaranteed ·
+            physical products require shipping · rush service is subject to availability.
+          </p>
         </div>
       </section>
 

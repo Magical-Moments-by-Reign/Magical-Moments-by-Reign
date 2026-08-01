@@ -46,7 +46,7 @@ export default async function ExperiencePage({ params }: Params) {
         </span>
       </div>
 
-      <ExperienceRenderer designSpec={exp.designSpec} content={exp.content} />
+      <ExperienceRenderer designSpec={exp.designSpec} content={exp.content} experienceType={exp.type} />
     </>
   );
 }
