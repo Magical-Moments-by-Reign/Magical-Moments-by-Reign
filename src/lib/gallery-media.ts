@@ -76,6 +76,9 @@ const DEMO_GALLERY: Record<string, GalleryItem[]> = {
     { url: "/gallery/karlie/11.jpg", caption: "Best friends forever" },
     { url: "/gallery/karlie/12-celebration.jpg", caption: "Blowing out the candles" },
   ],
+  thejohnsonhome: [
+    { url: "/gallery/johnson/our-new-home.jpg", caption: "Our new home — built from the ground up" },
+  ],
   rememberinggrandpajoe: [
     { url: "/gallery/grandpa/01.jpg", caption: "Golden years by the water" },
     { url: "/gallery/grandpa/02.jpg", caption: "A boy from the start" },
