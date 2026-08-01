@@ -399,3 +399,35 @@
   box-shadow: 0 16px 38px -22px rgba(60,40,38,0.7);
 }
 .mbr-hero--type-baby .mbr-btn--accent:hover { background: #fff; transform: translateY(-2px); }
+
+/* ── Birthday — festive, radiant hero ── */
+.mbr-hero--type-birthday { --mbr-bday-gold: #f3d271; --mbr-bday-lav: #d8b6f0; }
+.mbr-hero--type-birthday .mbr-hero__scrim {
+  background:
+    linear-gradient(90deg, rgba(24,10,30,0.72) 0%, rgba(24,10,30,0.42) 40%, rgba(24,10,30,0.08) 70%, rgba(24,10,30,0.3) 100%),
+    linear-gradient(180deg, rgba(24,10,30,0.28) 0%, transparent 34%, rgba(24,10,30,0.55) 100%);
+}
+.mbr-hero--type-birthday .mbr-eyebrow {
+  color: var(--mbr-bday-lav); letter-spacing: 0.34em;
+  text-shadow: 0 1px 14px rgba(24,10,30,0.6);
+}
+.mbr-hero--type-birthday .mbr-hero__title {
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 2px 30px rgba(24,10,30,0.65);
+  background: linear-gradient(180deg, #fff 0%, var(--mbr-bday-gold) 140%);
+  -webkit-background-clip: text; background-clip: text;
+}
+.mbr-hero--type-birthday .mbr-hero__subhead {
+  color: #f6ecff; opacity: 0.95;
+  text-shadow: 0 1px 14px rgba(24,10,30,0.6);
+}
+.mbr-hero--type-birthday .mbr-btn--accent {
+  background: linear-gradient(180deg, var(--mbr-bday-gold), #d8ad46);
+  color: #3a2410;
+  border: none; border-radius: 999px;
+  font-weight: 700; letter-spacing: 0.03em;
+  padding: 0.95rem 2rem;
+  box-shadow: 0 18px 42px -20px rgba(243,210,113,0.7);
+}
+.mbr-hero--type-birthday .mbr-btn--accent:hover { transform: translateY(-2px); filter: brightness(1.05); }
