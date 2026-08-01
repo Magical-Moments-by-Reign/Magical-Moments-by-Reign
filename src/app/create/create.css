@@ -1,0 +1,50 @@
+/* ================================================================
+   Create flow — visual occasion picker
+   ================================================================ */
+.cr { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
+.cr .container { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+.cr-header {
+  padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(2rem, 4vw, 3rem);
+  background:
+    radial-gradient(60% 90% at 20% 0%, rgba(169,140,208,0.16), transparent 60%),
+    linear-gradient(160deg, var(--charcoal-900), var(--charcoal-800));
+  color: var(--cream-100);
+}
+.cr-header h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); margin: 0.5rem 0 0.4rem; }
+.cr-header p { color: rgba(248,244,236,0.8); margin: 0; max-width: 44rem; }
+
+.cr-main { padding: 2.5rem 0 5rem; }
+.cr-form { display: grid; gap: 2rem; }
+.cr-error { background: #fbe9e9; color: #8a2f2f; padding: 0.8rem 1rem; border-radius: 10px; font-size: 0.9rem; }
+.cr-fieldset { border: none; margin: 0; padding: 0; }
+.cr-legend { font-family: var(--font-display); font-size: 1.5rem; color: #211d29; margin-bottom: 1rem; padding: 0; }
+
+/* Occasion radio cards */
+.cr-occasions { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.9rem; }
+.cr-occ { position: relative; cursor: pointer; }
+.cr-occ input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.cr-occ__card {
+  display: flex; flex-direction: column; height: 100%; min-height: 150px;
+  border-radius: 16px; padding: 1rem; color: var(--ivory); position: relative; overflow: hidden;
+  background: linear-gradient(155deg, var(--c1), var(--c2));
+  border: 2px solid transparent; transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+  box-shadow: 0 16px 36px -28px rgba(43,27,61,0.5);
+}
+.cr-occ:hover .cr-occ__card { transform: translateY(-4px); box-shadow: 0 24px 46px -26px rgba(43,27,61,0.65); }
+.cr-occ__icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,0.16); margin-bottom: auto; }
+.cr-occ__check { position: absolute; top: 0.8rem; right: 0.8rem; width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: #241f12; display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; opacity: 0; transform: scale(0.6); transition: all 0.3s var(--ease); }
+.cr-occ__label { font-family: var(--font-display); font-size: 1.15rem; margin-top: 0.9rem; line-height: 1.1; }
+.cr-occ__desc { font-size: 0.76rem; color: rgba(248,243,236,0.85); margin-top: 0.25rem; line-height: 1.4; }
+.cr-occ input:checked + .cr-occ__card { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 0 0 3px rgba(198,161,90,0.35), 0 24px 46px -26px rgba(43,27,61,0.7); }
+.cr-occ input:checked + .cr-occ__card .cr-occ__check { opacity: 1; transform: scale(1); }
+.cr-occ input:focus-visible + .cr-occ__card { outline: 3px solid var(--lavender); outline-offset: 2px; }
+
+/* Name fields */
+.cr-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.1rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: 1.6rem; box-shadow: 0 24px 50px -42px rgba(43,39,50,0.5); }
+.cr-field { display: grid; gap: 0.4rem; }
+.cr-field span { font-size: 0.82rem; font-weight: 600; color: #4a4551; }
+.cr-field input { padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); }
+.cr-field input:focus { outline: none; border-color: var(--lavender); }
+.cr-field small { font-size: 0.78rem; color: #9a93a2; }
+.cr-submit { justify-self: start; }

@@ -135,6 +135,24 @@ model SocialShare {
   @@index([experienceId])
 }
 
+// A contact-form inquiry / support ticket.
+model Inquiry {
+  id               String   @id @default(cuid())
+  number           String   @unique // human-friendly ticket number, e.g. MMR-7F3K2A
+  name             String
+  email            String
+  phone            String?
+  reason           String
+  experienceType   String?
+  message          String
+  preferredContact String?
+  consent          Boolean  @default(false)
+  status           String   @default("NEW") // NEW | IN_PROGRESS | RESOLVED
+  createdAt        DateTime @default(now())
+
+  @@index([status])
+}
+
 // The optimized, platform-specific version of a share and its result.
 model SocialShareTarget {
   id         String      @id @default(cuid())

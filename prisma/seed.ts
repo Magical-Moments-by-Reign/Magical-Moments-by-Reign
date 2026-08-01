@@ -16,7 +16,8 @@ const DEMOS: { slug: string; type: string; title: string; subtitle: string }[] =
   { slug: "babyolivia", type: "baby", title: "Baby Olivia", subtitle: "The story of our little miracle" },
   { slug: "rememberinggrandpajoe", type: "memorial", title: "Remembering Grandpa Joe", subtitle: "1938 – 2025 · Forever in our hearts" },
   { slug: "italy2026", type: "vacation", title: "Italy, 2026", subtitle: "Two weeks along the Amalfi Coast" },
-  { slug: "reignlaunch", type: "business", title: "Magical by Reign", subtitle: "The grand unveiling" },
+  { slug: "thejohnsonhome", type: "newhome", title: "The Johnson Home", subtitle: "From groundbreaking to move-in day" },
+  { slug: "welcomehomejames", type: "military", title: "Welcome Home, James", subtitle: "After 9 months, together again" },
 ];
 
 async function main() {

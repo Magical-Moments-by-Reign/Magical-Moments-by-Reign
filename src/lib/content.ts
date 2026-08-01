@@ -35,7 +35,7 @@ export function buildDefaultContent({ type, title, subtitle, seed }: ContentInpu
     hero: {
       eyebrow,
       headline: title,
-      subhead: subtitle || "Handcrafted with love by Magical by Reign.",
+      subhead: subtitle || "Handcrafted with love by Magical Moments by Reign.",
       ctaLabel: "Explore the story",
     },
     story: [
@@ -49,10 +49,10 @@ export function buildDefaultContent({ type, title, subtitle, seed }: ContentInpu
       { date: "Chapter two", title: "Growing together", body: "The moments in between that mattered most." },
       { date: "Chapter three", title: "Today", body: "Celebrating how far this journey has come." },
     ],
-    quote: { text: "The goal is not to build webpages. The goal is to preserve memories.", attribution: "Magical by Reign" },
+    quote: { text: "The goal is not to build webpages. The goal is to preserve memories.", attribution: "Magical Moments by Reign" },
     details: [
       { label: "Occasion", value: t?.label ?? "Celebration" },
-      { label: "Created with", value: "Magical by Reign" },
+      { label: "Created with", value: "Magical Moments by Reign" },
     ],
     navLinks,
   };
@@ -72,8 +72,11 @@ export function buildDefaultContent({ type, title, subtitle, seed }: ContentInpu
     case "vacation":
       base.story[0] = { heading: "The journey", body: "New places, new faces, and the kind of memories that stay long after the tan fades." };
       break;
-    case "business":
-      base.story[0] = { heading: "The vision", body: "Every venture begins with a spark of an idea and the courage to build it." };
+    case "newhome":
+      base.story[0] = { heading: "From the ground up", body: "Every wall, every window, every dream taking shape — the story of a place to call home." };
+      break;
+    case "military":
+      base.story[0] = { heading: "The homecoming", body: "Counting down the days until the moment we'd been waiting for — together again at last." };
       break;
   }
 

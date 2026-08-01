@@ -29,7 +29,7 @@ export default function CheckoutForm({ plan, storage }: Props) {
     [selected],
   );
   const total = plan.price + addOnTotal;
-  const hasCustomDomain = plan.addressType === "Custom domain included";
+  const hasCustomDomain = plan.id === "diamond" || plan.id === "lifetime";
 
   return (
     <div className="co-grid">
@@ -43,11 +43,11 @@ export default function CheckoutForm({ plan, storage }: Props) {
         </div>
         <div className="co-row">
           <span>Preservation term</span>
-          <strong>{plan.term.replace("Preserved for ", "")}</strong>
+          <strong>{plan.termShort}</strong>
         </div>
         <div className="co-row">
           <span>Included address</span>
-          <strong>{plan.addressType}</strong>
+          <strong>{plan.domain}</strong>
         </div>
         <div className="co-row">
           <span>Photo storage</span>
@@ -106,7 +106,7 @@ export default function CheckoutForm({ plan, storage }: Props) {
             <span>Total today</span>
             <strong>{formatPrice(total)}</strong>
           </div>
-          <p className="co-total__suffix">{plan.priceSuffix}</p>
+          <p className="co-total__suffix">{plan.priceKind}</p>
         </div>
 
         <div className="co-disclosures">
@@ -116,10 +116,7 @@ export default function CheckoutForm({ plan, storage }: Props) {
               <b>Renewal:</b>{" "}
               {plan.id === "lifetime"
                 ? "One-time payment for lifetime preservation, subject to the service terms and fair-use policy."
-                : `Your ${plan.term.replace(
-                    "Preserved for ",
-                    "",
-                  )} term does not auto-renew. We'll remind you before it ends so you can renew, extend, or upgrade.`}
+                : `Your ${plan.termShort} term does not auto-renew. We'll remind you before it ends so you can renew, extend, or upgrade.`}
             </li>
             <li>
               <b>Recurring charges:</b> None billed automatically. Any future

@@ -181,3 +181,67 @@
 @media (prefers-reduced-motion: reduce) {
   .pp * { animation: none !important; transition: none !important; }
 }
+
+/* ================================================================
+   Premium revision — watermark, tier themes, ribbons, savings, FAQ, quiz
+   ================================================================ */
+
+/* Logo watermark behind the plan cards */
+.pp-plans { position: relative; }
+.pp-watermark {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: min(680px, 80%); opacity: 0.05; pointer-events: none; z-index: 0;
+  filter: grayscale(0.1);
+}
+.pp-plans .container { position: relative; z-index: 1; }
+
+/* Per-tier card themes */
+.pp-card--silver { background: linear-gradient(180deg, #ffffff, #f4f5f6); }
+.pp-card--silver .pp-card__tier { background: #eceef0; color: #6b7280; }
+.pp-card--gold { background: linear-gradient(180deg, #fffdf8, #f7efdd); border-color: rgba(198,161,90,0.4); }
+.pp-card--gold .pp-card__tier { background: rgba(198,161,90,0.18); color: var(--gold-deep); }
+.pp-card--diamond {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(#fdfbff, #f6f0fb) padding-box,
+    linear-gradient(150deg, var(--gold), var(--lavender)) border-box;
+  box-shadow: 0 34px 64px -34px rgba(169,140,208,0.6);
+}
+.pp-card--diamond .pp-card__tier { background: rgba(169,140,208,0.18); color: #7a5aa8; }
+.pp-card--lifetime { background: linear-gradient(180deg, #24222a, #17151b); color: var(--cream-100); }
+.pp-card--lifetime .pp-card__name { color: #fff; }
+.pp-card--lifetime .pp-card__price b { color: #fff; }
+.pp-card--lifetime .pp-card__tagline { color: rgba(248,244,236,0.75); }
+.pp-card--lifetime .pp-card__tier { background: rgba(198,161,90,0.22); color: var(--gold-soft); }
+.pp-card--lifetime .pp-features li { color: rgba(248,244,236,0.86); }
+.pp-card--lifetime .pp-card__address { border-top-color: rgba(255,255,255,0.14); color: rgba(248,244,236,0.7); }
+.pp-card--lifetime .pp-card__address strong { color: #fff; }
+.pp-card--lifetime .pp-bestfor__list li { background: rgba(255,255,255,0.08); color: rgba(248,244,236,0.82); }
+
+/* Badge variants */
+.pp-badge--legacy { background: linear-gradient(135deg, #d9bd82, #a9843f); }
+
+/* Savings note */
+.pp-savings { margin: 0 0 1rem; font-size: 0.82rem; font-weight: 600; color: #2f7d4f; background: #e7f4ec; border-radius: 8px; padding: 0.5rem 0.7rem; }
+.pp-card--lifetime .pp-savings { background: rgba(255,255,255,0.08); color: var(--gold-soft); }
+.pp-pricekind { font-size: 0.72rem; color: #9a93a2; text-transform: uppercase; letter-spacing: 0.12em; margin: 0.1rem 0 0; }
+.pp-card--lifetime .pp-pricekind { color: rgba(248,244,236,0.6); }
+
+/* FAQ */
+.pp-faq { max-width: 46rem; margin: 0 auto; display: grid; gap: 0.7rem; }
+.pp-faq details { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.2rem 1.1rem; }
+.pp-faq summary { cursor: pointer; font-weight: 600; color: #211d29; padding: 0.9rem 0; list-style: none; }
+.pp-faq summary::-webkit-details-marker { display: none; }
+.pp-faq summary::after { content: "+"; float: right; color: var(--gold-deep); font-size: 1.2rem; line-height: 1; }
+.pp-faq details[open] summary::after { content: "–"; }
+.pp-faq p { color: #5f5866; font-size: 0.9rem; margin: 0 0 0.9rem; }
+
+/* Quiz */
+.pp-quiz { max-width: 42rem; margin: 0 auto; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: clamp(1.4rem, 3vw, 2.2rem); box-shadow: 0 26px 54px -40px rgba(43,39,50,0.5); }
+.pp-quiz__q { font-family: var(--font-display); font-size: 1.4rem; color: #211d29; margin: 0 0 1rem; }
+.pp-quiz__opts { display: grid; gap: 0.6rem; }
+.pp-quiz__opt { text-align: left; font: inherit; font-size: 0.95rem; padding: 0.9rem 1.1rem; border: 1px solid var(--gray-200); border-radius: 12px; background: var(--cream-100); color: #3a3348; cursor: pointer; transition: border-color 0.25s, background 0.25s, transform 0.2s; }
+.pp-quiz__opt:hover { border-color: var(--lavender); transform: translateY(-1px); }
+.pp-quiz__result { text-align: center; }
+.pp-quiz__result h3 { font-family: var(--font-display); font-size: 1.8rem; color: #211d29; margin: 0 0 0.3rem; }
+.pp-quiz__progress { font-size: 0.78rem; color: #9a93a2; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.8rem; }

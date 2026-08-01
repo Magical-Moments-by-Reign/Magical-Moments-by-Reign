@@ -1,115 +1,81 @@
-import Link from "next/link";
+import type { CSSProperties } from "react";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
+import OccasionIcon from "@/components/OccasionIcon";
 import { createExperienceAction } from "@/app/actions";
-import { EXPERIENCE_TYPES } from "@/lib/experience-types";
+import { EXPERIENCE_TYPES, getExperienceType } from "@/lib/experience-types";
+import "./create.css";
 
 export const metadata = { title: "Create an experience" };
 
 export default async function CreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; type?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, type } = await searchParams;
+  const selected = type && getExperienceType(type) ? type : EXPERIENCE_TYPES[0].id;
 
   return (
-    <>
-      <nav className="nav">
-        <Link href="/" className="brand">
-          Magical <span>by Reign</span>
-        </Link>
-        <div className="nav-links">
-          <Link href="/dashboard">Dashboard</Link>
-        </div>
-      </nav>
+    <div className="cr">
+      <SiteNav active="experiences" />
 
-      <header className="app-header">
+      <header className="cr-header">
         <div className="container">
-          <span className="eyebrow" style={{ color: "var(--gold-400)" }}>
-            A new moment
-          </span>
-          <h1>Create an experience</h1>
-          <p>
-            Pick the occasion and give it a name. The platform will design it,
-            provision a unique URL, and publish it — instantly.
-          </p>
+          <span className="eyebrow" style={{ color: "var(--gold-soft)" }}>A new moment</span>
+          <h1>Choose your story</h1>
+          <p>Pick the occasion and give it a name. Ask Magical designs it, provisions a unique URL, and publishes it — instantly.</p>
         </div>
       </header>
 
-      <main className="container" style={{ padding: "3rem 0 5rem" }}>
-        <div className="form-wrap">
-          <form action={createExperienceAction} className="form-card">
-            {error === "missing" && (
-              <div className="form-error">
-                Please choose an occasion and enter a title.
-              </div>
-            )}
+      <main className="container cr-main">
+        <form action={createExperienceAction} className="cr-form">
+          {error === "missing" && (
+            <div className="cr-error">Please choose an occasion and enter a title.</div>
+          )}
 
-            <div className="field">
-              <label>Occasion</label>
-              <div className="type-picker">
-                {EXPERIENCE_TYPES.map((t, i) => (
-                  <div className="type-option" key={t.id}>
-                    <input
-                      type="radio"
-                      name="type"
-                      id={`type-${t.id}`}
-                      value={t.id}
-                      defaultChecked={i === 0}
-                      required
-                    />
-                    <label htmlFor={`type-${t.id}`}>
-                      <span className="emoji" aria-hidden="true">
-                        {t.emoji}
-                      </span>
-                      {t.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
+          <fieldset className="cr-fieldset">
+            <legend className="cr-legend">1 · Choose your occasion</legend>
+            <div className="cr-occasions">
+              {EXPERIENCE_TYPES.map((t) => (
+                <label key={t.id} className="cr-occ" style={{ "--c1": t.gradient[0], "--c2": t.gradient[1] } as CSSProperties}>
+                  <input type="radio" name="type" value={t.id} defaultChecked={t.id === selected} required />
+                  <span className="cr-occ__card">
+                    <span className="cr-occ__icon"><OccasionIcon name={t.icon} size={24} /></span>
+                    <span className="cr-occ__check" aria-hidden="true">✓</span>
+                    <span className="cr-occ__label">{t.label}</span>
+                    <span className="cr-occ__desc">{t.description}</span>
+                  </span>
+                </label>
+              ))}
             </div>
+          </fieldset>
 
-            <div className="field">
-              <label htmlFor="title">Title</label>
-              <input
-                id="title"
-                name="title"
-                type="text"
-                placeholder="e.g. The Smith Wedding"
-                required
-              />
-              <p className="hint">The headline that greets every visitor.</p>
+          <fieldset className="cr-fieldset">
+            <legend className="cr-legend">2 · Name your moment</legend>
+            <div className="cr-fields">
+              <label className="cr-field">
+                <span>Title</span>
+                <input name="title" type="text" placeholder="e.g. The Smith Wedding" required />
+                <small>The headline that greets every visitor.</small>
+              </label>
+              <label className="cr-field">
+                <span>Subtitle (optional)</span>
+                <input name="subtitle" type="text" placeholder="e.g. June 14th, 2027 · Napa Valley" />
+              </label>
+              <label className="cr-field">
+                <span>Custom link (optional)</span>
+                <input name="slug" type="text" placeholder="smithwedding" />
+                <small>Lives at magicalmomentsbyreign.com/<strong>your-link</strong>. Leave blank and we&apos;ll create one.</small>
+              </label>
             </div>
+          </fieldset>
 
-            <div className="field">
-              <label htmlFor="subtitle">Subtitle (optional)</label>
-              <input
-                id="subtitle"
-                name="subtitle"
-                type="text"
-                placeholder="e.g. June 14th, 2027 · Napa Valley"
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="slug">Custom link (optional)</label>
-              <input
-                id="slug"
-                name="slug"
-                type="text"
-                placeholder="smithwedding"
-              />
-              <p className="hint">
-                Your experience will live at magicalbyreign.com/<strong>your-link</strong>.
-                Leave blank and we&apos;ll create one from the title.
-              </p>
-            </div>
-
-            <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
-              Create &amp; publish ✨
-            </button>
-          </form>
-        </div>
+          <button type="submit" className="btn-gold cr-submit">Create &amp; publish ✦</button>
+        </form>
       </main>
-    </>
+
+      <SiteFooter />
+    </div>
   );
 }

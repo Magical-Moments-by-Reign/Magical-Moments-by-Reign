@@ -1,141 +1,57 @@
 // ── Catalog of experience types ─────────────────────────────────
 // One master application, many kinds of moments. Each type biases the
-// design engine (palette families, fonts, mood, which sections matter)
-// so a wedding never feels like a memorial — while two weddings still
-// never look identical.
+// design engine (palette families, fonts, mood, sections) AND supplies
+// the "Choose Your Story" card visuals (gradient + icon + emotional
+// description).
+//
+// Business websites are intentionally NOT here — they are custom,
+// quote-based lifetime projects handled via the Contact page, not the
+// standard Magical Moments experience creation flow.
 
 import type { SectionKind } from "@/types";
 
 export interface ExperienceType {
   id: string;
   label: string;
-  emoji: string;
+  emoji: string; // small accent / fallback only — not the primary card visual
+  icon: string; // key into OccasionIcon (line-art SVG)
   tagline: string;
-  /** palette family keys the engine will prefer for this type */
+  description: string; // emotional one-liner for the card
+  gradient: [string, string]; // card background gradient
   paletteFamilies: string[];
-  /** font pairing keys the engine will prefer */
   fontKeys: string[];
-  /** moods the engine may pick from */
   moods: string[];
-  /** sections that should always appear for this type */
   requiredSections: SectionKind[];
-  /** sections that may appear, engine decides + orders */
   optionalSections: SectionKind[];
 }
 
 export const EXPERIENCE_TYPES: ExperienceType[] = [
-  {
-    id: "wedding",
-    label: "Wedding",
-    emoji: "💍",
-    tagline: "Two stories becoming one.",
-    paletteFamilies: ["romantic", "champagne", "garden"],
-    fontKeys: ["editorial", "romantic", "classic"],
-    moods: ["romantic", "timeless", "ethereal"],
-    requiredSections: ["hero", "story", "gallery", "footer"],
-    optionalSections: ["timeline", "quote", "details", "guestbook"],
-  },
-  {
-    id: "birthday",
-    label: "Birthday",
-    emoji: "🎂",
-    tagline: "Another year worth celebrating.",
-    paletteFamilies: ["joyful", "sunset", "champagne"],
-    fontKeys: ["playful", "modern", "editorial"],
-    moods: ["joyful", "vibrant", "warm"],
-    requiredSections: ["hero", "gallery", "footer"],
-    optionalSections: ["story", "timeline", "quote", "guestbook"],
-  },
-  {
-    id: "baby",
-    label: "Baby Journey",
-    emoji: "👶",
-    tagline: "The story of a brand-new life.",
-    paletteFamilies: ["tender", "garden", "champagne"],
-    fontKeys: ["romantic", "playful", "classic"],
-    moods: ["tender", "hopeful", "gentle"],
-    requiredSections: ["hero", "timeline", "gallery", "footer"],
-    optionalSections: ["story", "quote", "guestbook"],
-  },
-  {
-    id: "memorial",
-    label: "Memorial",
-    emoji: "🕊️",
-    tagline: "A life remembered with love.",
-    paletteFamilies: ["serene", "twilight", "garden"],
-    fontKeys: ["classic", "editorial", "romantic"],
-    moods: ["serene", "reverent", "peaceful"],
-    requiredSections: ["hero", "story", "timeline", "footer"],
-    optionalSections: ["gallery", "quote", "guestbook"],
-  },
-  {
-    id: "vacation",
-    label: "Vacation",
-    emoji: "🌅",
-    tagline: "The journey, kept forever.",
-    paletteFamilies: ["sunset", "coastal", "joyful"],
-    fontKeys: ["modern", "editorial", "playful"],
-    moods: ["adventurous", "vivid", "warm"],
-    requiredSections: ["hero", "gallery", "timeline", "footer"],
-    optionalSections: ["story", "quote"],
-  },
-  {
-    id: "anniversary",
-    label: "Anniversary",
-    emoji: "❤️",
-    tagline: "Years of love, celebrated.",
-    paletteFamilies: ["romantic", "champagne", "twilight"],
-    fontKeys: ["editorial", "romantic", "classic"],
-    moods: ["romantic", "timeless", "warm"],
-    requiredSections: ["hero", "timeline", "gallery", "footer"],
-    optionalSections: ["story", "quote", "guestbook"],
-  },
-  {
-    id: "graduation",
-    label: "Graduation",
-    emoji: "🎓",
-    tagline: "The milestone that started everything.",
-    paletteFamilies: ["joyful", "coastal", "champagne"],
-    fontKeys: ["modern", "editorial", "playful"],
-    moods: ["proud", "vibrant", "hopeful"],
-    requiredSections: ["hero", "story", "gallery", "footer"],
-    optionalSections: ["timeline", "quote", "guestbook"],
-  },
-  {
-    id: "proposal",
-    label: "Proposal",
-    emoji: "💐",
-    tagline: "The moment everything changed.",
-    paletteFamilies: ["romantic", "twilight", "champagne"],
-    fontKeys: ["romantic", "editorial", "classic"],
-    moods: ["romantic", "ethereal", "intimate"],
-    requiredSections: ["hero", "story", "gallery", "footer"],
-    optionalSections: ["quote", "timeline", "guestbook"],
-  },
-  {
-    id: "business",
-    label: "Business Launch",
-    emoji: "🚀",
-    tagline: "A new venture, unveiled.",
-    paletteFamilies: ["modernluxe", "coastal", "twilight"],
-    fontKeys: ["modern", "editorial", "classic"],
-    moods: ["bold", "confident", "modern"],
-    requiredSections: ["hero", "story", "details", "footer"],
-    optionalSections: ["gallery", "timeline", "quote"],
-  },
-  {
-    id: "reunion",
-    label: "Family Reunion",
-    emoji: "🌳",
-    tagline: "Everyone, together again.",
-    paletteFamilies: ["garden", "sunset", "joyful"],
-    fontKeys: ["classic", "playful", "editorial"],
-    moods: ["warm", "nostalgic", "joyful"],
-    requiredSections: ["hero", "gallery", "guestbook", "footer"],
-    optionalSections: ["story", "timeline", "quote"],
-  },
+  { id: "wedding", label: "Wedding Journey", emoji: "💍", icon: "rings", tagline: "Two stories becoming one.", description: "From the proposal to the last dance — the whole love story, beautifully kept.", gradient: ["#6b4a8f", "#3d2957"], paletteFamilies: ["romantic", "champagne", "garden"], fontKeys: ["editorial", "romantic", "classic"], moods: ["romantic", "timeless", "ethereal"], requiredSections: ["hero", "story", "gallery", "footer"], optionalSections: ["timeline", "quote", "details", "guestbook"] },
+  { id: "birthday", label: "Birthday Celebration", emoji: "🎂", icon: "cake", tagline: "Another year worth celebrating.", description: "Balloons, wishes, and every candle — a birthday that lives on past the party.", gradient: ["#c14a94", "#6b3a54"], paletteFamilies: ["joyful", "sunset", "champagne"], fontKeys: ["playful", "modern", "editorial"], moods: ["joyful", "vibrant", "warm"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "timeline", "quote", "guestbook"] },
+  { id: "baby", label: "Baby Journey", emoji: "👶", icon: "baby", tagline: "The story of a brand-new life.", description: "From the first heartbeat onward — a living timeline that grows with your little one.", gradient: ["#c98a7a", "#7a5a56"], paletteFamilies: ["tender", "garden", "champagne"], fontKeys: ["romantic", "playful", "classic"], moods: ["tender", "hopeful", "gentle"], requiredSections: ["hero", "timeline", "gallery", "footer"], optionalSections: ["story", "quote", "guestbook"] },
+  { id: "graduation", label: "Graduation Journey", emoji: "🎓", icon: "cap", tagline: "The milestone that started everything.", description: "Countdown, memories, blessings and registry — the whole senior story in one place.", gradient: ["#4a6b8f", "#29385a"], paletteFamilies: ["joyful", "coastal", "champagne"], fontKeys: ["modern", "editorial", "playful"], moods: ["proud", "vibrant", "hopeful"], requiredSections: ["hero", "story", "gallery", "footer"], optionalSections: ["timeline", "quote", "guestbook"] },
+  { id: "anniversary", label: "Anniversary", emoji: "❤️", icon: "heart", tagline: "Years of love, celebrated.", description: "A tribute to the years — the milestones, the photos, the love that keeps growing.", gradient: ["#8e2f4a", "#3d2957"], paletteFamilies: ["romantic", "champagne", "twilight"], fontKeys: ["editorial", "romantic", "classic"], moods: ["romantic", "timeless", "warm"], requiredSections: ["hero", "timeline", "gallery", "footer"], optionalSections: ["story", "quote", "guestbook"] },
+  { id: "proposal", label: "Proposal", emoji: "💐", icon: "ring", tagline: "The moment everything changed.", description: "The question, the yes, the happy tears — captured the way it deserves to be.", gradient: ["#a8455c", "#4a2233"], paletteFamilies: ["romantic", "twilight", "champagne"], fontKeys: ["romantic", "editorial", "classic"], moods: ["romantic", "ethereal", "intimate"], requiredSections: ["hero", "story", "gallery", "footer"], optionalSections: ["quote", "timeline", "guestbook"] },
+  { id: "vacation", label: "Vacation Story", emoji: "🌅", icon: "plane", tagline: "The journey, kept forever.", description: "New places and new faces, told as a cinematic travel story you can relive.", gradient: ["#d1743a", "#8a4a6b"], paletteFamilies: ["sunset", "coastal", "joyful"], fontKeys: ["modern", "editorial", "playful"], moods: ["adventurous", "vivid", "warm"], requiredSections: ["hero", "gallery", "timeline", "footer"], optionalSections: ["story", "quote"] },
+  { id: "newhome", label: "New Home Journey", emoji: "🏡", icon: "home", tagline: "From groundbreaking to move-in.", description: "Watch it rise — every stage of buying or building the home of your dreams.", gradient: ["#5c7350", "#26321d"], paletteFamilies: ["garden", "champagne", "sunset"], fontKeys: ["classic", "editorial", "modern"], moods: ["warm", "hopeful", "proud"], requiredSections: ["hero", "timeline", "gallery", "footer"], optionalSections: ["story", "quote", "details"] },
+  { id: "military", label: "Military Homecoming", emoji: "🎖️", icon: "flag", tagline: "Welcome home, hero.", description: "The countdown, the reunion, the tears of joy — an honor kept forever.", gradient: ["#2f5f8a", "#132133"], paletteFamilies: ["coastal", "modernluxe", "champagne"], fontKeys: ["classic", "editorial", "modern"], moods: ["proud", "warm", "emotional"], requiredSections: ["hero", "story", "gallery", "footer"], optionalSections: ["timeline", "quote", "guestbook"] },
+  { id: "reunion", label: "Family Reunion", emoji: "🌳", icon: "tree", tagline: "Everyone, together again.", description: "Generations in one place — the laughter, the group photos, the stories retold.", gradient: ["#4a6b3f", "#20281b"], paletteFamilies: ["garden", "sunset", "joyful"], fontKeys: ["classic", "playful", "editorial"], moods: ["warm", "nostalgic", "joyful"], requiredSections: ["hero", "gallery", "guestbook", "footer"], optionalSections: ["story", "timeline", "quote"] },
+  { id: "retirement", label: "Retirement", emoji: "🌇", icon: "sun", tagline: "A career worth celebrating.", description: "Decades of dedication, honored — and the exciting next chapter, welcomed.", gradient: ["#b08d3f", "#4a3d15"], paletteFamilies: ["champagne", "serene", "garden"], fontKeys: ["editorial", "classic", "modern"], moods: ["warm", "proud", "timeless"], requiredSections: ["hero", "story", "timeline", "footer"], optionalSections: ["gallery", "quote", "guestbook"] },
+  { id: "memorial", label: "Celebration of Life", emoji: "🕊️", icon: "dove", tagline: "A life remembered with love.", description: "A warm, personal tribute that celebrates who they were — not a somber obituary.", gradient: ["#6a6f83", "#2b2732"], paletteFamilies: ["serene", "garden", "champagne"], fontKeys: ["classic", "editorial", "romantic"], moods: ["serene", "warm", "peaceful"], requiredSections: ["hero", "story", "timeline", "footer"], optionalSections: ["gallery", "quote", "guestbook"] },
+  { id: "sweet16", label: "Sweet 16", emoji: "✨", icon: "crown", tagline: "Sixteen and unforgettable.", description: "The glow-up, the party, the friends — a Sweet 16 that shines online too.", gradient: ["#c14a94", "#3a1a3d"], paletteFamilies: ["joyful", "romantic", "twilight"], fontKeys: ["playful", "editorial", "modern"], moods: ["vibrant", "glam", "joyful"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "timeline", "quote", "guestbook"] },
+  { id: "firstbirthday", label: "First Birthday", emoji: "🎈", icon: "balloon", tagline: "One whole year of wonder.", description: "The cake smash and first steps — baby's first big milestone, beautifully kept.", gradient: ["#e0b6a2", "#7a5a56"], paletteFamilies: ["tender", "joyful", "champagne"], fontKeys: ["playful", "romantic", "classic"], moods: ["tender", "joyful", "gentle"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["timeline", "story", "quote", "guestbook"] },
+  { id: "quinceanera", label: "Quinceañera", emoji: "👑", icon: "crown", tagline: "Fifteen and radiant.", description: "The gown, the waltz, the court — a quinceañera worthy of the tradition.", gradient: ["#a8455c", "#6b4a8f"], paletteFamilies: ["romantic", "joyful", "champagne"], fontKeys: ["romantic", "editorial", "playful"], moods: ["glam", "vibrant", "timeless"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "timeline", "quote", "guestbook"] },
+  { id: "sports", label: "Sports Journey", emoji: "🏆", icon: "trophy", tagline: "Every season, every win.", description: "The seasons, the stats, the championship — an athlete's story worth reliving.", gradient: ["#2f8a8f", "#152a2c"], paletteFamilies: ["coastal", "modernluxe", "joyful"], fontKeys: ["modern", "editorial", "playful"], moods: ["bold", "proud", "vivid"], requiredSections: ["hero", "gallery", "timeline", "footer"], optionalSections: ["story", "quote"] },
+  { id: "prom", label: "Prom", emoji: "🌟", icon: "star", tagline: "One magical night.", description: "The dress, the group, the after-glow — prom night, kept forever.", gradient: ["#4b3b78", "#161022"], paletteFamilies: ["twilight", "romantic", "joyful"], fontKeys: ["editorial", "romantic", "modern"], moods: ["glam", "ethereal", "vibrant"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "quote", "guestbook"] },
+  { id: "bridalshower", label: "Bridal Shower", emoji: "🎁", icon: "gift", tagline: "Showered with love.", description: "The games, the gifts, the girls — a bridal shower to remember and share.", gradient: ["#d98a97", "#6e2a41"], paletteFamilies: ["romantic", "champagne", "garden"], fontKeys: ["romantic", "editorial", "playful"], moods: ["warm", "joyful", "romantic"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "details", "guestbook"] },
+  { id: "babyshower", label: "Baby Shower", emoji: "🍼", icon: "gift", tagline: "Welcoming the little one.", description: "The wishes, the registry, the celebration — before baby arrives.", gradient: ["#9db4c9", "#3a2c2e"], paletteFamilies: ["tender", "garden", "champagne"], fontKeys: ["romantic", "playful", "classic"], moods: ["tender", "hopeful", "gentle"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "details", "guestbook"] },
+  { id: "genderreveal", label: "Gender Reveal", emoji: "🎉", icon: "sparkle", tagline: "The big surprise.", description: "The countdown, the confetti, the happy chaos — captured for everyone who missed it.", gradient: ["#7fa1c4", "#c98a7a"], paletteFamilies: ["joyful", "tender", "sunset"], fontKeys: ["playful", "modern", "romantic"], moods: ["joyful", "vibrant", "tender"], requiredSections: ["hero", "gallery", "footer"], optionalSections: ["story", "quote", "guestbook"] },
+  { id: "custom", label: "Custom Life Moment", emoji: "💫", icon: "sparkle", tagline: "Your one-of-a-kind moment.", description: "Something all your own? Start here and Ask Magical will shape it around your story.", gradient: ["#b08d3f", "#3d2957"], paletteFamilies: ["champagne", "twilight", "garden"], fontKeys: ["editorial", "classic", "romantic"], moods: ["timeless", "warm", "ethereal"], requiredSections: ["hero", "story", "gallery", "footer"], optionalSections: ["timeline", "quote", "details", "guestbook"] },
 ];
 
 export function getExperienceType(id: string): ExperienceType | undefined {
   return EXPERIENCE_TYPES.find((t) => t.id === id);
 }
+
+/** Customer-selectable occasions (all of them — business is excluded by design). */
+export const OCCASIONS = EXPERIENCE_TYPES;

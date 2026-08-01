@@ -156,7 +156,7 @@ export function Footer({ content }: SectionProps) {
         <p className="mbr-footer__title">{content.hero.headline}</p>
         <p className="mbr-footer__by">
           Handcrafted with <span aria-hidden="true">♥</span> by{" "}
-          <a href="/">Magical by Reign</a>
+          <a href="/">Magical Moments by Reign</a>
         </p>
       </div>
     </footer>

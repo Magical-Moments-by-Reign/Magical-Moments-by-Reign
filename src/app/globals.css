@@ -141,15 +141,17 @@ a { color: inherit; text-decoration: none; }
 /* Video backdrop */
 .hero__media { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: var(--plum-900) center/cover no-repeat; background-image: url("/hero/hero-poster.jpg"); }
 .hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Lighter, cinematic: a soft scrim only behind the text (left), image stays vivid on the right */
 .hero__overlay { position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(23,18,29,0.92) 0%, rgba(23,18,29,0.6) 42%, rgba(30,18,38,0.32) 100%),
-    linear-gradient(180deg, rgba(23,18,29,0.35) 0%, transparent 30%, rgba(23,18,29,0.55) 100%); }
+    linear-gradient(90deg, rgba(18,13,24,0.82) 0%, rgba(18,13,24,0.5) 38%, rgba(18,13,24,0.14) 70%, transparent 100%),
+    linear-gradient(0deg, rgba(18,13,24,0.42) 0%, transparent 38%); }
 @media (prefers-reduced-motion: reduce) { .hero__video { display: none; } }
 
-.hero-inner { position: relative; z-index: 2; max-width: 780px; padding: 6rem 0; }
-.hero h1 { font-size: clamp(2.8rem, 7vw, 5rem); margin-bottom: 0.4rem; }
-.hero h1 .accent { font-style: italic; color: var(--gold-400); }
+.hero-inner { position: relative; z-index: 2; max-width: 620px; padding: 5rem 0; }
+.hero__title { font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: 1.02; margin: 0 0 1.2rem; letter-spacing: -0.01em; }
+.hero__title span { display: block; }
+.hero__title .accent { font-style: italic; color: var(--gold-400); }
 .hero .lede { font-size: clamp(1.05rem, 2.2vw, 1.35rem); color: rgba(248,243,236,0.82); max-width: 34em; margin-bottom: 2rem; }
 .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
 
@@ -218,3 +220,53 @@ section { padding: clamp(4rem, 9vw, 7rem) 0; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; scroll-behavior: auto; }
 }
+
+/* ================================================================
+   Landing — Choose Your Story, Business CTA, Pricing preview
+   ================================================================ */
+.section-head--left { text-align: left; margin: 0 0 2.4rem; max-width: 42rem; }
+.section-head--left h2 { color: var(--plum-800); }
+
+/* Occasion cards */
+.story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.1rem; }
+.occ-card {
+  position: relative; display: block; border-radius: 18px; overflow: hidden; min-height: 200px;
+  color: var(--ivory); padding: 1.3rem; isolation: isolate;
+  box-shadow: 0 20px 44px -30px rgba(43,27,61,0.55);
+  transition: transform 0.45s var(--ease), box-shadow 0.45s var(--ease);
+}
+.occ-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -2;
+  background: linear-gradient(155deg, var(--c1), var(--c2));
+}
+.occ-card::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(120% 80% at 80% 0%, rgba(255,255,255,0.18), transparent 60%);
+  opacity: 0; transition: opacity 0.45s var(--ease);
+}
+.occ-card:hover { transform: translateY(-6px); box-shadow: 0 30px 56px -28px rgba(43,27,61,0.7); }
+.occ-card:hover::after { opacity: 1; }
+.occ-card__icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,0.14); color: var(--ivory); margin-bottom: auto; }
+.occ-card__body { display: block; margin-top: 1.6rem; }
+.occ-card__title { display: block; font-family: var(--font-display); font-size: 1.4rem; margin: 0 0 0.3rem; line-height: 1.1; }
+.occ-card__desc { display: block; font-size: 0.85rem; color: rgba(248,243,236,0.85); margin: 0; line-height: 1.45; }
+.occ-card__go { position: absolute; top: 1.2rem; right: 1.2rem; opacity: 0; transform: translateX(-4px); transition: all 0.4s var(--ease); color: var(--gold-200); }
+.occ-card:hover .occ-card__go { opacity: 1; transform: none; }
+
+/* Business website CTA */
+.bizcta { background: linear-gradient(135deg, var(--charcoal-800), var(--charcoal-900)); color: var(--cream-100); border-radius: 22px; padding: clamp(2rem, 5vw, 3.2rem); display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; border: 1px solid rgba(198,161,90,0.25); }
+.bizcta__eyebrow { color: var(--gold-soft); }
+.bizcta h3 { font-family: var(--font-display); font-size: clamp(1.6rem, 3.5vw, 2.4rem); margin: 0.3rem 0 0.5rem; }
+.bizcta p { color: rgba(248,244,236,0.8); margin: 0; max-width: 42rem; }
+
+/* Homepage pricing preview */
+.priceprev { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+.priceprev__card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.5rem 1.4rem; transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), border-color 0.4s; position: relative; }
+.priceprev__card:hover { transform: translateY(-5px); box-shadow: 0 26px 50px -34px rgba(43,27,61,0.5); border-color: rgba(198,161,90,0.5); }
+.priceprev__card--featured { border-color: var(--gold); box-shadow: 0 26px 50px -30px rgba(198,161,90,0.5); }
+.priceprev__tier { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; color: var(--gold-deep); }
+.priceprev__name { font-family: var(--font-display); font-size: 1.35rem; color: var(--plum-800); margin: 0.2rem 0; }
+.priceprev__price { font-family: var(--font-display); font-size: 2rem; color: var(--ink); }
+.priceprev__price small { font-size: 0.7rem; color: var(--muted); font-family: var(--font-body); }
+.priceprev__label { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+.priceprev__ribbon { position: absolute; top: -0.7rem; right: 1rem; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.3rem 0.7rem; border-radius: 999px; }
