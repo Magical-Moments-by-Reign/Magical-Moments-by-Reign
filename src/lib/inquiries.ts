@@ -55,6 +55,8 @@ export const CONTACT_REASONS = [
   { id: "create", label: "Help creating an experience" },
   { id: "billing", label: "Billing" },
   { id: "support", label: "Technical support" },
+  { id: "concierge", label: "Custom Concierge experience ($5,000)" },
+  { id: "consultation", label: "Schedule a consultation" },
   { id: "business", label: "Custom business website" },
   { id: "partnership", label: "Partnership" },
   { id: "media", label: "Media inquiry" },

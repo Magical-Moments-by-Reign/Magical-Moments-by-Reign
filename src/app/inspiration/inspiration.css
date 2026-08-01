@@ -1,0 +1,76 @@
+/* ================================================================
+   Inspiration Gallery
+   ================================================================ */
+.insp { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
+.insp .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+.insp-hero {
+  padding: clamp(3rem, 7vw, 5.5rem) 0 clamp(2.5rem, 5vw, 4rem);
+  background:
+    radial-gradient(55% 80% at 12% 0%, rgba(169,140,208,0.22), transparent 60%),
+    radial-gradient(50% 70% at 92% 8%, rgba(198,161,90,0.22), transparent 55%),
+    linear-gradient(160deg, #221d2b, #17141d);
+  color: var(--cream-100);
+}
+.insp-hero__eyebrow { color: var(--gold-soft); }
+.insp-hero h1 { font-family: var(--font-display); font-size: clamp(2.2rem, 6vw, 3.8rem); margin: 0.5rem 0 0.6rem; }
+.insp-hero p { color: rgba(248,244,236,0.82); margin: 0; max-width: 44rem; font-size: clamp(1rem, 2vw, 1.15rem); }
+
+.insp-main { padding: clamp(2.5rem, 5vw, 4rem) 0 5rem; }
+
+/* Experience film grid */
+.insp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+.insp-card {
+  display: flex; flex-direction: column;
+  background: #fff; border: 1px solid var(--gray-200); border-radius: 20px; overflow: hidden;
+  box-shadow: 0 26px 54px -44px rgba(43,39,50,0.5);
+  transition: transform 0.3s, box-shadow 0.3s;
+  color: inherit;
+}
+.insp-card:hover { transform: translateY(-6px); box-shadow: 0 34px 64px -40px rgba(43,39,50,0.55); }
+.insp-card__media { position: relative; aspect-ratio: 3 / 2; background: #14111a; overflow: hidden; }
+.insp-card__media video, .insp-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.insp-card__scrim { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(12,9,16,0.35)); pointer-events: none; }
+.insp-card__play {
+  position: absolute; top: 0.9rem; right: 0.9rem; z-index: 2;
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border-radius: 50%; background: rgba(12,9,16,0.5); backdrop-filter: blur(4px);
+  color: #fff; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.35);
+  transition: opacity 0.25s;
+}
+.insp-card:hover .insp-card__play { opacity: 0; }
+.insp-card__body { padding: 1.2rem 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.insp-card__kind { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--gold-deep); font-weight: 600; }
+.insp-card__title { font-family: var(--font-display); font-size: 1.4rem; color: #211d29; margin: 0.1rem 0 0.1rem; }
+.insp-card__blurb { font-size: 0.92rem; color: #5f5866; margin: 0 0 0.5rem; line-height: 1.5; }
+.insp-card__cta { font-size: 0.84rem; font-weight: 600; color: var(--gold-deep); letter-spacing: 0.02em; }
+
+/* Photo band */
+.insp-photos { margin-top: clamp(3rem, 6vw, 5rem); }
+.insp-photos .section-head--left { max-width: 40rem; margin-bottom: 1.6rem; }
+.insp-photos .section-head--left h2 { font-family: var(--font-display); font-size: clamp(1.6rem, 4vw, 2.4rem); color: #211d29; margin: 0.3rem 0 0.4rem; }
+.insp-photos__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; }
+.insp-photo { position: relative; margin: 0; border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 5; box-shadow: 0 20px 40px -40px rgba(43,39,50,0.5); }
+.insp-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
+.insp-photo:hover img { transform: scale(1.05); }
+.insp-photo figcaption {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 1.4rem 0.9rem 0.7rem;
+  font-size: 0.78rem; color: #fff;
+  background: linear-gradient(180deg, transparent, rgba(12,9,16,0.72));
+  opacity: 0; transition: opacity 0.3s;
+}
+.insp-photo:hover figcaption { opacity: 1; }
+
+/* CTA */
+.insp-cta { margin-top: clamp(3rem, 6vw, 5rem); text-align: center; background: linear-gradient(160deg, #221d2b, #17141d); color: var(--cream-100); border-radius: 24px; padding: clamp(2.4rem, 5vw, 4rem); }
+.insp-cta h2 { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); margin: 0 0 0.5rem; }
+.insp-cta p { color: rgba(248,244,236,0.82); margin: 0 auto 1.4rem; max-width: 36rem; }
+.insp-cta__actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .insp-grid { grid-template-columns: 1fr 1fr; }
+  .insp-photos__grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .insp-grid { grid-template-columns: 1fr; }
+}

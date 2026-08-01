@@ -179,6 +179,30 @@ export const PLANS: Plan[] = [
   },
 ];
 
+// ── Custom Concierge (white-glove, quote-based service) ─────────
+// Not a self-serve cart plan — a fully bespoke, done-for-you offering
+// starting at $5,000. Handled personally by the Magical Moments team.
+export const CONCIERGE = {
+  id: "concierge" as const,
+  name: "Custom Concierge",
+  price: 5000,
+  priceKind: "starting at · one-time",
+  label: "White-glove, done-for-you storytelling",
+  tagline: "We design, build, and produce your entire experience for you.",
+  features: [
+    "A dedicated producer & design lead",
+    "Personal discovery consultation",
+    "Fully bespoke, hand-crafted design (beyond our templates)",
+    "Professional media curation & editing",
+    "Cinematic AI video production",
+    "Custom domain & premium setup, done for you",
+    "Lifetime Memory Preservation included",
+    "White-glove revisions until it's perfect",
+    "Priority everything",
+  ],
+  cta: "Request a Concierge consultation",
+};
+
 /** Required legal wording for Lifetime — display verbatim. */
 export const LIFETIME_LEGAL =
   "Lifetime preservation is provided for the lifetime of the Magical Moments by Reign service, " +

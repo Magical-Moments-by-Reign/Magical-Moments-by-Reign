@@ -6,6 +6,7 @@ import OccasionIcon from "@/components/OccasionIcon";
 import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 import { PLANS, formatPrice } from "@/lib/plans";
 import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
+import FeaturedExperiences from "@/components/home/FeaturedExperiences";
 
 const HERO_SLIDES: HeroSlide[] = [
   { id: "newhome", src: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg", label: "New Home Journey" },
@@ -85,6 +86,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Featured experiences — Netflix/Airbnb-style browse */}
+      <FeaturedExperiences />
 
       {/* Pricing preview */}
       <section id="pricing-preview">

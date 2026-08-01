@@ -431,3 +431,38 @@
   box-shadow: 0 18px 42px -20px rgba(243,210,113,0.7);
 }
 .mbr-hero--type-birthday .mbr-btn--accent:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+/* ── Wedding — romantic, golden hero ── */
+.mbr-hero--type-wedding { --mbr-wed-gold: #e7cf9b; }
+.mbr-hero--type-wedding .mbr-hero__scrim {
+  background:
+    linear-gradient(180deg, rgba(28,18,10,0.34) 0%, rgba(28,18,10,0.12) 36%, rgba(28,18,10,0.6) 100%),
+    radial-gradient(120% 90% at 30% 62%, rgba(28,18,10,0.34), transparent 60%);
+}
+.mbr-hero--type-wedding .mbr-eyebrow {
+  color: var(--mbr-wed-gold); letter-spacing: 0.38em;
+  display: inline-flex; align-items: center; gap: 0.9rem;
+}
+.mbr-hero--type-wedding .mbr-eyebrow::before,
+.mbr-hero--type-wedding .mbr-eyebrow::after {
+  content: ""; height: 1px; width: 2.2rem;
+  background: linear-gradient(90deg, transparent, var(--mbr-wed-gold), transparent);
+}
+.mbr-hero--type-wedding .mbr-hero__title {
+  color: #fff8ef; font-weight: 500;
+  text-shadow: 0 2px 30px rgba(28,18,10,0.6);
+}
+.mbr-hero--type-wedding .mbr-hero__subhead {
+  color: #f6ecdd; opacity: 0.95; font-style: italic;
+  text-shadow: 0 1px 14px rgba(28,18,10,0.55);
+}
+.mbr-hero--type-wedding .mbr-btn--accent {
+  background: linear-gradient(180deg, rgba(255,251,244,0.16), rgba(255,251,244,0.06));
+  border: 1px solid var(--mbr-wed-gold);
+  color: #fff8ef;
+  letter-spacing: 0.12em; border-radius: 12px;
+  padding: 0.95rem 1.9rem;
+  box-shadow: 0 18px 40px -24px rgba(0,0,0,0.7);
+  backdrop-filter: blur(2px);
+}
+.mbr-hero--type-wedding .mbr-btn--accent:hover { background: var(--mbr-wed-gold); color: #2a1c0e; }

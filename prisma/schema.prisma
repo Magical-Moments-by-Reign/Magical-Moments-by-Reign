@@ -83,6 +83,8 @@ model MediaAsset {
   caption      String?
   width        Int?
   height       Int?
+  bytes        Int        @default(0) // file size, for storage-quota accounting
+  storagePath  String? // path within the storage bucket (for deletion)
   createdAt    DateTime   @default(now())
 
   @@index([experienceId, folder])
