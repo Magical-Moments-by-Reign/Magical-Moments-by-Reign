@@ -9,7 +9,6 @@ import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
 
 const HERO_SLIDES: HeroSlide[] = [
   { id: "newhome", src: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg", label: "New Home Journey" },
-  { id: "vacation", src: "/hero/italy.mp4", poster: "/hero/italy-poster.jpg", label: "Vacation Story" },
 ];
 
 export default function LandingPage() {

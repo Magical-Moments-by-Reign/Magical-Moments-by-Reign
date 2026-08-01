@@ -299,3 +299,12 @@
 @keyframes mbr-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .mbr-scroll__chev { animation: none; } }
 #mbr-explore { display: block; position: relative; top: -70px; }
+
+/* ── Hero background video (experience pages) ── */
+.mbr-hero__video { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: var(--mbr-hero-from); }
+.mbr-hero__video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mbr-hero__scrim { position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(12,9,16,0.5) 0%, rgba(12,9,16,0.32) 40%, rgba(12,9,16,0.62) 100%),
+    radial-gradient(120% 90% at 30% 60%, rgba(12,9,16,0.35), transparent 60%); }
+.mbr-hero--video .mbr-hero__inner { text-shadow: 0 2px 18px rgba(0,0,0,0.45); }

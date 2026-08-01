@@ -2,6 +2,7 @@ import Link from "next/link";
 import SiteNav from "@/components/site/SiteNav";
 import { listExperiences } from "@/lib/experiences";
 import { getExperienceType } from "@/lib/experience-types";
+import { heroMediaFor } from "@/lib/hero-media";
 import "./social/social.css";
 import "./dashboard.css";
 
@@ -55,7 +56,8 @@ export default async function DashboardPage() {
             {experiences.map((exp) => {
               const t = getExperienceType(exp.type);
               const p = exp.designSpec.palette;
-              const cover = exp.content.gallery?.[0]?.url;
+              // Preview of their item; if none, a still of the experience's video.
+              const cover = heroMediaFor(exp.slug, exp.content).poster ?? exp.content.gallery?.[0]?.url;
               const memories = exp.content.gallery?.length ?? 0;
               return (
                 <article className="storycard" key={exp.id}>

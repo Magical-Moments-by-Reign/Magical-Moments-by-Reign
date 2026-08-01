@@ -82,6 +82,9 @@ export interface ExperienceContent {
     headline: string;
     subhead: string;
     ctaLabel?: string;
+    /** optional cinematic hero background video + still poster */
+    videoUrl?: string;
+    posterUrl?: string;
   };
   story: StoryChapter[];
   gallery: GalleryItem[];

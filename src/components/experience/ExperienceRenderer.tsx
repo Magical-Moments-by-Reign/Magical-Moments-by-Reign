@@ -14,9 +14,10 @@ interface Props {
   designSpec: DesignSpec;
   content: ExperienceContent;
   experienceType?: string;
+  slug?: string;
 }
 
-export default function ExperienceRenderer({ designSpec, content, experienceType }: Props) {
+export default function ExperienceRenderer({ designSpec, content, experienceType, slug }: Props) {
   const p = designSpec.palette;
 
   const styleVars = {
@@ -51,7 +52,7 @@ export default function ExperienceRenderer({ designSpec, content, experienceType
           return (
             <div key={`${kind}-${i}`}>
               {i === 1 && <span id="mbr-explore" aria-hidden="true" />}
-              <Component content={content} spec={designSpec} variant={variant} experienceType={experienceType} />
+              <Component content={content} spec={designSpec} variant={variant} experienceType={experienceType} slug={slug} />
             </div>
           );
         })}

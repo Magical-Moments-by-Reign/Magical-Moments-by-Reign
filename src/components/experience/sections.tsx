@@ -6,23 +6,36 @@
 
 import type { DesignSpec, ExperienceContent } from "@/types";
 import { ctaLabelFor } from "@/lib/content";
+import { heroMediaFor } from "@/lib/hero-media";
 
 interface SectionProps {
   content: ExperienceContent;
   spec: DesignSpec;
   variant: string;
   experienceType?: string;
+  slug?: string;
 }
 
-export function Hero({ content, variant, experienceType }: SectionProps) {
+export function Hero({ content, variant, experienceType, slug }: SectionProps) {
   const { hero } = content;
   // Per-occasion, immersive CTA (covers older experiences too).
   const ctaLabel = experienceType ? ctaLabelFor(experienceType) : hero.ctaLabel;
   // Scroll to the first content section after the hero.
   const target = "#mbr-explore";
+  const media = slug ? heroMediaFor(slug, content) : {};
+  const hasVideo = Boolean(media.video);
   return (
-    <header className={`mbr-hero mbr-hero--${variant}`} id="top">
-      <div className="mbr-hero__bg" aria-hidden="true" />
+    <header className={`mbr-hero mbr-hero--${variant}${hasVideo ? " mbr-hero--video" : ""}`} id="top">
+      {hasVideo ? (
+        <div className="mbr-hero__video" aria-hidden="true">
+          <video autoPlay muted loop playsInline preload="auto" poster={media.poster}>
+            <source src={media.video} type="video/mp4" />
+          </video>
+          <div className="mbr-hero__scrim" />
+        </div>
+      ) : (
+        <div className="mbr-hero__bg" aria-hidden="true" />
+      )}
       <div className="mbr-container mbr-hero__inner">
         <span className="mbr-eyebrow">{hero.eyebrow}</span>
         <h1 className="mbr-hero__title">{hero.headline}</h1>
