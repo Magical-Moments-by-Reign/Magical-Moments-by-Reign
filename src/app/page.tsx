@@ -80,7 +80,7 @@ export default function LandingPage() {
           <div className="grid">
             <article className="card"><div className="icon">✦</div><h3>Choose your story</h3><p>Start from an occasion — never a blank page.</p></article>
             <article className="card"><div className="icon">✧</div><h3>Ask Magical designs it</h3><p>Colors, fonts, layout, and story order — composed uniquely for you.</p></article>
-            <article className="card"><div className="icon">❦</div><h3>Gets its own address</h3><p>Instantly published to its own link, like magicalmomentsbyreign.com/smithwedding.</p></article>
+            <article className="card"><div className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.4 1.41"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.4-1.41"/></svg></div><h3>Gets its own address</h3><p>Instantly published to its own link, like magicalmomentsbyreign.com/smithwedding.</p></article>
             <article className="card"><div className="icon">♥</div><h3>Grows over time</h3><p>Add photos, chapters, and guests. A moment becomes a living keepsake.</p></article>
           </div>
         </div>
