@@ -18,7 +18,10 @@
 #   NEXT_PUBLIC_BASE_URL  your live URL (e.g. https://magical-m.netlify.app)
 
 [build]
-  command = "npm run build"
+  # build:netlify = prisma generate → apply schema + seed (first time) →
+  # next build. The DB step is skipped automatically if DATABASE_URL is
+  # unset (e.g. deploy previews). See scripts/prepare-db.mjs.
+  command = "npm run build:netlify"
   publish = ".next"
 
 [build.environment]
