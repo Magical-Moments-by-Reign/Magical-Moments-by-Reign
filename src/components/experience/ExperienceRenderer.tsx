@@ -1,0 +1,57 @@
+// ── ExperienceRenderer ──────────────────────────────────────────
+// Turns a (DesignSpec + content) pair into a fully-themed, unique
+// page. This is the single renderer behind EVERY customer experience:
+// it injects the engine's palette/fonts as CSS variables, applies the
+// chosen animation + background, and lays out sections in the order
+// the engine decided.
+
+import type { CSSProperties } from "react";
+import type { DesignSpec, ExperienceContent, SectionKind } from "@/types";
+import { SECTION_COMPONENTS } from "@/components/experience/sections";
+import "@/app/experience.css";
+
+interface Props {
+  designSpec: DesignSpec;
+  content: ExperienceContent;
+}
+
+export default function ExperienceRenderer({ designSpec, content }: Props) {
+  const p = designSpec.palette;
+
+  const styleVars = {
+    "--mbr-bg": p.bg,
+    "--mbr-surface": p.surface,
+    "--mbr-text": p.text,
+    "--mbr-muted": p.muted,
+    "--mbr-primary": p.primary,
+    "--mbr-secondary": p.secondary,
+    "--mbr-accent": p.accent,
+    "--mbr-hero-from": p.heroFrom,
+    "--mbr-hero-to": p.heroTo,
+    "--mbr-on-dark": p.onDark,
+    "--mbr-radius": `${designSpec.radius}px`,
+    "--mbr-font-display": `"${designSpec.fonts.display}", Georgia, serif`,
+    "--mbr-font-body": `"${designSpec.fonts.body}", system-ui, sans-serif`,
+  } as CSSProperties;
+
+  return (
+    <>
+      {/* Per-experience fonts, chosen by the design engine. */}
+      <link rel="stylesheet" href={designSpec.fonts.googleUrl} />
+      <div
+        className={`mbr mbr-anim-${designSpec.animation} mbr-bg-${designSpec.background}`}
+        style={styleVars}
+        data-mood={designSpec.mood}
+      >
+        {designSpec.sectionOrder.map((kind: SectionKind, i) => {
+          const Component = SECTION_COMPONENTS[kind];
+          if (!Component) return null;
+          const variant = designSpec.variants[kind] ?? "default";
+          return (
+            <Component key={`${kind}-${i}`} content={content} spec={designSpec} variant={variant} />
+          );
+        })}
+      </div>
+    </>
+  );
+}
