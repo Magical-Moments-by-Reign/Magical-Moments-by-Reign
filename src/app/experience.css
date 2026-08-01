@@ -367,3 +367,35 @@
   .mbr-hero-nav { gap: 1.1rem 1.6rem; }
   .mbr-hero-nav__item span { font-size: 0.7rem; }
 }
+
+/* ── Baby Journey — tender, luminous hero ── */
+/* Newborn imagery is bright and warm; a softer, warm-toned scrim keeps
+   it luminous rather than dulling it under a heavy dark overlay. */
+.mbr-hero--type-baby { --mbr-baby-ink: #5a3f3a; }
+.mbr-hero--type-baby .mbr-hero__scrim {
+  background:
+    linear-gradient(180deg, rgba(60,40,38,0.28) 0%, rgba(60,40,38,0.06) 34%, rgba(60,40,38,0.5) 100%),
+    radial-gradient(120% 80% at 28% 46%, rgba(255,245,238,0.34), transparent 58%);
+}
+.mbr-hero--type-baby .mbr-eyebrow {
+  color: #fbeee6; letter-spacing: 0.32em;
+  text-shadow: 0 1px 10px rgba(60,40,38,0.5);
+}
+.mbr-hero--type-baby .mbr-hero__title {
+  color: #fff8f3;
+  font-weight: 500;
+  text-shadow: 0 2px 26px rgba(60,40,38,0.55);
+}
+.mbr-hero--type-baby .mbr-hero__subhead {
+  color: #fdeee6; opacity: 0.95; font-style: italic;
+  text-shadow: 0 1px 14px rgba(60,40,38,0.5);
+}
+.mbr-hero--type-baby .mbr-btn--accent {
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(253,238,230,0.92));
+  color: var(--mbr-baby-ink);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 999px;
+  padding: 0.9rem 1.9rem;
+  box-shadow: 0 16px 38px -22px rgba(60,40,38,0.7);
+}
+.mbr-hero--type-baby .mbr-btn--accent:hover { background: #fff; transform: translateY(-2px); }
