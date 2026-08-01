@@ -62,9 +62,10 @@ model Experience {
 
   ownerId String?
   owner   User?         @relation(fields: [ownerId], references: [id])
-  media   MediaAsset[]
-  shares  SocialShare[]
-  domains Domain[]
+  media    MediaAsset[]
+  shares   SocialShare[]
+  domains  Domain[]
+  tributes Tribute[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -380,6 +381,23 @@ model DomainEvent {
   createdAt DateTime @default(now())
 
   @@index([domainId])
+}
+
+// ── Tributes: family messages + In-Loving-Memory poems ──────────
+// Loved ones can leave a message or a poem/tribute on a memorial
+// experience. Public submissions; `status` supports later moderation.
+model Tribute {
+  id           String     @id @default(cuid())
+  experienceId String
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  kind         String     @default("message") // message | poem
+  name         String
+  relationship String?
+  body         String
+  status       String     @default("PUBLISHED") // PUBLISHED | HIDDEN
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, kind])
 }
 
 model WebhookEvent {

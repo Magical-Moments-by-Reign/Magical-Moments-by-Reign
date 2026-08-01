@@ -8,6 +8,7 @@ import type { DesignSpec, ExperienceContent } from "@/types";
 import { ctaLabelFor } from "@/lib/content";
 import { heroMediaFor } from "@/lib/hero-media";
 import { galleryFor } from "@/lib/gallery-media";
+import TributeWall from "@/components/experience/TributeWall";
 
 interface SectionProps {
   content: ExperienceContent;
@@ -108,12 +109,13 @@ export function Story({ content, variant }: SectionProps) {
   );
 }
 
-export function Gallery({ content, variant, slug }: SectionProps) {
+export function Gallery({ content, variant, slug, experienceType }: SectionProps) {
   // Prefer a curated gallery for this experience; fall back to content.
   const images = (slug ? galleryFor(slug) : undefined) ?? content.gallery;
   if (!images?.length) return null;
+  const typeClass = experienceType ? ` mbr-gallery--type-${experienceType}` : "";
   return (
-    <section className={`mbr-section mbr-gallery mbr-gallery--${variant}`} id="gallery">
+    <section className={`mbr-section mbr-gallery mbr-gallery--${variant}${typeClass}`} id="gallery">
       <div className="mbr-container">
         <h2 className="mbr-h2 mbr-center">Gallery</h2>
         <div className="mbr-gallery__grid">
@@ -131,37 +133,76 @@ export function Gallery({ content, variant, slug }: SectionProps) {
   );
 }
 
-export function Timeline({ content, variant }: SectionProps) {
+export function Timeline({ content, variant, experienceType }: SectionProps) {
   if (!content.timeline?.length) return null;
+  const memorial = experienceType === "memorial";
+  const heading = memorial ? "Favorite Memories" : "The Journey";
   return (
     <section className={`mbr-section mbr-timeline mbr-timeline--${variant}`} id="timeline">
       <div className="mbr-container">
-        <h2 className="mbr-h2 mbr-center">The Journey</h2>
+        <h2 className="mbr-h2 mbr-center">{heading}</h2>
+        {memorial && <p className="mbr-prose mbr-center mbr-timeline__intro">Open each chapter to read a story about them.</p>}
         <ol className="mbr-timeline__list">
           {content.timeline.map((e, i) => (
             <li className="mbr-timeline__entry" key={i}>
               <div className="mbr-timeline__dot" aria-hidden="true" />
-              <div className="mbr-timeline__card">
-                <span className="mbr-timeline__date">{e.date}</span>
-                <h3 className="mbr-h3">{e.title}</h3>
-                <p className="mbr-prose">{e.body}</p>
-              </div>
+              {memorial ? (
+                <details className="mbr-timeline__card mbr-timeline__card--open" open={i === 0}>
+                  <summary>
+                    <span className="mbr-timeline__date">{e.date}</span>
+                    <span className="mbr-h3">{e.title}</span>
+                    <span className="mbr-timeline__chev" aria-hidden="true">⌄</span>
+                  </summary>
+                  <p className="mbr-prose">{e.body}</p>
+                </details>
+              ) : (
+                <div className="mbr-timeline__card">
+                  <span className="mbr-timeline__date">{e.date}</span>
+                  <h3 className="mbr-h3">{e.title}</h3>
+                  <p className="mbr-prose">{e.body}</p>
+                </div>
+              )}
             </li>
           ))}
         </ol>
+        {memorial && slugLine(content)}
       </div>
     </section>
   );
 }
 
-export function Quote({ content, variant }: SectionProps) {
-  if (!content.quote?.text) return null;
+// A gentle note inviting families to add their own chapters/photos.
+function slugLine(_content: ExperienceContent) {
   return (
-    <section className={`mbr-section mbr-quote mbr-quote--${variant}`}>
+    <p className="mbr-note mbr-center mbr-timeline__addnote">
+      Want to add a chapter or photos? Open this experience in your dashboard to write more of their story and upload memories.
+    </p>
+  );
+}
+
+export function Quote({ content, variant, experienceType, slug }: SectionProps) {
+  const memorial = experienceType === "memorial";
+  if (!content.quote?.text && !memorial) return null;
+  return (
+    <section className={`mbr-section mbr-quote mbr-quote--${variant}`} id="quote">
       <div className="mbr-container mbr-quote__inner">
-        <blockquote className="mbr-quote__text">“{content.quote.text}”</blockquote>
-        {content.quote.attribution && (
-          <cite className="mbr-quote__cite">— {content.quote.attribution}</cite>
+        {memorial && <span className="mbr-eyebrow mbr-quote__eyebrow">In Loving Memory</span>}
+        {content.quote?.text && (
+          <>
+            <blockquote className="mbr-quote__text">“{content.quote.text}”</blockquote>
+            {content.quote.attribution && (
+              <cite className="mbr-quote__cite">— {content.quote.attribution}</cite>
+            )}
+          </>
+        )}
+        {memorial && slug && (
+          <TributeWall
+            slug={slug}
+            kind="poem"
+            cta="✍ Share a poem or tribute"
+            placeholder="A poem, a blessing, or a few words in their memory…"
+            emptyText="Be the first to share a poem or tribute in their memory."
+          />
         )}
       </div>
     </section>
@@ -187,23 +228,28 @@ export function Details({ content, variant }: SectionProps) {
   );
 }
 
-export function Guestbook({ variant }: SectionProps) {
+export function Guestbook({ variant, experienceType, slug }: SectionProps) {
+  const memorial = experienceType === "memorial";
+  const heading = memorial ? "Family Messages" : "Leave a note";
+  const intro = memorial
+    ? "Share a memory or a message to remember them by. Every message becomes part of this keepsake, forever."
+    : "Add your memory, your wishes, your love. Every message becomes part of this keepsake, forever.";
   return (
-    <section className={`mbr-section mbr-guestbook mbr-guestbook--${variant}`}>
+    <section className={`mbr-section mbr-guestbook mbr-guestbook--${variant}`} id="guestbook">
       <div className="mbr-container mbr-center">
-        <h2 className="mbr-h2">Leave a note</h2>
-        <p className="mbr-prose mbr-guestbook__intro">
-          Add your memory, your wishes, your love. Every message becomes part of
-          this keepsake, forever.
-        </p>
-        <div className="mbr-guestbook__form" aria-hidden="true">
-          <input placeholder="Your name" disabled />
-          <textarea placeholder="Your message…" rows={3} disabled />
-          <button className="mbr-btn mbr-btn--primary" disabled>
-            Sign the guestbook
-          </button>
-        </div>
-        <p className="mbr-note">Guestbook goes live with accounts in Phase 2.</p>
+        <h2 className="mbr-h2">{heading}</h2>
+        <p className="mbr-prose mbr-guestbook__intro">{intro}</p>
+        {slug ? (
+          <TributeWall
+            slug={slug}
+            kind="message"
+            cta={memorial ? "✚ Leave a message" : "✚ Sign the guestbook"}
+            placeholder="Share a favorite memory, a wish, or a few words of love…"
+            emptyText="No messages yet — be the first to share a memory."
+          />
+        ) : (
+          <p className="mbr-note">Messages appear here once the experience is published.</p>
+        )}
       </div>
     </section>
   );
