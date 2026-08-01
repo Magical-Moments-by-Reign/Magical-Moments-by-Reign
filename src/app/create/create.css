@@ -41,7 +41,7 @@
 .cr-occ input:focus-visible + .cr-occ__card { outline: 3px solid var(--lavender); outline-offset: 2px; }
 
 /* Name fields */
-.cr-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.1rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: 1.6rem; box-shadow: 0 24px 50px -42px rgba(43,39,50,0.5); }
+.cr-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.1rem; align-items: start; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: 1.6rem; box-shadow: 0 24px 50px -42px rgba(43,39,50,0.5); }
 .cr-field { display: grid; gap: 0.4rem; }
 .cr-field span { font-size: 0.82rem; font-weight: 600; color: #4a4551; }
 .cr-field input { padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); }

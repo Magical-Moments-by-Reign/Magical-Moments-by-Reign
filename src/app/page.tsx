@@ -5,20 +5,21 @@ import SiteFooter from "@/components/site/SiteFooter";
 import OccasionIcon from "@/components/OccasionIcon";
 import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 import { PLANS, formatPrice } from "@/lib/plans";
+import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
+
+const HERO_SLIDES: HeroSlide[] = [
+  { id: "newhome", src: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg", label: "New Home Journey" },
+  { id: "vacation", src: "/hero/italy.mp4", poster: "/hero/italy-poster.jpg", label: "Vacation Story" },
+];
 
 export default function LandingPage() {
   return (
     <>
       <SiteNav active="home" />
 
-      {/* Hero — editorial, cinematic */}
+      {/* Hero — editorial, cinematic slideshow */}
       <header className="hero">
-        <div className="hero__media" aria-hidden="true">
-          <video className="hero__video" autoPlay muted loop playsInline preload="auto" poster="/hero/hero-poster.jpg">
-            <source src="/hero/hero.mp4" type="video/mp4" />
-          </video>
-          <div className="hero__overlay" />
-        </div>
+        <HeroSlideshow slides={HERO_SLIDES} />
         <div className="container hero-inner">
           <span className="eyebrow">Magical Moments by Reign</span>
           <h1 className="hero__title">

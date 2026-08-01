@@ -270,3 +270,28 @@ section { padding: clamp(4rem, 9vw, 7rem) 0; }
 .priceprev__price small { font-size: 0.7rem; color: var(--muted); font-family: var(--font-body); }
 .priceprev__label { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
 .priceprev__ribbon { position: absolute; top: -0.7rem; right: 1rem; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.3rem 0.7rem; border-radius: 999px; }
+
+/* ================================================================
+   Hero slideshow
+   ================================================================ */
+.hs { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: var(--plum-900); }
+.hs__slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s var(--ease); }
+.hs__slide.is-active { opacity: 1; }
+.hs__media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hs__media--video { transform: scale(1.02); }
+.hs__slide.is-active .hs__media--video { animation: hs-kenburns 12s ease-out both; }
+@keyframes hs-kenburns { from { transform: scale(1.02); } to { transform: scale(1.12); } }
+
+.hs__controls { position: absolute; z-index: 3; left: 0; right: 0; bottom: 1.6rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 clamp(1.25rem, 5vw, 3rem); pointer-events: none; }
+.hs__label { font-size: 0.72rem; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(248,243,236,0.75); font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.hs__dots { display: flex; gap: 0.5rem; pointer-events: auto; }
+.hs__dot { position: relative; width: 44px; height: 4px; border-radius: 999px; border: none; padding: 0; cursor: pointer; background: rgba(255,255,255,0.28); overflow: hidden; }
+.hs__dot.is-active { background: rgba(255,255,255,0.35); }
+.hs__dot-fill { position: absolute; inset: 0; transform-origin: left; background: var(--gold-400); transform: scaleX(0); }
+.hs__dot.is-active .hs__dot-fill { animation: hs-fill 8s linear both; }
+@keyframes hs-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hs__slide { transition: none; }
+  .hs__media--video, .hs__dot-fill { animation: none !important; }
+}
