@@ -1,31 +1,38 @@
 # ── Netlify configuration ───────────────────────────────────────
-# Magical by Reign is a Next.js (App Router) app. Netlify auto-detects
-# Next.js and applies its official Next.js Runtime, so we do NOT declare
-# @netlify/plugin-nextjs here.
+# Magical by Reign is a Next.js (App Router) app and MUST be served by
+# Netlify's official Next.js Runtime (@netlify/plugin-nextjs). The
+# runtime turns the build into serverless functions + assets and owns
+# routing (including "/").
 #
-# `publish = ".next"` is REQUIRED: the site's dashboard publish setting
-# was the repository root (a leftover from the initial static/manual
-# deploy), which makes the publish directory equal the base directory
-# and fails the Next.js runtime with:
-#   "Your publish directory cannot be the same as the base directory."
-# Setting it here (netlify.toml overrides dashboard settings) points the
-# publish directory at Next.js's build output instead.
+# Why the explicit [[plugins]] block: the site was originally created as
+# a manual/static deploy, so its dashboard had a publish directory that
+# broke auto-detection — Netlify was statically serving the raw `.next`
+# folder (which has no root index.html) and returning a generic 404 at
+# "/". Declaring the runtime forces it to run and take over publishing.
+#
+# The runtime manages/overrides the publish directory itself; `publish`
+# below only exists to satisfy the runtime's check that publish != base
+# (both would otherwise resolve to the repo root).
 #
 # Required environment variables (Netlify → Site settings → Environment
 # variables) — see DEPLOY.md:
-#   DATABASE_URL          Postgres connection string (Supabase/Neon)
+#   DATABASE_URL          Postgres connection string (Supabase Session pooler)
 #   SOCIAL_TOKEN_KEY      openssl rand -hex 32
 #   NEXT_PUBLIC_BASE_URL  your live URL (e.g. https://magical-m.netlify.app)
 
 [build]
   # build:netlify = prisma generate → apply schema + seed (first time) →
-  # next build. The DB step is skipped automatically if DATABASE_URL is
-  # unset (e.g. deploy previews). See scripts/prepare-db.mjs.
+  # next build. See scripts/prepare-db.mjs.
   command = "npm run build:netlify"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
-  # Don't download Playwright browsers on install (dev-only dependency).
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
   NPM_FLAGS = "--no-audit --no-fund"
+
+# Netlify's official Next.js runtime. Declared explicitly so it always
+# engages (do not remove — without it Netlify serves .next statically
+# and "/" 404s).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
