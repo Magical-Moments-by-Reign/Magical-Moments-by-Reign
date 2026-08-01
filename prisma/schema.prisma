@@ -18,13 +18,15 @@ datasource db {
 
 // A customer / account in the master application.
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  name        String?
-  role        String       @default("USER") // USER | ADMIN
-  experiences Experience[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                String             @id @default(cuid())
+  email             String             @unique
+  name              String?
+  role              String             @default("USER") // USER | ADMIN
+  experiences       Experience[]
+  socialConnections SocialConnection[]
+  socialShares      SocialShare[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 // A single customer experience (wedding, birthday, memorial, …).
@@ -53,8 +55,9 @@ model Experience {
   password   String? // optional gate for PRIVATE experiences
 
   ownerId String?
-  owner   User?        @relation(fields: [ownerId], references: [id])
+  owner   User?         @relation(fields: [ownerId], references: [id])
   media   MediaAsset[]
+  shares  SocialShare[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,4 +80,71 @@ model MediaAsset {
   createdAt    DateTime   @default(now())
 
   @@index([experienceId, folder])
+}
+
+// ── Magical Social Studio ───────────────────────────────────────
+// A customer's authorized connection to a social platform. Access
+// tokens are AES-256-GCM encrypted at rest (see src/lib/crypto.ts)
+// and NEVER exposed to the browser, logs, URLs, or customer pages.
+// Passwords are never handled — connections are made via each
+// platform's official OAuth flow only.
+model SocialConnection {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform        String // instagram | facebook | tiktok | youtube
+  profileName     String // the connected profile / page name shown to the customer
+  profileId       String?
+  status          String    @default("CONNECTED") // CONNECTED | EXPIRED | DISCONNECTED
+  scopes          String    @default("")
+  accessTokenEnc  String // encrypted; server-side only
+  refreshTokenEnc String?
+  tokenExpiresAt  DateTime?
+  connectedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, platform])
+  @@index([userId])
+}
+
+// A share the customer composed and approved. One share fans out to
+// one or more platform-specific targets.
+model SocialShare {
+  id           String      @id @default(cuid())
+  experienceId String?
+  experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+  sourceType   String // update | photo | gallery | announcement | video | milestone
+  sourceLabel  String
+  mediaUrl     String?
+  linkUrl      String?
+  aiGenerated  Boolean     @default(false)
+  status       String      @default("PENDING") // PENDING | APPROVED | COMPLETE
+  approvedAt   DateTime?
+  createdAt    DateTime    @default(now())
+
+  targets SocialShareTarget[]
+
+  @@index([experienceId])
+}
+
+// The optimized, platform-specific version of a share and its result.
+model SocialShareTarget {
+  id         String      @id @default(cuid())
+  shareId    String
+  share      SocialShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  platform   String
+  format     String // feed | carousel | reel | story | album | video | short | photo | draft
+  caption    String
+  hashtags   String
+  title      String?
+  visibility String      @default("public")
+  // PUBLISHED | DRAFT | PROCESSING | NEEDS_ACTION | FAILED | EXPIRED | PENDING
+  status     String      @default("PENDING")
+  postUrl    String?
+  error      String?
+  createdAt  DateTime    @default(now())
+
+  @@index([shareId])
 }

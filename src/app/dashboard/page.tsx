@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listExperiences } from "@/lib/experiences";
 import { getExperienceType } from "@/lib/experience-types";
+import "./social/social.css";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,23 @@ export default async function DashboardPage() {
       </header>
 
       <main className="container" style={{ padding: "3rem 0 5rem" }}>
+        <div className="studio-tile">
+          <div>
+            <h3>
+              <span className="studio-tile__icon" aria-hidden="true">📣</span>{" "}
+              Magical Social Studio
+            </h3>
+            <p>
+              Connect Instagram, Facebook, TikTok and YouTube, then share your
+              moments — beautifully optimized for each platform, always with your
+              approval.
+            </p>
+          </div>
+          <Link href="/dashboard/social" className="btn-gold">
+            Open Social Studio ✦
+          </Link>
+        </div>
+
         <div className="toolbar">
           <p className="muted" style={{ margin: 0 }}>
             {experiences.length} {experiences.length === 1 ? "experience" : "experiences"}
