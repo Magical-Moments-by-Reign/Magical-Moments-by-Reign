@@ -48,3 +48,15 @@
 .cr-field input:focus { outline: none; border-color: var(--lavender); }
 .cr-field small { font-size: 0.78rem; color: #9a93a2; }
 .cr-submit { justify-self: start; }
+
+/* Occasion cards backed by a real photo (e.g. Wedding, Baby Journey) */
+.cr-occ__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transition: transform 0.5s var(--ease); }
+.cr-occ:hover .cr-occ__card--photo .cr-occ__photo { transform: scale(1.06); }
+.cr-occ__card--photo::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(20,14,26,0.18) 0%, rgba(20,14,26,0.4) 45%, rgba(20,14,26,0.8) 100%); }
+.cr-occ__card--photo > .cr-occ__icon,
+.cr-occ__card--photo > .cr-occ__check,
+.cr-occ__card--photo > .cr-occ__label,
+.cr-occ__card--photo > .cr-occ__desc { position: relative; z-index: 2; }
+.cr-occ__card--photo > .cr-occ__icon { background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); }
+.cr-occ__card--photo > .cr-occ__label,
+.cr-occ__card--photo > .cr-occ__desc { text-shadow: 0 2px 10px rgba(0,0,0,0.6); }

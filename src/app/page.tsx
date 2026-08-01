@@ -7,16 +7,11 @@ import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 import { PLANS, formatPrice } from "@/lib/plans";
 import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
 import FeaturedExperiences from "@/components/home/FeaturedExperiences";
+import { STORY_PHOTOS } from "@/lib/story-photos";
 
 const HERO_SLIDES: HeroSlide[] = [
   { id: "newhome", src: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg", label: "New Home Journey" },
 ];
-
-// Real photography behind specific "Choose your story" occasion cards.
-const STORY_PHOTOS: Record<string, string> = {
-  wedding: "/story/wedding.jpg",
-  baby: "/story/baby.jpg",
-};
 
 export default function LandingPage() {
   return (
