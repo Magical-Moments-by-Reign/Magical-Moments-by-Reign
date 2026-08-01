@@ -19,16 +19,40 @@ automatic on every push.
 
 ---
 
-## Step 1 — Create the database (Neon)
+## Step 1 — Create the database
 
-1. Go to **neon.tech**, sign up, and create a project (name it
-   `magical-by-reign`).
-2. On the project dashboard, copy the **Pooled connection string**
-   (it contains `-pooler` in the host). It looks like:
+Use **Supabase** (you already use it) or Neon. Either is free Postgres.
+
+> **Recommended: a SEPARATE Supabase project for Magical by Reign** — not
+> the same one as Lean On Me. This app creates its own tables (`User`,
+> `Experience`, …), and a separate project keeps the two apps from
+> colliding.
+
+### Using Supabase
+
+1. Supabase → **New project** → name it `magical-by-reign`, set a
+   database password (save it).
+2. Go to **Project Settings → Database → Connection string → URI**, and
+   open the **Session pooler** tab. Copy that URI and replace
+   `[YOUR-PASSWORD]` with your password. It looks like:
+   ```
+   postgresql://postgres.abcxyz:PASSWORD@aws-0-us-east-2.pooler.supabase.com:5432/postgres
+   ```
+   **This** is your `DATABASE_URL`.
+
+> ⚠️ **Important:** Prisma needs the Postgres **connection string** above
+> — *not* the `SUPABASE_URL` / `VITE_SUPABASE_URL` / anon key you may have
+> seen. Those are for Supabase's JavaScript client and won't work here.
+> This app talks to Postgres directly.
+
+### Using Neon (alternative)
+
+1. Go to **neon.tech**, create a project `magical-by-reign`.
+2. Copy the **Pooled connection string** (host contains `-pooler`):
    ```
    postgresql://USER:PASSWORD@ep-xxxx-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
    ```
-   Keep it handy — this is your `DATABASE_URL`.
+   That's your `DATABASE_URL`.
 
 ## Step 2 — Create the tables + demo data
 
@@ -43,6 +67,12 @@ npm run db:seed        # adds the sample experiences (optional)
 ```
 
 ## Step 3 — Connect Netlify to the repo
+
+> ⚠️ **Use the Magical by Reign Netlify site** (`magical-m.netlify.app`) —
+> **not** your `caregiving-lean-on-me` site. Each app is a separate
+> Netlify project with its own environment variables. Double-check the
+> project name at the top of the Netlify page before adding anything.
+
 
 1. In Netlify: **Add new site → Import an existing project → GitHub**,
    and pick this repository.
