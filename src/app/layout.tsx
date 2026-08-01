@@ -3,11 +3,23 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Magical by Reign — Preserve life's biggest moments",
-    template: "%s · Magical by Reign",
+    default: "Magical Moments by Reign — Capture. Celebrate. Cherish Forever.",
+    template: "%s · Magical Moments by Reign",
   },
   description:
-    "One platform. Unlimited unique experiences. Magical by Reign transforms life's biggest moments into beautiful, interactive keepsakes that grow with families over time.",
+    "One platform. Unlimited unique experiences. Magical Moments by Reign transforms life's biggest moments into beautiful, interactive keepsakes that grow with families over time.",
+  icons: {
+    icon: [
+      { url: "/brand/favicon.png", type: "image/png", sizes: "64x64" },
+    ],
+    apple: [{ url: "/brand/logo-mark.png" }],
+  },
+  openGraph: {
+    title: "Magical Moments by Reign",
+    description: "Capture. Celebrate. Cherish Forever.",
+    images: ["/brand/logo.png"],
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

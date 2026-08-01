@@ -4,11 +4,16 @@ export default function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="container site-footer__inner">
-        <div>
-          <p className="site-footer__brand">
-            Magical <span>by Reign</span>
-          </p>
-          <p className="site-footer__tag">Every memory deserves a masterpiece.</p>
+        <div className="site-footer__brandcol">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="site-footer__logo"
+            src="/brand/logo.png"
+            alt="Magical Moments by Reign"
+            width={220}
+            height={220}
+          />
+          <p className="site-footer__tag">Capture. Celebrate. Cherish Forever.</p>
         </div>
         <nav className="site-footer__links" aria-label="Footer">
           <Link href="/create">Create an experience</Link>

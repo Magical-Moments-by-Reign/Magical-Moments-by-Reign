@@ -32,7 +32,7 @@ export default function LandingPage() {
             <span className="accent">unforgettable.</span>
           </h1>
           <p className="lede">
-            Magical by Reign is one beautifully engineered platform that turns
+            Magical Moments by Reign is one beautifully engineered platform that turns
             life&apos;s biggest moments into custom-designed, interactive
             keepsakes — each with its own address, its own story, and a look no
             other page will ever share.

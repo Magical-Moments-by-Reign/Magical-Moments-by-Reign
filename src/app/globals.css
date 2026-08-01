@@ -64,16 +64,12 @@
 }
 .site-logo { display: flex; align-items: center; gap: 0.7rem; color: var(--cream-100); }
 .site-logo__mark {
-  font-family: var(--font-display); font-size: 1.9rem; font-weight: 600; line-height: 1;
-  color: var(--gold-soft); letter-spacing: 0.05em;
-  display: inline-grid; place-items: center; width: 2.6rem; height: 2.6rem;
-  border: 1.5px solid rgba(198,161,90,0.55); border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%; display: block;
+  box-shadow: 0 0 0 1px rgba(198,161,90,0.35), 0 6px 16px -8px rgba(0,0,0,0.7);
 }
-.site-logo__amp { color: var(--lavender); font-size: 0.8rem; vertical-align: middle; }
-.site-logo__words { display: flex; flex-direction: column; line-height: 1.05; }
-.site-logo__name { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.28em; color: var(--cream-100); }
-.site-logo__sub { font-family: var(--font-display); font-size: 0.7rem; letter-spacing: 0.42em; color: var(--gold-soft); text-transform: uppercase; }
-.site-logo__tag { font-size: 0.5rem; letter-spacing: 0.24em; color: rgba(248,244,236,0.5); text-transform: uppercase; margin-top: 2px; }
+.site-logo__words { display: flex; flex-direction: column; line-height: 1.08; }
+.site-logo__name { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: 0.14em; color: var(--cream-100); }
+.site-logo__sub { font-family: var(--font-display); font-size: 0.68rem; letter-spacing: 0.4em; color: var(--gold-soft); text-transform: uppercase; }
 .site-nav__links { display: flex; gap: 1.6rem; align-items: center; }
 .site-nav__links a { color: rgba(248,244,236,0.82); font-size: 0.82rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.3s; }
 .site-nav__links a:hover, .site-nav__links a.is-active { color: var(--gold-soft); }
@@ -88,11 +84,12 @@
 }
 
 /* ── Site footer (shared) ── */
-.site-footer { background: var(--charcoal-900); color: rgba(248,244,236,0.66); padding: 3rem 0 2rem; }
-.site-footer__inner { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; padding-bottom: 1.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.site-footer__brand { font-family: var(--font-display); font-size: 1.5rem; color: var(--cream-100); margin: 0; }
-.site-footer__brand span { color: var(--gold-soft); }
-.site-footer__tag { margin: 0.3rem 0 0; font-size: 0.9rem; }
+/* Near-black so the logo (black background) blends seamlessly. */
+.site-footer { background: #070607; color: rgba(248,244,236,0.66); padding: 3rem 0 2rem; }
+.site-footer__inner { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; align-items: center; padding-bottom: 1.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.site-footer__brandcol { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+.site-footer__logo { width: auto; height: 150px; max-width: 100%; display: block; border-radius: 12px; }
+.site-footer__tag { margin: 0; font-size: 0.9rem; font-style: italic; color: var(--gold-soft); letter-spacing: 0.04em; }
 .site-footer__links { display: flex; gap: 1.4rem; flex-wrap: wrap; align-items: center; }
 .site-footer__links a { color: rgba(248,244,236,0.72); font-size: 0.88rem; }
 .site-footer__links a:hover { color: var(--gold-soft); }
