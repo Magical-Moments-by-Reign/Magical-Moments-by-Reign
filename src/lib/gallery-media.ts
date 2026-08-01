@@ -62,6 +62,19 @@ const DEMO_GALLERY: Record<string, GalleryItem[]> = {
     { url: "/gallery/baby/20.jpg", caption: "Our whole world" },
     { url: "/gallery/baby/21.jpg", caption: "Forever our baby" },
   ],
+  karlie2027: [
+    { url: "/gallery/karlie/01.jpg", caption: "Make a wish" },
+    { url: "/gallery/karlie/02.jpg", caption: "Opening gifts" },
+    { url: "/gallery/karlie/03.jpg", caption: "Family" },
+    { url: "/gallery/karlie/04.jpg", caption: "Game night" },
+    { url: "/gallery/karlie/05.jpg", caption: "Sweet treats" },
+    { url: "/gallery/karlie/06.jpg", caption: "Turning ten" },
+    { url: "/gallery/karlie/07.jpg", caption: "Say cheese!" },
+    { url: "/gallery/karlie/08.jpg", caption: "Pizza party" },
+    { url: "/gallery/karlie/09.jpg", caption: "The whole crew" },
+    { url: "/gallery/karlie/10.jpg", caption: "Sparkler magic" },
+    { url: "/gallery/karlie/11.jpg", caption: "Best friends forever" },
+  ],
 };
 
 export function galleryFor(slug: string): GalleryItem[] | undefined {
