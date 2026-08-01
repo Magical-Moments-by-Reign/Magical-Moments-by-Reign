@@ -1,11 +1,15 @@
 # ── Netlify configuration ───────────────────────────────────────
-# Magical by Reign is a Next.js (App Router) app. Netlify AUTO-DETECTS
-# Next.js and applies its official Next.js Runtime automatically — so we
-# do NOT declare @netlify/plugin-nextjs here (declaring it manually can
-# conflict with the auto-applied runtime and fail the build).
+# Magical by Reign is a Next.js (App Router) app. Netlify auto-detects
+# Next.js and applies its official Next.js Runtime, so we do NOT declare
+# @netlify/plugin-nextjs here.
 #
-# We only override the build command so `prisma generate` runs before
-# `next build` (see package.json → "build").
+# `publish = ".next"` is REQUIRED: the site's dashboard publish setting
+# was the repository root (a leftover from the initial static/manual
+# deploy), which makes the publish directory equal the base directory
+# and fails the Next.js runtime with:
+#   "Your publish directory cannot be the same as the base directory."
+# Setting it here (netlify.toml overrides dashboard settings) points the
+# publish directory at Next.js's build output instead.
 #
 # Required environment variables (Netlify → Site settings → Environment
 # variables) — see DEPLOY.md:
@@ -15,10 +19,10 @@
 
 [build]
   command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
   # Don't download Playwright browsers on install (dev-only dependency).
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
-  # Don't fail the production install on optional/peer quirks.
   NPM_FLAGS = "--no-audit --no-fund"
