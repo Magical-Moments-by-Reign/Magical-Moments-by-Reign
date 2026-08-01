@@ -3,6 +3,8 @@ import SiteNav from "@/components/site/SiteNav";
 import { getCurrentUserId } from "@/lib/session";
 import { listConnections, realOAuthEnabled } from "@/lib/social/connections";
 import { PLATFORMS, type PlatformId } from "@/lib/social/platforms";
+import { PLATFORM_GRADIENT, COMING_SOON } from "@/lib/social/branding";
+import PlatformLogo from "@/components/social/PlatformLogo";
 import {
   beginConnectAction,
   disconnectAction,
@@ -81,6 +83,23 @@ export default async function SocialStudioPage() {
                 <ConnectionCard key={p.id} platformId={p.id} conn={conn} />
               );
             })}
+            {COMING_SOON.map((p) => (
+              <div className="ss-conn ss-conn--soon" key={p.id}>
+                <div className="ss-conn__top">
+                  <span className="ss-conn__badge" style={{ background: PLATFORM_GRADIENT[p.id] }} aria-hidden="true">
+                    <PlatformLogo id={p.id} />
+                  </span>
+                  <div>
+                    <div className="ss-conn__name">{p.label}</div>
+                  </div>
+                </div>
+                <span className="ss-status ss-status--soon">◔ Coming soon</span>
+                <div className="ss-conn__note">{p.note}</div>
+                <div className="ss-conn__actions">
+                  <button className="ss-btn" type="button" disabled>Coming soon</button>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Share entry */}
@@ -111,14 +130,13 @@ function ConnectionCard({
   conn?: { profileName: string; status: string; connectedAt: Date };
 }) {
   const p = PLATFORMS.find((x) => x.id === platformId)!;
-  const initials = p.label[0];
   const status = conn?.status ?? "NONE";
 
   return (
-    <div className="ss-conn">
+    <div className={`ss-conn ss-conn--${status.toLowerCase()}`}>
       <div className="ss-conn__top">
-        <span className="ss-conn__badge" style={{ background: p.brand }} aria-hidden="true">
-          {initials}
+        <span className="ss-conn__badge" style={{ background: PLATFORM_GRADIENT[p.id] ?? p.brand }} aria-hidden="true">
+          <PlatformLogo id={p.id} />
         </span>
         <div>
           <div className="ss-conn__name">{p.label}</div>
