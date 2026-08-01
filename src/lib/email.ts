@@ -110,6 +110,56 @@ export function customWebsiteAcceptedEmail(o: { name: string; number: string; jo
   };
 }
 
+// ── Custom-domain lifecycle emails ──────────────────────────────
+
+export function domainRenewalReminderEmail(o: { name?: string; domain: string; renewDate: string; amount: string; cardLast4?: string; fallback: string }): { subject: string; html: string } {
+  return {
+    subject: `Your custom domain ${o.domain} renews soon`,
+    html: shell("Your custom domain renews soon", `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} your custom domain <b>${o.domain}</b> is scheduled to renew on <b>${o.renewDate}</b>${o.cardLast4 ? ` using the payment method ending in <b>${o.cardLast4}</b>` : ""}.`)}
+      ${P(`<b>Estimated charge:</b> ${o.amount}`)}
+      ${P(`No action is needed if your card is up to date. Manage your domain or update your payment method anytime.`)}
+      ${P(`<a href="https://${o.fallback}" style="color:#a9843f">Your permanent Magical Moments address →</a>`)}
+    `),
+  };
+}
+
+export function domainPaymentFailedEmail(o: { name?: string; domain: string; fallback: string }): { subject: string; html: string } {
+  return {
+    subject: "Action Needed: Your Custom Domain Renewal Was Unsuccessful",
+    html: shell("Your custom domain renewal was unsuccessful", `
+      ${P(`Hi ${o.name || "there"}, we attempted to renew your custom domain <b>${o.domain}</b>, but your saved payment method could not be processed.`)}
+      ${P(`<b>Your memories are safe.</b> Nothing has been deleted — your photos, videos, stories, messages, galleries, timelines, music, and guestbook remain protected.`)}
+      ${P(`Your Magical Moments experience remains available at:<br/><a href="https://${o.fallback}" style="color:#a9843f">${o.fallback}</a>`)}
+      ${P(`Please update your payment method to restore or preserve your custom domain.`)}
+    `),
+  };
+}
+
+export function domainFallbackEmail(o: { name?: string; domain: string; fallback: string }): { subject: string; html: string } {
+  return {
+    subject: "Your Memories Are Safe — Your Experience Has Moved to Its Backup Address",
+    html: shell("Your memories are safe", `
+      ${P(`Hi ${o.name || "there"}, your custom domain <b>${o.domain}</b> is currently inactive because its renewal payment was not completed.`)}
+      ${P(`Your Magical Moments experience has automatically moved to its secure backup address:<br/><a href="https://${o.fallback}" style="color:#a9843f">${o.fallback}</a>`)}
+      ${P(`<b>Nothing has been lost or deleted.</b> You may continue viewing and managing your experience through the backup address.`)}
+      ${P(`To restore your custom domain, update your payment method and retry the renewal.`)}
+    `),
+  };
+}
+
+export function domainRestoredEmail(o: { name?: string; domain: string; fallback: string }): { subject: string; html: string } {
+  return {
+    subject: "Your Custom Domain Has Been Restored",
+    html: shell("Your custom domain has been restored", `
+      ${P(`Great news, ${o.name || "there"} — your custom domain has been renewed successfully and is active again: <b>${o.domain}</b>.`)}
+      ${P(`Your Magical Moments experience is fully restored at your custom address.`)}
+      ${P(`Your permanent backup address remains available for protection:<br/><a href="https://${o.fallback}" style="color:#a9843f">${o.fallback}</a>`)}
+      ${P(`No further action is required.`)}
+    `),
+  };
+}
+
 export function adminCustomWebsiteNotifyEmail(o: { number: string; name: string; email: string; business?: string; details: string }): { subject: string; html: string } {
   return {
     subject: `New custom website request ${o.number} — ${o.business || o.name}`,

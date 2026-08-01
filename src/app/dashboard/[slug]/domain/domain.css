@@ -1,0 +1,31 @@
+/* ================================================================
+   Domain management (customer)
+   ================================================================ */
+.dm-card { background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: clamp(1.4rem, 3vw, 2rem); margin-bottom: 1.2rem; box-shadow: 0 24px 50px -44px rgba(43,39,50,0.4); }
+.dm-card__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.8rem; }
+.dm-card h2 { font-family: var(--font-display); font-size: 1.35rem; color: #211d29; margin: 0; }
+.dm-card--permanent { border-left: 4px solid #5a8f6b; }
+.dm-address { display: inline-block; font-size: 1.05rem; color: #211d29; background: var(--cream-100); border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.5rem 0.9rem; letter-spacing: 0.01em; }
+.dm-note { color: #5f5866; font-size: 0.9rem; margin: 0.9rem 0 0; line-height: 1.55; }
+.dm-serving { color: #5f5866; font-size: 0.9rem; margin: 0.7rem 0 0; }
+
+.dm-chip { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.25rem 0.7rem; border-radius: 999px; background: var(--cream-100); color: #6a6472; white-space: nowrap; }
+.dm-chip--live, .dm-chip--active, .dm-chip--restored { background: rgba(90,143,107,0.16); color: #3f6f52; }
+.dm-chip--payment_failed, .dm-chip--expired, .dm-chip--manual_review { background: rgba(181,80,80,0.16); color: #9a3b3b; }
+.dm-chip--renewal_due, .dm-chip--grace_period, .dm-chip--using_fallback, .dm-chip--restoration_pending, .dm-chip--connecting, .dm-chip--pending_purchase { background: rgba(198,161,90,0.18); color: #8a6a24; }
+
+.dm-banner { display: flex; gap: 0.8rem; align-items: center; background: #fff9ee; border: 1px solid #eccf9a; border-radius: 14px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; }
+.dm-banner span { font-size: 1.4rem; }
+.dm-banner p { margin: 0; color: #8a6a24; font-size: 0.94rem; line-height: 1.5; }
+
+.dm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.3rem 0 0; }
+.dm-grid dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9a93a2; }
+.dm-grid dd { margin: 0.2rem 0 0; font-weight: 600; color: #211d29; font-size: 0.95rem; }
+
+.dm-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; margin-top: 1.5rem; }
+.dm-link { font: inherit; font-size: 0.86rem; font-weight: 600; color: var(--gold-deep); background: none; border: none; cursor: pointer; text-decoration: none; }
+.dm-link:hover { text-decoration: underline; }
+.dm-card--add p { color: #5f5866; line-height: 1.6; margin: 0.4rem 0 1.2rem; max-width: 40rem; }
+.dm-legal { font-size: 0.8rem; color: #8b8490; line-height: 1.6; margin-top: 1.4rem; max-width: 48rem; }
+
+@media (max-width: 720px) { .dm-grid { grid-template-columns: 1fr 1fr; } }

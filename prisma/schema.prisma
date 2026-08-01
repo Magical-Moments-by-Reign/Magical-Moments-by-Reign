@@ -64,6 +64,7 @@ model Experience {
   owner   User?         @relation(fields: [ownerId], references: [id])
   media   MediaAsset[]
   shares  SocialShare[]
+  domains Domain[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -183,6 +184,7 @@ model Customer {
   phone            String?
   squareCustomerId String?
   orders           Order[]
+  domains          Domain[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -306,6 +308,78 @@ model DomainRequest {
   requested String
   status    String   @default("PENDING") // PENDING | CONFIRMED | UNAVAILABLE
   createdAt DateTime @default(now())
+}
+
+// ── Custom domains + Legacy Protection ──────────────────────────
+// A managed custom domain layered on top of an experience's permanent
+// platform address (<slug>.magicalmomentsbyreign.com). The platform
+// address is NEVER deleted when a domain fails or expires — the
+// experience falls back to it automatically (see src/lib/domains.ts).
+model Domain {
+  id           String  @id @default(cuid())
+  name         String  @unique // the custom domain, e.g. "smithfamily.com"
+  // status: one of the DOMAIN_STATUS values in src/lib/domains.ts
+  status       String  @default("PENDING_PURCHASE")
+
+  experienceId String?
+  experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+  customerId   String?
+  customer     Customer?   @relation(fields: [customerId], references: [id])
+  orderId      String?
+  planId       String?
+
+  // The permanent platform address that always stays live.
+  fallbackAddress String
+  usingFallback   Boolean @default(false)
+
+  // Registrar lifecycle.
+  registrar        String?
+  registrarOrderId String?
+  registrationDate DateTime?
+  expirationDate   DateTime?
+  renewalPrice     Int?     // cents
+  renewalDays      Int      @default(365)
+  autoRenew        Boolean  @default(true)
+  privacyProtection Boolean @default(true)
+  extension        String? // e.g. ".com"
+
+  // Provisioning.
+  dnsStatus String @default("PENDING") // PENDING | CONFIGURED | ERROR
+  sslStatus String @default("PENDING") // PENDING | ACTIVE | ERROR
+
+  // Square card-on-file — token references only, never raw card data.
+  squareCustomerId String?
+  squareCardId     String?
+  cardLast4        String?
+  cardConsentAt    DateTime?
+
+  // Renewal / recovery accounting.
+  retryCount         Int       @default(0)
+  lastRenewalAttempt DateTime?
+  failedNoticesSent  Int       @default(0)
+  fallbackActivatedAt DateTime?
+  restoredAt         DateTime?
+
+  notes     String?
+  events    DomainEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([expirationDate])
+  @@index([experienceId])
+}
+
+// Append-only audit trail for every domain lifecycle action.
+model DomainEvent {
+  id        String   @id @default(cuid())
+  domainId  String
+  domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  type      String // e.g. REGISTERED | RENEWAL_CHARGED | PAYMENT_FAILED | FALLBACK | RESTORED
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([domainId])
 }
 
 model WebhookEvent {

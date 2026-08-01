@@ -75,3 +75,18 @@
   .adm-card__grid { grid-template-columns: 1fr; }
   .adm-header__inner { align-items: flex-start; }
 }
+
+/* ── Admin filters + domain table ── */
+.adm-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.4rem; }
+.adm-filter { font-size: 0.82rem; font-weight: 600; padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--gray-200); background: #fff; color: #6a6472; text-decoration: none; }
+.adm-filter:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+.adm-filter.is-active { background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; border-color: transparent; }
+.adm-table-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.adm-table th { text-align: left; padding: 0.8rem 0.9rem; background: var(--cream-100); color: #6a6472; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+.adm-table td { padding: 0.8rem 0.9rem; border-top: 1px solid var(--gray-100); color: #2a2630; white-space: nowrap; }
+.adm-table a { color: var(--gold-deep); }
+.adm-dchip { font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--cream-100); color: #6a6472; }
+.adm-dchip--active, .adm-dchip--restored { background: rgba(90,143,107,0.16); color: #3f6f52; }
+.adm-dchip--payment_failed, .adm-dchip--expired, .adm-dchip--manual_review { background: rgba(181,80,80,0.16); color: #9a3b3b; }
+.adm-dchip--renewal_due, .adm-dchip--grace_period, .adm-dchip--using_fallback, .adm-dchip--restoration_pending, .adm-dchip--connecting, .adm-dchip--pending_purchase { background: rgba(198,161,90,0.18); color: #8a6a24; }

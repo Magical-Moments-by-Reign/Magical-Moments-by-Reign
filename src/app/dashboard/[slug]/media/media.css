@@ -4,7 +4,7 @@
 .mp { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
 .mp .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
 .mp-header { padding: clamp(2rem, 5vw, 3.4rem) 0 clamp(1.6rem, 3vw, 2.4rem); background: linear-gradient(160deg, var(--charcoal-900, #17141d), var(--charcoal-800, #221d2b)); color: var(--cream-100); }
-.mp-back { display: inline-block; margin-bottom: 0.9rem; color: rgba(248,244,236,0.7); font-size: 0.84rem; text-decoration: none; }
+.mp-back { display: block; margin-bottom: 0.9rem; color: rgba(248,244,236,0.7); font-size: 0.84rem; text-decoration: none; }
 .mp-back:hover { color: var(--gold-soft); }
 .mp-header h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 4.5vw, 2.8rem); margin: 0.5rem 0 0.4rem; }
 .mp-header p { color: rgba(248,244,236,0.8); margin: 0; max-width: 44rem; }
