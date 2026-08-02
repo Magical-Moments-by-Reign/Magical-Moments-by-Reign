@@ -1,0 +1,72 @@
+/* ================================================================
+   Purchase Concierge
+   ================================================================ */
+.pc { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); min-height: 100vh; font-family: var(--font-body); }
+.pc .container { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+.pc-header { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(2rem, 4vw, 2.5rem); background: radial-gradient(60% 90% at 15% 0%, rgba(198,161,90,0.28), transparent 60%), radial-gradient(50% 80% at 92% 8%, rgba(169,140,208,0.24), transparent 55%), linear-gradient(160deg, #241f2e, #17131d); color: var(--cream, #fbf8f3); }
+.pc-back { color: rgba(248,244,236,0.75); font-size: 0.85rem; text-decoration: none; }
+.pc-back:hover { color: var(--gold-soft, #d9bd82); }
+.pc-header h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); margin: 0.4rem 0 0.5rem; }
+.pc-header p { color: rgba(248,244,236,0.82); max-width: 46rem; margin: 0; line-height: 1.65; }
+
+.pc-main { padding: clamp(1.75rem, 4vw, 2.75rem) 0 5rem; }
+
+.pc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; margin-bottom: 1.5rem; }
+@media (max-width: 620px) { .pc-stats { grid-template-columns: repeat(2, 1fr); } }
+.pc-stat { background: #fff; border: 1px solid rgba(42,33,48,0.1); border-radius: 14px; padding: 1rem; text-align: center; }
+.pc-stat b { display: block; font-family: var(--font-display); font-size: 1.8rem; color: var(--gold-deep, #a9843f); }
+.pc-stat span { font-size: 0.8rem; color: var(--muted); }
+
+.pc-banner { background: rgba(169,140,208,0.16); color: #5a3f86; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem; }
+
+.pc-section { background: #fff; border: 1px solid rgba(42,33,48,0.1); border-radius: 18px; padding: clamp(1.3rem, 3vw, 1.9rem); margin-bottom: 1.5rem; box-shadow: 0 20px 46px -40px rgba(42,33,48,0.5); }
+.pc-section h2 { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); margin: 0 0 0.4rem; }
+.pc-muted { color: var(--muted); font-size: 0.92rem; margin: 0 0 1.1rem; line-height: 1.55; }
+
+.pc-form { margin-top: 0.5rem; }
+.pc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; }
+@media (max-width: 720px) { .pc-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .pc-grid { grid-template-columns: 1fr; } }
+.pc-field { display: grid; gap: 0.3rem; }
+.pc-field--wide { grid-column: 1 / -1; }
+.pc-field span { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.pc-field input, .pc-field select { padding: 0.6rem 0.7rem; border-radius: 10px; border: 1.5px solid rgba(42,33,48,0.16); background: #fff; color: var(--ink); font: inherit; font-size: 0.92rem; }
+.pc-field input:focus, .pc-field select:focus { outline: none; border-color: var(--gold); }
+.pc-formfoot { display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; }
+
+.pc-linkbtn { background: none; border: 1px solid rgba(42,33,48,0.2); border-radius: 999px; padding: 0.4rem 0.9rem; font: inherit; font-size: 0.82rem; color: var(--ink); cursor: pointer; text-decoration: none; }
+.pc-linkbtn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+.pc-linkbtn--danger:hover { border-color: #b3364a; color: #b3364a; }
+
+.pc-list { display: flex; flex-direction: column; gap: 0.9rem; }
+.pc-card { border: 1px solid rgba(42,33,48,0.12); border-radius: 14px; padding: 1.1rem 1.2rem; }
+.pc-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.pc-card__product { font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); }
+.pc-card__meta { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+.pc-tag { background: rgba(198,161,90,0.16); color: var(--gold-deep, #a9843f); border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.75rem; font-weight: 600; }
+.pc-card__facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem; margin-top: 0.7rem; font-size: 0.85rem; color: var(--ink); }
+.pc-card__facts b { color: var(--muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.pc-card__notes { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.88rem; }
+.pc-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid rgba(42,33,48,0.08); }
+.pc-inline { display: flex; gap: 0.4rem; align-items: center; }
+.pc-inline select { padding: 0.35rem 0.5rem; border-radius: 8px; border: 1.5px solid rgba(42,33,48,0.16); font: inherit; font-size: 0.82rem; }
+
+/* Status badges */
+.pc-status { flex: 0 0 auto; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap; background: rgba(42,33,48,0.08); color: var(--muted); }
+.pc-status--confirmed { background: rgba(122,90,168,0.16); color: #6a4a9a; }
+.pc-status--preparing, .pc-status--shipped, .pc-status--out_for_delivery { background: rgba(47,138,143,0.16); color: #1f6f73; }
+.pc-status--delivered, .pc-status--completed { background: rgba(92,115,80,0.18); color: #3d5230; }
+.pc-status--delayed { background: rgba(179,54,74,0.14); color: #b3364a; }
+.pc-status--return_initiated { background: rgba(198,161,90,0.2); color: var(--gold-deep, #a9843f); }
+
+/* Wishlist */
+.pc-wish { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.85rem; margin-top: 1.25rem; }
+.pc-wishcard { border: 1px solid rgba(42,33,48,0.12); border-radius: 14px; padding: 1rem; display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start; }
+.pc-wishcard__name { font-weight: 600; color: var(--ink); }
+.pc-wishcard__name a { color: var(--gold-deep, #a9843f); }
+.pc-wishcard__meta { font-size: 0.83rem; color: var(--muted); }
+.pc-wishcard__notes { font-size: 0.82rem; color: var(--muted); margin: 0.2rem 0 0; }
+.pc-wishcard form { margin-top: auto; }
+
+.pc-disclaimer { font-size: 0.78rem; color: var(--muted); font-style: italic; line-height: 1.6; max-width: 72ch; }

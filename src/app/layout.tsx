@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Providers from "@/components/cart/Providers";
+import RegisterSW from "@/components/pwa/RegisterSW";
 import "./globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
@@ -20,9 +21,15 @@ export const metadata: Metadata = {
   applicationName: "Magical Moments by Reign",
   authors: [{ name: "Magical Moments by Reign" }],
   alternates: { canonical: "/" },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Magical Moments",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [{ url: "/brand/favicon.png", type: "image/png", sizes: "64x64" }],
-    apple: [{ url: "/brand/logo-mark.png" }],
+    apple: [{ url: "/icon-192.png" }],
   },
   openGraph: {
     title: "Magical Moments by Reign",
@@ -39,6 +46,13 @@ export const metadata: Metadata = {
     images: ["/brand/logo.png"],
   },
   robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2a2130",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 const ORG_JSONLD = {
@@ -70,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>{children}</Providers>
+        <RegisterSW />
       </body>
     </html>
   );

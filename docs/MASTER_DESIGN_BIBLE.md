@@ -27,6 +27,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Housing Hub](./design-bible/HOUSING-HUB.md)** — *Founder Approved · replaces
   the Home/New Home Journey.* The complete housing ecosystem (9 pathways +
   shared tools). *Entry + Build-a-Custom-Home built; rest phased.*
+- **[Purchase Concierge™](./design-bible/STANDARD-purchase-concierge.md)** —
+  *Founder Approved · new core platform.* Organize, track & manage purchases
+  across every Journey (we never replace the merchant). *Built (first slice).*
+- **[App-First Architecture](./design-bible/STANDARD-app-architecture.md)** —
+  *Founder Approved · cross-cutting.* One backend, one DB, reusable APIs for web,
+  PWA, and future native apps. *PWA installable now.*
 - **[Book III — The Family Vault](./design-bible/BOOK-III-family-vault.md)** —
   the secure command center for everything a family protects and accesses.
 - **[Gifts & Registries](./design-bible/STANDARD-gifts-registries.md)** — *built (first slice).*

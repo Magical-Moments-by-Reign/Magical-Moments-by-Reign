@@ -83,6 +83,13 @@ export default async function DashboardPage() {
             </div>
             <Link href="/dashboard/vault" className="btn-gold">Open the Family Vault ✦</Link>
           </div>
+          <div className="studio-tile studio-tile--purchases">
+            <div>
+              <h3><span className="studio-tile__icon" aria-hidden="true">📦</span> Purchase Concierge</h3>
+              <p>Every order, organized. Connect purchases from any merchant to track deliveries, warranties &amp; returns — and keep wishlists for what&apos;s next.</p>
+            </div>
+            <Link href="/dashboard/purchases" className="btn-gold">Open Purchase Concierge ✦</Link>
+          </div>
         </div>
 
         <div className="toolbar">

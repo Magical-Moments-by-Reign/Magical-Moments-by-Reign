@@ -461,6 +461,8 @@ model Family {
   documents   FamilyDocument[]
   contacts    TrustedContact[]
   experiences Experience[]
+  purchases   Purchase[]
+  wishlist    WishlistItem[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -523,6 +525,46 @@ model TrustedContact {
   createdAt    DateTime @default(now())
 
   @@index([familyId])
+}
+
+// Purchase Concierge — a purchase the customer connects to a Journey so
+// they can track and organize it (we never replace the merchant). Order
+// status mirrors Smart Order Tracking states.
+model Purchase {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  experienceId String?  // optional link to a Life Journey
+  product      String
+  store        String?
+  orderDate    String?
+  estDelivery  String?
+  tracking     String?
+  price        Float?
+  warranty     String?
+  returnWindow String?
+  status       String   @default("confirmed") // confirmed|preparing|shipped|out_for_delivery|delivered|delayed|return_initiated|completed
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+// Purchase Concierge — a saved product to consider before buying.
+model WishlistItem {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category  String   @default("General") // Wedding | Baby | New Home | Vacation | Graduation | General
+  name      String
+  store     String?
+  url       String?
+  price     Float?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([familyId, category])
 }
 
 model WebhookEvent {
