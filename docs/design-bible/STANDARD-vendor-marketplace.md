@@ -181,3 +181,52 @@ contracts, and pricing remain solely between customer and independent vendor.
 **Needs (seams):** the post-event review invite, the admin verification/appeal
 UI, search-ranking application, and notification delivery — gated on auth +
 live bookings + notifications. No strike is applied without verification.
+
+---
+
+## Vendor Membership, Verification & Compliance
+
+*Founder Approved.* Marketplace participation is an ongoing, trust-based
+relationship — not just a listing. Every approved vendor maintains an active
+**Vendor Membership** with **annual business verification**.
+
+**No upfront fee.** The annual membership fee is deducted from the vendor's
+**first completed, successfully-paid booking** (so vendors join without paying
+before earning). It **renews annually** — the renewal fee comes from the first
+completed booking after the renewal date; if none arrives within the grace
+window, Magical Moments may request direct payment.
+
+**Built today:** `src/lib/vendor-membership.ts` + `vendor-membership.test.ts`
+(**16 tests**) — the pure engine:
+
+- **Verification checklist** (`VERIFICATION_ITEMS`) — business/contact/address/
+  service areas, license, certifications, GL insurance, workers' comp (when
+  applicable), and any state/local docs.
+- **Compliance** (`complianceStatus`) — compliant only when every *required*
+  credential is provided, verified, and unexpired; surfaces `missing`,
+  `expired`, and `expiringSoon`.
+- **Auto in/out** (`resolveMarketplace`) — active only when membership is active
+  **and** compliant; otherwise hidden from search + can't accept new bookings
+  (existing completed bookings always remain in history). Auto-returns to Active
+  once documents are re-approved.
+- **Fee logic** (`deductMembershipFee`) — no upfront cost; deducts from the first
+  booking, tracks any shortfall; `computeRenewalDate` / `renewalDue` /
+  `renewalPlan` (next booking → else direct payment after grace).
+- **Reminders** (`expirationReminders`) — 90 / 60 / 30 / 14 / 7 / day-of before
+  each expiration (delivery is a seam).
+- **Guardrail copy** — independent-contractor terms (creates no employment/
+  partnership/agency/franchise/joint-venture; vendor owns payroll/taxes/
+  insurance/licenses/compliance), **Magical Moments provides no insurance**,
+  right-to-verify (directly with issuers; fraud → suspension/removal), and the
+  customer-trust notice (no guarantee of quality/pricing/performance).
+
+`prisma/schema.prisma` — `Vendor` gains membership fields (status, join/renewal
+dates, fee tracking, `lastVerifiedAt`); new `VendorCredential` (kind, required,
+provided, verified, `documentUrl`, `expiresAt`) and `VendorMembershipEvent`
+(append-only audit) + `VendorMembershipStatus` enum.
+
+**Needs (seams):** fee deduction at booking payout (Square), secure **document
+uploads** (storage), the **Vendor Membership** dashboard section + **Admin
+Vendor Compliance Management** (both listed in the spec), and reminder delivery
+(email) — gated on auth + Square + storage + notifications. Nothing is faked:
+no fee is charged, no document verified, until those foundations exist.

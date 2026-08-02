@@ -1424,6 +1424,14 @@ enum VendorStatus {
   REMOVED
 }
 
+// Marketplace membership status (see src/lib/vendor-membership.ts).
+enum VendorMembershipStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_VERIFICATION
+  SUSPENDED
+}
+
 enum VendorApplicationStatus {
   NEW
   APPROVED
@@ -1480,6 +1488,21 @@ model Vendor {
   badgeOverride    String? // admin manual override tier, or null
   badgeAudits      VendorBadgeAudit[]
 
+  // Vendor Membership, Verification & Compliance (see src/lib/vendor-membership.ts).
+  // No upfront fee — the annual membership fee is deducted from the vendor's
+  // first completed, paid booking. Expired/missing required credentials
+  // auto-inactivate the vendor until re-approved.
+  membershipStatus        VendorMembershipStatus @default(PENDING_VERIFICATION)
+  membershipJoinedAt      DateTime?
+  membershipRenewalDate   DateTime?
+  membershipFeeCents      Int      @default(0) // configurable; 0 until set
+  firstBookingFeeDeducted Boolean  @default(false)
+  firstBookingFeeCents    Int      @default(0)
+  renewalFeeDeducted      Boolean  @default(false)
+  lastVerifiedAt          DateTime?
+  credentials             VendorCredential[]
+  membershipEvents        VendorMembershipEvent[]
+
   reviews        VendorReview[]
   strikes        VendorStrike[]
   performanceEvents VendorPerformanceEvent[]
@@ -1535,6 +1558,42 @@ model VendorBadgeAudit {
   toBadge   String
   reason    String? // e.g. earned | downgraded | admin_approved | admin_override | elite_invited | revoked
   actor     String   @default("system") // "system" for auto changes, admin identity otherwise
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// A vendor business credential tracked for annual verification & compliance
+// (license, insurance, workers' comp, certification, business info…). Documents
+// are stored via secure storage (URL/ref only). Expiry drives auto-inactivation.
+model VendorCredential {
+  id         String    @id @default(cuid())
+  vendorId   String
+  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  kind       String    // business_info | business_license | gl_insurance | workers_comp | certification | ...
+  required   Boolean   @default(true)
+  provided   Boolean   @default(false)
+  verified   Boolean   @default(false)
+  documentUrl String?  // secure storage reference (seam)
+  expiresAt  DateTime?
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([vendorId, kind])
+  @@index([expiresAt])
+}
+
+// Append-only vendor membership audit (joined, fee deducted, renewed,
+// verification approved, credential expired, auto-inactivated, reactivated,
+// suspended, direct-payment requested).
+model VendorMembershipEvent {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  type      String
+  detail    String?
+  actor     String   @default("system")
   createdAt DateTime @default(now())
 
   @@index([vendorId])
