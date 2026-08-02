@@ -85,7 +85,7 @@ export default function MobileNav({ links, active }: { links: NavLink[]; active?
         </nav>
 
         <div className="mnav-actions">
-          <Link href="/dashboard" className="btn-outline-gold" onClick={() => setOpen(false)}>
+          <Link href="/login" className="btn-outline-gold" onClick={() => setOpen(false)}>
             Log in
           </Link>
           <Link href="/create" className="btn-gold" onClick={() => setOpen(false)}>

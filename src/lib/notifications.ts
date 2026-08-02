@@ -63,6 +63,11 @@ export function channelAvailable(channel: NotificationChannel): boolean {
   return providers.some((p) => p.channel === channel && p.isAvailable());
 }
 
+/** The registered, available provider for a channel (for the dispatcher). */
+export function getNotificationProvider(channel: NotificationChannel): NotificationProvider | undefined {
+  return providers.find((p) => p.channel === channel && p.isAvailable());
+}
+
 // ── Per-recipient preferences ───────────────────────────────────
 export type ChannelPrefs = Partial<Record<NotificationChannel, boolean>>;
 export type NotificationPrefs = Partial<Record<NotificationType, ChannelPrefs>>;

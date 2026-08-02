@@ -1025,6 +1025,8 @@ model Account {
   notifications   Notification[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
+  authTokens      AuthToken[]
+  guardianApprovals GuardianApproval[] // approval records where this account is the minor
   emails        CustomerEmail[]
   phones        CustomerPhone[]
   addresses     CustomerAddress[]
@@ -2184,9 +2186,13 @@ model Notification {
   channelsPlanned String   @default("[]") // JSON channels attempted
   channelsQueued  String   @default("[]") // JSON channels awaiting a provider
   readAt          DateTime?
+  archivedAt      DateTime? // moved out of the active inbox (never deleted)
+  actionUrl       String?   // deep-link the "View" action opens
+  relatedLabel    String?   // e.g. related member / Moment name (for display)
   createdAt       DateTime @default(now())
 
   @@index([accountId, readAt])
+  @@index([accountId, archivedAt])
   @@index([type])
 }
 
@@ -2218,9 +2224,48 @@ model Invitation {
   guardianRequired Boolean  @default(false)
   status           String   @default("pending") // pending | accepted | revoked | expired
   acceptedByAccountId String?
+  acceptedAt       DateTime?
   expiresAt        DateTime
   createdAt        DateTime @default(now())
 
   @@index([status])
   @@index([targetNormalized])
+}
+
+// A single-use, HASHED token for email verification and password reset.
+// The URL carries only the opaque token; we store sha256(token). Tokens are
+// single-use (usedAt) and expiring. See src/lib/auth-support.ts.
+model AuthToken {
+  id        String    @id @default(cuid())
+  accountId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  purpose   String    // verify_email | password_reset
+  tokenHash String    @unique // sha256 of the opaque token — never the token itself
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([accountId, purpose])
+}
+
+// A parent/guardian approval record for a minor account. The minor cannot use
+// the platform until a guardian approves. The approval link is a HASHED token
+// sent to the guardian's contact; the guardian sets the minor's permissions.
+// NO location tracking or hidden monitoring is ever recorded here.
+model GuardianApproval {
+  id                      String    @id @default(cuid())
+  minorAccountId          String
+  minor                   Account   @relation(fields: [minorAccountId], references: [id], onDelete: Cascade)
+  guardianAccountId       String?   // set once the guardian is identified/linked
+  guardianEmailNormalized String    @default("") // canonical email (matching only)
+  guardianEmailMasked     String    @default("") // shown for display
+  tokenHash               String    @unique
+  status                  String    @default("pending") // pending | approved | declined | expired
+  permissions             String    @default("{}") // JSON PermissionSet the guardian granted
+  decidedAt               DateTime?
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+
+  @@index([minorAccountId])
+  @@index([status])
 }

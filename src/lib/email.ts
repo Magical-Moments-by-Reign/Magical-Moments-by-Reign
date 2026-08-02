@@ -170,3 +170,172 @@ export function adminCustomWebsiteNotifyEmail(o: { number: string; name: string;
     `),
   };
 }
+
+// ── A gold call-to-action button used across the account emails ──
+function CTA(label: string, href: string): string {
+  return `<p style="text-align:center;margin:22px 0 8px">
+    <a href="${href}" style="display:inline-block;background:linear-gradient(135deg,#d9bd82,#c6a15a 55%,#a9843f);color:#241f2e;font-family:Arial,sans-serif;font-weight:700;text-decoration:none;padding:13px 30px;border-radius:999px;letter-spacing:0.02em">${label}</a>
+  </p>`;
+}
+const SMALL = (t: string) => `<p style="font-size:12px;line-height:1.6;color:#9a93a2;margin:12px 0 0;font-family:Arial,sans-serif">${t}</p>`;
+
+// ── Account & family lifecycle emails ───────────────────────────
+
+export function verifyEmailEmail(o: { name?: string; url: string; hours: number }): { subject: string; html: string } {
+  return {
+    subject: "Verify your email — Magical Moments by Reign",
+    html: shell("Confirm your email ✦", `
+      ${P(`${o.name ? `Welcome, ${o.name}!` : "Welcome!"} Let's confirm your email so your Magical Moments account is ready.`)}
+      ${CTA("Verify my email", o.url)}
+      ${P(`This link expires in ${o.hours} hours. If the button doesn't work, copy and paste this link:<br/><span style="color:#a9843f;word-break:break-all">${o.url}</span>`)}
+      ${SMALL("If you didn't create an account, you can safely ignore this email.")}
+    `),
+  };
+}
+
+export function passwordResetEmail(o: { name?: string; url: string; minutes: number }): { subject: string; html: string } {
+  return {
+    subject: "Reset your password — Magical Moments by Reign",
+    html: shell("Reset your password", `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} we received a request to reset your Magical Moments password.`)}
+      ${CTA("Choose a new password", o.url)}
+      ${P(`For your security this link expires in ${o.minutes} minutes and can be used only once.`)}
+      ${SMALL("Didn't request this? You can safely ignore this email — your password won't change.")}
+    `),
+  };
+}
+
+export function passwordChangedEmail(o: { name?: string; whenText: string }): { subject: string; html: string } {
+  return {
+    subject: "Your password was changed",
+    html: shell("Your password was changed", `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} your Magical Moments password was successfully changed ${o.whenText}. For your protection, all other signed-in sessions were signed out.`)}
+      ${P(`If this was you, no action is needed.`)}
+      ${SMALL("If you didn't make this change, please reset your password immediately and contact info@magicalmomentsbyreign.com.")}
+    `),
+  };
+}
+
+export function securityAlertEmail(o: { name?: string; summary: string; url?: string }): { subject: string; html: string } {
+  return {
+    subject: "Security alert — Magical Moments by Reign",
+    html: shell("A note about your account's security", `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} ${o.summary}`)}
+      ${o.url ? CTA("Review your active sessions", o.url) : ""}
+      ${SMALL("If this wasn't you, reset your password and sign out all other sessions from Account → Security.")}
+    `),
+  };
+}
+
+export function familyInvitationEmail(o: { inviterName: string; roleLabel: string; spaceName: string; url: string; expiresText: string }): { subject: string; html: string } {
+  return {
+    subject: `${o.inviterName} invited you to ${o.spaceName}`,
+    html: shell("You're invited ✦", `
+      ${P(`<b>${o.inviterName}</b> has invited you to join <b>${o.spaceName}</b> on Magical Moments by Reign as a <b>${o.roleLabel}</b>.`)}
+      ${P("Family stays together here — shared celebrations, memories, and Moments, with the privacy controls the host chooses for you.")}
+      ${CTA("View your invitation", o.url)}
+      ${P(`This invitation expires ${o.expiresText}. You'll see exactly what you can access before you accept.`)}
+    `),
+  };
+}
+
+export function invitationAcceptedEmail(o: { hostName?: string; memberName: string; spaceName: string }): { subject: string; html: string } {
+  return {
+    subject: `${o.memberName} accepted your invitation`,
+    html: shell("Your invitation was accepted", `
+      ${P(`${o.hostName ? `Hi ${o.hostName},` : "Hello,"} good news — <b>${o.memberName}</b> has joined <b>${o.spaceName}</b>.`)}
+      ${CTA("Open your family space", "https://magicalmomentsbyreign.com/account/family")}
+    `),
+  };
+}
+
+export function guardianApprovalRequestEmail(o: { minorName: string; url: string; expiresText: string }): { subject: string; html: string } {
+  return {
+    subject: `Approval needed for ${o.minorName}'s account`,
+    html: shell("A young family member needs your approval", `
+      ${P(`<b>${o.minorName}</b> would like to join your family on Magical Moments by Reign. As their parent or guardian, your approval is required before the account can be used.`)}
+      ${P("You'll be able to choose exactly what they can see and do — and change it anytime. We never track location or monitor private activity.")}
+      ${CTA("Review & set permissions", o.url)}
+      ${P(`This request expires ${o.expiresText}.`)}
+    `),
+  };
+}
+
+export function guardianApprovalGrantedEmail(o: { minorName: string }): { subject: string; html: string } {
+  return {
+    subject: "Your account has been approved ✦",
+    html: shell("You're approved!", `
+      ${P(`Great news, ${o.minorName}! A parent or guardian has approved your Magical Moments account. You can sign in now.`)}
+      ${CTA("Sign in", "https://magicalmomentsbyreign.com/login")}
+    `),
+  };
+}
+
+export function guardianApprovalDeclinedEmail(o: { minorName: string }): { subject: string; html: string } {
+  return {
+    subject: "About your account request",
+    html: shell("Account request update", `
+      ${P(`Hi ${o.minorName}, a parent or guardian has reviewed your account request. Access wasn't approved at this time.`)}
+      ${P("If you think this was a mistake, please talk with your parent or guardian, who can approve the account for you.")}
+    `),
+  };
+}
+
+// ── Membership / trial / billing ────────────────────────────────
+
+export function trialEndingEmail(o: { name?: string; planName: string; endDate: string; amount: string }): { subject: string; html: string } {
+  return {
+    subject: "Your Magical Preview Pass ends soon",
+    html: shell("Your preview ends soon", `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} your Magical Preview Pass for <b>${o.planName}</b> ends on <b>${o.endDate}</b>. Unless you cancel, it will convert to a paid membership at <b>${o.amount}</b>.`)}
+      ${CTA("Manage my membership", "https://magicalmomentsbyreign.com/account/billing")}
+      ${SMALL("You can cancel online anytime before your preview ends — no phone call required.")}
+    `),
+  };
+}
+
+export function membershipConvertedEmail(o: { name?: string; planName: string; amount: string }): { subject: string; html: string } {
+  return {
+    subject: "Welcome to your Magical Moments membership ✦",
+    html: shell("Your membership is active", `
+      ${P(`${o.name ? `Welcome, ${o.name}!` : "Welcome!"} Your <b>${o.planName}</b> membership is now active${o.amount ? ` at ${o.amount}` : ""}. Everything you started during your preview is saved and ready.`)}
+      ${CTA("Open my dashboard", "https://magicalmomentsbyreign.com/dashboard")}
+    `),
+  };
+}
+
+export function paymentFailureEmail(o: { name?: string; planName: string }): { subject: string; html: string } {
+  return {
+    subject: "Action needed: your payment didn't go through",
+    html: shell("We couldn't process your payment", `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} we tried to process the payment for your <b>${o.planName}</b> membership, but it didn't go through.`)}
+      ${P("<b>Your memories are safe.</b> Nothing has been deleted. Please update your payment method to keep your membership active.")}
+      ${CTA("Update payment method", "https://magicalmomentsbyreign.com/account/billing")}
+    `),
+  };
+}
+
+export function vendorComplianceEmail(o: { businessName: string; summary: string }): { subject: string; html: string } {
+  return {
+    subject: "Vendor compliance update — action may be needed",
+    html: shell("A note about your vendor listing", `
+      ${P(`Hello ${o.businessName}, ${o.summary}`)}
+      ${CTA("Review your vendor account", "https://magicalmomentsbyreign.com/account")}
+      ${SMALL("Keeping your license and insurance current keeps your listing active in the marketplace.")}
+    `),
+  };
+}
+
+// ── Generic reminder / notification email ───────────────────────
+// Covers celebration, task, appointment, education & scholarship deadlines,
+// and any other in-app notification the recipient opted to receive by email.
+export function reminderEmail(o: { name?: string; title: string; body: string; actionUrl?: string; actionLabel?: string }): { subject: string; html: string } {
+  return {
+    subject: o.title,
+    html: shell(o.title, `
+      ${P(`${o.name ? `Hi ${o.name},` : "Hello,"} ${o.body}`)}
+      ${o.actionUrl ? CTA(o.actionLabel || "Open Magical Moments", o.actionUrl) : ""}
+      ${SMALL(`You're receiving this because of your notification preferences. Manage them anytime in Account → Notifications.`)}
+    `),
+  };
+}

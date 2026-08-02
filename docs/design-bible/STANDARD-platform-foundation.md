@@ -81,12 +81,38 @@ per-channel, with sensible type defaults.
 - **Family Connections / Guest Sharing** → `invitation`, `rsvp` + guest role + secure invitations
 All share the one `Account`, `Session`, role model, and notification service.
 
-## Needs (seams — never faked)
-Login / sign-up / social-OAuth **UI + cookie/middleware wiring**, email/SMS/push
-**providers** (Resend + an SMS/push service), and a scheduler to fire time-based
-reminders. The mechanics (hashing, sessions, decisions, dispatch planning) are
-real and tested; no one is logged in and no message is delivered without a real
-credential/provider.
+## Activation layer (built — the working customer experience)
+The service layer is now wired into a real, working experience (no fake auth):
+
+- **Sign-up** (`/signup`) — role-select (Administrator never public), recover-
+  before-duplicate, scrypt-hashed passwords, minor → guardian-approval flow.
+- **Login / logout** (`/login`, session cookie) — rate limiting, generic
+  credential errors (no email-existence leak), status-aware messages
+  (unverified / suspended / pending-guardian / closed), session rotation.
+- **Secure sessions** — HTTP-only + SameSite + Secure(prod) cookie holding an
+  opaque token; only the SHA-256 **hash** is stored; expiry, revocation, and
+  Account → Security **Active Sessions** (sign out one / all others).
+- **Route protection** — `src/middleware.ts` (redirect preserving `?next=`) +
+  server guards (`requireAccount`/`requireRole`) that re-validate against the DB.
+- **Email verification** (`/verify-email`) & **password reset**
+  (`/forgot-password`, `/reset-password`) — single-use hashed tokens, expiry,
+  generic responses, all sessions revoked on reset.
+- **Family invitations** (`/invite/[token]`) — accept/decline, role applied,
+  host notified in-app + email.
+- **Guardian approval** (`/guardian/[token]`) — parent sets permissions,
+  approve/decline; minors gated until approved; **no location/monitoring**.
+- **Notification Center** (`/notifications` + nav bell) — unread count,
+  read/mark-all/archive, category filters; in-app is the source of truth.
+- **Preferences** (Account → Notifications) — per-type channels; minors in-app
+  only; SMS/push shown as "soon" (never active without a provider).
+- **Resend** registered as the notification **email provider** (gated on
+  `RESEND_API_KEY`) with branded templates for the account lifecycle.
+
+## Still gated (seams — never faked)
+Social **OAuth** provider wiring, an **SMS/push** provider, a **scheduler** for
+time-based reminders, and **production go-live** (verified Resend domain,
+production env vars + cookie config, and end-to-end security tests) remain
+pending. Nothing is delivered without a real provider; nothing is charged.
 
 **Guardrail:** one account per person; recover-before-duplicate; minors always
 guarded; passwords hashed, session/invite tokens hashed; notifications never
