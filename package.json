@@ -9,6 +9,7 @@
     "build:netlify": "prisma generate && node scripts/prepare-db.mjs && next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "test": "node --import tsx --test \"src/lib/**/*.test.ts\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

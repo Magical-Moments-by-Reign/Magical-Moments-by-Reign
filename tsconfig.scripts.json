@@ -1,0 +1,10 @@
+{
+  "// purpose": "Type-checks staging/maintenance scripts (scripts/**) which are intentionally EXCLUDED from the Next.js production build (tsconfig.json). Run with `npm run typecheck:scripts`. Inherits compilerOptions (incl. the @/* path alias) from the base config; overrides include/exclude to target scripts only.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": ["scripts/**/*.ts"],
+  "exclude": ["node_modules"]
+}

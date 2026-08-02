@@ -32,7 +32,7 @@ import { newSessionToken, hashSessionToken, sessionExpiry, sessionValid } from "
 import { canManagePermissionsFor } from "@/lib/roles";
 import { defaultPermissions, validateMessage } from "@/lib/family-command";
 import { defaultGuestPermissions } from "@/lib/family-connections";
-import { buildCelebrationCalendar, monthlyCelebrations, daysUntil, reminderSchedule } from "@/lib/celebration-network";
+import { buildCelebrationCalendar, monthlyCelebrations, daysUntil, reminderSchedule, CELEBRATION_TYPES, type CelebrationType } from "@/lib/celebration-network";
 import { complianceStatus, resolveMarketplace, computeRenewalDate } from "@/lib/vendor-membership";
 import { qualifiedTier, awardedBadge } from "@/lib/vendor-badges";
 import { computeTrialDates, daysRemaining, formatUSD } from "@/lib/trial-membership";
@@ -60,6 +60,14 @@ const uniq = () => Math.random().toString(36).slice(2, 8);
 
 function addr(line1: string, city = "Birmingham", state = "AL", postal = "35203") {
   return { line1, city, state, postal, country: "US" };
+}
+
+// The DB stores CelebrationEntry.type as a broad string; validate it against the
+// canonical domain union before handing it to the domain library (never a bare
+// `as CelebrationType`). Unexpected values fail the harness with a diagnostic.
+const ALLOWED_CELEBRATION_TYPES: readonly string[] = CELEBRATION_TYPES.map((c) => c.id);
+function isCelebrationType(value: string): value is CelebrationType {
+  return ALLOWED_CELEBRATION_TYPES.includes(value);
 }
 async function mintAuthToken(accountId: string, purpose: "verify_email" | "password_reset") {
   const token = newAuthToken();
@@ -212,7 +220,19 @@ async function main() {
       { familyId, type: "anniversary", personName: "Robert & Maria", month: 6, day: 20, year: 2010 },
     ] });
     const entries = await prisma.celebrationEntry.findMany({ where: { familyId } });
-    const cal = buildCelebrationCalendar(entries.map((e) => ({ type: e.type as never, personName: e.personName, month: e.month, day: e.day, year: e.year ?? undefined, visible: e.visible })));
+    const cal = buildCelebrationCalendar(entries.map((e) => {
+      if (!isCelebrationType(e.type)) throw new Error(`Unexpected celebration type in staging data: "${e.type}"`);
+      return {
+        id: e.id,
+        type: e.type, // validated CelebrationType
+        personName: e.personName,
+        month: e.month,
+        day: e.day,
+        year: e.year ?? undefined,
+        source: e.source === "member" ? "member" : "manual",
+        visible: e.visible,
+      };
+    }));
     const march = monthlyCelebrations(cal, 3);
     const d = daysUntil(3, 12, now());
     const schedule = reminderSchedule(new Date().toISOString(), true);
