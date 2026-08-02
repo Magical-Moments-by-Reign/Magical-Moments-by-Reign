@@ -17,4 +17,5 @@ export const STORY_PHOTOS: Record<string, string> = {
   sweet16: "/story/sweet16.jpg",
   firstbirthday: "/story/firstbirthday.jpg",
   quinceanera: "/story/quinceanera.jpg",
+  sports: "/story/sports.jpg",
 };
