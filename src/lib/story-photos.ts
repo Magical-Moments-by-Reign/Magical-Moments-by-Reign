@@ -6,4 +6,5 @@ export const STORY_PHOTOS: Record<string, string> = {
   baby: "/story/baby.jpg",
   birthday: "/story/birthday.jpg",
   graduation: "/story/graduation.jpg",
+  anniversary: "/story/anniversary.jpg",
 };
