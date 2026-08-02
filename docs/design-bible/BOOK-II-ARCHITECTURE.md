@@ -67,6 +67,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Legacy Guardian™ / Legacy Transfer™ (Lifetime benefit) | **Phase A built** (designate Primary/Secondary guardians in the Vault — data only) · verified ownership transfer needs auth + review — see [standard](./STANDARD-legacy-guardian.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
+| **Magical+ Ecosystem** (wallet, credits, gifting, financing gateway) | **Architecture built** (pure domain + provider-agnostic Financing Gateway, no lending logic) · balances/payments/financing need auth + billing + providers — see [standard](./STANDARD-magical-plus.md) |
 | Accounts / auth + role-based family access | Planned |
 
 ---

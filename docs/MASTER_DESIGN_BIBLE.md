@@ -7,6 +7,10 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* Magical* naming (Magical Tracker™, Magical Moments Library,
   Magical AI, Magical Invitations, Magical Galleries), account sync, gifting &
   group contributions, payment roadmap. *Avoid "Legacy Timeline/Library."*
+- **[Magical+ Ecosystem](./design-bible/STANDARD-magical-plus.md)** —
+  *Founder Approved.* Wallet, credits, gift contributions, payments, and a
+  provider-agnostic **Financing Gateway** — **not a bank/lender, no lending
+  logic.** *Architecture layer built; balances/payments foundation-gated.*
 - **[Founder Constitution — Volume I](./design-bible/CONSTITUTION.md)** —
   *the highest governing document* (mission, purpose, pricing philosophy,
   Lifetime Collections, Founder approval). Referenced before any major decision.
