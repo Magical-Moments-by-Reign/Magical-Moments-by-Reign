@@ -11,6 +11,14 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* Wallet, credits, gift contributions, payments, and a
   provider-agnostic **Financing Gateway** — **not a bank/lender, no lending
   logic.** *Architecture layer built; balances/payments foundation-gated.*
+- **[Platform Foundation — Accounts · Auth · Permissions · Notifications](./design-bible/STANDARD-platform-foundation.md)** —
+  *Founder Approved · the shared spine.* One account/role/permission/notification
+  model that activates all eight ecosystems — scrypt auth + hashed sessions,
+  recover-before-duplicate sign-up, canonical roles (delegating to existing
+  permission sets), child safeguards, a provider-agnostic notification dispatcher
+  (in-app always; email/SMS/push seams), and secure hashed-token invitations.
+  *Service libraries + schema built & tested (17 tests); login/OAuth UI +
+  providers + scheduler gated.*
 - **[Customer Identity & Duplicate Prevention](./design-bible/STANDARD-account-identity.md)** —
   *Founder Approved · Platform Foundation.* One person = one account, one
   account = one Library, every purchase attaches to the verified account.

@@ -1016,7 +1016,15 @@ model Account {
   appleSub         String? @unique // Apple sign-in subject
   passwordHash     String? // hashed only; null when social-only
 
+  // Platform foundation: canonical role + child safeguard (see src/lib/roles.ts).
+  platformRole      String  @default("family_owner") // PlatformRole
+  guardianAccountId String? // set for minor accounts (parent/guardian)
+
   identity      AccountIdentity?
+  sessions        Session[]
+  notifications   Notification[]
+  notificationPrefs NotificationPreference[]
+  invitationsSent Invitation[] @relation("inviter")
   emails        CustomerEmail[]
   phones        CustomerPhone[]
   addresses     CustomerAddress[]
@@ -2145,4 +2153,74 @@ model CelebrationReminderPref {
   updatedAt  DateTime @updatedAt
 
   @@index([familyId])
+}
+
+// ── Platform foundation: sessions, notifications, invitations ───
+// Shared auth/notification/invitation infrastructure activating all completed
+// ecosystems. Logic in src/lib/auth.ts, notifications.ts, invitations.ts, roles.ts.
+model Session {
+  id            String    @id @default(cuid())
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique // sha256 of the opaque session token
+  userAgentHash String?
+  ipHash        String?
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+
+  @@index([accountId])
+}
+
+// An in-app notification (source of truth) + record of external delivery.
+model Notification {
+  id              String   @id @default(cuid())
+  accountId       String
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type            String   // NotificationType (see notifications.ts)
+  title           String
+  body            String
+  data            String   @default("{}") // JSON payload / deep-link
+  channelsPlanned String   @default("[]") // JSON channels attempted
+  channelsQueued  String   @default("[]") // JSON channels awaiting a provider
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([accountId, readAt])
+  @@index([type])
+}
+
+// Per-account, per-type channel preferences (defaults come from the type).
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type      String   // NotificationType
+  channels  String   @default("{}") // JSON ChannelPrefs { in_app, email, sms, push }
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, type])
+}
+
+// A secure, hashed-token invitation (family member / guest / vendor / collaborator).
+model Invitation {
+  id               String   @id @default(cuid())
+  kind             String   // family_member | guest | vendor | collaborator
+  role             String   // PlatformRole assigned on acceptance
+  tokenHash        String   @unique
+  inviterAccountId String?
+  inviter          Account? @relation("inviter", fields: [inviterAccountId], references: [id], onDelete: SetNull)
+  targetNormalized String   // canonical email / digit phone (matching only)
+  targetMasked     String   // shown on the invite screen
+  familyId         String?
+  experienceId     String?
+  vendorId         String?
+  guardianRequired Boolean  @default(false)
+  status           String   @default("pending") // pending | accepted | revoked | expired
+  acceptedByAccountId String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([status])
+  @@index([targetNormalized])
 }
