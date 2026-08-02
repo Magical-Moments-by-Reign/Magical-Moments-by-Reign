@@ -8,7 +8,7 @@
 .jxi-hero { padding: clamp(1.75rem, 3.5vw, 2.75rem) 0 clamp(1.5rem, 3vw, 2.25rem); text-align: center; background: radial-gradient(60% 90% at 20% 0%, rgba(198,161,90,0.22), transparent 60%), radial-gradient(50% 80% at 90% 10%, rgba(169,140,208,0.22), transparent 55%), linear-gradient(160deg, #241f2e, #17131d); color: var(--cream, #fbf8f3); }
 .jxi-hero h1 { font-family: var(--font-display); font-size: clamp(1.6rem, 3.4vw, 2.5rem); margin: 0.4rem auto 0.5rem; max-width: 20ch; line-height: 1.12; }
 .jxi-hero p { color: rgba(248,244,236,0.85); max-width: 42rem; margin: 0 auto; line-height: 1.6; font-size: 0.98rem; }
-.jxi-main { padding: clamp(2rem, 5vw, 3.5rem) 0 5rem; }
+.jxi-main { padding: clamp(3.5rem, 7vw, 6rem) 0 5rem; }
 .jxi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.1rem; }
 .jxi-card { position: relative; overflow: hidden; border-radius: 18px; min-height: 210px; display: flex; align-items: flex-end; color: #fff; text-decoration: none; background: linear-gradient(150deg, var(--c1), var(--c2)); box-shadow: 0 20px 44px -30px rgba(42,33,48,0.6); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
 .jxi-card:hover { transform: translateY(-5px); box-shadow: 0 30px 56px -30px rgba(42,33,48,0.65); }
