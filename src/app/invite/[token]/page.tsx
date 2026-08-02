@@ -17,6 +17,7 @@ const ACCEPT_ERRORS: Record<string, string> = {
   expired: "This invitation has expired.",
   already_accepted: "This invitation has already been accepted.",
   guardian_required: "This invitation is for a minor and needs a parent or guardian to complete it.",
+  rate_limited: "Too many attempts. Please wait a few minutes and try again.",
 };
 
 export default async function InvitePage({

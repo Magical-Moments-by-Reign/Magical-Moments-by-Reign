@@ -116,19 +116,35 @@ export interface RateLimitResult {
   retryAfterMs: number;    // when locked, how long until unlock
 }
 
+export interface WindowOpts { max: number; windowMs: number; lockMs?: number }
+
 /**
- * Given the timestamps (ms) of recent failed attempts and `now`, decide whether
- * this key is currently locked. Attempts outside the window are ignored.
+ * The core sliding-window decision, generalized so every action type (login,
+ * password reset, verification resend, …) shares one tested implementation.
+ * Given the timestamps (ms) of recent hits and `now`, decide whether the key is
+ * locked. Hits outside the window are ignored. This is what makes the durable
+ * PostgreSQL limiter instance-independent: any instance reading the same shared
+ * hit list reaches the same verdict.
  */
-export function rateLimit(failedAtMs: number[], nowMs: number): RateLimitResult {
-  const recent = failedAtMs.filter((t) => nowMs - t < LOGIN_WINDOW_MS);
-  const locked = recent.length >= LOGIN_MAX_ATTEMPTS;
+export function evaluateWindow(hitsMs: number[], nowMs: number, opts: WindowOpts): RateLimitResult {
+  const lockMs = opts.lockMs ?? opts.windowMs;
+  const recent = hitsMs.filter((t) => nowMs - t < opts.windowMs);
+  const locked = recent.length >= opts.max;
   if (locked) {
     const oldest = Math.min(...recent);
-    const retryAfterMs = Math.max(0, LOGIN_LOCK_MS - (nowMs - oldest));
+    const retryAfterMs = Math.max(0, lockMs - (nowMs - oldest));
     return { locked: retryAfterMs > 0, remaining: 0, retryAfterMs };
   }
-  return { locked: false, remaining: Math.max(0, LOGIN_MAX_ATTEMPTS - recent.length), retryAfterMs: 0 };
+  return { locked: false, remaining: Math.max(0, opts.max - recent.length), retryAfterMs: 0 };
+}
+
+/**
+ * Given the timestamps (ms) of recent failed login attempts and `now`, decide
+ * whether this key is currently locked. Thin wrapper over evaluateWindow using
+ * the login defaults (kept for the existing callers/tests).
+ */
+export function rateLimit(failedAtMs: number[], nowMs: number): RateLimitResult {
+  return evaluateWindow(failedAtMs, nowMs, { max: LOGIN_MAX_ATTEMPTS, windowMs: LOGIN_WINDOW_MS, lockMs: LOGIN_LOCK_MS });
 }
 
 // ── Login outcome resolver ──────────────────────────────────────

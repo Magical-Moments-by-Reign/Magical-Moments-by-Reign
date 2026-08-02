@@ -12,7 +12,9 @@ import type { NextRequest } from "next/server";
 const SESSION_COOKIE = "mmr_session";
 
 // Authenticated, Account-based areas activated by the platform foundation.
-const PROTECTED_PREFIXES = ["/account", "/notifications"];
+// /dashboard and /create now require a real Account session (bridged to the
+// legacy dashboard identity) — no demo login.
+const PROTECTED_PREFIXES = ["/account", "/notifications", "/dashboard", "/create"];
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -29,5 +31,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/notifications/:path*"],
+  matcher: ["/account/:path*", "/notifications/:path*", "/dashboard/:path*", "/create"],
 };

@@ -108,11 +108,56 @@ The service layer is now wired into a real, working experience (no fake auth):
 - **Resend** registered as the notification **email provider** (gated on
   `RESEND_API_KEY`) with branded templates for the account lifecycle.
 
+## Auth hardening & dashboard identity (built)
+- **Durable rate limiting** — PostgreSQL-backed shared limiter (`RateLimitHit`,
+  `src/lib/rate-limit.ts`), bucketed by a SHA-256 of action + IP + hashed email
+  + accountId (no raw email stored), expiring windows, opportunistic cleanup,
+  configurable thresholds, abuse audit logging, and **fail-open** if the store
+  is briefly unavailable. Applied to login, password-reset, verify-resend,
+  account-create, invitation-accept, and guardian-decision.
+- **Account is the canonical identity.** `/dashboard` and `/create` require a
+  real `mmr_session` Account session (`requireAccount`); the demo login is gone.
+  The legacy `User` model is **bridged, not deleted** (`Account.legacyUserId` +
+  nullable `accountId` on Experience/SocialConnection/SocialShare), linked only
+  on a **verified** email match with opportunistic backfill, one User per
+  Account, every link audited (`dashboard_identity_linked`).
+- **Email** now prefers `RESEND_FROM_EMAIL` (with `MAIL_FROM` fallback).
+- `auth-service.ts` split into focused modules (register/login/verification/
+  password/invitations/guardian + shared) behind a thin façade.
+
+## Testing status (important)
+Unit tests (pure logic) and the production build pass, and the build confirms
+the protected routes compile and are wired correctly. The build does **not**
+exercise real database persistence, concurrent serverless rate-limit behavior,
+or cross-account query isolation. Those require **database-backed integration
+and end-to-end tests** and must be completed before production authentication
+launches (see the checklist below).
+
 ## Still gated (seams — never faked)
 Social **OAuth** provider wiring, an **SMS/push** provider, a **scheduler** for
 time-based reminders, and **production go-live** (verified Resend domain,
 production env vars + cookie config, and end-to-end security tests) remain
 pending. Nothing is delivered without a real provider; nothing is charged.
+
+### Database-backed integration & E2E tests required before production launch
+- Durable rate limiting against a real PostgreSQL instance: threshold, window
+  expiry/reset, per-action bucket isolation, and **concurrent multi-instance**
+  behavior (two serverless workers sharing one store).
+- Rate-limiter **fail-open** verified against a real DB outage.
+- Full auth flows end-to-end: signup → verify → login → reset → logout, with
+  real session cookies and session revocation.
+- **Cross-account query isolation** — one signed-in Account can never read or
+  mutate another Account's notifications, invitations, sessions, or dashboard
+  records.
+- Dashboard identity bridge on real data: verified-email link, `accountId`
+  backfill, one-User-per-Account (no duplicate identities), and **legacy
+  dashboard-feature preservation** (Experiences, media, gifts, domains, vault,
+  social) under the bridged identity.
+- Route protection E2E: unauthenticated `/dashboard` and `/create` redirect to
+  `/login?next=…`; role and minor restrictions enforced server-side.
+- Resend delivery in a verified-domain staging environment (verification +
+  password-reset), confirming in-app notifications are never lost if Resend is
+  unavailable.
 
 **Guardrail:** one account per person; recover-before-duplicate; minors always
 guarded; passwords hashed, session/invite tokens hashed; notifications never

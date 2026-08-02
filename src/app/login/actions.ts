@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { attemptLogin, resendVerification } from "@/lib/auth-service";
 import { createSessionForAccount } from "@/lib/auth-session";
 import { safeRedirect } from "@/lib/auth-support";
+import { checkRateLimit, recordAttempt, clientIp } from "@/lib/rate-limit";
 
 export async function loginAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") || "").trim();
@@ -14,15 +15,19 @@ export async function loginAction(formData: FormData): Promise<void> {
     redirect(`/login?error=invalid_credentials&next=${encodeURIComponent(next)}`);
   }
 
-  const { outcome, accountId } = await attemptLogin(email, password);
+  // Durable, shared rate limit (per IP + hashed email). Fails open if unavailable.
+  const ip = await clientIp();
+  const rl = await checkRateLimit("login", { ip, email });
+  const { outcome, accountId } = await attemptLogin(email, password, rl.limited);
 
   if (outcome.ok && accountId) {
-    // Session rotation: a brand-new session is minted on every login.
-    await createSessionForAccount(accountId);
+    await createSessionForAccount(accountId); // session rotation on every login
     redirect(next);
   }
 
-  // Preserve the (masked) email for the resend-verification convenience only.
+  // Only wrong credentials count toward the lockout (not "unverified", etc.).
+  if (outcome.code === "invalid_credentials") await recordAttempt("login", { ip, email });
+
   const params = new URLSearchParams({ error: outcome.code, next });
   if (outcome.code === "email_unverified") params.set("email", email);
   redirect(`/login?${params.toString()}`);
@@ -30,7 +35,12 @@ export async function loginAction(formData: FormData): Promise<void> {
 
 export async function resendVerificationAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") || "").trim();
-  if (email) await resendVerification(email);
-  // Generic response — never reveal whether the email exists.
+  const ip = await clientIp();
+  // Rate-limit resend requests; always return the same generic result.
+  const rl = await checkRateLimit("verify_resend", { ip, email });
+  if (email && !rl.limited) {
+    await recordAttempt("verify_resend", { ip, email });
+    await resendVerification(email);
+  }
   redirect("/login?resent=1");
 }

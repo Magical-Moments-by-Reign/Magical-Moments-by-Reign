@@ -8,7 +8,13 @@
 //   MAIL_FROM        e.g. "Magical Moments by Reign <info@magicalmomentsbyreign.com>"
 //   ADMIN_EMAIL      where admin notifications go (default info@magicalmomentsbyreign.com)
 
-const FROM = process.env.MAIL_FROM || "Magical Moments by Reign <info@magicalmomentsbyreign.com>";
+// Prefer RESEND_FROM_EMAIL (the project standard going forward); fall back to
+// MAIL_FROM for backwards compatibility, then a safe default. The default is
+// only used once the sending domain is verified in Resend.
+const FROM =
+  process.env.RESEND_FROM_EMAIL ||
+  process.env.MAIL_FROM ||
+  "Magical Moments by Reign <info@magicalmomentsbyreign.com>";
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@magicalmomentsbyreign.com";
 
 export interface SendResult { sent: boolean; skipped?: boolean; error?: string; id?: string }

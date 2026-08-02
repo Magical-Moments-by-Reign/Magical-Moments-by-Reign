@@ -62,6 +62,10 @@ model Experience {
 
   ownerId String?
   owner   User?         @relation(fields: [ownerId], references: [id])
+  // Canonical account owner (bridge). Nullable + backfilled from ownerId via a
+  // verified identity link; ownerId (legacy User) is preserved during transition.
+  accountId String?
+  account   Account?     @relation(fields: [accountId], references: [id])
   // Every Journey attaches to the Family Vault — nothing exists independently.
   familyId String?
   family   Family?       @relation(fields: [familyId], references: [id])
@@ -106,6 +110,8 @@ model SocialConnection {
   id              String    @id @default(cuid())
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId       String?   // canonical account owner (bridge; backfilled)
+  account         Account?  @relation(fields: [accountId], references: [id])
   platform        String // instagram | facebook | tiktok | youtube
   profileName     String // the connected profile / page name shown to the customer
   profileId       String?
@@ -129,6 +135,8 @@ model SocialShare {
   experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
   userId       String?
   user         User?       @relation(fields: [userId], references: [id])
+  accountId    String?     // canonical account owner (bridge; backfilled)
+  account      Account?    @relation(fields: [accountId], references: [id])
   sourceType   String // update | photo | gallery | announcement | video | milestone
   sourceLabel  String
   mediaUrl     String?
@@ -1020,6 +1028,12 @@ model Account {
   platformRole      String  @default("family_owner") // PlatformRole
   guardianAccountId String? // set for minor accounts (parent/guardian)
 
+  // Dashboard identity bridge (transition — see src/lib/dashboard-identity.ts).
+  // Account is the canonical customer identity; this links to the legacy User
+  // row that existing dashboard records are keyed on, so nothing breaks while
+  // the dashboard is migrated. Nullable; the legacy User model is NOT deleted.
+  legacyUserId      String? @unique
+
   identity      AccountIdentity?
   sessions        Session[]
   notifications   Notification[]
@@ -1027,6 +1041,10 @@ model Account {
   invitationsSent Invitation[] @relation("inviter")
   authTokens      AuthToken[]
   guardianApprovals GuardianApproval[] // approval records where this account is the minor
+  // Bridged legacy dashboard ownership (nullable during transition).
+  dashboardExperiences Experience[]
+  socialConnections    SocialConnection[]
+  socialShares         SocialShare[]
   emails        CustomerEmail[]
   phones        CustomerPhone[]
   addresses     CustomerAddress[]
@@ -2268,4 +2286,19 @@ model GuardianApproval {
 
   @@index([minorAccountId])
   @@index([status])
+}
+
+// A durable, shared login/abuse rate-limit hit. One row per attempt within a
+// window; a bucket is a SHA-256 hash of (action + IP + hashed email + accountId)
+// — NEVER a raw email. Shared across serverless instances via PostgreSQL.
+// Expired rows are cleaned opportunistically (expiresAt). See src/lib/rate-limit.ts.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  bucket    String   // sha256 bucket key — no raw PII
+  action    String   // RateAction (login | password_reset | verify_resend | ...)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([bucket, createdAt])
+  @@index([expiresAt])
 }

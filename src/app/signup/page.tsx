@@ -19,6 +19,7 @@ const ERRORS: Record<string, string> = {
   weak_password: `Please choose a stronger password — at least ${MIN_PASSWORD_LENGTH} characters, mixing letters, numbers, and symbols.`,
   guardian_email_required: "Teen and child accounts need a parent or guardian's email for approval.",
   role_not_allowed: "Please choose a valid role. (Administrator accounts aren't created here.)",
+  rate_limited: "Too many sign-up attempts from your connection. Please wait a few minutes and try again.",
   unknown: "Something went wrong. Please try again.",
 };
 

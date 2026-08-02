@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { registerAccount, PUBLIC_SIGNUP_ROLES } from "@/lib/auth-service";
 import { safeRedirect } from "@/lib/auth-support";
+import { checkRateLimit, recordAttempt, clientIp } from "@/lib/rate-limit";
 import type { PlatformRole } from "@/lib/roles";
 
 export async function signupAction(formData: FormData): Promise<void> {
@@ -10,6 +11,12 @@ export async function signupAction(formData: FormData): Promise<void> {
   const role = String(formData.get("role") || "") as PlatformRole;
   const back = (code: string) =>
     redirect(`/signup?error=${code}&next=${encodeURIComponent(next)}${role ? `&role=${role}` : ""}`);
+
+  // Throttle mass account-creation per IP.
+  const ip = await clientIp();
+  const rl = await checkRateLimit("account_create", { ip });
+  if (rl.limited) back("rate_limited");
+  await recordAttempt("account_create", { ip });
 
   if (!PUBLIC_SIGNUP_ROLES.includes(role)) back("role_not_allowed");
 

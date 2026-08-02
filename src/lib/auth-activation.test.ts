@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   passwordStrength, MIN_PASSWORD_LENGTH,
   safeRedirect, rateLimit, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS,
+  evaluateWindow,
   loginOutcome, type LoginContext,
   newAuthToken, hashAuthToken, authTokenExpiry, checkAuthToken,
   invitationExpired,
@@ -16,6 +17,8 @@ import {
   needsGuardianApproval, minorAccessDecision, applyGuardianDecision,
   minorDefaultPermissions, hashGuardianToken, newGuardianToken, guardianApprovalExpiry,
 } from "./guardian";
+import { rateBucket, limitFor, RATE_DEFAULTS } from "./rate-limit-core";
+import { legacyRole, resolveBridge, shouldBackfill } from "./dashboard-bridge";
 
 // ── Password strength ───────────────────────────────────────────
 test("passwordStrength: rejects short passwords", () => {
@@ -184,4 +187,74 @@ test("guardian tokens: hashed, deterministic, not the raw token", () => {
   const h = hashGuardianToken(t);
   assert.notEqual(h, t);
   assert.equal(hashGuardianToken(t), h);
+});
+
+// ── Durable rate limiter (pure core) ────────────────────────────
+test("evaluateWindow: threshold + retry-after per config", () => {
+  const now = 1_000_000;
+  const cfg = { max: 3, windowMs: 10_000 };
+  assert.equal(evaluateWindow([now - 1, now - 2], now, cfg).locked, false);
+  const three = [now - 1, now - 2, now - 3];
+  const r = evaluateWindow(three, now, cfg);
+  assert.equal(r.locked, true);
+  assert.ok(r.retryAfterMs > 0 && r.retryAfterMs <= 10_000);
+});
+
+test("evaluateWindow: hits outside the window reset the counter", () => {
+  const now = 1_000_000;
+  const cfg = { max: 3, windowMs: 10_000 };
+  const old = [now - 20_000, now - 30_000, now - 40_000];
+  assert.equal(evaluateWindow(old, now, cfg).locked, false);
+  assert.equal(evaluateWindow(old, now, cfg).remaining, 3);
+});
+
+test("rate limiter: shared store is instance-independent", () => {
+  // Two 'server instances' reading the same shared hit list reach the SAME
+  // verdict — this is exactly what the PostgreSQL-backed store guarantees.
+  const now = 5_000_000;
+  const cfg = limitFor("login");
+  const shared = Array.from({ length: cfg.max }, (_, i) => now - i * 1000);
+  const instanceA = evaluateWindow(shared, now, cfg);
+  const instanceB = evaluateWindow(shared, now, cfg);
+  assert.equal(instanceA.locked, true);
+  assert.deepEqual(instanceA, instanceB);
+});
+
+test("rate limiter: action buckets are isolated + no raw email", () => {
+  const parts = { ip: "203.0.113.5", email: "Test.User+x@Gmail.com", accountId: "acc_1" };
+  const login = rateBucket("login", parts);
+  const reset = rateBucket("password_reset", parts);
+  assert.notEqual(login, reset);                       // separate buckets per action
+  assert.equal(rateBucket("login", parts), login);     // deterministic
+  assert.ok(!login.includes("gmail"));                 // hashed — no raw email
+  assert.ok(!login.includes("Test"));
+  // Same person, different IP → different bucket (per-IP isolation).
+  assert.notEqual(login, rateBucket("login", { ...parts, ip: "198.51.100.9" }));
+});
+
+test("rate limiter: sane defaults for every action", () => {
+  for (const action of Object.keys(RATE_DEFAULTS) as (keyof typeof RATE_DEFAULTS)[]) {
+    const cfg = limitFor(action);
+    assert.ok(cfg.max >= 1 && cfg.windowMs >= 60_000);
+  }
+});
+
+// ── Dashboard identity bridge (pure decisions) ──────────────────
+test("legacyRole: staff maps to ADMIN, others USER", () => {
+  assert.equal(legacyRole("admin"), "ADMIN");
+  assert.equal(legacyRole("family_owner"), "USER");
+  assert.equal(legacyRole("child"), "USER");
+});
+
+test("resolveBridge: one User per Account, prevents duplicates", () => {
+  // Already linked → reuse (never create a second).
+  assert.deepEqual(resolveBridge({ legacyUserId: "u1", matchedUserId: "u2" }), { mode: "existing_link", userId: "u1" });
+  // Verified email match → link the existing User + backfill.
+  const m = resolveBridge({ matchedUserId: "u2" });
+  assert.deepEqual(m, { mode: "email_match", userId: "u2" });
+  assert.equal(shouldBackfill(m), true);
+  // No link, no match → create; no backfill needed.
+  const c = resolveBridge({});
+  assert.deepEqual(c, { mode: "create" });
+  assert.equal(shouldBackfill(c), false);
 });
