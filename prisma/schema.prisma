@@ -1408,3 +1408,109 @@ model CustomWebsiteRequest {
   @@index([status])
   @@index([createdAt])
 }
+
+// ── Vendor Marketplace ──────────────────────────────────────────
+// Trusted independent businesses discoverable by families planning life's
+// milestones. Vendors are INDEPENDENT — Magical Moments never employs,
+// supervises, endorses, or guarantees them (see the required Vendor Notice in
+// src/lib/vendors.ts). Only APPROVED, non-hidden vendors are shown. Logo/
+// gallery media resolve through storage identifiers (seam). No payments run
+// through these models; future monetization tiers exist but stay disabled.
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum VendorApplicationStatus {
+  NEW
+  APPROVED
+  REJECTED
+}
+
+model Vendor {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  businessName   String
+  logoUrl        String?
+  description    String
+  ownerName      String?
+  categoryId     String
+  city           String
+  state          String
+  serviceArea    String?
+  phone          String?
+  email          String?
+  website        String?
+  socials        String       @default("[]") // JSON [{ platform, url }]
+  hours          String?
+  gallery        String       @default("[]") // JSON [url]
+  videos         String       @default("[]") // JSON [url]
+  services       String       @default("[]") // JSON [string]
+  pricing        String?
+  languages      String       @default("[]") // JSON [string]
+  yearsInBusiness Int?
+  licensed       Boolean      @default(false)
+  insured        Boolean      @default(false)
+  status         VendorStatus @default(PENDING)
+  featured       Boolean      @default(false)
+  hidden         Boolean      @default(false)
+  tier           String       @default("free") // future monetization; disabled today
+  ratingAvg      Float        @default(0)
+  reviewCount    Int          @default(0)
+  reviews        VendorReview[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([categoryId])
+  @@index([state, city])
+  @@index([status])
+}
+
+model VendorReview {
+  id            String   @id @default(cuid())
+  vendorId      String
+  vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  authorName    String
+  ratings       String   @default("{}") // JSON per-category { communication, quality, ... }
+  overallRating Int      @default(5)
+  written       String?
+  photos        String   @default("[]") // JSON [url]
+  recommend     Boolean  @default(true)
+  status        String   @default("published") // pending | published | hidden
+  createdAt     DateTime @default(now())
+
+  @@index([vendorId, status])
+}
+
+// A "Become a Vendor" application awaiting admin review. Logo/gallery are
+// stored as URLs/identifiers once storage exists (seam).
+model VendorApplication {
+  id              String                  @id @default(cuid())
+  number          String                  @unique // MMR-V-XXXXXX
+  businessName    String
+  ownerName       String
+  email           String
+  phone           String?
+  website         String?
+  categoryId      String
+  description     String
+  yearsInBusiness Int?
+  city            String
+  state           String
+  businessLicense String?
+  insurance       String?
+  socials         String                  @default("[]") // JSON
+  logoUrl         String?
+  gallery         String                  @default("[]") // JSON
+  references      String?
+  agreedTerms     Boolean                 @default(false)
+  status          VendorApplicationStatus @default(NEW)
+  notes           String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}

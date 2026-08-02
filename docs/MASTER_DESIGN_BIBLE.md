@@ -55,6 +55,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
   Sharing Acknowledgment**. Honest about screenshot limits — never overstated.
   *Domain layer built & tested (20 tests) + schema; code delivery, dashboard &
   recipient UI gated on auth + email/SMS + storage.*
+- **[Vendor Marketplace](./design-bible/STANDARD-vendor-marketplace.md)** —
+  *Founder Approved.* "Become a Vendor" — trusted **independent** businesses
+  discovered by families. 43-category catalog, browse/filter, reviews, required
+  **Vendor Notice**, disabled future monetization tiers. *Domain layer built &
+  tested (11 tests) + schema + `/vendors` & `/vendors/apply` (live application);
+  listings/reviews/admin gated on auth + storage + notifications.*
 - **[Journey Experience & Preview](./design-bible/STANDARD-journey-experience.md)** —
   *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
   welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
