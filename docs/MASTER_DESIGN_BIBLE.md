@@ -106,6 +106,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
   The complete athlete platform (profile, game center, recruiting, scholarships,
   NIL education, resume) — educational only, never guarantees. *Preview content built.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
+- **[The Magical Moments Ecosystem](./design-bible/VISION-ecosystem.md)** —
+  *Founder Vision.* A complete Life Celebration Ecosystem — "We've got you." /
+  "Everything I needed was right here." Provider-agnostic **integrations
+  registry** (8 groups, ~29 categories, connected/guided/coming-soon states,
+  nothing faked) + per-occasion **"What do I need next?"** suggestions.
+  *Architecture built & tested (9 tests); real providers register per category.*
 - **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(pricing-model decision resolved by the [Pricing Engine](./design-bible/STANDARD-pricing-engine.md); recurring + Free Forever approved).*
 - **[Legacy Guardian™ / Legacy Transfer™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & the Lifetime ownership-transfer benefit. *Phase A built (designate guardians in the Vault).*
 
