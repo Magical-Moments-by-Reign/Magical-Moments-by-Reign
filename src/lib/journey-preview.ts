@@ -171,6 +171,41 @@ const FLAVOR: Record<string, Flavor> = {
     overview: "The question, the yes, the happy tears — planned beautifully and captured the way it deserves to be, ready to flow right into your Wedding Journey.",
     marketplace: ["Jewelers", "Photographers", "Videographers", "Event planners", "Florists"],
   },
+  sports: {
+    aiWelcome: "Welcome to the Sports Journey. I'm Magical AI — your recruiting & planning companion. I'll help you preserve every season and navigate the road from youth sports to college and beyond. (Recruiting & NIL guidance is educational only.)",
+    overview: "Not just a photo gallery — one living Journey for the athlete that grows every season, from first practice through college, the pros, coaching, and beyond. Every game, award, stat, and milestone becomes part of a permanent Legacy Timeline.",
+    included: [
+      "Athlete profile & pro-style dashboard",
+      "Game Center — a page for every game & season",
+      "Highlight Reel Builder (your uploads stay untouched)",
+      "Auto-built Athletic Resume (export to PDF)",
+      "Recruitment Center — plain-language education & checklists",
+      "College Visit Planner & side-by-side compare",
+      "Scholarship Hub with deadline reminders",
+      "NIL Education Center (educational only)",
+      "Coach Portal (parent-controlled permissions)",
+      "Parent Dashboard — schedules, travel, forms & expenses",
+      "Teammate connections & guestbook",
+      "A permanent athletic Legacy Timeline",
+    ],
+    timeline: [
+      { when: "Youth sports", what: "Start the profile — first teams & first memories" },
+      { when: "Each season", what: "Game Center: stats, film, photos & awards" },
+      { when: "Recruiting years", what: "Athletic resume, highlight reel & readiness" },
+      { when: "College search", what: "Visits, offers, scholarships & NIL education" },
+      { when: "Signing Day", what: "Celebrate the commitment" },
+      { when: "College & beyond", what: "College stats, graduation, pro & coaching" },
+    ],
+    faq: [
+      { q: "Does this guarantee recruitment or a scholarship?", a: "No. We help you organize, prepare, and present your athlete's story with checklists and education — but we never guarantee recruitment or scholarships." },
+      { q: "Is the recruiting and NIL information advice?", a: "It's educational only — plain-language guidance and checklists, not legal, tax, or financial advice. We encourage consulting the appropriate licensed professional." },
+      { q: "Can coaches contribute?", a: "Yes — invited coaches can verify stats, upload film, and write recommendations. Parents control coach permissions." },
+      { q: "What happens to my game film and photos?", a: "Your original uploads are never altered. Magical AI can help assemble highlight reels while the originals stay untouched." },
+      { q: "Can I export an athletic resume?", a: "Yes — a professional athlete resume builds automatically and exports to PDF." },
+      { q: "Does the Journey end after high school?", a: "Never. It continues through college, the pros, and coaching — one permanent Legacy Timeline." },
+    ],
+    marketplace: ["Showcases & camps", "Recruiting services", "Highlight-video editors", "Sports photographers", "Trainers & coaches", "Equipment", "ACT/SAT test prep", "Sports medicine"],
+  },
 };
 
 export function previewFor(typeId: string): JourneyPreview | null {
