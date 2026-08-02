@@ -123,6 +123,13 @@ Bible governs — notify the Founder to confirm direction before continuing.
   links (FDIC/CFPB/IRS), family savings goals, bank-appointment link-outs,
   age-based Ask Magical. *Domain + schema built & tested (7 tests); persistence/
   payments/bank links gated.*
+- **[Family Connections](./design-bible/STANDARD-family-connections.md)** —
+  *Founder Approved.* One membership → the whole family participates; the Host
+  invites guests (free to join), with host-controlled permissions, graceful
+  premium-preview locks (Magical Preview Pass), shared timeline, private feed,
+  video gatherings, and an opt-in **general-location** Family Map (never live
+  tracking). Per-moment privacy. *Domain + schema built & tested (8 tests);
+  video/storage/UI gated.*
 - **[Family Command Center](./design-bible/STANDARD-family-command.md)** —
   *Founder Approved.* Private family communication & organization — roles,
   configurable permissions, messages, reminders, tasks, calendar, achievements,

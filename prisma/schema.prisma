@@ -2039,3 +2039,72 @@ model FamilyAchievement {
 
   @@index([familyId])
 }
+
+// ── Family Connections ──────────────────────────────────────────
+// One membership → the whole family participates. The Host invites guests to a
+// specific Magical Moment (Experience); guests need no paid membership. Guests
+// access ONLY the moments they're invited to. NOT a social platform; the Family
+// Map is general-location + opt-in (never live tracking). Video providers,
+// storage, and delivery are seams. Logic in src/lib/family-connections.ts.
+model FamilyGuest {
+  id             String   @id @default(cuid())
+  experienceId   String   // the Magical Moment they're invited to
+  hostAccountId  String?
+  name           String
+  contactMasked  String? // masked email/phone for display
+  permissions    String   @default("{}") // JSON GuestPermissionSet
+  status         String   @default("invited") // invited | joined | declined
+  invitedMoments String   @default("[]") // JSON experience ids this guest may access
+  createdAt      DateTime @default(now())
+
+  @@index([experienceId, status])
+}
+
+model FamilyTimelineEntry {
+  id        String   @id @default(cuid())
+  familyId  String
+  type      String   // Birthdays | Weddings | New Babies | Military Deployments | ...
+  title     String
+  date      DateTime?
+  memberId  String?
+  createdAt DateTime @default(now())
+
+  @@index([familyId, date])
+}
+
+model FamilyFeedPost {
+  id           String   @id @default(cuid())
+  experienceId String
+  authorName   String
+  kind         String   // achievement | message | photo | video | milestone | welcome | support
+  body         String?
+  mediaUrl     String? // secure storage ref
+  createdAt    DateTime @default(now())
+
+  @@index([experienceId])
+}
+
+model FamilyGathering {
+  id           String    @id @default(cuid())
+  experienceId String
+  title        String
+  type         String    // Family Reunions | Holiday Gatherings | Memorial Celebrations | ...
+  scheduledAt  DateTime?
+  provider     String? // trusted video provider (seam) or "native"
+  joinUrl      String?
+  createdAt    DateTime  @default(now())
+
+  @@index([experienceId])
+}
+
+// General location only (city/region), opt-in — NEVER live location tracking.
+model FamilyMapLocation {
+  id              String   @id @default(cuid())
+  familyId        String
+  memberName      String
+  generalLocation String   // e.g. "Birmingham, Alabama" — city/region only
+  shared          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([familyId])
+}
