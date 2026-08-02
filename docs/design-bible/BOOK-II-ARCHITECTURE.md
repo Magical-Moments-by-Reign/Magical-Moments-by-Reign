@@ -52,6 +52,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | **Purchase Concierge™** (new core platform) | **Built** (first slice — Purchase Center, Smart Order Tracking, wishlists, delivery reminders) · price compare/payments/in-app returns need merchant partners — see [standard](./STANDARD-purchase-concierge.md) |
 | **App-First Architecture** (web · PWA · native) | **PWA installable** (manifest, service worker, offline, icons) · one backend/one DB confirmed · mobile Today Dashboard next — see [standard](./STANDARD-app-architecture.md) |
 | Voice Notes & AI Transcription (global) | Documented · needs speech-to-text — see [standard](./STANDARD-voice-notes.md) |
+| Digital Invitations & Event Management (RSVP, from real photos) | Documented · phased · needs auth + storage + notifications + AI — see [standard](./STANDARD-invitations.md) |
 | **Magical AI (Ask Magical)** — floating concierge | **Built** (site-wide widget, Qwen-backed via OpenAI-compatible endpoint) · needs `QWEN_API_KEY` to go live; graceful offline reply — see [standard](./STANDARD-magical-ai.md) |
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
 | **Pricing Engine v1.0** (build-your-own membership) | **Built** (engine + Build-Your-Membership + Free Forever entry; Monthly term, 3/8/15 Lifetime recommendations, price ceiling) · amounts placeholder except Lifetime Collections · needs auth + Square for real checkout — see [standard](./STANDARD-pricing-engine.md) |
