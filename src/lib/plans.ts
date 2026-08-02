@@ -186,16 +186,76 @@ export const PLANS: Plan[] = [
   },
 ];
 
-// ── Custom Concierge (white-glove, quote-based service) ─────────
-// Not a self-serve cart plan — a fully bespoke, done-for-you offering
-// starting at $5,000. Handled personally by the Magical Moments team.
+// ── The White-Glove Concierge Experience (application-based) ─────
+// Not a self-serve cart plan — our most exclusive, fully bespoke, done-for-you
+// offering at a $5,000 one-time investment, designed personally with the
+// Founder. Accepted on a limited basis; the CTA routes to an application /
+// consultation request (never a self-serve checkout — no payment is faked).
 export const CONCIERGE = {
   id: "concierge" as const,
-  name: "Custom Concierge",
+  name: "The White-Glove Concierge Experience",
+  shortName: "Custom Concierge",
   price: 5000,
-  priceKind: "starting at · one-time",
+  priceKind: "One-Time Investment",
   label: "White-glove, done-for-you storytelling",
-  tagline: "We design, build, and produce your entire experience for you.",
+  tagline: "Not every story should be built from a template. Some moments deserve something entirely unique.",
+  intro: [
+    "The White-Glove Concierge Experience is our most exclusive offering, created for clients who want a one-of-a-kind digital experience designed personally with the founder of Magical Moments by Reign.",
+    "Whether you're celebrating a luxury wedding, welcoming your first baby, honoring a loved one, documenting a once-in-a-lifetime vacation, or creating a permanent family legacy, we'll build every detail together from the ground up.",
+    "This is more than a website. It's a handcrafted digital legacy.",
+  ],
+  includes: [
+    {
+      title: "Private Discovery Consultation",
+      body: "We begin with a one-on-one planning session where we learn your story, vision, family traditions, colors, style, and everything that makes your moment uniquely yours.",
+    },
+    {
+      title: "Completely Custom Design",
+      body: "No templates. Every page, layout, animation, gallery, and experience is designed specifically for your story.",
+    },
+    {
+      title: "White-Glove Website Setup",
+      body: "We build everything for you, including:",
+      items: [
+        "Photo galleries", "Video galleries", "Timelines", "Invitations",
+        "RSVP management", "Registries & gift links", "Guestbook", "Countdown timers",
+        "Interactive maps", "Travel information", "Planning checklists", "Event schedules",
+        "Custom branding", "Personalized colors", "Typography", "Mobile optimization",
+      ],
+    },
+    {
+      title: "AI Personalization",
+      body: "Your experience comes with Ask Magical fully configured to help you manage your journey long after launch.",
+    },
+    {
+      title: "Launch Day",
+      body: "We make sure everything is polished, beautiful, and ready to share with family and friends.",
+    },
+  ],
+  support: {
+    title: "Two Weeks of Personal Support",
+    body: "After your experience launches, you'll receive two full weeks of dedicated concierge support. During this time we'll answer questions, make reasonable edits, help with uploads, assist with setup, and ensure you feel completely comfortable using your new experience.",
+  },
+  ongoingIntro:
+    "After your two-week concierge period ends, your Magical Moment officially becomes yours to continue growing. You'll have access to all of the powerful tools included with your membership:",
+  ongoing: [
+    "Ask Magical AI",
+    "Upload unlimited memories within your plan limits",
+    "Add new galleries",
+    "Share updates",
+    "Invite new guests",
+    "Manage your registry",
+    "Add milestones",
+    "Continue your timeline",
+    "Create future memories",
+  ],
+  ongoingNote: "Your story continues. Only the white-glove design service concludes.",
+  legacy: [
+    "This isn't just another event website.",
+    "It's a place your children… their children… and future generations can return to again and again.",
+    "Because life's most meaningful moments deserve to live forever.",
+  ],
+  // Compact feature list for the /pricing summary card.
   features: [
     "A dedicated producer & design lead",
     "Personal discovery consultation",
@@ -207,9 +267,12 @@ export const CONCIERGE = {
     "Cinematic AI video production",
     "Custom domain & premium setup, done for you",
     "Lifetime Memory Preservation included",
+    "Two weeks of personal concierge support",
     "White-glove revisions until it's perfect",
   ],
-  cta: "Request a Concierge consultation",
+  cta: "✨ Begin My White-Glove Experience",
+  applicationsNote:
+    "Applications are accepted on a limited basis to ensure every family receives the highest level of care and attention.",
 };
 
 /** Required legal wording for Lifetime — display verbatim. */

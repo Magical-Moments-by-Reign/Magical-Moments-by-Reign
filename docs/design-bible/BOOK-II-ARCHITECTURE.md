@@ -38,6 +38,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Custom domains + Legacy Protection | Built · needs registrar + scheduler |
 | Commerce: cart, checkout, Square hooks, orders | Built · needs Square keys |
 | Custom-website + Custom Concierge pipelines | Built |
+| **White-Glove Concierge Experience** ($5,000 one-time, application-based) | **Built** — dedicated `/concierge` page (hero, full inclusions incl. white-glove setup checklist, AI personalization, launch day, two weeks of support, "then it becomes yours", lasting legacy) + `/pricing` summary card; CTA routes to the concierge **application/consultation** (`/contact?reason=concierge`), never a self-serve checkout — no payment faked |
 | Social Studio (official platforms + coming-soon) | Built |
 | Transactional email | Built · needs Resend key |
 | Inspiration Gallery | Built |

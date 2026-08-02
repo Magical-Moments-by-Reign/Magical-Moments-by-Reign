@@ -121,7 +121,8 @@ export default function PricingPage() {
                 <b>{formatPrice(CONCIERGE.price)}</b>
                 <span>{CONCIERGE.priceKind}</span>
               </div>
-              <Link href="/contact?reason=concierge" className="btn-gold pp-concierge__cta">{CONCIERGE.cta}</Link>
+              <Link href="/concierge" className="btn-gold pp-concierge__cta">Explore the White-Glove Experience</Link>
+              <p className="pp-concierge__note">{CONCIERGE.applicationsNote}</p>
             </div>
             <ul className="pp-concierge__features">
               {CONCIERGE.features.map((f) => <li key={f}>{f}</li>)}
