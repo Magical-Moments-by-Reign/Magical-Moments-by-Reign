@@ -117,6 +117,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
   equal respect** (college/military/trade/apprenticeship/entrepreneurship/
   workforce/gap year), career exploration, application & enrollment checklists.
   *Domain + trackers schema built & tested (12 tests); datasets/UI/payments gated.*
+- **[Family Financial Foundation](./design-bible/STANDARD-family-finance.md)** —
+  *Founder Approved · educational only.* Age-appropriate financial milestones
+  (incl. "My First Bank Account" badge), plain-language guides with official
+  links (FDIC/CFPB/IRS), family savings goals, bank-appointment link-outs,
+  age-based Ask Magical. *Domain + schema built & tested (7 tests); persistence/
+  payments/bank links gated.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
 - **[The Magical Moments Ecosystem](./design-bible/VISION-ecosystem.md)** —
   *Founder Vision.* A complete Life Celebration Ecosystem — "We've got you." /

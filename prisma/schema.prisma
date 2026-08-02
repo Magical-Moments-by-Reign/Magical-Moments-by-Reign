@@ -1925,3 +1925,35 @@ model SavingsContribution {
 
   @@index([goalId])
 }
+
+// ── Family Financial Foundation ─────────────────────────────────
+// Per-family financial-milestone progress + bank-appointment link-outs.
+// Educational only. Family savings goals reuse the generic SavingsGoal model.
+model FinancialMilestoneProgress {
+  id          String   @id @default(cuid())
+  accountId   String?
+  milestoneId String   // see FINANCIAL_MILESTONES in src/lib/family-finance.ts
+  status      String   @default("not_started") // not_started | in_progress | completed
+  badgeEarned Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([accountId, milestoneId])
+}
+
+// A bank appointment the family scheduled via the institution's OFFICIAL link.
+// Magical Moments never books on a bank's behalf (link-out + reminders only).
+model BankAppointment {
+  id              String    @id @default(cuid())
+  accountId       String?
+  institutionName String
+  officialUrl     String? // the bank's own scheduling page
+  scheduledAt     DateTime?
+  status          String    @default("planned") // planned | scheduled | completed | canceled
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([accountId])
+}
