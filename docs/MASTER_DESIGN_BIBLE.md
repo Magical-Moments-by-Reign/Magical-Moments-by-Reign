@@ -23,6 +23,8 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Baby Journey](./design-bible/JOURNEY-baby.md)** — pregnancy companion.
 - **[New Home Journey](./design-bible/JOURNEY-new-home.md)** — homeowner experience.
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
+- **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(needs a pricing-model decision).*
+- **[Legacy Guardian™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & transfer.
 
 Companion operational docs: `docs/COMMERCE.md`, `docs/DOMAINS.md`,
 `docs/CUSTOM_WEBSITES.md`, `docs/SOCIAL_STUDIO.md`, `DEPLOY.md`.
