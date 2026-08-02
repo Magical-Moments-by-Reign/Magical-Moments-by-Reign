@@ -50,7 +50,23 @@ Compare Lifetime Reign?"* **It educates; it never pressures.**
 ## Step Two — Select Membership Term
 
 After Occasions, the customer chooses a term that applies to **every** selected
-Occasion: **1 Year · 5 Years · 10 Years · Lifetime.**
+Occasion: **Monthly · 1 Year · 5 Years · 10 Years · Lifetime.** Pricing is
+calculated dynamically from the number of Life Journeys and the term.
+
+### v1.0 refinements (Founder Approved — Final Pricing Engine)
+- **Monthly** recurring term added (shown with a `/mo` suffix).
+- **Smart recommendation by count:** 3 Journeys → Lifetime Legacy · 8 → Lifetime
+  Reign · 15 → Lifetime Magical Moments (customers may still choose otherwise).
+- **Price Ceiling:** recurring/term spend may never exceed the comparable
+  Lifetime Collection; the engine recommends Lifetime before that happens
+  (`lifetimeCeiling()` / `protectsLifetime()`), and the Admin Specials Center
+  enforces the same rule on every promotion — see
+  [Admin Specials](./STANDARD-admin-specials.md).
+
+> **Founder Directive:** No pricing, discounts, promotions, bundles, or new
+> membership options may be added or modified without Founder approval. All
+> future pricing changes must preserve the value of the three Lifetime
+> Collections and remain compatible with the upgrade-credit system.
 
 ## Upgrades — never lose money invested
 

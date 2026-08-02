@@ -37,7 +37,7 @@ export default function JourneyPreviewStart({ type, label }: { type: string; lab
               onClick={() => setTerm(t.id)}
             >
               <span className="jp-term__label">{t.label}</span>
-              <span className="jp-term__price">{formatUSD(price.total === 0 ? 0 : quote(1, t.id).total)}</span>
+              <span className="jp-term__price">{formatUSD(quote(1, t.id).total)}{t.suffix ?? ""}</span>
             </button>
           ))}
         </div>
@@ -50,7 +50,7 @@ export default function JourneyPreviewStart({ type, label }: { type: string; lab
           <div className="jp-srow"><span>Preview starts</span><strong>{formatPreviewDate(schedule.start)}</strong></div>
           <div className="jp-srow"><span>Preview ends</span><strong>{formatPreviewDate(schedule.end)}</strong></div>
           <div className="jp-srow"><span>First billing date</span><strong>{formatPreviewDate(schedule.firstBilling)}</strong></div>
-          <div className="jp-srow"><span>Membership price</span><strong>{formatUSD(price.total)}</strong></div>
+          <div className="jp-srow"><span>Membership price</span><strong>{formatUSD(price.total)}{price.suffix ?? ""}</strong></div>
           <div className="jp-srow"><span>Renewal schedule</span><strong>{renewal}</strong></div>
         </div>
         <p className="jx-fine">Preview pricing — final amounts are being finalized (Lifetime Collections are set). No payment is collected until the preview ends; cancel before then and you&apos;re never charged.</p>

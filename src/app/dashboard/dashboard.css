@@ -50,3 +50,9 @@
 
 .studio-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.1rem; margin-bottom: 2rem; }
 @media (max-width: 780px) { .studio-tiles { grid-template-columns: 1fr; } }
+
+/* Start a Journey — central enlarged CTA (replaces the family timeline) */
+.studio-start { text-align: center; padding: clamp(2.5rem, 7vw, 5rem) 1rem clamp(2rem, 5vw, 3.5rem); }
+.studio-start__title { font-family: var(--font-display); font-size: clamp(2.2rem, 6vw, 3.6rem); color: var(--ink, #2a2130); margin: 0 0 0.6rem; }
+.studio-start__sub { color: var(--muted, #6f6577); font-size: clamp(1rem, 2.2vw, 1.15rem); max-width: 40rem; margin: 0 auto 2rem; line-height: 1.6; }
+.studio-start__btn { font-size: clamp(1.05rem, 2.4vw, 1.3rem); padding: 1.1rem 2.8rem; border-radius: 999px; }

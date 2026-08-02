@@ -127,7 +127,7 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
             {TERMS.filter((tm) => tm.id !== "lifetime").map((tm) => (
               <div key={tm.id} className="jx-price">
                 <span className="jx-price__term">{tm.label}</span>
-                <span className="jx-price__amt">{formatUSD(quote(1, tm.id).total)}</span>
+                <span className="jx-price__amt">{formatUSD(quote(1, tm.id).total)}{tm.suffix ?? ""}</span>
               </div>
             ))}
             <div className="jx-price jx-price--life">

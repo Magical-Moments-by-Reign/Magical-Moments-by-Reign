@@ -3,6 +3,9 @@
 **The single source of truth.** If documentation and code ever conflict, the
 Bible governs — notify the Founder to confirm direction before continuing.
 
+- **[Founder Constitution — Volume I](./design-bible/CONSTITUTION.md)** —
+  *the highest governing document* (mission, purpose, pricing philosophy,
+  Lifetime Collections, Founder approval). Referenced before any major decision.
 - **[Book I — The Foundation](./design-bible/BOOK-I-FOUNDATION.md)** —
   the Founder's canonical vision (Dream, Mission, Vision, Philosophy, Five
   Pillars, Promises, Golden Rules, Legacy). *Author: Tabitha Coetha Turner.*
@@ -31,6 +34,9 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Housing Hub](./design-bible/HOUSING-HUB.md)** — *Founder Approved · replaces
   the Home/New Home Journey.* The complete housing ecosystem (9 pathways +
   shared tools). *Entry + Build-a-Custom-Home built; rest phased.*
+- **[Admin Specials & Promotions](./design-bible/STANDARD-admin-specials.md)** —
+  *Founder Approved.* Run promotions without code, with unbreakable Lifetime
+  Value Protection + audit log. *Built (first slice).*
 - **[Purchase Concierge™](./design-bible/STANDARD-purchase-concierge.md)** —
   *Founder Approved · new core platform.* Organize, track & manage purchases
   across every Journey (we never replace the merchant). *Built (first slice).*

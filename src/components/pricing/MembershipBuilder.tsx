@@ -100,7 +100,7 @@ export default function MembershipBuilder() {
                   <span className="mb-term__blurb">{t.blurb}</span>
                   {count > 0 && (
                     <span className="mb-term__price">
-                      {formatUSD(preview.total)}
+                      {formatUSD(preview.total)}{t.suffix ?? ""}
                       {t.id === "lifetime" && preview.collection ? (
                         <em> · {preview.collection.name}</em>
                       ) : null}
@@ -155,7 +155,7 @@ export default function MembershipBuilder() {
 
               <div className="mb-cart__total">
                 <span>Total</span>
-                <strong>{formatUSD(q.total)}</strong>
+                <strong>{formatUSD(q.total)}{q.suffix ?? ""}</strong>
               </div>
 
               {q.savings > 0 && (

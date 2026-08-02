@@ -571,6 +571,55 @@ model WishlistItem {
   @@index([familyId, category])
 }
 
+// ── Admin Specials & Promotions ─────────────────────────────────
+// Founder-run promotions. Every special must pass Lifetime Value
+// Protection before it can be approved/published — no special may make a
+// recurring/term option a better value than the comparable Lifetime
+// Collection. Records are never silently deleted; changes are audited.
+model Special {
+  id            String   @id @default(cuid())
+  name          String
+  internalNote  String?
+  publicDesc    String?
+  code          String?  // coupon code; null when auto-applied
+  auto          Boolean  @default(false) // auto-apply vs code-required
+  offerType     String   @default("percent") // percent | fixed | preview_extension | custom ...
+  discountType  String   @default("percent") // percent | fixed
+  discountValue Float    @default(0) // percent (0–100) or dollars
+  scope         String   @default("all") // all | recurring | lifetime | term | journey
+  scopeValue    String?  // term id / journey id / lifetime collection id when scoped
+  audience      String   @default("all") // all | new | existing | upgrade
+  startAt       DateTime?
+  endAt         DateTime?
+  maxRedemptions Int?
+  perCustomer   Int?
+  minPurchase   Float?
+  stackable     Boolean  @default(false)
+  isPublic      Boolean  @default(true)
+  status        String   @default("draft") // draft | scheduled | active | paused | ended
+  approved      Boolean  @default(false)
+  redemptions   Int      @default(0)
+  createdBy     String   @default("Founder")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  audits        SpecialAudit[]
+
+  @@index([status])
+}
+
+// Append-only audit trail for every promotion action.
+model SpecialAudit {
+  id        String   @id @default(cuid())
+  specialId String
+  special   Special  @relation(fields: [specialId], references: [id], onDelete: Cascade)
+  actor     String   @default("Founder")
+  action    String   // created | edited | approved | published | paused | resumed | ended | blocked
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([specialId])
+}
+
 model WebhookEvent {
   id            String   @id @default(cuid())
   squareEventId String   @unique

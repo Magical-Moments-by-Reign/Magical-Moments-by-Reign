@@ -13,21 +13,24 @@
 // as final prices in customer UI without the "amounts being finalized"
 // framing.
 
-export type TermId = "1yr" | "5yr" | "10yr" | "lifetime";
+export type TermId = "monthly" | "1yr" | "5yr" | "10yr" | "lifetime";
 
 export interface Term {
   id: TermId;
   label: string; // "5 Years"
   short: string; // "5 yr"
   years: number | null; // null = lifetime
+  recurring: boolean; // monthly is billed on a recurring cadence
+  suffix?: string; // e.g. "/mo" shown after the amount
   blurb: string;
 }
 
 export const TERMS: Term[] = [
-  { id: "1yr", label: "1 Year", short: "1 yr", years: 1, blurb: "Perfect for a single celebration." },
-  { id: "5yr", label: "5 Years", short: "5 yr", years: 5, blurb: "Let the story keep growing." },
-  { id: "10yr", label: "10 Years", short: "10 yr", years: 10, blurb: "A decade of milestones." },
-  { id: "lifetime", label: "Lifetime", short: "Life", years: null, blurb: "Kept for generations — the best long-term value." },
+  { id: "monthly", label: "Monthly", short: "mo", years: null, recurring: true, suffix: "/mo", blurb: "Pay month to month. Upgrade anytime." },
+  { id: "1yr", label: "1 Year", short: "1 yr", years: 1, recurring: false, blurb: "Perfect for a single celebration." },
+  { id: "5yr", label: "5 Years", short: "5 yr", years: 5, recurring: false, blurb: "Let the story keep growing." },
+  { id: "10yr", label: "10 Years", short: "10 yr", years: 10, recurring: false, blurb: "A decade of milestones." },
+  { id: "lifetime", label: "Lifetime", short: "Life", years: null, recurring: false, blurb: "Kept for generations — the best long-term value." },
 ];
 
 export function getTerm(id: TermId): Term {
@@ -67,10 +70,10 @@ export function collectionFor(occasionCount: number): LifetimeCollection {
 export const PRICING_CONFIG = {
   currency: "USD" as const,
   placeholder: true, // amounts (except Lifetime Collections) are not final
-  // Price of the FIRST occasion at each fixed term:
-  firstOccasion: { "1yr": 149, "5yr": 499, "10yr": 899 } as Record<Exclude<TermId, "lifetime">, number>,
+  // Price of the FIRST occasion at each non-lifetime term (monthly = per month):
+  firstOccasion: { monthly: 19, "1yr": 149, "5yr": 499, "10yr": 899 } as Record<Exclude<TermId, "lifetime">, number>,
   // Price of EACH ADDITIONAL occasion (bundle value — cheaper than the first):
-  additionalOccasion: { "1yr": 99, "5yr": 349, "10yr": 649 } as Record<Exclude<TermId, "lifetime">, number>,
+  additionalOccasion: { monthly: 12, "1yr": 99, "5yr": 349, "10yr": 649 } as Record<Exclude<TermId, "lifetime">, number>,
   // Journey Protection™ optional add-on (Founder-fixed):
   journeyProtection: { monthly: 2.99, annual: 29.99 },
 };
@@ -156,6 +159,8 @@ export interface Quote {
   savings: number;
   /** for a lifetime build, which collection applies */
   collection: LifetimeCollection | null;
+  recurring: boolean; // monthly is billed on a recurring cadence
+  suffix?: string; // e.g. "/mo"
   currency: "USD";
   placeholderAmounts: boolean; // true unless it's purely a Lifetime Collection
 }
@@ -163,6 +168,7 @@ export interface Quote {
 /** Core price of a built membership. */
 export function quote(occasionCount: number, term: TermId): Quote {
   const n = Math.max(0, Math.floor(occasionCount));
+  const t = getTerm(term);
 
   if (term === "lifetime") {
     const collection = collectionFor(n);
@@ -173,6 +179,7 @@ export function quote(occasionCount: number, term: TermId): Quote {
       total: collection.price,
       savings: 0,
       collection,
+      recurring: false,
       currency: "USD",
       placeholderAmounts: false, // Lifetime Collections are Founder-fixed
     };
@@ -190,9 +197,40 @@ export function quote(occasionCount: number, term: TermId): Quote {
     total,
     savings: Math.max(0, listTotal - total),
     collection: null,
+    recurring: t.recurring,
+    suffix: t.suffix,
     currency: "USD",
     placeholderAmounts: true,
   };
+}
+
+// ── Lifetime Price Ceiling (Founding Principle) ─────────────────
+// A Lifetime Collection must ALWAYS be the best long-term value. The
+// comparable Lifetime price is the ceiling/floor no recurring or term
+// price — after any promotion — may drop below.
+export function lifetimeCeiling(occasionCount: number): number {
+  return collectionFor(occasionCount).price;
+}
+
+/**
+ * The most valuable membership to recommend for a given number of Journeys
+ * (3 → Legacy, 8 → Reign, 15 → Magical Moments), per the Smart Pricing Engine.
+ */
+export function recommendedCollection(occasionCount: number): LifetimeCollection {
+  return collectionFor(Math.max(1, occasionCount));
+}
+
+/**
+ * Lifetime Value Protection check for the Specials engine. The Lifetime floor
+ * only binds when a non-lifetime build is already in Lifetime territory (its
+ * undiscounted price meets/exceeds the comparable Collection). A discount on a
+ * small build that never offered Lifetime value can't "beat Lifetime," so it's
+ * allowed. Returns whether the discounted price is permitted + the floor.
+ */
+export function protectsLifetime(undiscounted: number, discounted: number, occasionCount: number): { ok: boolean; floor: number } {
+  const floor = lifetimeCeiling(occasionCount);
+  if (undiscounted >= floor) return { ok: discounted >= floor, floor };
+  return { ok: true, floor };
 }
 
 // ── Pricing Protection Rule ─────────────────────────────────────
