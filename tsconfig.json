@@ -19,5 +19,6 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "// exclude note": "scripts/** are staging/maintenance tools, NOT part of the customer-facing production runtime. They are type-checked separately via `npm run typecheck:scripts` (tsconfig.scripts.json) so a staging harness can never break the production build. src/app, src/lib, middleware, and Prisma types stay included.",
+  "exclude": ["node_modules", "scripts/**/*"]
 }
