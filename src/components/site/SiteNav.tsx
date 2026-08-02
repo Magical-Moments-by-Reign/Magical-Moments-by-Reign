@@ -11,7 +11,7 @@ export default function SiteNav({ active }: { active?: string }) {
     { label: "Pricing", href: "/pricing", key: "pricing" },
     { label: "Build Membership", href: "/membership", key: "membership" },
     { label: "Business Edition", href: "/business", key: "business" },
-    { label: "About", href: "/#how", key: "about" },
+    { label: "About", href: "/about", key: "about" },
     { label: "Contact", href: "/contact", key: "contact" },
   ];
 

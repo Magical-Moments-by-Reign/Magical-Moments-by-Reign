@@ -1,0 +1,43 @@
+/* ================================================================
+   About — Our Story
+   ================================================================ */
+.ab { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); min-height: 100vh; font-family: var(--font-body); }
+.ab-main {
+  padding: clamp(2.5rem, 6vw, 4.5rem) 1.25rem clamp(3rem, 6vw, 5rem);
+  background:
+    radial-gradient(60% 40% at 50% 0%, rgba(198,161,90,0.14), transparent 65%),
+    radial-gradient(50% 30% at 80% 10%, rgba(169,140,208,0.12), transparent 60%);
+}
+.ab-inner { max-width: 760px; margin: 0 auto; text-align: center; }
+
+.ab-logo { width: clamp(150px, 30vw, 240px); height: auto; margin: 0 auto 1.25rem; display: block; }
+
+.ab-eyebrow { text-transform: uppercase; letter-spacing: 0.24em; font-size: 0.72rem; font-weight: 600; color: var(--gold-deep, #a9843f); }
+.ab-title { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.2rem); color: var(--ink); margin: 0.5rem 0 1.5rem; line-height: 1.1; }
+
+.ab-lead { font-size: clamp(1.05rem, 2.2vw, 1.25rem); line-height: 1.8; color: #4a4350; margin: 0 auto; max-width: 62ch; }
+
+.ab-divider { color: var(--gold, #c6a15a); font-size: 1.4rem; margin: 2.5rem 0; letter-spacing: 0.5em; }
+
+.ab-origin { text-align: left; max-width: 60ch; margin: 0 auto; }
+.ab-h2 { font-family: var(--font-display); font-size: clamp(1.5rem, 3vw, 2rem); color: var(--ink); text-align: center; margin: 0 0 1.25rem; }
+.ab-origin p { font-size: 1.05rem; line-height: 1.8; color: #4a4350; margin: 0 0 1.1rem; }
+.ab-origin strong { color: var(--gold-deep, #a9843f); }
+.ab-origin em { color: var(--ink); font-style: italic; }
+.ab-question {
+  font-family: var(--font-display); font-style: italic; font-size: clamp(1.3rem, 3vw, 1.8rem);
+  color: var(--plum-700, #6b4a8f); text-align: center; margin: 1.75rem 0 0 !important; line-height: 1.4;
+}
+
+.ab-signoff { margin: 3rem 0 1.5rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.ab-sign {
+  font-family: var(--font-script, "Pinyon Script"), cursive; font-size: clamp(2.4rem, 6vw, 3.4rem);
+  color: var(--plum-800, #4b3b78); line-height: 1;
+}
+.ab-role { font-size: 0.9rem; color: var(--muted, #6f6577); }
+
+.ab-tag { font-family: var(--font-display); font-style: italic; color: var(--gold-deep, #a9843f); font-size: 1.15rem; margin: 0 0 2rem; }
+
+.ab-cta { display: flex; flex-wrap: wrap; gap: 0.85rem; justify-content: center; }
+.ab-cta .btn-outline-gold { color: var(--gold-deep, #a9843f); border-color: var(--gold, #c6a15a); }
+.ab-cta .btn-outline-gold:hover { color: #fff; background: var(--gold, #c6a15a); }
