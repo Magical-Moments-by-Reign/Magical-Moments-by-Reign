@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { saveGiftsAction } from "@/app/dashboard/[slug]/gifts/actions";
 import {
-  GIFT_MODES, VISIBILITY_OPTIONS, CASH_PLATFORMS,
+  GIFT_MODES, VISIBILITY_OPTIONS, CASH_PLATFORMS, PRIORITIES,
   REGISTRY_SUGGESTIONS, type GiftData, type Registry, type CashMethod, type CashPlatform,
+  type GiftItem, type Charity,
 } from "@/lib/gifts";
+
+const newId = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `g${Date.now()}${Math.floor(Math.random() * 1000)}`);
 
 export default function GiftEditor({ slug, initial }: { slug: string; initial: GiftData }) {
   const [mode, setMode] = useState(initial.mode === "none" ? "both" : initial.mode);
@@ -14,6 +17,12 @@ export default function GiftEditor({ slug, initial }: { slug: string; initial: G
   const [message, setMessage] = useState(initial.message);
   const [registries, setRegistries] = useState<Registry[]>(initial.registries.length ? initial.registries : []);
   const [cash, setCash] = useState<CashMethod[]>(initial.cashMethods);
+  const [items, setItems] = useState<GiftItem[]>(initial.items ?? []);
+  const [charity, setCharity] = useState<Charity>(initial.charity ?? { name: "" });
+
+  const addItem = () => setItems((x) => [...x, { id: newId(), name: "", priority: "medium" }]);
+  const setItem = (i: number, patch: Partial<GiftItem>) => setItems((x) => x.map((it, j) => (j === i ? { ...it, ...patch } : it)));
+  const rmItem = (i: number) => setItems((x) => x.filter((_, j) => j !== i));
 
   const showRegistry = mode === "registry" || mode === "both";
   const showCash = mode === "cash" || mode === "both";
@@ -34,6 +43,8 @@ export default function GiftEditor({ slug, initial }: { slug: string; initial: G
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="registries" value={JSON.stringify(registries)} />
       <input type="hidden" name="cashMethods" value={JSON.stringify(cash)} />
+      <input type="hidden" name="items" value={JSON.stringify(items.filter((i) => i.name.trim()))} />
+      <input type="hidden" name="charity" value={charity.name.trim() ? JSON.stringify(charity) : ""} />
 
       <fieldset className="ge-block">
         <legend>Would you like to receive gifts for this journey?</legend>
@@ -77,6 +88,43 @@ export default function GiftEditor({ slug, initial }: { slug: string; initial: G
           </div>
         </fieldset>
       )}
+
+      <fieldset className="ge-block">
+        <legend>Individual gift ideas <em>(optional)</em></legend>
+        <p className="ge-hint">Add specific items with a link. Mark one purchased once someone gives it, so guests don&apos;t double-buy.</p>
+        {items.map((it, i) => (
+          <div className="ge-item" key={it.id}>
+            <div className="ge-item__row">
+              <input placeholder="Gift name" value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} />
+              <input placeholder="Store" value={it.store ?? ""} onChange={(e) => setItem(i, { store: e.target.value })} />
+              <input placeholder="Price" value={it.price ?? ""} onChange={(e) => setItem(i, { price: e.target.value })} />
+              <button type="button" className="ge-rm" onClick={() => rmItem(i)} aria-label="Remove">✕</button>
+            </div>
+            <div className="ge-item__row">
+              <input placeholder="Purchase link (https://…)" value={it.url ?? ""} onChange={(e) => setItem(i, { url: e.target.value })} />
+              <select value={it.priority ?? "medium"} onChange={(e) => setItem(i, { priority: e.target.value as GiftItem["priority"] })}>
+                {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+              <label className="ge-itemcheck"><input type="checkbox" checked={!!it.purchased} onChange={(e) => setItem(i, { purchased: e.target.checked })} /> Purchased</label>
+            </div>
+          </div>
+        ))}
+        <button type="button" className="ge-add" onClick={addItem}>+ Add a gift idea</button>
+      </fieldset>
+
+      <fieldset className="ge-block">
+        <legend>Charitable giving <em>(optional)</em></legend>
+        <p className="ge-hint">Feature a cause — perfect for memorials, or &ldquo;in lieu of gifts.&rdquo;</p>
+        <div className="ge-charity">
+          <input placeholder="Charity or fund name" value={charity.name} onChange={(e) => setCharity((c) => ({ ...c, name: e.target.value }))} />
+          <input placeholder="Donation link (https://…)" value={charity.url ?? ""} onChange={(e) => setCharity((c) => ({ ...c, url: e.target.value }))} />
+          <input placeholder="Cause / description" value={charity.cause ?? ""} onChange={(e) => setCharity((c) => ({ ...c, cause: e.target.value }))} />
+          <div className="ge-item__row">
+            <input placeholder="Goal (e.g. $5,000)" value={charity.goal ?? ""} onChange={(e) => setCharity((c) => ({ ...c, goal: e.target.value }))} />
+            <input placeholder="Raised (e.g. $1,200)" value={charity.raised ?? ""} onChange={(e) => setCharity((c) => ({ ...c, raised: e.target.value }))} />
+          </div>
+        </div>
+      </fieldset>
 
       <fieldset className="ge-block">
         <legend>A personal message <em>(optional)</em></legend>

@@ -1,8 +1,24 @@
 # Master Design Bible — Global Platform Standard
 ## Gifts & Registries
 
-**Status:** Documented — pending Founder approval to build.
-Subordinate to Book I. Governs every Journey.
+**Status:** **Built (expanded slice)** — a reusable module on **every** experience
+type. Subordinate to Book I. Governs every Journey.
+
+**Built:** enable/disable per Journey; multiple external registry links; cash /
+contribution handles (Venmo, Cash App, PayPal deep links; Zelle display);
+**individual gift items** (name, store, price, purchase link, priority,
+mark-as-purchased); **charitable giving** (name, cause, goal, raised, donate
+link); **occasion-specific wording** (Wedding → "Registry & Wedding Gifts", Baby
+→ "Baby Registry", Graduation → "Celebrate the Graduate", New Home →
+"Housewarming Registry", Memorial → "Honor Their Memory", etc.); visibility
+controls; public themed section with elegant gift cards.
+
+**Phased (need services):** direct contributions via **Square** (server-side,
+idempotent, confirm-before-complete), **guest self-serve reserve** with email
+(prevent duplicate purchases, anonymous gifting), **Thank-You Tracker** (with
+Ask Magical draft), **notifications** (email/dashboard/SMS), and **gift-image
+uploads** (secure Storage). We never hold funds for external links, never store
+bank credentials, and never display a home address unless the customer opts in.
 
 ---
 
