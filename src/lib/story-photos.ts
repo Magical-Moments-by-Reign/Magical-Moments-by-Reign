@@ -12,4 +12,5 @@ export const STORY_PHOTOS: Record<string, string> = {
   newhome: "/story/newhome.jpg",
   military: "/story/military.jpg",
   reunion: "/story/reunion.jpg",
+  retirement: "/story/retirement.jpg",
 };
