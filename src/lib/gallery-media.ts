@@ -23,7 +23,6 @@ const DEMO_GALLERY: Record<string, GalleryItem[]> = {
     { url: "/gallery/smith/09-rings.jpg", caption: "The rings" },
     { url: "/gallery/smith/10-kiss.jpg", caption: "The first kiss" },
     { url: "/gallery/smith/11-tablescape.jpg", caption: "The reception, aglow" },
-    { url: "/gallery/smith/12-cake.jpg", caption: "The wedding cake" },
   ],
   italy2026: [
     { url: "/gallery/italy/01.jpg", caption: "The Colosseum at sunrise" },
@@ -62,7 +61,6 @@ const DEMO_GALLERY: Record<string, GalleryItem[]> = {
     { url: "/gallery/baby/19.jpg", caption: "In the garden" },
     { url: "/gallery/baby/20.jpg", caption: "Our whole world" },
     { url: "/gallery/baby/21.jpg", caption: "Forever our baby" },
-    { url: "/gallery/baby/22-journey.jpg", caption: "Our Baby Journey" },
   ],
   karlie2027: [
     { url: "/gallery/karlie/01.jpg", caption: "Make a wish" },
@@ -77,6 +75,9 @@ const DEMO_GALLERY: Record<string, GalleryItem[]> = {
     { url: "/gallery/karlie/10.jpg", caption: "Sparkler magic" },
     { url: "/gallery/karlie/11.jpg", caption: "Best friends forever" },
     { url: "/gallery/karlie/12-celebration.jpg", caption: "Blowing out the candles" },
+  ],
+  thejohnsonhome: [
+    { url: "/gallery/johnson/our-new-home.jpg", caption: "Our new home — built from the ground up" },
   ],
   rememberinggrandpajoe: [
     { url: "/gallery/grandpa/01.jpg", caption: "Golden years by the water" },

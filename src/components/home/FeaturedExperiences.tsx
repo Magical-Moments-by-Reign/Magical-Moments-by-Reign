@@ -52,10 +52,10 @@ export default function FeaturedExperiences() {
         </div>
         <div className="feat-grid">
           {FEATURED.map((item) => <Card key={item.slug} item={item} />)}
-          <Link href="/inspiration" className="feat-more">
+          <Link href="/create" className="feat-more">
             <span className="feat-more__icon" aria-hidden="true">✦</span>
-            <span className="feat-more__title">Explore the<br />Inspiration Gallery</span>
-            <span className="feat-more__cta">Browse all →</span>
+            <span className="feat-more__title">Create Yours<br />Today</span>
+            <span className="feat-more__cta">Start your magic →</span>
           </Link>
         </div>
       </div>

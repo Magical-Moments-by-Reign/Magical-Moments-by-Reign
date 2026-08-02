@@ -7,6 +7,7 @@ import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 import { PLANS, formatPrice } from "@/lib/plans";
 import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
 import FeaturedExperiences from "@/components/home/FeaturedExperiences";
+import { STORY_PHOTOS } from "@/lib/story-photos";
 
 const HERO_SLIDES: HeroSlide[] = [
   { id: "newhome", src: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg", label: "New Home Journey" },
@@ -51,21 +52,28 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="story-grid">
-            {EXPERIENCE_TYPES.map((t) => (
-              <Link
-                key={t.id}
-                href={`/create?type=${t.id}`}
-                className="occ-card"
-                style={{ "--c1": t.gradient[0], "--c2": t.gradient[1] } as CSSProperties}
-              >
-                <span className="occ-card__icon"><OccasionIcon name={t.icon} /></span>
-                <span className="occ-card__go" aria-hidden="true">→</span>
-                <span className="occ-card__body">
-                  <span className="occ-card__title">{t.label}</span>
-                  <span className="occ-card__desc">{t.description}</span>
-                </span>
-              </Link>
-            ))}
+            {EXPERIENCE_TYPES.map((t) => {
+              const photo = STORY_PHOTOS[t.id];
+              return (
+                <Link
+                  key={t.id}
+                  href={`/create?type=${t.id}`}
+                  className={`occ-card${photo ? " occ-card--photo" : ""}`}
+                  style={{ "--c1": t.gradient[0], "--c2": t.gradient[1] } as CSSProperties}
+                >
+                  {photo && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="occ-card__photo" src={photo} alt="" aria-hidden="true" loading="lazy" />
+                  )}
+                  <span className="occ-card__icon"><OccasionIcon name={t.icon} /></span>
+                  <span className="occ-card__go" aria-hidden="true">→</span>
+                  <span className="occ-card__body">
+                    <span className="occ-card__title">{t.label}</span>
+                    <span className="occ-card__desc">{t.description}</span>
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

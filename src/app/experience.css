@@ -466,3 +466,110 @@
   backdrop-filter: blur(2px);
 }
 .mbr-hero--type-wedding .mbr-btn--accent:hover { background: var(--mbr-wed-gold); color: #2a1c0e; }
+
+/* ================================================================
+   Memorial interactive features: whole-image gallery, expandable
+   chapters, tribute walls (family messages + in-loving-memory poems)
+   ================================================================ */
+
+/* Whole-picture gallery (no cropping) — larger, masonry-style columns */
+.mbr-gallery--type-memorial .mbr-gallery__grid {
+  display: block; column-count: 3; column-gap: 1rem; grid-template-columns: none; grid-auto-rows: auto;
+}
+.mbr-gallery--type-memorial .mbr-gallery__item {
+  aspect-ratio: auto; break-inside: avoid; margin: 0 0 1rem; display: inline-block; width: 100%;
+}
+.mbr-gallery--type-memorial .mbr-gallery__item img { height: auto; object-fit: contain; }
+@media (max-width: 900px) { .mbr-gallery--type-memorial .mbr-gallery__grid { column-count: 2; } }
+@media (max-width: 560px) { .mbr-gallery--type-memorial .mbr-gallery__grid { column-count: 1; } }
+
+/* Expandable "Favorite Memories" chapters */
+.mbr-timeline__intro { margin-top: -0.5rem; margin-bottom: 1.5rem; opacity: 0.85; }
+details.mbr-timeline__card { padding: 0; overflow: hidden; }
+details.mbr-timeline__card > summary {
+  list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 0.2rem 0.9rem; padding: 1.2rem 1.5rem;
+}
+details.mbr-timeline__card > summary::-webkit-details-marker { display: none; }
+details.mbr-timeline__card > summary .mbr-h3 { margin: 0; color: var(--mbr-primary); }
+details.mbr-timeline__card > summary .mbr-timeline__chev { margin-left: auto; color: var(--mbr-accent); transition: transform 0.3s var(--mbr-ease); font-size: 1.2rem; }
+details.mbr-timeline__card[open] > summary .mbr-timeline__chev { transform: rotate(180deg); }
+details.mbr-timeline__card > .mbr-prose { padding: 0 1.5rem 1.4rem; margin: 0; }
+details.mbr-timeline__card > summary:hover .mbr-h3 { color: var(--mbr-accent); }
+.mbr-timeline__addnote { margin-top: 1.2rem; opacity: 0.8; }
+
+/* Quote / In Loving Memory eyebrow */
+.mbr-quote__eyebrow { display: block; margin-bottom: 1.2rem; color: var(--mbr-accent); letter-spacing: 0.3em; }
+
+/* Tribute wall (family messages + poems) */
+.mbr-wall { margin-top: 2.2rem; text-align: left; }
+.mbr-wall__actions { text-align: center; margin-bottom: 1.4rem; }
+.mbr-wall__form {
+  max-width: 40rem; margin: 0 auto 2rem; display: grid; gap: 0.9rem;
+  background: var(--mbr-surface); padding: 1.5rem; border-radius: var(--mbr-radius);
+  box-shadow: 0 24px 46px -34px rgba(0,0,0,0.45);
+}
+.mbr-wall__row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+.mbr-wall__form label { display: grid; gap: 0.35rem; font-size: 0.8rem; color: var(--mbr-muted); text-align: left; }
+.mbr-wall__form label em { font-style: normal; opacity: 0.7; }
+.mbr-wall__form input, .mbr-wall__form textarea {
+  width: 100%; padding: 0.75rem 0.9rem; border-radius: 10px; font: inherit;
+  border: 1px solid color-mix(in srgb, var(--mbr-muted) 32%, transparent);
+  background: var(--mbr-bg); color: var(--mbr-text);
+}
+.mbr-wall__form textarea { resize: vertical; }
+.mbr-wall__error { color: #c0492f; font-size: 0.85rem; margin: 0; }
+.mbr-wall__list { display: grid; gap: 1rem; max-width: 46rem; margin: 0 auto; }
+.mbr-wall__item {
+  margin: 0; background: var(--mbr-surface); border-radius: var(--mbr-radius);
+  padding: 1.2rem 1.4rem; box-shadow: 0 18px 36px -32px rgba(0,0,0,0.4);
+  border: 1px solid color-mix(in srgb, var(--mbr-muted) 12%, transparent);
+}
+.mbr-wall__item blockquote { margin: 0 0 0.6rem; font-size: 1rem; line-height: 1.65; color: var(--mbr-text); white-space: pre-wrap; }
+.mbr-wall__item--poem blockquote { font-family: var(--mbr-font-display); font-size: 1.2rem; font-style: italic; }
+.mbr-wall__item figcaption { font-size: 0.86rem; color: var(--mbr-accent); font-weight: 600; }
+.mbr-wall__rel { color: var(--mbr-muted); font-weight: 400; }
+.mbr-wall__empty { color: var(--mbr-muted); text-align: center; }
+@media (max-width: 560px) { .mbr-wall__row { grid-template-columns: 1fr; } }
+
+/* ================================================================
+   Gallery — premium whole-photo showcase (applies to every gallery)
+   Full pictures, never cropped, generously sized, elegant spacing.
+   ================================================================ */
+.mbr-gallery--showcase .mbr-gallery__grid {
+  display: block; grid-template-columns: none; grid-auto-rows: auto; grid-auto-flow: row;
+  column-count: 3; column-gap: 1.4rem; overflow: visible;
+  max-width: 1180px; margin-left: auto; margin-right: auto;
+}
+.mbr-gallery--showcase .mbr-gallery__item {
+  aspect-ratio: auto; break-inside: avoid; -webkit-column-break-inside: avoid;
+  width: 100%; display: inline-block; margin: 0 0 1.4rem;
+  border-radius: 16px; overflow: hidden; background: var(--mbr-surface);
+  box-shadow: 0 26px 52px -34px rgba(0,0,0,0.5);
+  transition: transform 0.5s var(--mbr-ease), box-shadow 0.5s var(--mbr-ease);
+}
+.mbr-gallery--showcase .mbr-gallery__item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 40px 70px -34px rgba(0,0,0,0.55);
+}
+.mbr-gallery--showcase .mbr-gallery__item img {
+  width: 100%; height: auto; object-fit: contain; display: block;
+}
+.mbr-gallery--showcase .mbr-gallery__item figcaption {
+  padding: 0.9rem 1.1rem 1.1rem; font-size: 0.9rem; color: var(--mbr-muted);
+  font-family: var(--mbr-font-display); font-style: italic; letter-spacing: 0.01em;
+}
+@media (max-width: 1000px) { .mbr-gallery--showcase .mbr-gallery__grid { column-count: 2; } }
+@media (max-width: 600px)  { .mbr-gallery--showcase .mbr-gallery__grid { column-count: 1; max-width: 34rem; } }
+
+/* ── Gifts & Registry (guest-facing) ── */
+.mbr-gifts { background: color-mix(in srgb, var(--mbr-secondary) 8%, var(--mbr-bg)); }
+.mbr-gifts__eyebrow { color: var(--mbr-accent); display: block; margin-bottom: 0.6rem; }
+.mbr-gifts__msg { max-width: 40rem; margin: 0.6rem auto 2rem; font-family: var(--mbr-font-display); font-size: 1.15rem; font-style: italic; }
+.mbr-gifts__group { margin: 1.8rem auto 0; max-width: 46rem; }
+.mbr-gifts__label { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.76rem; font-weight: 700; color: var(--mbr-muted); margin-bottom: 0.9rem; }
+.mbr-gifts__buttons { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
+.mbr-gifts__btn { text-decoration: none; }
+.mbr-gifts__zelle { display: inline-flex; gap: 0.4rem; align-items: baseline; padding: 0.75rem 1.2rem; border-radius: 999px; background: var(--mbr-surface); border: 1px solid color-mix(in srgb, var(--mbr-muted) 24%, transparent); color: var(--mbr-text); font-size: 0.92rem; }
+.mbr-gifts__zelle b { color: var(--mbr-primary); }
+.mbr-gifts__fine { margin-top: 2rem; opacity: 0.75; }

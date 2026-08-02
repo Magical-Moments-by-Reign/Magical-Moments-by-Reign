@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getExperienceBySlug } from "@/lib/experiences";
 import { regenerateDesignAction } from "@/app/actions";
 import ExperienceRenderer from "@/components/experience/ExperienceRenderer";
+import GiftsSection from "@/components/experience/GiftsSection";
+import { getGiftData, showsPublicly } from "@/lib/gifts";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,9 @@ export default async function ExperiencePage({ params }: Params) {
   const exp = await getExperienceBySlug(slug);
   if (!exp) notFound();
 
+  const gifts = await getGiftData(exp.id);
+  const giftBlock = showsPublicly(gifts) ? <GiftsSection gifts={gifts!} /> : null;
+
   return (
     <>
       {/* Owner/demo toolbar — not part of the public keepsake itself.
@@ -46,7 +51,7 @@ export default async function ExperiencePage({ params }: Params) {
         </span>
       </div>
 
-      <ExperienceRenderer designSpec={exp.designSpec} content={exp.content} experienceType={exp.type} slug={exp.slug} />
+      <ExperienceRenderer designSpec={exp.designSpec} content={exp.content} experienceType={exp.type} slug={exp.slug} giftBlock={giftBlock} />
     </>
   );
 }

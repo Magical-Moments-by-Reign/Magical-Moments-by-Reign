@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createExperience, regenerateDesign } from "@/lib/experiences";
+import { upsertGiftData } from "@/lib/gifts";
 
 export async function createExperienceAction(formData: FormData): Promise<void> {
   const type = String(formData.get("type") || "").trim();
@@ -24,8 +25,22 @@ export async function createExperienceAction(formData: FormData): Promise<void> 
     desiredSlug: desiredSlug || undefined,
   });
 
+  // Optional Gifts & Registry — asked (never required) during setup.
+  const giftMode = String(formData.get("giftMode") || "none");
+  const opted = giftMode === "registry" || giftMode === "cash" || giftMode === "both";
+  if (giftMode !== "none") {
+    await upsertGiftData(experience.id, {
+      mode: giftMode as "registry" | "cash" | "both" | "later",
+      enabled: opted,
+      visibility: "everyone",
+      registries: [],
+      cashMethods: [],
+    });
+  }
+
   revalidatePath("/dashboard");
-  redirect(`/${experience.slug}`);
+  // If they opted into gifts, take them to fill in the details.
+  redirect(opted ? `/dashboard/${experience.slug}/gifts` : `/${experience.slug}`);
 }
 
 export async function regenerateDesignAction(formData: FormData): Promise<void> {

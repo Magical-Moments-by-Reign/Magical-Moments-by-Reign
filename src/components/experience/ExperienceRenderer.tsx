@@ -15,10 +15,29 @@ interface Props {
   content: ExperienceContent;
   experienceType?: string;
   slug?: string;
+  /** Optional block rendered just before the footer (e.g. Gifts & Registry). */
+  giftBlock?: React.ReactNode;
 }
 
-export default function ExperienceRenderer({ designSpec, content, experienceType, slug }: Props) {
+// Sections a Celebration of Life should always offer (His Story, Photo
+// Gallery, Favorite Memories, In Loving Memory, Family Messages), so the
+// memorial hero nav never links to a missing section — even for
+// experiences seeded before these were guaranteed.
+const MEMORIAL_SECTIONS: SectionKind[] = ["story", "gallery", "timeline", "quote", "guestbook"];
+
+function effectiveOrder(order: SectionKind[], experienceType?: string): SectionKind[] {
+  if (experienceType !== "memorial") return order;
+  const present = new Set(order);
+  const missing = MEMORIAL_SECTIONS.filter((s) => !present.has(s));
+  if (missing.length === 0) return order;
+  const footerIdx = order.indexOf("footer");
+  if (footerIdx === -1) return [...order, ...missing];
+  return [...order.slice(0, footerIdx), ...missing, ...order.slice(footerIdx)];
+}
+
+export default function ExperienceRenderer({ designSpec, content, experienceType, slug, giftBlock }: Props) {
   const p = designSpec.palette;
+  const sectionOrder = effectiveOrder(designSpec.sectionOrder, experienceType);
 
   const styleVars = {
     "--mbr-bg": p.bg,
@@ -45,13 +64,14 @@ export default function ExperienceRenderer({ designSpec, content, experienceType
         style={styleVars}
         data-mood={designSpec.mood}
       >
-        {designSpec.sectionOrder.map((kind: SectionKind, i) => {
+        {sectionOrder.map((kind: SectionKind, i) => {
           const Component = SECTION_COMPONENTS[kind];
           if (!Component) return null;
           const variant = designSpec.variants[kind] ?? "default";
           return (
             <div key={`${kind}-${i}`}>
               {i === 1 && <span id="mbr-explore" aria-hidden="true" />}
+              {kind === "footer" && giftBlock}
               <Component content={content} spec={designSpec} variant={variant} experienceType={experienceType} slug={slug} />
             </div>
           );

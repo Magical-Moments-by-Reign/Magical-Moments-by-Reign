@@ -26,3 +26,27 @@
 .storycard__btn:hover { border-color: var(--lavender); }
 .storycard__btn--primary { background: var(--plum-800); color: var(--ivory); border-color: transparent; }
 .storycard__btn--primary:hover { background: var(--plum-700); }
+
+/* ── Legacy Timeline (master family timeline) ── */
+.legacy { margin-bottom: 2rem; }
+.legacy__head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.legacy__head h2 { font-family: var(--font-display); font-size: 1.5rem; color: #211d29; margin: 0; }
+.legacy__track {
+  list-style: none; margin: 0; padding: 0.4rem 0 1rem; display: flex; gap: 0.9rem;
+  overflow-x: auto; scroll-snap-type: x proximity;
+}
+.legacy__chapter { scroll-snap-align: start; flex: 0 0 auto; }
+.legacy__chapter a {
+  display: flex; flex-direction: column; gap: 0.3rem; min-width: 9.5rem; max-width: 12rem;
+  padding: 1rem 1.1rem; border-radius: 14px; text-decoration: none;
+  background: #fff; border: 1px solid var(--gray-200);
+  box-shadow: 0 16px 34px -34px rgba(43,39,50,0.4);
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.legacy__chapter a:hover { transform: translateY(-4px); border-color: var(--gold-soft); box-shadow: 0 22px 42px -30px rgba(43,39,50,0.45); }
+.legacy__emoji { font-size: 1.5rem; }
+.legacy__title { font-weight: 600; color: #211d29; font-size: 0.95rem; line-height: 1.25; }
+.legacy__date { font-size: 0.74rem; color: var(--gold-deep); letter-spacing: 0.03em; }
+
+.studio-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 2rem; }
+@media (max-width: 780px) { .studio-tiles { grid-template-columns: 1fr; } }
