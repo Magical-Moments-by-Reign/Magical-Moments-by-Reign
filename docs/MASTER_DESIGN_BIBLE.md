@@ -105,6 +105,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Sports Journey](./design-bible/JOURNEY-sports.md)** — *Founder Approved · phased.*
   The complete athlete platform (profile, game center, recruiting, scholarships,
   NIL education, resume) — educational only, never guarantees. *Preview content built.*
+- **[Life Guidance Center](./design-bible/STANDARD-life-guidance.md)** —
+  *Founder Approved · educational only.* Helps families prepare for milestones
+  before they happen. Graduation Success Center: grade-by-grade timeline,
+  plain-language guides, official resources, state-specific pointers, grade-based
+  Ask Magical. *Domain + CMS schema + `/life-guidance` built & tested (8 tests);
+  admin CMS + state-link curation gated.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
 - **[The Magical Moments Ecosystem](./design-bible/VISION-ecosystem.md)** —
   *Founder Vision.* A complete Life Celebration Ecosystem — "We've got you." /

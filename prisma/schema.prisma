@@ -1807,3 +1807,35 @@ model SystemConfig {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+// ── Life Guidance Center (CMS) ──────────────────────────────────
+// Editable educational guides so resources stay current as requirements,
+// financial-aid programs, and policies change. Admins add/edit/archive/feature
+// guides and link to official sources. Educational only — never guarantees.
+enum GuideStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model GuideArticle {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  center       String      @default("graduation") // guidance center this belongs to
+  title        String
+  category     String?
+  grade        String? // optional grade level (8–12)
+  stateCode    String? // optional per-state guidance
+  summary      String?
+  body         String
+  officialLinks String     @default("[]") // JSON [{ label, url }] to official sources
+  status       GuideStatus @default(PUBLISHED)
+  featured     Boolean     @default(false)
+  createdBy    String      @default("Founder")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([center, status])
+  @@index([stateCode])
+  @@index([grade])
+}
