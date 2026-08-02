@@ -44,6 +44,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Wedding Journey planner (welcome → roadmap → checklist → budget) | Built (first slice) |
 | AI Roadmap / concierge planner (other journeys) | In progress |
 | Reminders / scheduled nudges | Planned · needs scheduler |
+| Gifts & Registries (global standard) | Documented · pending Founder approval — see [standard](./STANDARD-gifts-registries.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
 | Accounts / auth + role-based family access | Planned |
