@@ -287,7 +287,12 @@
 .pp-concierge__price { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 1.4rem; }
 .pp-concierge__price b { font-family: var(--font-display); font-size: 2.6rem; color: var(--gold-soft); line-height: 1; }
 .pp-concierge__price span { font-size: 0.82rem; color: rgba(248,244,236,0.6); letter-spacing: 0.04em; }
+.pp-pricing-head { text-align: center; max-width: 46rem; margin: 0 auto clamp(2rem, 4vw, 3rem); }
+.pp-pricing-head h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 3.6vw, 2.6rem); line-height: 1.12; margin: 0 0 0.7rem; color: var(--ink, #2a2130); }
+.pp-pricing-head p { color: var(--muted, #6b6472); line-height: 1.7; font-size: 1.02rem; margin: 0; }
+
 .pp-concierge__cta { }
+.pp-concierge__note { margin: 0.9rem 0 0; font-size: 0.8rem; font-style: italic; color: rgba(248,244,236,0.65); max-width: 30rem; }
 .pp-concierge__features { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
 .pp-concierge__features li { position: relative; padding-left: 1.6rem; font-size: 0.92rem; color: rgba(248,244,236,0.9); }
 .pp-concierge__features li::before { content: "✦"; position: absolute; left: 0; color: var(--gold-soft); }

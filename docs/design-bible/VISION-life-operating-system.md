@@ -59,7 +59,7 @@ insurance → family calendar → medical timeline. Nothing exists alone.
 ## How this maps to build order
 
 This vision is realized incrementally through the documented standards:
-Journeys + Legacy Timeline (built) → Gifts (built) → Communication → Family
+Journeys + Magical Moments Library (built) → Gifts (built) → Communication → Family
 Vault → Voice Notes → Baby/New Home journey depth → Grocery/Health/Travel/Home
 modules. Each ships as the smallest real slice, gated external services degrade
 gracefully, and every module connects back to the Family Vault and the Legacy

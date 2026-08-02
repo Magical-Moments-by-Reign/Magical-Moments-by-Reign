@@ -31,11 +31,14 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Experiences engine (unique themed page per journey) | Built |
 | Legacy Timeline + layered journeys | Built |
 | Private custom share links (checklist, password, expiry, roles) | Built |
+| **Guest Sharing & Public Experience Mode** (share the Moment, not the account) | **Domain layer built & tested (24 unit tests)** — granular view/interaction permissions, 5 link types, server-side `evaluateAccess`/`resolveCapabilities` (private denylist never exposed, no URL-tamper bypass), account-less guestbook/RSVP/uploads (moderated by default), verified-only attendance connect, account-conversion copy · schema: ShareLink extended + GuestbookEntry/GuestUpload/Rsvp · owner Share panel + Guest Experience View UI gated on auth + storage + notifications — see [standard](./STANDARD-guest-sharing.md) |
+| **Magical Access Pass™** (recipient-bound private sharing) | **Domain layer built & tested (20 unit tests)** — recipient binding + masked destination, hashed opaque tokens, one-time code verification (rate-limited, timing-safe), duration/view-limit/status resolution (revocation every request), one-view grace, device controls (secondary to verification), Privacy Score™, watermark labels (originals untouched), versioned Sharing Acknowledgment, fail-closed access · schema: MagicalAccessPass + AccessPassVerification/Session/Audit + RecipientAgreement + SharingAcknowledgment · code delivery (email/SMS), Magical Access dashboard & recipient UI gated on auth + notifications + storage · honest about screenshot limits — see [standard](./STANDARD-magical-access-pass.md) |
 | Media uploads + per-package limits | Built · needs Storage keys |
 | Tributes: family messages + poems | Built |
 | Custom domains + Legacy Protection | Built · needs registrar + scheduler |
 | Commerce: cart, checkout, Square hooks, orders | Built · needs Square keys |
 | Custom-website + Custom Concierge pipelines | Built |
+| **White-Glove Concierge Experience** ($5,000 one-time, application-based) | **Built** — dedicated `/concierge` page (hero, full inclusions incl. white-glove setup checklist, AI personalization, launch day, two weeks of support, "then it becomes yours", lasting legacy) + `/pricing` summary card; CTA routes to the concierge **application/consultation** (`/contact?reason=concierge`), never a self-serve checkout — no payment faked |
 | Social Studio (official platforms + coming-soon) | Built |
 | Transactional email | Built · needs Resend key |
 | Inspiration Gallery | Built |
@@ -55,6 +58,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Digital Invitations & Event Management (RSVP, from real photos) | Documented · phased · needs auth + storage + notifications + AI — see [standard](./STANDARD-invitations.md) |
 | **Magical AI (Ask Magical)** — floating concierge | **Built** (site-wide widget, Qwen-backed via OpenAI-compatible endpoint) · needs `QWEN_API_KEY` to go live; graceful offline reply — see [standard](./STANDARD-magical-ai.md) |
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
+| **"Everything Included" value section** (value-then-price on /pricing) | **Built** — grouped feature clusters (The Complete Toolkit · Magical Moments for Every Occasion · Sharing, Privacy & Preservation), value promise + "No Hidden Fees / No Feature Unlocks / Everything Included" badge, gold-foil medallions + album-corner hover, low-opacity logo watermark, then the "How Long Would You Like Us to Preserve Your Magical Moment?" pricing headline above the plan cards · customer-facing copy avoids "journey" (uses "Magical Moment") · built in the site's existing type system rather than the mockup's Fraunces/Karla for consistency (font swap is a follow-up if desired) |
 | **Pricing Engine v1.0** (build-your-own membership) | **Built** (engine + Build-Your-Membership + Free Forever entry; Monthly term, 3/8/15 Lifetime recommendations, price ceiling) · amounts placeholder except Lifetime Collections · needs auth + Square for real checkout — see [standard](./STANDARD-pricing-engine.md) |
 | **Admin Specials & Promotions Center** | **Built** (first slice — create/schedule/pause/end, Lifetime Value Protection, audit log) · analytics/email/SMS/test-preview phased — see [standard](./STANDARD-admin-specials.md) |
 | Free Forever (required account · $0 entry) | **Built** (selection + $0.00 checkout → Family Vault) · real account persistence needs auth — see [standard](./STANDARD-pricing-engine.md) |
@@ -65,9 +69,15 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | New Home → Build-a-Home (Housing Hub pathway) | **Built** (first slice — intake → roadmap + 28-stage timeline) · data centers (floor plans, budget, build team) need auth + storage — see [journey](./JOURNEY-new-home.md) |
 | Journey Protection™ (pause add-on) | Documented · pricing-model **resolved** (recurring + Free Forever approved) · needs billing/auth — see [standard](./STANDARD-journey-protection.md) |
 | Legacy Guardian™ / Legacy Transfer™ (Lifetime benefit) | **Phase A built** (designate Primary/Secondary guardians in the Vault — data only) · verified ownership transfer needs auth + review — see [standard](./STANDARD-legacy-guardian.md) |
+| **Vendor Marketplace** ("Become a Vendor") | **Built (first slice)** — pure domain (43-category catalog, profile shape, reviews + rating math, browse/filter, required Vendor Notice, disabled monetization tiers) + 11 tests; schema Vendor/VendorReview/VendorApplication (+ enums); `/vendors` marketplace (filters + honest empty state + categories + Become-a-Vendor) and `/vendors/apply` (live application → VendorApplication) · listings/reviews/Save/admin gated on auth + storage + notifications · vendors are independent — see [standard](./STANDARD-vendor-marketplace.md) |
+| **Primary & Standby Vendor System** (Vendor Protection) | **State machine built & tested (16 unit tests)** — primary-only vs primary+standby, acceptance-gated confirmation, activate/release transitions with notification targets, timeline milestones, disclaimers · schema VendorBooking + VendorBookingEvent (+ enums) · customer/vendor dashboards & notification delivery gated on auth + live vendors — see [standard](./STANDARD-vendor-marketplace.md#primary--standby-vendor-system-vendor-protection) |
+| **Vendor Quality Standards & Review Policy** (three-strike, verified) | **Policy engine built & tested (11 unit tests)** — verified-only negatives, graduated three-strike actions (search penalty → formal warning → removal), one-year probation + reinstatement (not guaranteed), immediate-suspension rights · schema: Vendor perf fields + VendorStatus REMOVED + VendorReview verification + VendorStrike/VendorPerformanceEvent · review-invite/admin-verification/search-ranking/notifications gated on auth + live bookings — see [standard](./STANDARD-vendor-marketplace.md#vendor-quality-standards--review-policy) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
-| Accounts / auth + role-based family access | Planned |
+| **Magical+ Ecosystem** (wallet, credits, gifting, financing gateway) | **Architecture built** (pure domain + provider-agnostic Financing Gateway, no lending logic) · balances/payments/financing need auth + billing + providers — see [standard](./STANDARD-magical-plus.md) |
+| **Platform Foundation** (Customer Accounts · Library · Tracker · Purchasing · AI) | **Foundation slice built** — see the identity row below + the Library/Tracker data models; the five systems are the operating system every Experience must plug into · UI/wiring gated on auth + billing + storage |
+| **Customer Identity & Duplicate Prevention** (one person = one account) | **Domain layer built & tested (38 unit tests, `npm test`)** + full PostgreSQL data foundation (Account, AccountIdentity, CustomerEmail/Phone/Address, AccountRestriction, AccountRecoveryAttempt, AccountStatusHistory, DuplicateCandidate, AccountMergeRecord, CustomerAuditLog, LibraryEntry, MagicalTracker(+Stage), Balance, PaymentPlan, GiftPurchase, GiftRecipient, GroupContribution, CollaboratorPermission; 14 enums) — normalization, exact + weighted duplicate detection (shared address alone never matches), recovery decisions, balance-aware purchase gating, masking, safe merge planning, admin-review objects · verification (email/SMS), Square ids, encryption, admin review UI need auth + billing · **no lending/credit logic** — see [standard](./STANDARD-account-identity.md) |
+| Accounts / auth + role-based family access | Planned (next: auth wiring onto the built Account foundation) |
 
 ---
 
@@ -81,6 +91,17 @@ sharing, registry & cash gifts, notifications, settings, final memory book,
 celebration screen, Founder standard). That document holds the live per-section
 compliance map and the foundation-first path to full compliance. No Journey is
 submitted for Founder approval until all twenty are complete.
+
+## Brand, account & commerce vision
+
+Per the [Brand, Account & Commerce standard](./STANDARD-brand-and-account.md):
+consistent **Magical\*** naming (Magical Moments Library, Magical Tracker™,
+Magical AI, Magical Invitations, Magical Galleries; never "Legacy Timeline/
+Library" — Project Legacy is separate), **one account per verified email** with
+auto-sync of every purchase, **gifting + group contributions**, and a **payment
+roadmap** (Square + Affirm/Klarna → Magical Pay™). Customer-facing "Legacy
+Timeline" copy has been renamed to **Magical Moments Library**; the rest is
+foundation-dependent (auth + billing + storage) and phased — nothing faked.
 
 ## Journey modules (per Founder specs)
 

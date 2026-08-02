@@ -5,6 +5,8 @@ import SiteFooter from "@/components/site/SiteFooter";
 import PlanQuiz from "@/components/pricing/PlanQuiz";
 import AddPlanButton from "@/components/pricing/AddPlanButton";
 import AddOnsShop from "@/components/pricing/AddOnsShop";
+import EverythingIncluded from "@/components/pricing/EverythingIncluded";
+import { PRICING_HEADLINE } from "@/lib/everything-included";
 import {
   PLANS,
   COMPARISON_ROWS,
@@ -15,6 +17,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import "./pricing.css";
+import "./everything-included.css";
 
 export const metadata: Metadata = {
   title: "Choose Your Memory Preservation Plan",
@@ -54,11 +57,18 @@ export default function PricingPage() {
         </div>
       </header>
 
+      {/* Everything Included — full value before price */}
+      <EverythingIncluded />
+
       {/* Plan cards with logo watermark */}
       <section className="pp-plans">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="pp-watermark" src="/brand/logo.png" alt="" aria-hidden="true" />
         <div className="container">
+          <div className="pp-pricing-head">
+            <h2>{PRICING_HEADLINE.title}</h2>
+            <p>{PRICING_HEADLINE.body}</p>
+          </div>
           <div className="pp-plans__grid">
             {PLANS.map((plan) => {
               const inherited = plan.inheritsFrom ? getPlan(plan.inheritsFrom) : undefined;
@@ -121,7 +131,8 @@ export default function PricingPage() {
                 <b>{formatPrice(CONCIERGE.price)}</b>
                 <span>{CONCIERGE.priceKind}</span>
               </div>
-              <Link href="/contact?reason=concierge" className="btn-gold pp-concierge__cta">{CONCIERGE.cta}</Link>
+              <Link href="/concierge" className="btn-gold pp-concierge__cta">Explore the White-Glove Experience</Link>
+              <p className="pp-concierge__note">{CONCIERGE.applicationsNote}</p>
             </div>
             <ul className="pp-concierge__features">
               {CONCIERGE.features.map((f) => <li key={f}>{f}</li>)}
@@ -247,8 +258,8 @@ export default function PricingPage() {
       <section className="pp-section" style={{ background: "var(--cream-200)" }} id="add-ons">
         <div className="container">
           <div className="pp-section__head">
-            <h2>Make Your Moment <em>Even More</em> Magical</h2>
-            <p>Personalize your experience with optional upgrades designed to make your story even more memorable.</p>
+            <h2>Enhance Your <em>Experience</em></h2>
+            <p>Your plan already includes everything needed to create a beautiful Magical Moment. These optional upgrades allow you to add more storage, videos, keepsakes, domains, or expedited service.</p>
           </div>
           <AddOnsShop />
           <p className="pp-addons__note" style={{ color: "#7a7280", textAlign: "center", marginTop: "1.6rem" }}>

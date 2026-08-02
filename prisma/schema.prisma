@@ -199,6 +199,9 @@ model Order {
   number            String   @unique // MMR-YYYYMMDD-####
   customerId        String?
   customer          Customer? @relation(fields: [customerId], references: [id])
+  // Every purchase attaches to the permanent Magical Moments Account.
+  accountId         String?
+  account           Account?  @relation(fields: [accountId], references: [id])
   experienceId      String?
   planId            String?
   experienceTitle   String?
@@ -237,6 +240,7 @@ model Order {
   @@index([paymentStatus])
   @@index([fulfillmentStatus])
   @@index([createdAt])
+  @@index([accountId])
 }
 
 model OrderItem {
@@ -404,10 +408,13 @@ model Tribute {
   @@index([experienceId, kind])
 }
 
-// ── Family Journey: private custom share links ──────────────────
-// The owner curates exactly which experiences a link exposes, with
-// optional password, expiry, view cap, and per-link permissions.
-// Experiences NOT selected are never revealed through the link.
+// ── Guest sharing: private custom share links ───────────────────
+// "Share the Moment — not the entire account." The owner curates exactly
+// which experiences AND which granular features a link exposes; anything
+// not selected is never revealed. Permissions are ENFORCED SERVER-SIDE on
+// every request (see src/lib/guest-sharing.ts) — never by hidden buttons.
+// The private denylist (Library, billing, orders, AI history, vendor
+// contracts, full guest list, other Experiences, …) can never be enabled.
 model ShareLink {
   id            String    @id @default(cuid())
   token         String    @unique
@@ -416,10 +423,30 @@ model ShareLink {
   includeAll    Boolean   @default(false)
   experienceIds String    @default("[]") // JSON array of experience ids
 
+  // Link type + credential/limit gates.
+  linkType      String    @default("public") // public | invitation | password | contributor | expiring
   passwordHash  String?
+  invitationRequired Boolean @default(false)
+  invitedEmails String    @default("[]") // JSON of canonical emails (matching only)
+  invitedPhones String    @default("[]") // JSON of normalized phones (matching only)
   expiresAt     DateTime?
   maxViews      Int?
   viewCount     Int       @default(0)
+  uploadDeadline   DateTime?
+  guestbookCloseAt DateTime?
+
+  // Lifecycle.
+  paused    Boolean   @default(false)
+  revokedAt DateTime?
+
+  // Granular guest permissions (JSON array of SharePermission ids the owner
+  // enabled — validated against the shareable catalog; private ids dropped).
+  permissions String @default("[]")
+
+  // Upload handling.
+  allowUploads         Boolean @default(false)
+  autoPublishUploads   Boolean @default(false) // uploads default to a review queue
+  requireGuestbookApproval Boolean @default(true)
 
   allowDownload  Boolean  @default(false)
   allowComments  Boolean  @default(false)
@@ -429,7 +456,216 @@ model ShareLink {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  guestbookEntries GuestbookEntry[]
+  guestUploads     GuestUpload[]
+  rsvps            Rsvp[]
+
   @@index([token])
+  @@index([ownerId])
+}
+
+// A guestbook message left WITHOUT an account. Collects only what's needed;
+// the email is never exposed publicly. Enters moderation when the owner
+// requires approval; supports anonymous / private-to-host visibility.
+model GuestbookEntry {
+  id           String     @id @default(cuid())
+  experienceId String
+  shareLinkId  String?
+  shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  displayName  String
+  message      String
+  email        String? // optional, never shown publicly
+  relationship String?
+  visibility   String     @default("display_name") // display_name | anonymous | private_host
+  status       String     @default("pending")      // pending | published | hidden | reported
+  consent      Boolean    @default(false)
+  ipHash       String? // for spam/rate-limit controls (seam)
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, status])
+  @@index([shareLinkId])
+}
+
+// A photo/video contributed by a guest. Enters a review queue unless the
+// owner deliberately enables auto-publish. Guests never browse private uploads.
+model GuestUpload {
+  id           String     @id @default(cuid())
+  experienceId String
+  shareLinkId  String?
+  shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  uploaderName String?
+  kind         String     // IMAGE | VIDEO
+  url          String?
+  storagePath  String?
+  status       String     @default("pending") // pending | published | rejected
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, status])
+  @@index([shareLinkId])
+}
+
+// A guest RSVP (no account required). If the guest later creates an account
+// with a VERIFIED matching email/phone, it can connect to "Magical Moments
+// I'm Attending" (accountId set only after verification).
+model Rsvp {
+  id           String     @id @default(cuid())
+  experienceId String
+  shareLinkId  String?
+  shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  accessPassId String?
+  accessPass   MagicalAccessPass? @relation(fields: [accessPassId], references: [id], onDelete: SetNull)
+  guestName    String
+  email        String?
+  phone        String?
+  status       String     @default("yes") // yes | no | maybe
+  partySize    Int        @default(1)
+  message      String?
+  accountId    String? // set only after verified match (Events I'm Attending)
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, status])
+  @@index([shareLinkId])
+  @@index([accountId])
+}
+
+// ── Magical Access Pass™ — recipient-bound private sharing ───────
+// "Easy for the invited person. Useless to anyone else." A pass binds ONE
+// Experience · owner · recipient · verified email/phone · permission set ·
+// expiration policy. Access requires a one-time code sent to the recipient's
+// contact, so a forwarded URL grants nothing. The URL carries only the opaque
+// token; the token is stored HASHED. Every protected request is re-checked
+// server-side (see src/lib/magical-access-pass.ts). No account required for the
+// recipient. Card/contact/verification secrets are never stored in the clear.
+model MagicalAccessPass {
+  id           String  @id @default(cuid())
+  tokenHash    String  @unique // sha256 of the opaque URL token — never the token itself
+  experienceId String
+  ownerId      String?
+
+  // Recipient binding. Destination is stored normalized (for matching the code
+  // delivery target) and masked (for display) — never shown in full to anyone.
+  recipientName          String
+  recipientChannel       String  // email | phone
+  recipientDestNormalized String // canonical email / digit phone (binding only)
+  recipientDestMasked    String  // e.g. t••••@email.com
+
+  // What the recipient may see/do (JSON PassPermission[]; private ids dropped).
+  permissions String @default("[]")
+
+  // Access rules.
+  durationPolicy String    @default("{\"kind\":\"until_closed\"}") // JSON AccessDurationPolicy
+  expiresAt      DateTime?
+  viewLimit      String    @default("{\"kind\":\"unlimited\"}")     // JSON ViewLimitPolicy
+  views          Int       @default(0)
+  sessions       Int       @default(0)
+  usedAt         DateTime? // set once a one-view/limited pass is consumed
+  ownerState     String    @default("active") // active | paused | closed | revoked
+
+  // Verification & device.
+  requireVerification Boolean @default(true)
+  devicePolicy        String  @default("{\"kind\":\"verify_every_visit\"}") // JSON DevicePolicy
+
+  // Download / privacy controls.
+  downloadsEnabled       Boolean @default(false)
+  watermarkEnabled       Boolean @default(false)
+  preventIndexing        Boolean @default(true)
+  requireRecipientAgreement Boolean @default(false)
+  privacyScore           String  @default("yellow") // green | yellow | red (cached)
+
+  // Activity (denormalized for the Magical Access dashboard).
+  sentAt        DateTime?
+  firstOpenedAt DateTime?
+  lastOpenedAt  DateTime?
+  uploadsCount  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  verifications      AccessPassVerification[]
+  passSessions       AccessPassSession[]
+  audits             AccessPassAudit[]
+  recipientAgreements RecipientAgreement[]
+  rsvps              Rsvp[]
+
+  @@index([experienceId])
+  @@index([ownerId])
+  @@index([ownerState])
+}
+
+// A one-time verification code send for a pass (rate-limited; codes hashed).
+model AccessPassVerification {
+  id         String            @id @default(cuid())
+  passId     String
+  pass       MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  codeHash   String
+  channel    String            // email | phone
+  attempts   Int               @default(0)
+  sentAt     DateTime          @default(now())
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  ipHash     String? // for rate limiting / abuse detection (seam)
+
+  @@index([passId])
+}
+
+// A short-lived authenticated guest session created after successful
+// verification. Session token stored hashed; optional device binding.
+model AccessPassSession {
+  id               String            @id @default(cuid())
+  passId           String
+  pass             MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  sessionTokenHash String            @unique
+  deviceHash       String?
+  verifiedAt       DateTime          @default(now())
+  contentOpenedAt  DateTime?
+  expiresAt        DateTime
+  endedAt          DateTime?
+
+  @@index([passId])
+}
+
+// Append-only audit trail for a pass (see PASS_AUDIT_EVENTS). The owner sees a
+// friendly activity history; technical security details are not exposed.
+model AccessPassAudit {
+  id        String            @id @default(cuid())
+  passId    String
+  pass      MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  event     String            // pass_created | verification_succeeded | content_opened | ...
+  detail    String?
+  createdAt DateTime          @default(now())
+
+  @@index([passId])
+  @@index([event])
+}
+
+// The recipient's optional privacy agreement (when the owner requires it).
+// Records agreement only — it does not technically prevent capture.
+model RecipientAgreement {
+  id                 String            @id @default(cuid())
+  passId             String
+  pass               MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  version            String
+  verificationMethod String? // email | phone
+  agreedAt           DateTime          @default(now())
+
+  @@index([passId])
+}
+
+// ── Sharing acknowledgment (owner, versioned, non-erasable) ─────
+// Before sharing, the owner must accept the Private Sharing Notice. Records are
+// append-only history — the current status reads the latest accepted version.
+// The owner may re-enable "show every time"; they cannot erase the audit trail.
+model SharingAcknowledgment {
+  id            String   @id @default(cuid())
+  accountId     String
+  noticeVersion String
+  dontShowAgain Boolean  @default(false)
+  showEveryTime Boolean  @default(false) // owner setting override
+  deviceInfo    String?
+  acceptedAt    DateTime @default(now())
+
+  @@index([accountId])
+  @@index([accountId, noticeVersion])
 }
 
 // ── Gifts & Registries (optional, per Journey) ──────────────────
@@ -622,6 +858,525 @@ model SpecialAudit {
   @@index([specialId])
 }
 
+// ════════════════════════════════════════════════════════════════
+// PLATFORM FOUNDATION — the operating system every Experience uses:
+// (1) Customer Accounts  (2) Magical Moments Library  (3) Magical
+// Tracker  (4) Purchasing Flow  (5) Magical AI.
+//
+// ONE PERSON = ONE MAGICAL MOMENTS ACCOUNT. ONE ACCOUNT = ONE LIBRARY.
+// Every purchase attaches to the verified account. This is the data
+// foundation for src/lib/account-identity.ts.
+//
+// Guardrails baked into this schema:
+//   • NO lending/credit-scoring data — only platform identity + balance
+//     state. Financing runs through the provider-agnostic gateway.
+//   • NEVER store raw card numbers, CVVs, SSNs, or financing credentials.
+//     Square / SMS / email / encryption / storage appear ONLY as secure
+//     external identifiers and integration seams.
+//   • A shared residential address alone is never proof of identity.
+// ════════════════════════════════════════════════════════════════
+
+enum AccountStatus {
+  ACTIVE
+  PAYMENT_DUE
+  PAST_DUE
+  PAYMENT_PLAN_ACTIVE
+  PAYMENT_METHOD_FAILED
+  UNDER_REVIEW
+  CHARGEBACK_REVIEW
+  PURCHASE_RESTRICTED
+  FINANCING_RESTRICTED
+  CLOSED
+}
+
+enum AddressKind {
+  RESIDENTIAL
+  BILLING
+}
+
+enum RestrictionKind {
+  PURCHASE
+  FINANCING
+  PAYMENT_PLAN
+  ACCOUNT
+}
+
+enum RecoveryChannel {
+  EMAIL
+  SMS
+  PASSWORD
+  SUPPORT
+}
+
+enum RecoveryStatus {
+  SENT
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum DuplicateTier {
+  REVIEW
+  STRONG
+}
+
+enum DuplicateStatus {
+  OPEN
+  SAME_CUSTOMER
+  DIFFERENT_PEOPLE
+  MERGED
+  DISMISSED
+}
+
+enum LibraryEntryKind {
+  EXPERIENCE
+  PHOTO
+  VIDEO
+  GALLERY
+  INVITATION
+  GUESTBOOK
+  REGISTRY
+  GIFT_CONTRIBUTION
+  RECEIPT
+  ORDER
+  UPCOMING_EVENT
+  COMPLETED_EVENT
+  FAVORITE
+  ARCHIVED
+}
+
+enum TrackerStageStatus {
+  PENDING
+  ACTIVE
+  COMPLETE
+  NEEDS_ATTENTION
+}
+
+enum BalanceStatus {
+  CURRENT
+  DUE
+  PAST_DUE
+  IN_PLAN
+  CLEARED
+}
+
+enum PaymentPlanStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  CANCELLED
+}
+
+enum GiftStatus {
+  PENDING
+  PURCHASED
+  DELIVERED
+  CANCELLED
+}
+
+enum CollaboratorScope {
+  VIEW
+  ASSIST
+  MANAGE
+}
+
+enum CollaboratorStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+// ── (1) Customer Account — the permanent identity spine ─────────
+// One row per person, for life. `customerId` is the human-friendly
+// permanent ID (e.g. MMR-C-XXXXXX). Passwords are hashed; social sign-in
+// stores only the provider's subject id (never tokens/credentials here).
+model Account {
+  id            String        @id @default(cuid())
+  customerId    String        @unique // permanent human-friendly Customer ID
+  status        AccountStatus @default(ACTIVE)
+
+  firstName      String
+  lastName       String
+  nameNormalized String  @default("") // for probable-duplicate matching only
+  dateOfBirth    String? // only when payment-plan/identity verification requires it
+
+  // External identifiers only — no secrets, no card data.
+  squareCustomerId String? @unique
+  googleSub        String? @unique // Google sign-in subject
+  appleSub         String? @unique // Apple sign-in subject
+  passwordHash     String? // hashed only; null when social-only
+
+  identity      AccountIdentity?
+  emails        CustomerEmail[]
+  phones        CustomerPhone[]
+  addresses     CustomerAddress[]
+  restrictions  AccountRestriction[]
+  recoveryAttempts AccountRecoveryAttempt[]
+  statusHistory AccountStatusHistory[]
+  auditLogs     CustomerAuditLog[]
+  libraryEntries LibraryEntry[]
+  trackers      MagicalTracker[]
+  orders        Order[]
+  balances      Balance[]
+  paymentPlans  PaymentPlan[]
+  giftsPurchased GiftPurchase[]      @relation("giftBuyer")
+  contributions  GroupContribution[]
+  collaboratorsGranted CollaboratorPermission[] @relation("grantor")
+  collaboratingOn      CollaboratorPermission[] @relation("collaborator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nameNormalized])
+  @@index([status])
+}
+
+// The normalized identity snapshot used for duplicate detection. Kept
+// alongside the Account so matching never has to touch private display
+// data. Alternate emails/phones/billing addresses catch balance-dodgers.
+model AccountIdentity {
+  id        String  @id @default(cuid())
+  accountId String  @unique
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  emailCanonical  String @default("")
+  phoneNormalized String @default("")
+  nameNormalized  String @default("")
+  addressKey      String @default("") // shared address alone is NOT proof of identity
+
+  previousEmails   String @default("[]") // JSON array
+  previousPhones   String @default("[]") // JSON array
+  billingAddresses String @default("[]") // JSON array of address keys
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emailCanonical])
+  @@index([phoneNormalized])
+  @@index([nameNormalized])
+  @@index([addressKey])
+}
+
+// Verified & unverified emails. Purchasing stays off until a primary email
+// is verified (delivery of the link/code is an integration seam).
+model CustomerEmail {
+  id         String    @id @default(cuid())
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email      String
+  canonical  String    @default("") // matching form
+  isPrimary  Boolean   @default(false)
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([accountId, canonical])
+  @@index([canonical])
+}
+
+// Verified & unverified phone numbers (SMS verification is a seam).
+model CustomerPhone {
+  id         String    @id @default(cuid())
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  phone      String
+  normalized String    @default("") // matching form
+  isPrimary  Boolean   @default(false)
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([accountId, normalized])
+  @@index([normalized])
+}
+
+// Residential & billing addresses. `addressKey` folds formatting variants;
+// a shared key never, by itself, implies the same customer.
+model CustomerAddress {
+  id         String      @id @default(cuid())
+  accountId  String
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind       AddressKind @default(RESIDENTIAL)
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postal     String
+  country    String      @default("US")
+  addressKey String      @default("")
+  isPrimary  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  @@index([accountId, kind])
+  @@index([addressKey])
+}
+
+// An active restriction on an account (purchase/financing/plan/account).
+// Applied & lifted only by authorized admins; both are audited.
+model AccountRestriction {
+  id        String          @id @default(cuid())
+  accountId String
+  account   Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind      RestrictionKind
+  reason    String
+  active    Boolean         @default(true)
+  createdBy String          // admin identity
+  liftedBy  String?
+  liftedAt  DateTime?
+  createdAt DateTime        @default(now())
+
+  @@index([accountId, active])
+}
+
+// Account-recovery attempts — the groundwork for rate limiting & the
+// "recover before duplicate" flow. Stores only a masked target, never the
+// full contact value. Delivery of the code/link is an integration seam.
+model AccountRecoveryAttempt {
+  id           String          @id @default(cuid())
+  accountId    String?
+  account      Account?        @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  channel      RecoveryChannel
+  maskedTarget String          // e.g. t••••@email.com — never the full value
+  status       RecoveryStatus  @default(SENT)
+  ipHash       String? // hashed IP for velocity checks (seam)
+  createdAt    DateTime        @default(now())
+
+  @@index([accountId])
+  @@index([createdAt])
+}
+
+// Append-only history of every account-status change (who, when, why).
+model AccountStatusHistory {
+  id         String        @id @default(cuid())
+  accountId  String
+  account    Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fromStatus AccountStatus?
+  toStatus   AccountStatus
+  reason     String?
+  actor      String        @default("system") // admin identity or "system"
+  createdAt  DateTime      @default(now())
+
+  @@index([accountId])
+}
+
+// A flagged potential-duplicate pair awaiting admin review. Records the
+// weighted match reasons; resolution is logged, never silently applied.
+model DuplicateCandidate {
+  id                 String          @id @default(cuid())
+  candidateAccountId String          // the account that triggered the flag
+  matchedAccountId   String          // the existing account it may duplicate
+  score              Float           @default(0)
+  tier               DuplicateTier   @default(REVIEW)
+  reasons            String          @default("[]") // JSON human-readable signals
+  riskFlags          String          @default("[]") // JSON device/velocity indicators (seam)
+  status             DuplicateStatus @default(OPEN)
+  resolvedBy         String?
+  resolvedAt         DateTime?
+  notes              String?
+  createdAt          DateTime        @default(now())
+
+  @@index([status])
+  @@index([candidateAccountId])
+  @@index([matchedAccountId])
+}
+
+// Append-only record of an approved account merge. Balances, disputes, and
+// history are preserved — never erased — and the duplicate is closed for reuse.
+model AccountMergeRecord {
+  id          String   @id @default(cuid())
+  primaryId   String
+  duplicateId String
+  actor       String   // authorized support/admin identity
+  moved       String   @default("[]") // JSON of what transferred
+  preserved   String   @default("[]") // JSON of what was preserved
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@index([primaryId])
+}
+
+// Append-only per-account audit log (identity, action, prev/new state).
+model CustomerAuditLog {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  actor     String   @default("system")
+  action    String   // e.g. account_created | status_changed | restriction_added | merged
+  detail    String?
+  prevValue String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@index([action])
+}
+
+// ── (2) Magical Moments Library — the customer's home ───────────
+// Everything a customer has ever purchased/created appears here. Entries
+// reference their source object by id (loose ref) so the Library indexes
+// across Experiences, orders, media, galleries, invitations, etc.
+model LibraryEntry {
+  id         String           @id @default(cuid())
+  accountId  String
+  account    Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind       LibraryEntryKind
+  refId      String? // id of the referenced Experience/Order/MediaAsset/…
+  title      String
+  subtitle   String?
+  thumbnail  String?
+  // Lightweight, denormalized search text (people, dates, locations, guests).
+  searchText String           @default("")
+  occurredAt DateTime?
+  favorite   Boolean          @default(false)
+  archived   Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([accountId, kind])
+  @@index([accountId, archived])
+  @@index([accountId, favorite])
+}
+
+// ── (3) Magical Tracker — per-Experience progress dashboard ─────
+model MagicalTracker {
+  id           String                @id @default(cuid())
+  accountId    String
+  account      Account               @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  experienceId String                @unique // one tracker per Experience
+  currentStage String? // key of the active stage
+  stages       MagicalTrackerStage[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([accountId])
+}
+
+model MagicalTrackerStage {
+  id          String             @id @default(cuid())
+  trackerId   String
+  tracker     MagicalTracker     @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  key         String             // canonical stage key (see src/lib/magical-tracker.ts)
+  label       String
+  status      TrackerStageStatus @default(PENDING)
+  order       Int                @default(0)
+  completedAt DateTime?
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([trackerId, key])
+  @@index([trackerId, order])
+}
+
+// ── (4) Purchasing Flow — balances & payment plans ──────────────
+// Orders / OrderItems / Payments already exist (commerce section) and now
+// attach to the Account. Balances track what a customer owes; PaymentPlans
+// track an externally-approved installment plan (NO lending logic here).
+model Balance {
+  id           String        @id @default(cuid())
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  amountCents  Int           @default(0) // outstanding, in cents
+  currency     String        @default("USD")
+  status       BalanceStatus @default(CURRENT)
+  orderId      String? // optional link to the originating order
+  dueAt        DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([accountId, status])
+}
+
+// An installment plan APPROVED & PROCESSED by an external provider. We only
+// track its state — no internal lending or credit-scoring is performed.
+model PaymentPlan {
+  id               String            @id @default(cuid())
+  accountId        String
+  account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  orderId          String?
+  provider         String            // external financing provider id
+  providerRef      String? // provider's plan reference (no credentials)
+  status           PaymentPlanStatus @default(ACTIVE)
+  totalCents       Int               @default(0)
+  remainingCents   Int               @default(0)
+  installmentCents Int               @default(0)
+  cadence          String            @default("monthly") // weekly | biweekly | monthly
+  nextChargeAt     DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([accountId, status])
+}
+
+// ── Gifts & group contributions ────────────────────────────────
+// A gift a customer buys for a recipient. The platform never holds funds
+// for cash gifts — those route to the customer's own payment handles.
+model GiftPurchase {
+  id           String        @id @default(cuid())
+  buyerId      String
+  buyer        Account       @relation("giftBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  recipientId  String?
+  recipient    GiftRecipient? @relation(fields: [recipientId], references: [id])
+  experienceId String?
+  label        String
+  amountCents  Int           @default(0)
+  status       GiftStatus    @default(PENDING)
+  orderId      String?
+  createdAt    DateTime      @default(now())
+
+  @@index([buyerId])
+}
+
+// Gift-recipient records — used both for delivery and (per the identity
+// standard) as one of the signals in duplicate detection. `matchedAccountId`
+// links a recipient to an existing account once verified.
+model GiftRecipient {
+  id               String         @id @default(cuid())
+  name             String
+  emailCanonical   String? // matching form only
+  phoneNormalized  String?
+  matchedAccountId String?
+  gifts            GiftPurchase[]
+  createdAt        DateTime       @default(now())
+
+  @@index([emailCanonical])
+  @@index([phoneNormalized])
+}
+
+// Group funding toward an Experience (Magical+ gift pools). Progress and
+// auto-unlock math live in src/lib/magical-plus.ts (poolProgress).
+model GroupContribution {
+  id            String   @id @default(cuid())
+  experienceId  String
+  contributorId String?
+  contributor   Account? @relation(fields: [contributorId], references: [id], onDelete: SetNull)
+  contributorName String
+  amountCents   Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([experienceId])
+}
+
+// ── Family & collaborator permissions ──────────────────────────
+// Time-bound, revocable delegated access (e.g. an adult child assisting a
+// parent with a specific Experience). Never merges balances or identities.
+model CollaboratorPermission {
+  id                  String             @id @default(cuid())
+  grantorId           String
+  grantor             Account            @relation("grantor", fields: [grantorId], references: [id], onDelete: Cascade)
+  collaboratorId      String?
+  collaborator        Account?           @relation("collaborator", fields: [collaboratorId], references: [id], onDelete: SetNull)
+  invitedEmailMasked  String? // masked until the collaborator accepts
+  experienceId        String? // null = account-wide (rare); usually scoped to one Experience
+  scope               CollaboratorScope  @default(VIEW)
+  status              CollaboratorStatus @default(INVITED)
+  expiresAt           DateTime? // access auto-expires; revocable anytime
+  revokedAt           DateTime?
+  createdAt           DateTime           @default(now())
+
+  @@index([grantorId, status])
+  @@index([collaboratorId])
+}
+
 model WebhookEvent {
   id            String   @id @default(cuid())
   squareEventId String   @unique
@@ -652,4 +1407,245 @@ model CustomWebsiteRequest {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// ── Vendor Marketplace ──────────────────────────────────────────
+// Trusted independent businesses discoverable by families planning life's
+// milestones. Vendors are INDEPENDENT — Magical Moments never employs,
+// supervises, endorses, or guarantees them (see the required Vendor Notice in
+// src/lib/vendors.ts). Only APPROVED, non-hidden vendors are shown. Logo/
+// gallery media resolve through storage identifiers (seam). No payments run
+// through these models; future monetization tiers exist but stay disabled.
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  REMOVED
+}
+
+enum VendorApplicationStatus {
+  NEW
+  APPROVED
+  REJECTED
+}
+
+model Vendor {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  businessName   String
+  logoUrl        String?
+  description    String
+  ownerName      String?
+  categoryId     String
+  city           String
+  state          String
+  serviceArea    String?
+  phone          String?
+  email          String?
+  website        String?
+  socials        String       @default("[]") // JSON [{ platform, url }]
+  hours          String?
+  gallery        String       @default("[]") // JSON [url]
+  videos         String       @default("[]") // JSON [url]
+  services       String       @default("[]") // JSON [string]
+  pricing        String?
+  languages      String       @default("[]") // JSON [string]
+  yearsInBusiness Int?
+  licensed       Boolean      @default(false)
+  insured        Boolean      @default(false)
+  status         VendorStatus @default(PENDING)
+  featured       Boolean      @default(false)
+  hidden         Boolean      @default(false)
+  tier           String       @default("free") // future monetization; disabled today
+  ratingAvg      Float        @default(0)
+  reviewCount    Int          @default(0)
+
+  // Quality Standards & Review Policy (see src/lib/vendor-quality.ts).
+  verifiedNegatives Int       @default(0) // verified negative reviews = strikes
+  searchPenalty     Boolean   @default(false) // lowered in search rankings
+  probationUntil    DateTime? // one-year probation after removal
+
+  // Magical Moments Verified Program (see src/lib/vendor-badges.ts).
+  // Qualification data:
+  completedEvents      Int     @default(0)
+  unresolvedComplaints Int     @default(0)
+  businessInfoVerified Boolean @default(false)
+  onTimeConsistent     Boolean @default(false)
+  // Recognition state — `badge` is the derived tier (cached for display/sort).
+  badge          String     @default("new") // new | trusted | family_favorite | verified | elite
+  // Admin gates — Verified needs approval; Elite is invitation-only; override is manual.
+  verifiedApproved Boolean  @default(false)
+  eliteInvited     Boolean  @default(false)
+  badgeOverride    String? // admin manual override tier, or null
+  badgeAudits      VendorBadgeAudit[]
+
+  reviews        VendorReview[]
+  strikes        VendorStrike[]
+  performanceEvents VendorPerformanceEvent[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([categoryId])
+  @@index([state, city])
+  @@index([status])
+}
+
+model VendorReview {
+  id            String   @id @default(cuid())
+  vendorId      String
+  vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  authorName    String
+  ratings       String   @default("{}") // JSON per-category { communication, quality, ... }
+  overallRating Int      @default(5)
+  written       String?
+  photos        String   @default("[]") // JSON [url]
+  recommend     Boolean  @default(true)
+  status        String   @default("published") // pending | published | hidden
+  // Quality policy: a negative review only becomes a strike after verification.
+  verification  String   @default("pending") // pending | verified | dismissed
+  dismissReason String?  // fraudulent | abusive | retaliatory | unrelated
+  createdAt     DateTime @default(now())
+
+  @@index([vendorId, status])
+}
+
+// A verified negative review recorded against a vendor (a "strike"). Only
+// verified negatives count toward performance history (see vendor-quality.ts).
+model VendorStrike {
+  id         String   @id @default(cuid())
+  vendorId   String
+  vendor     Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  reviewId   String?
+  strike     Int      // 1 | 2 | 3
+  summary    String
+  verifiedBy String?  // admin identity
+  createdAt  DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// Append-only badge history for the Magical Moments Verified Program — every
+// award, downgrade, admin approval/override, Elite invitation, and revocation.
+model VendorBadgeAudit {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  fromBadge String?
+  toBadge   String
+  reason    String? // e.g. earned | downgraded | admin_approved | admin_override | elite_invited | revoked
+  actor     String   @default("system") // "system" for auto changes, admin identity otherwise
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// Append-only vendor performance/quality audit (courtesy email, warning,
+// removal, immediate suspension, reinstatement, review dismissal).
+model VendorPerformanceEvent {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  action    String   // courtesy_email | warning | removed | suspended | reinstated | review_dismissed
+  detail    String?
+  actor     String   @default("system")
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// A "Become a Vendor" application awaiting admin review. Logo/gallery are
+// stored as URLs/identifiers once storage exists (seam).
+model VendorApplication {
+  id              String                  @id @default(cuid())
+  number          String                  @unique // MMR-V-XXXXXX
+  businessName    String
+  ownerName       String
+  email           String
+  phone           String?
+  website         String?
+  categoryId      String
+  description     String
+  yearsInBusiness Int?
+  city            String
+  state           String
+  businessLicense String?
+  insurance       String?
+  socials         String                  @default("[]") // JSON
+  logoUrl         String?
+  gallery         String                  @default("[]") // JSON
+  references      String?
+  agreedTerms     Boolean                 @default(false)
+  status          VendorApplicationStatus @default(NEW)
+  notes           String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ── Primary & Standby Vendor System (Vendor Protection) ─────────
+// A customer may book a Primary Vendor and an OPTIONAL Standby Vendor for an
+// event. No vendor is confirmed until they accept; the standby reserves
+// availability (not hired) until released or activated. State transitions live
+// in src/lib/vendor-protection.ts. Notifications are a seam.
+enum ProtectionChoice {
+  PRIMARY_ONLY
+  PRIMARY_PLUS_STANDBY
+}
+
+enum PrimaryVendorStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
+enum StandbyVendorStatus {
+  PENDING
+  ACCEPTED
+  RELEASED
+  ACTIVATED
+  DECLINED
+}
+
+model VendorBooking {
+  id             String              @id @default(cuid())
+  experienceId   String
+  accountId      String? // the customer's account (once auth exists)
+  choice         ProtectionChoice    @default(PRIMARY_ONLY)
+
+  primaryVendorId String
+  primaryStatus   PrimaryVendorStatus @default(PENDING)
+  primaryAcceptedAt DateTime?
+
+  standbyVendorId   String?
+  standbyStatus     StandbyVendorStatus?
+  standbyAcceptedAt  DateTime?
+  standbyReleasedAt  DateTime?
+  standbyActivatedAt DateTime?
+
+  completedAt DateTime?
+  events      VendorBookingEvent[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([experienceId])
+  @@index([primaryVendorId])
+  @@index([standbyVendorId])
+  @@index([accountId])
+}
+
+// Append-only timeline/audit for a vendor booking (confirmations, release,
+// activation, completion) — the customer sees a friendly milestone view.
+model VendorBookingEvent {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   VendorBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type      String // primary_confirmed | standby_confirmed | standby_released | standby_activated | event_completed | ...
+  detail    String?
+  createdAt DateTime      @default(now())
+
+  @@index([bookingId])
 }

@@ -17,7 +17,7 @@ faked (no fabricated stats, offers, or guarantees).
 
 ## Principles & guardrails
 - **Nothing is ever deleted.** Every game, award, photo, statistic, and milestone
-  becomes part of the athlete's permanent **Legacy Timeline.**
+  becomes part of the athlete's permanent **Magical Moments Library.**
 - **Educational only:** the Recruitment and **NIL** centers educate in plain
   language — **never legal, tax, or financial advice**, and we **never guarantee
   recruitment or scholarships.** Readiness dashboards show recommended next steps
@@ -80,7 +80,7 @@ faked (no fabricated stats, offers, or guarantees).
 - **Phase A (done):** athlete-focused Preview Mode content on `/journeys/sports`.
 - **Phase B — foundations:** accounts/auth (athlete/parent/coach + parent-
   controlled permissions), secure Storage, and the athlete profile + Game Center
-  + Legacy Timeline data model.
+  + Magical Moments Library data model.
 - **Phase C — tools:** Highlight Reel Builder, Athletic Resume (PDF),
   Scholarship Hub + reminders, College Visit Planner, Parent Dashboard,
   Teammate Connections, Coach Portal.

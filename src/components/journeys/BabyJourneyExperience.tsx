@@ -103,7 +103,7 @@ const FAQ = [
   { q: "Will it remind me about the car seat?", a: "Yes — you'll get a reminder to install the car seat before delivery." },
   { q: "Can family members upload photos and videos?", a: "Yes, with your permission loved ones can add photos, videos, and messages." },
   { q: "Can I keep the Journey private?", a: "Everything is private by default; you decide exactly what to share and with whom." },
-  { q: "Can the Journey continue after the baby is born?", a: "Yes — it flows right into the first year and first birthday, and stays on your Family Legacy Timeline." },
+  { q: "Can the Journey continue after the baby is born?", a: "Yes — it flows right into the first year and first birthday, and stays in your Magical Moments Library." },
   { q: "Can I track monthly milestones?", a: "Yes, with monthly milestone reminders and growth photos." },
   { q: "Can I turn the Journey into a first-birthday experience?", a: "Yes — it becomes a full first-birthday celebration with invitations, RSVPs, registry, and a highlight video." },
   { q: "What happens after my plan ends?", a: "We remind you well in advance, and you can download a full archive; nothing is deleted the moment a term ends." },

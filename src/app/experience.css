@@ -222,7 +222,8 @@
 /* ================================================================
    GUESTBOOK
    ================================================================ */
-.mbr-guestbook { background: var(--mbr-bg); }
+.mbr-guestbook { background: var(--mbr-bg); display: flex; align-items: center; min-height: 70vh; }
+.mbr-guestbook > .mbr-container { width: 100%; }
 .mbr-guestbook__intro { max-width: 34rem; margin: 0 auto 2rem; }
 .mbr-guestbook__form { max-width: 30rem; margin: 0 auto; display: grid; gap: 0.7rem; }
 .mbr-guestbook__form input, .mbr-guestbook__form textarea {

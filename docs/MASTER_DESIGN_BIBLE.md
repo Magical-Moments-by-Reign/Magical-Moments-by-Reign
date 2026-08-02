@@ -3,6 +3,22 @@
 **The single source of truth.** If documentation and code ever conflict, the
 Bible governs — notify the Founder to confirm direction before continuing.
 
+- **[Brand Language, Account & Commerce Vision](./design-bible/STANDARD-brand-and-account.md)** —
+  *Founder Approved.* Magical* naming (Magical Tracker™, Magical Moments Library,
+  Magical AI, Magical Invitations, Magical Galleries), account sync, gifting &
+  group contributions, payment roadmap. *Avoid "Legacy Timeline/Library."*
+- **[Magical+ Ecosystem](./design-bible/STANDARD-magical-plus.md)** —
+  *Founder Approved.* Wallet, credits, gift contributions, payments, and a
+  provider-agnostic **Financing Gateway** — **not a bank/lender, no lending
+  logic.** *Architecture layer built; balances/payments foundation-gated.*
+- **[Customer Identity & Duplicate Prevention](./design-bible/STANDARD-account-identity.md)** —
+  *Founder Approved · Platform Foundation.* One person = one account, one
+  account = one Library, every purchase attaches to the verified account.
+  Multi-signal duplicate detection (shared address alone never matches),
+  recovery-before-duplicate, balance-aware purchase gating, safe merges — **no
+  lending/credit logic.** *Domain layer built & tested (38 unit tests) + full
+  PostgreSQL data foundation (Accounts · Library · Tracker · Purchasing · gifts
+  · collaborators, 14 enums); verification/UI gated on auth + billing.*
 - **[Founder Constitution — Volume I](./design-bible/CONSTITUTION.md)** —
   *the highest governing document* (mission, purpose, pricing philosophy,
   Lifetime Collections, Founder approval). Referenced before any major decision.
@@ -26,6 +42,25 @@ Bible governs — notify the Founder to confirm direction before continuing.
   live cart, smart savings, Lifetime Collections, Pricing Protection, upgrade
   credit, Journey Protection, Free Forever. *Engine + Build-Your-Membership
   built (first slice).*
+- **[Guest Sharing & Public Experience Mode](./design-bible/STANDARD-guest-sharing.md)** —
+  *Founder Approved.* "Share the Moment — not the entire account." Granular
+  per-link permissions, five link types, account-less guestbook/RSVP/uploads
+  (moderated by default), **server-side enforcement** (a private denylist can
+  never be exposed), optional account-conversion. *Domain layer built & tested
+  (24 tests) + schema; owner Share panel & Guest View gated on auth + storage.*
+- **[Magical Access Pass™](./design-bible/STANDARD-magical-access-pass.md)** —
+  *Founder Approved.* Recipient-bound private sharing: a one-time code to the
+  owner-specified email/phone (forwarded links are useless), one-view/expiry/
+  device controls, Privacy Score™, recipient watermarks, and a **versioned
+  Sharing Acknowledgment**. Honest about screenshot limits — never overstated.
+  *Domain layer built & tested (20 tests) + schema; code delivery, dashboard &
+  recipient UI gated on auth + email/SMS + storage.*
+- **[Vendor Marketplace](./design-bible/STANDARD-vendor-marketplace.md)** —
+  *Founder Approved.* "Become a Vendor" — trusted **independent** businesses
+  discovered by families. 43-category catalog, browse/filter, reviews, required
+  **Vendor Notice**, disabled future monetization tiers. *Domain layer built &
+  tested (11 tests) + schema + `/vendors` & `/vendors/apply` (live application);
+  listings/reviews/admin gated on auth + storage + notifications.*
 - **[Journey Experience & Preview](./design-bible/STANDARD-journey-experience.md)** —
   *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
   welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
