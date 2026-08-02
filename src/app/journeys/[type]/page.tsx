@@ -145,12 +145,30 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
           <PreviewFaq items={p.faq} />
         </section>
 
-        {/* Ready to purchase */}
+        {/* Ready to begin — three ways in */}
         <section className="jx-cta">
           <h2 className="jx-cta__title">Ready to begin your Journey?</h2>
-          <div className="jx-cta__row">
-            <Link href={`/create?type=${type}`} className="btn btn-gold">Add to Cart &amp; begin ✦</Link>
-            <Link href="/journeys" className="btn btn-outline-gold">Compare another Journey</Link>
+          <p className="jx-cta__sub">Choose the experience that fits you best — no pressure, ever.</p>
+          <div className="jx-choices">
+            <div className="jx-choice">
+              <h3>Free Forever</h3>
+              <p>Start free and explore at your own pace. Upgrade anytime with nothing lost.</p>
+              <Link href="/membership" className="btn btn-outline-gold">Continue with Free Forever</Link>
+            </div>
+            <div className="jx-choice jx-choice--feature">
+              <span className="jx-choice__flag">Most loved</span>
+              <h3>Journey Preview</h3>
+              <p>Experience the full premium Journey for <strong>5 days</strong>. No charge until it ends — cancel anytime.</p>
+              <Link href={`/journeys/${type}/preview`} className="btn btn-gold">Start a Journey Preview ✦</Link>
+            </div>
+            <div className="jx-choice">
+              <h3>Purchase now</h3>
+              <p>Ready to commit? Begin your Journey and add it to your cart right away.</p>
+              <Link href={`/create?type=${type}`} className="btn btn-outline-gold">Purchase immediately</Link>
+            </div>
+          </div>
+          <div className="jx-cta__foot">
+            <Link href="/journeys" className="jx-cta__link">Compare another Journey</Link>
             <Link href="/journeys" className="jx-cta__link">Return to Occasions</Link>
           </div>
         </section>
