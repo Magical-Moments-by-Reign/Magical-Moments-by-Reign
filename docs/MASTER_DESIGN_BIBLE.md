@@ -34,6 +34,9 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Housing Hub](./design-bible/HOUSING-HUB.md)** — *Founder Approved · replaces
   the Home/New Home Journey.* The complete housing ecosystem (9 pathways +
   shared tools). *Entry + Build-a-Custom-Home built; rest phased.*
+- **[Magical AI (Ask Magical)](./design-bible/STANDARD-magical-ai.md)** —
+  *Founder Approved.* Floating site-wide AI concierge, Qwen-backed. *Built —
+  needs `QWEN_API_KEY` to go live.*
 - **[Admin Specials & Promotions](./design-bible/STANDARD-admin-specials.md)** —
   *Founder Approved.* Run promotions without code, with unbreakable Lifetime
   Value Protection + audit log. *Built (first slice).*
