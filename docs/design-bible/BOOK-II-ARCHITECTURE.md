@@ -69,6 +69,17 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 
 ---
 
+## The Life Journey Standard (Volume II)
+
+Every Life Journey must contain the **20 standard sections** defined in
+[Volume II — The Life Journey Standard](./STANDARD-life-journey.md) (hero,
+overview, roadmap, smart checklist, calendar, Magical AI, document vault,
+gallery, voice notes, Purchase Concierge, marketplace, messaging, video calls,
+sharing, registry & cash gifts, notifications, settings, final memory book,
+celebration screen, Founder standard). That document holds the live per-section
+compliance map and the foundation-first path to full compliance. No Journey is
+submitted for Founder approval until all twenty are complete.
+
 ## Journey modules (per Founder specs)
 
 - **Wedding Journey — "From Yes… to I Do." → "Our Marriage"**: welcome/stage,

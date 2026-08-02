@@ -15,6 +15,9 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Book II — Architecture & Build Status](./design-bible/BOOK-II-ARCHITECTURE.md)**
   — the living technical record and phased roadmap, subordinate to Book I and
   submitted for Founder review and acceptance.
+- **[Volume II — The Life Journey Standard](./design-bible/STANDARD-life-journey.md)**
+  — *Founder Approved.* The 20 sections **every** Life Journey must contain, with
+  a live compliance map. No Journey ships until all twenty are complete.
 
 ## Global standards & journeys (documented; build on Founder approval)
 
