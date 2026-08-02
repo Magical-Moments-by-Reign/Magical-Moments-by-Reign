@@ -164,7 +164,17 @@
 
 /* Closing CTA */
 .pp-closing { background: var(--charcoal-900); text-align: center; padding: 1rem 0 clamp(4rem, 8vw, 6rem); }
-.pp-closing__script { font-family: "Pinyon Script", cursive; font-size: clamp(2rem, 5vw, 3.2rem); color: var(--gold-soft); }
+/* "Capture. Celebrate. Cherish Forever." on ONE line on desktop (override the
+   inherited .pp-closing p max-width that was forcing "Forever." to wrap), then
+   wrap gracefully on small screens without orphaning "Forever.". */
+.pp-closing p.pp-closing__script {
+  font-family: "Pinyon Script", cursive; font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  color: var(--gold-soft); max-width: none; white-space: nowrap; text-wrap: balance;
+}
+@media (max-width: 640px) { .pp-closing p.pp-closing__script { white-space: normal; } }
+
+/* Anchor target offset so the sticky nav never hides the heading. */
+.pp-compare { scroll-margin-top: 96px; }
 .pp-closing p { color: rgba(248,244,236,0.78); max-width: 38rem; margin: 0.6rem auto 1.8rem; }
 .pp-closing__actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 

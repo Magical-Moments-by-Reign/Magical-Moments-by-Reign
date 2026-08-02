@@ -11,6 +11,14 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* Wallet, credits, gift contributions, payments, and a
   provider-agnostic **Financing Gateway** — **not a bank/lender, no lending
   logic.** *Architecture layer built; balances/payments foundation-gated.*
+- **[Platform Foundation — Accounts · Auth · Permissions · Notifications](./design-bible/STANDARD-platform-foundation.md)** —
+  *Founder Approved · the shared spine.* One account/role/permission/notification
+  model that activates all eight ecosystems — scrypt auth + hashed sessions,
+  recover-before-duplicate sign-up, canonical roles (delegating to existing
+  permission sets), child safeguards, a provider-agnostic notification dispatcher
+  (in-app always; email/SMS/push seams), and secure hashed-token invitations.
+  *Service libraries + schema built & tested (17 tests); login/OAuth UI +
+  providers + scheduler gated.*
 - **[Customer Identity & Duplicate Prevention](./design-bible/STANDARD-account-identity.md)** —
   *Founder Approved · Platform Foundation.* One person = one account, one
   account = one Library, every purchase attaches to the verified account.
@@ -65,6 +73,13 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
   welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
   shown before checkout. *Built (first slice — every Occasion).*
+- **[Magical Preview Pass](./design-bible/STANDARD-trial-membership.md)** —
+  *Founder Approved · billing NOT live until fully verified.* A transparent trial
+  that converts to a paid monthly membership unless canceled — exact price/date/
+  length shown, never-pre-checked consent, easy online cancellation, one trial
+  per customer. *Domain layer built & tested (18 tests) + schema + `/trial`
+  page; card capture, Square recurring, reminders & conversion gated on auth +
+  Square + email + legal review.*
 - **[Magical Journey Preview™](./design-bible/STANDARD-journey-preview.md)** — *Founder
   Approved.* A hands-on **5-day premium trial** (one of three choices on the
   Journey Experience page). *Choice + transparent terms screen built; real
@@ -98,7 +113,48 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Sports Journey](./design-bible/JOURNEY-sports.md)** — *Founder Approved · phased.*
   The complete athlete platform (profile, game center, recruiting, scholarships,
   NIL education, resume) — educational only, never guarantees. *Preview content built.*
+- **[Life Guidance Center](./design-bible/STANDARD-life-guidance.md)** —
+  *Founder Approved · educational only.* Helps families prepare for milestones
+  before they happen. Graduation Success Center: grade-by-grade timeline,
+  plain-language guides, official resources, state-specific pointers, grade-based
+  Ask Magical. *Domain + CMS schema + `/life-guidance` built & tested (8 tests);
+  admin CMS + state-link curation gated.*
+- **[Life After High School Ecosystem](./design-bible/STANDARD-life-after-highschool.md)** —
+  *Founder Approved · educational only.* College discovery/compare, scholarship
+  command center, financial calculators, savings goals, **every pathway with
+  equal respect** (college/military/trade/apprenticeship/entrepreneurship/
+  workforce/gap year), career exploration, application & enrollment checklists.
+  *Domain + trackers schema built & tested (12 tests); datasets/UI/payments gated.*
+- **[Family Financial Foundation](./design-bible/STANDARD-family-finance.md)** —
+  *Founder Approved · educational only.* Age-appropriate financial milestones
+  (incl. "My First Bank Account" badge), plain-language guides with official
+  links (FDIC/CFPB/IRS), family savings goals, bank-appointment link-outs,
+  age-based Ask Magical. *Domain + schema built & tested (7 tests); persistence/
+  payments/bank links gated.*
+- **[Family Birthday & Celebration Network](./design-bible/STANDARD-celebration-network.md)** —
+  *Founder Approved.* A living family calendar that auto-repeats yearly (leap-year
+  aware), monthly view, smart reminders (14/7/2/morning), group prefs, manual
+  non-member entries, one-touch birthday actions, Ask Magical digest — privacy:
+  only shared celebrations appear. *Domain + schema built & tested (12 tests).*
+- **[Family Connections](./design-bible/STANDARD-family-connections.md)** —
+  *Founder Approved.* One membership → the whole family participates; the Host
+  invites guests (free to join), with host-controlled permissions, graceful
+  premium-preview locks (Magical Preview Pass), shared timeline, private feed,
+  video gatherings, and an opt-in **general-location** Family Map (never live
+  tracking). Per-moment privacy. *Domain + schema built & tested (8 tests);
+  video/storage/UI gated.*
+- **[Family Command Center](./design-bible/STANDARD-family-command.md)** —
+  *Founder Approved.* Private family communication & organization — roles,
+  configurable permissions, messages, reminders, tasks, calendar, achievements,
+  Ask Magical digest. **No location tracking / monitoring / surveillance, ever.**
+  *Domain + schema built & tested (10 tests); logins/delivery/UI gated on auth.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
+- **[The Magical Moments Ecosystem](./design-bible/VISION-ecosystem.md)** —
+  *Founder Vision.* A complete Life Celebration Ecosystem — "We've got you." /
+  "Everything I needed was right here." Provider-agnostic **integrations
+  registry** (8 groups, ~29 categories, connected/guided/coming-soon states,
+  nothing faked) + per-occasion **"What do I need next?"** suggestions.
+  *Architecture built & tested (9 tests); real providers register per category.*
 - **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(pricing-model decision resolved by the [Pricing Engine](./design-bible/STANDARD-pricing-engine.md); recurring + Free Forever approved).*
 - **[Legacy Guardian™ / Legacy Transfer™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & the Lifetime ownership-transfer benefit. *Phase A built (designate guardians in the Vault).*
 

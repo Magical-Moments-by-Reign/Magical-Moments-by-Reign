@@ -41,7 +41,7 @@ export default function SiteNav({ active }: { active?: string }) {
 
       <div className="site-nav__actions">
         <CartButton />
-        <Link href="/dashboard" className="btn-outline-gold">
+        <Link href="/login" className="btn-outline-gold">
           Log in
         </Link>
         <Link href="/create" className="btn-gold">

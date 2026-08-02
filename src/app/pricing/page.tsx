@@ -33,7 +33,9 @@ function Cell({ value, featured }: { value: string; featured?: boolean }) {
 }
 
 const FAQ = [
-  { q: "Is this a one-time payment or a subscription?", a: "Every plan is a one-time payment for its term — nothing is billed automatically. When a term nears its end, we remind you so you can renew, extend, or upgrade by choice." },
+  { q: "What's included in every membership?", a: "Every paid membership includes the complete celebration experience — digital invitations, RSVP tracking, guest messaging, guestbooks, registries & gift links, photo & video galleries, timelines, and planning tools. These are never locked to a higher tier. Plans differ only by how long we preserve your Magical Moment, storage capacity, AI-generation limits, how many active Magical Moments you have, concierge services, and premium capacity — not by core features." },
+  { q: "Do higher plans unlock features the lower plans don't have?", a: "No. The core celebration features are the same across every paid membership. Gold, Diamond, and Lifetime add more preservation length, storage, AI-generated videos, capacity, and premium support — not additional core features." },
+  { q: "Is this a one-time payment or a subscription?", a: "Each plan is a one-time payment for its term — nothing is billed automatically. When a term nears its end, we remind you so you can renew, extend, or upgrade by choice. (Our Magical Preview Pass trial is the one flow that converts to a monthly membership, always with clear, up-front disclosure.)" },
   { q: "Can I upgrade later?", a: "Yes. You can upgrade to a longer plan anytime, and we'll credit what makes sense so you only pay the difference." },
   { q: "What's included with a custom domain?", a: "Diamond and Lifetime include one custom domain, subject to availability. Initial registration is included for the term; future renewals are disclosed before any charge. Your Magical Moments by Reign address always remains available while your plan is active." },
   { q: "What happens when my preservation term ends?", a: "We send reminders at 90, 30, and 7 days and on the expiration date. After the term, your page may be unpublished and your content enters a limited grace period — with a chance to download a full archive — before removal. It's never deleted the moment a term ends." },
@@ -154,7 +156,7 @@ export default function PricingPage() {
 
       {/* Lower area: comparison + domain + expiration on ombré */}
       <div className="pp-lower">
-        <section className="pp-section pp-compare">
+        <section className="pp-section pp-compare" id="compare">
           <div className="container">
             <div className="pp-section__head">
               <h2>Compare Every Plan</h2>
@@ -275,7 +277,7 @@ export default function PricingPage() {
           <p>Choose how your memories will be preserved — and let us make them unforgettable.</p>
           <div className="pp-closing__actions">
             <Link href="/create" className="btn-gold">Start your magic ✦</Link>
-            <Link href="#top" className="btn-outline-gold">Compare plans again</Link>
+            <Link href="#compare" className="btn-outline-gold">Compare plans again</Link>
           </div>
         </div>
       </section>

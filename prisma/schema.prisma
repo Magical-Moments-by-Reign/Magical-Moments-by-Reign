@@ -62,6 +62,10 @@ model Experience {
 
   ownerId String?
   owner   User?         @relation(fields: [ownerId], references: [id])
+  // Canonical account owner (bridge). Nullable + backfilled from ownerId via a
+  // verified identity link; ownerId (legacy User) is preserved during transition.
+  accountId String?
+  account   Account?     @relation(fields: [accountId], references: [id])
   // Every Journey attaches to the Family Vault — nothing exists independently.
   familyId String?
   family   Family?       @relation(fields: [familyId], references: [id])
@@ -106,6 +110,8 @@ model SocialConnection {
   id              String    @id @default(cuid())
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId       String?   // canonical account owner (bridge; backfilled)
+  account         Account?  @relation(fields: [accountId], references: [id])
   platform        String // instagram | facebook | tiktok | youtube
   profileName     String // the connected profile / page name shown to the customer
   profileId       String?
@@ -129,6 +135,8 @@ model SocialShare {
   experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
   userId       String?
   user         User?       @relation(fields: [userId], references: [id])
+  accountId    String?     // canonical account owner (bridge; backfilled)
+  account      Account?    @relation(fields: [accountId], references: [id])
   sourceType   String // update | photo | gallery | announcement | video | milestone
   sourceLabel  String
   mediaUrl     String?
@@ -701,6 +709,12 @@ model Family {
   experiences Experience[]
   purchases   Purchase[]
   wishlist    WishlistItem[]
+  // Family Command Center (see src/lib/family-command.ts)
+  messages    FamilyMessage[]
+  reminders   FamilyReminder[]
+  tasks       FamilyTask[]
+  calendarEvents FamilyCalendarEvent[]
+  achievements FamilyAchievement[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -728,6 +742,9 @@ model FamilyMember {
   emergencyName     String?
   emergencyPhone    String?
   notes         String?
+  // Family Command Center: owner-configurable permissions + notification prefs.
+  permissions   String   @default("{}") // JSON PermissionSet (see family-command.ts)
+  notifyPrefs   String   @default("{}") // JSON NotifyPrefs
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1007,7 +1024,27 @@ model Account {
   appleSub         String? @unique // Apple sign-in subject
   passwordHash     String? // hashed only; null when social-only
 
+  // Platform foundation: canonical role + child safeguard (see src/lib/roles.ts).
+  platformRole      String  @default("family_owner") // PlatformRole
+  guardianAccountId String? // set for minor accounts (parent/guardian)
+
+  // Dashboard identity bridge (transition — see src/lib/dashboard-identity.ts).
+  // Account is the canonical customer identity; this links to the legacy User
+  // row that existing dashboard records are keyed on, so nothing breaks while
+  // the dashboard is migrated. Nullable; the legacy User model is NOT deleted.
+  legacyUserId      String? @unique
+
   identity      AccountIdentity?
+  sessions        Session[]
+  notifications   Notification[]
+  notificationPrefs NotificationPreference[]
+  invitationsSent Invitation[] @relation("inviter")
+  authTokens      AuthToken[]
+  guardianApprovals GuardianApproval[] // approval records where this account is the minor
+  // Bridged legacy dashboard ownership (nullable during transition).
+  dashboardExperiences Experience[]
+  socialConnections    SocialConnection[]
+  socialShares         SocialShare[]
   emails        CustomerEmail[]
   phones        CustomerPhone[]
   addresses     CustomerAddress[]
@@ -1424,6 +1461,14 @@ enum VendorStatus {
   REMOVED
 }
 
+// Marketplace membership status (see src/lib/vendor-membership.ts).
+enum VendorMembershipStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_VERIFICATION
+  SUSPENDED
+}
+
 enum VendorApplicationStatus {
   NEW
   APPROVED
@@ -1480,6 +1525,21 @@ model Vendor {
   badgeOverride    String? // admin manual override tier, or null
   badgeAudits      VendorBadgeAudit[]
 
+  // Vendor Membership, Verification & Compliance (see src/lib/vendor-membership.ts).
+  // No upfront fee — the annual membership fee is deducted from the vendor's
+  // first completed, paid booking. Expired/missing required credentials
+  // auto-inactivate the vendor until re-approved.
+  membershipStatus        VendorMembershipStatus @default(PENDING_VERIFICATION)
+  membershipJoinedAt      DateTime?
+  membershipRenewalDate   DateTime?
+  membershipFeeCents      Int      @default(0) // configurable; 0 until set
+  firstBookingFeeDeducted Boolean  @default(false)
+  firstBookingFeeCents    Int      @default(0)
+  renewalFeeDeducted      Boolean  @default(false)
+  lastVerifiedAt          DateTime?
+  credentials             VendorCredential[]
+  membershipEvents        VendorMembershipEvent[]
+
   reviews        VendorReview[]
   strikes        VendorStrike[]
   performanceEvents VendorPerformanceEvent[]
@@ -1535,6 +1595,42 @@ model VendorBadgeAudit {
   toBadge   String
   reason    String? // e.g. earned | downgraded | admin_approved | admin_override | elite_invited | revoked
   actor     String   @default("system") // "system" for auto changes, admin identity otherwise
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// A vendor business credential tracked for annual verification & compliance
+// (license, insurance, workers' comp, certification, business info…). Documents
+// are stored via secure storage (URL/ref only). Expiry drives auto-inactivation.
+model VendorCredential {
+  id         String    @id @default(cuid())
+  vendorId   String
+  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  kind       String    // business_info | business_license | gl_insurance | workers_comp | certification | ...
+  required   Boolean   @default(true)
+  provided   Boolean   @default(false)
+  verified   Boolean   @default(false)
+  documentUrl String?  // secure storage reference (seam)
+  expiresAt  DateTime?
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([vendorId, kind])
+  @@index([expiresAt])
+}
+
+// Append-only vendor membership audit (joined, fee deducted, renewed,
+// verification approved, credential expired, auto-inactivated, reactivated,
+// suspended, direct-payment requested).
+model VendorMembershipEvent {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  type      String
+  detail    String?
+  actor     String   @default("system")
   createdAt DateTime @default(now())
 
   @@index([vendorId])
@@ -1648,4 +1744,561 @@ model VendorBookingEvent {
   createdAt DateTime      @default(now())
 
   @@index([bookingId])
+}
+
+// ── Magical Preview Pass — trial membership + billing ───────────
+// A trial that converts to a paid MONTHLY membership unless canceled. Logic in
+// src/lib/trial-membership.ts. Card capture/tokenization/recurring charges run
+// through Square (seam) — NO raw card data stored here (Square token refs only).
+// Consent is captured immutably with the exact versioned text. Prices are
+// validated server-side. Automatic billing is NOT live until Square production
+// creds + webhook verification + legal review + email delivery are complete.
+enum MembershipStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum TrialBillingStatus {
+  NONE
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model TrialMembership {
+  id                String             @id @default(cuid())
+  accountId         String? // the customer's account (once auth exists)
+  planId            String
+  planName          String
+  monthlyPriceCents Int
+  trialDays         Int                @default(7)
+  trialStart        DateTime
+  trialEnd          DateTime
+  firstBillingDate  DateTime
+  nextBillingDate   DateTime?
+  status            MembershipStatus   @default(TRIALING)
+  billingStatus     TrialBillingStatus @default(NONE)
+
+  // Square references only — never raw card data.
+  squareCustomerId     String?
+  squareCardId         String?
+  squareSubscriptionId String?
+  cardLast4            String?
+
+  canceledAt   DateTime?
+  accessEndsAt DateTime?
+
+  consent   TrialConsent?
+  events    TrialBillingEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([accountId])
+  @@index([trialEnd])
+}
+
+// Immutable consent snapshot — the exact wording + versions the customer saw.
+// Staff may never alter these records.
+model TrialConsent {
+  id                  String          @id @default(cuid())
+  trialId             String          @unique
+  trial               TrialMembership @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  consentTextVersion  String
+  refundPolicyVersion String
+  consentText         String // snapshot of exactly what was shown
+  acceptedAt          DateTime        @default(now())
+  ipHash              String?
+  planId              String
+  trialDays           Int
+  firstChargeDate     DateTime
+  firstChargeCents    Int
+  recurringCents      Int
+  billingFrequency    String          @default("monthly")
+
+  @@index([trialId])
+}
+
+// Append-only billing audit (trial started, reminder sent, converted, charge
+// succeeded/failed, past-due, canceled, refunded, access extended).
+model TrialBillingEvent {
+  id        String          @id @default(cuid())
+  trialId   String
+  trial     TrialMembership @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  type      String
+  detail    String?
+  createdAt DateTime        @default(now())
+
+  @@index([trialId])
+}
+
+// Admin-configurable key/value settings (e.g. trial_days) so values can change
+// without a code deploy.
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ── Life Guidance Center (CMS) ──────────────────────────────────
+// Editable educational guides so resources stay current as requirements,
+// financial-aid programs, and policies change. Admins add/edit/archive/feature
+// guides and link to official sources. Educational only — never guarantees.
+enum GuideStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model GuideArticle {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  center       String      @default("graduation") // guidance center this belongs to
+  title        String
+  category     String?
+  grade        String? // optional grade level (8–12)
+  stateCode    String? // optional per-state guidance
+  summary      String?
+  body         String
+  officialLinks String     @default("[]") // JSON [{ label, url }] to official sources
+  status       GuideStatus @default(PUBLISHED)
+  featured     Boolean     @default(false)
+  createdBy    String      @default("Founder")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([center, status])
+  @@index([stateCode])
+  @@index([grade])
+}
+
+// ── Life After High School — trackers ───────────────────────────
+// Per-student/family planning data (gated on auth). Documents (essays,
+// transcripts, recommendation letters) are secure storage references only.
+// SavingsGoal is generic (college, car, wedding, home, emergency…) so it also
+// powers Family Financial Foundation savings goals.
+model CollegeFavorite {
+  id          String   @id @default(cuid())
+  accountId   String?
+  collegeName String
+  state       String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+}
+
+model CollegeVisit {
+  id          String   @id @default(cuid())
+  accountId   String?
+  collegeName String
+  visitDate   DateTime?
+  rating      Int? // 1–5
+  notes       String?
+  photosCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+}
+
+model ScholarshipEntry {
+  id         String   @id @default(cuid())
+  accountId  String?
+  name       String
+  status     String   @default("applied") // applied | awarded | pending | declined
+  amountCents Int     @default(0)
+  deadline   DateTime?
+  essayUrl   String? // secure storage ref
+  recLetterUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([accountId, status])
+}
+
+model CollegeApplication {
+  id              String   @id @default(cuid())
+  accountId       String?
+  collegeName     String
+  status          String   @default("draft") // draft | submitted | accepted | waitlisted | declined
+  essayUrl        String?
+  transcriptUrl   String?
+  housingDeadline DateTime?
+  orientationDate DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([accountId, status])
+}
+
+model SavingsGoal {
+  id                 String   @id @default(cuid())
+  accountId          String?
+  name               String
+  purpose            String   @default("college") // college | car | graduation | wedding | home | emergency | study_abroad | other
+  targetCents        Int      @default(0)
+  savedCents         Int      @default(0)
+  allowContributions Boolean  @default(false) // loved ones may contribute when enabled
+  contributions      SavingsContribution[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model SavingsContribution {
+  id              String      @id @default(cuid())
+  goalId          String
+  goal            SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  contributorName String
+  amountCents     Int         @default(0)
+  createdAt       DateTime    @default(now())
+
+  @@index([goalId])
+}
+
+// ── Family Financial Foundation ─────────────────────────────────
+// Per-family financial-milestone progress + bank-appointment link-outs.
+// Educational only. Family savings goals reuse the generic SavingsGoal model.
+model FinancialMilestoneProgress {
+  id          String   @id @default(cuid())
+  accountId   String?
+  milestoneId String   // see FINANCIAL_MILESTONES in src/lib/family-finance.ts
+  status      String   @default("not_started") // not_started | in_progress | completed
+  badgeEarned Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([accountId, milestoneId])
+}
+
+// A bank appointment the family scheduled via the institution's OFFICIAL link.
+// Magical Moments never books on a bank's behalf (link-out + reminders only).
+model BankAppointment {
+  id              String    @id @default(cuid())
+  accountId       String?
+  institutionName String
+  officialUrl     String? // the bank's own scheduling page
+  scheduledAt     DateTime?
+  status          String    @default("planned") // planned | scheduled | completed | canceled
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([accountId])
+}
+
+// ── Family Command Center ───────────────────────────────────────
+// Private family communication & organization. NOT a tracker, social platform,
+// or surveillance — no location tracking, ever. Logic in src/lib/family-command.ts.
+model FamilyMessage {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  senderId     String
+  recipientIds String   @default("[]") // JSON of member ids
+  body         String
+  dueDate      DateTime?
+  remindAt     DateTime?
+  priority     String   @default("normal") // low | normal | high
+  completed    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([familyId])
+}
+
+model FamilyReminder {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  forMemberId  String?
+  type         String
+  title        String
+  dueAt        DateTime?
+  status       String   @default("pending") // pending | completed
+  confirmParent Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([familyId, status])
+}
+
+model FamilyTask {
+  id          String   @id @default(cuid())
+  familyId    String
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title       String
+  assigneeIds String   @default("[]") // JSON of member ids (one or many)
+  status      String   @default("open") // open | in_progress | done
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([familyId, status])
+}
+
+model FamilyCalendarEvent {
+  id         String   @id @default(cuid())
+  familyId   String
+  family     Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title      String
+  category   String
+  startAt    DateTime
+  endAt      DateTime?
+  visibility String   @default("family") // family | adults | custom
+  createdAt  DateTime @default(now())
+
+  @@index([familyId, startAt])
+}
+
+model FamilyAchievement {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  memberId  String?
+  type      String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([familyId])
+}
+
+// ── Family Connections ──────────────────────────────────────────
+// One membership → the whole family participates. The Host invites guests to a
+// specific Magical Moment (Experience); guests need no paid membership. Guests
+// access ONLY the moments they're invited to. NOT a social platform; the Family
+// Map is general-location + opt-in (never live tracking). Video providers,
+// storage, and delivery are seams. Logic in src/lib/family-connections.ts.
+model FamilyGuest {
+  id             String   @id @default(cuid())
+  experienceId   String   // the Magical Moment they're invited to
+  hostAccountId  String?
+  name           String
+  contactMasked  String? // masked email/phone for display
+  permissions    String   @default("{}") // JSON GuestPermissionSet
+  status         String   @default("invited") // invited | joined | declined
+  invitedMoments String   @default("[]") // JSON experience ids this guest may access
+  createdAt      DateTime @default(now())
+
+  @@index([experienceId, status])
+}
+
+model FamilyTimelineEntry {
+  id        String   @id @default(cuid())
+  familyId  String
+  type      String   // Birthdays | Weddings | New Babies | Military Deployments | ...
+  title     String
+  date      DateTime?
+  memberId  String?
+  createdAt DateTime @default(now())
+
+  @@index([familyId, date])
+}
+
+model FamilyFeedPost {
+  id           String   @id @default(cuid())
+  experienceId String
+  authorName   String
+  kind         String   // achievement | message | photo | video | milestone | welcome | support
+  body         String?
+  mediaUrl     String? // secure storage ref
+  createdAt    DateTime @default(now())
+
+  @@index([experienceId])
+}
+
+model FamilyGathering {
+  id           String    @id @default(cuid())
+  experienceId String
+  title        String
+  type         String    // Family Reunions | Holiday Gatherings | Memorial Celebrations | ...
+  scheduledAt  DateTime?
+  provider     String? // trusted video provider (seam) or "native"
+  joinUrl      String?
+  createdAt    DateTime  @default(now())
+
+  @@index([experienceId])
+}
+
+// General location only (city/region), opt-in — NEVER live location tracking.
+model FamilyMapLocation {
+  id              String   @id @default(cuid())
+  familyId        String
+  memberName      String
+  generalLocation String   // e.g. "Birmingham, Alabama" — city/region only
+  shared          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([familyId])
+}
+
+// ── Family Birthday & Celebration Network ───────────────────────
+// A living family celebration calendar that repeats yearly automatically.
+// Non-members can be added manually and linked later without losing history.
+// Only shared/visible entries appear. Logic in src/lib/celebration-network.ts.
+model CelebrationEntry {
+  id           String   @id @default(cuid())
+  familyId     String
+  type         String   @default("birthday") // birthday | anniversary | graduation | memorial | ...
+  personName   String
+  month        Int      // 1–12
+  day          Int      // 1–31
+  year         Int?     // original year (optional; enables age/years)
+  relationship String?
+  photoUrl     String?
+  memberId     String?  // linked connected member, when applicable
+  source       String   @default("manual") // member | manual
+  visible      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([familyId, month])
+}
+
+model CelebrationReminderPref {
+  id         String   @id @default(cuid())
+  familyId   String
+  memberId   String?  // whose preferences these are
+  group      String   @default("entire") // immediate | entire | grandchildren | friends | custom
+  offsetsDays String  @default("[14,7,2,0]") // JSON reminder offsets
+  include30  Boolean  @default(false)
+  leapMode   String   @default("feb_28") // feb_28 | mar_1
+  channels   String   @default("{}") // JSON notify prefs
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+// ── Platform foundation: sessions, notifications, invitations ───
+// Shared auth/notification/invitation infrastructure activating all completed
+// ecosystems. Logic in src/lib/auth.ts, notifications.ts, invitations.ts, roles.ts.
+model Session {
+  id            String    @id @default(cuid())
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique // sha256 of the opaque session token
+  userAgentHash String?
+  ipHash        String?
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+
+  @@index([accountId])
+}
+
+// An in-app notification (source of truth) + record of external delivery.
+model Notification {
+  id              String   @id @default(cuid())
+  accountId       String
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type            String   // NotificationType (see notifications.ts)
+  title           String
+  body            String
+  data            String   @default("{}") // JSON payload / deep-link
+  channelsPlanned String   @default("[]") // JSON channels attempted
+  channelsQueued  String   @default("[]") // JSON channels awaiting a provider
+  readAt          DateTime?
+  archivedAt      DateTime? // moved out of the active inbox (never deleted)
+  actionUrl       String?   // deep-link the "View" action opens
+  relatedLabel    String?   // e.g. related member / Moment name (for display)
+  createdAt       DateTime @default(now())
+
+  @@index([accountId, readAt])
+  @@index([accountId, archivedAt])
+  @@index([type])
+}
+
+// Per-account, per-type channel preferences (defaults come from the type).
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type      String   // NotificationType
+  channels  String   @default("{}") // JSON ChannelPrefs { in_app, email, sms, push }
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, type])
+}
+
+// A secure, hashed-token invitation (family member / guest / vendor / collaborator).
+model Invitation {
+  id               String   @id @default(cuid())
+  kind             String   // family_member | guest | vendor | collaborator
+  role             String   // PlatformRole assigned on acceptance
+  tokenHash        String   @unique
+  inviterAccountId String?
+  inviter          Account? @relation("inviter", fields: [inviterAccountId], references: [id], onDelete: SetNull)
+  targetNormalized String   // canonical email / digit phone (matching only)
+  targetMasked     String   // shown on the invite screen
+  familyId         String?
+  experienceId     String?
+  vendorId         String?
+  guardianRequired Boolean  @default(false)
+  status           String   @default("pending") // pending | accepted | revoked | expired
+  acceptedByAccountId String?
+  acceptedAt       DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([status])
+  @@index([targetNormalized])
+}
+
+// A single-use, HASHED token for email verification and password reset.
+// The URL carries only the opaque token; we store sha256(token). Tokens are
+// single-use (usedAt) and expiring. See src/lib/auth-support.ts.
+model AuthToken {
+  id        String    @id @default(cuid())
+  accountId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  purpose   String    // verify_email | password_reset
+  tokenHash String    @unique // sha256 of the opaque token — never the token itself
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([accountId, purpose])
+}
+
+// A parent/guardian approval record for a minor account. The minor cannot use
+// the platform until a guardian approves. The approval link is a HASHED token
+// sent to the guardian's contact; the guardian sets the minor's permissions.
+// NO location tracking or hidden monitoring is ever recorded here.
+model GuardianApproval {
+  id                      String    @id @default(cuid())
+  minorAccountId          String
+  minor                   Account   @relation(fields: [minorAccountId], references: [id], onDelete: Cascade)
+  guardianAccountId       String?   // set once the guardian is identified/linked
+  guardianEmailNormalized String    @default("") // canonical email (matching only)
+  guardianEmailMasked     String    @default("") // shown for display
+  tokenHash               String    @unique
+  status                  String    @default("pending") // pending | approved | declined | expired
+  permissions             String    @default("{}") // JSON PermissionSet the guardian granted
+  decidedAt               DateTime?
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+
+  @@index([minorAccountId])
+  @@index([status])
+}
+
+// A durable, shared login/abuse rate-limit hit. One row per attempt within a
+// window; a bucket is a SHA-256 hash of (action + IP + hashed email + accountId)
+// — NEVER a raw email. Shared across serverless instances via PostgreSQL.
+// Expired rows are cleaned opportunistically (expiresAt). See src/lib/rate-limit.ts.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  bucket    String   // sha256 bucket key — no raw PII
+  action    String   // RateAction (login | password_reset | verify_resend | ...)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([bucket, createdAt])
+  @@index([expiresAt])
 }

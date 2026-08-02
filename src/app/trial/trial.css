@@ -1,0 +1,67 @@
+/* ── Magical Preview Pass — /trial (warm & welcoming, not a legal page) ── */
+.tr { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); }
+.tr-main { position: relative; overflow: hidden; min-height: 60vh; }
+.tr-watermark {
+  position: absolute; top: 340px; left: 50%; transform: translateX(-50%);
+  width: min(120vw, 1000px); max-width: none; opacity: 0.04; pointer-events: none; user-select: none;
+}
+.tr-inner { position: relative; z-index: 1; width: 100%; max-width: 60rem; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+/* Hero */
+.tr-hero {
+  text-align: center; color: var(--cream, #fbf8f3);
+  padding: clamp(3rem, 7vw, 5rem) 0 clamp(2.5rem, 5vw, 3.5rem);
+  background:
+    radial-gradient(60% 90% at 18% 0%, rgba(198,161,90,0.22), transparent 60%),
+    radial-gradient(50% 80% at 88% 10%, rgba(169,140,208,0.20), transparent 55%),
+    linear-gradient(160deg, var(--plum-800, #241f2e), #17131d);
+}
+.tr-eyebrow { text-transform: uppercase; letter-spacing: 0.26em; font-size: 0.74rem; font-weight: 700; color: var(--gold, #c6a15a); }
+.tr-title { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.1; margin: 0.5rem auto 0.5rem; max-width: 22ch; }
+.tr-tagline { color: var(--gold-soft, #d9bd82); font-size: 1.05rem; margin: 0 auto 0.6rem; }
+.tr-lead { color: rgba(248,244,236,0.85); max-width: 42rem; margin: 0 auto; line-height: 1.6; }
+
+/* Body */
+.tr-body { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(3.5rem, 8vw, 6rem); }
+.tr-sec { background: #fff; border: 1px solid rgba(42,33,48,0.1); border-radius: 18px; padding: clamp(1.4rem, 3vw, 2rem); margin-bottom: 1.3rem; box-shadow: 0 18px 40px -34px rgba(42,33,48,0.4); }
+.tr-h2 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.25rem, 2.4vw, 1.6rem); color: var(--plum-800, #241f2e); margin: 0 0 1rem; }
+.tr-sec p { color: var(--muted, #6b6472); line-height: 1.7; margin: 0 0 0.8rem; }
+.tr-sec p:last-child { margin-bottom: 0; }
+.tr-note { font-size: 0.9rem; font-style: italic; }
+
+.tr-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.2rem; }
+.tr-list li { position: relative; padding-left: 1.5rem; color: var(--ink, #2a2130); line-height: 1.4; }
+.tr-list--check li::before { content: "✓"; position: absolute; left: 0; color: var(--gold-deep, #a9812f); font-weight: 700; }
+.tr-list--limit li::before { content: "•"; position: absolute; left: 0.3rem; color: var(--muted, #6b6472); }
+
+/* Billing summary */
+.tr-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1.5rem; margin: 0 0 1rem; }
+.tr-summary > div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px solid rgba(42,33,48,0.08); }
+.tr-summary dt { color: var(--muted, #6b6472); font-size: 0.9rem; }
+.tr-summary dd { margin: 0; font-weight: 600; color: var(--ink, #2a2130); text-align: right; }
+.tr-permo { color: var(--muted, #6b6472); font-weight: 400; font-size: 0.85rem; }
+.tr-preview { font-size: 0.86rem; font-style: italic; color: var(--gold-deep, #a9812f); }
+
+/* Consent preview */
+.tr-consent-preview { display: flex; gap: 0.8rem; align-items: flex-start; background: rgba(198,161,90,0.07); border: 1px solid rgba(198,161,90,0.35); border-radius: 14px; padding: 1.1rem 1.2rem; margin-bottom: 1.4rem; }
+.tr-consent-box { font-size: 1.3rem; color: var(--gold-deep, #a9812f); line-height: 1; }
+.tr-consent-preview p { font-size: 0.88rem; color: var(--ink, #2a2130); margin: 0; line-height: 1.6; }
+
+/* FAQ */
+.tr-faq { display: grid; gap: 0.6rem; }
+.tr-faq__item { border: 1px solid rgba(42,33,48,0.12); border-radius: 12px; padding: 0.9rem 1.1rem; background: #fff; }
+.tr-faq__item summary { cursor: pointer; font-weight: 600; color: var(--ink, #2a2130); list-style: none; }
+.tr-faq__item summary::-webkit-details-marker { display: none; }
+.tr-faq__item summary::after { content: "+"; float: right; color: var(--gold-deep, #a9812f); font-weight: 700; }
+.tr-faq__item[open] summary::after { content: "−"; }
+.tr-faq__item p { margin: 0.7rem 0 0; color: var(--muted, #6b6472); line-height: 1.65; }
+
+/* Start */
+.tr-start { text-align: center; }
+.tr-start .tr-consent-preview { text-align: left; }
+.tr-cta { display: inline-block; font-size: 1.05rem; padding: 0.95rem 2rem; }
+.tr-finePrint { margin-top: 0.9rem; font-size: 0.9rem; color: var(--muted, #6b6472); }
+
+@media (max-width: 640px) {
+  .tr-list, .tr-summary { grid-template-columns: 1fr; }
+}
