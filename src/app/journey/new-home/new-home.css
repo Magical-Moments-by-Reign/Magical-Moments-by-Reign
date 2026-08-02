@@ -12,6 +12,7 @@
   color: var(--cream, #fbf8f3);
 }
 .bhp-hero__eyebrow { color: var(--gold-soft, #d9bd82); text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.72rem; font-weight: 600; }
+.bhp-hero__crumb { color: var(--gold-soft, #d9bd82); text-decoration: underline; }
 .bhp-hero h1 { font-family: var(--font-display); font-size: clamp(2.1rem, 5.5vw, 3.6rem); margin: 0.5rem auto 0.7rem; max-width: 20ch; line-height: 1.08; }
 .bhp-hero h1 em { color: var(--gold-soft, #d9bd82); font-style: italic; }
 .bhp-hero p { color: rgba(248,244,236,0.85); max-width: 46rem; margin: 0 auto; line-height: 1.7; }

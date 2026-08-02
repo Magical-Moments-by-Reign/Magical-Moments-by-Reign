@@ -26,6 +26,7 @@ export default async function CreatePage({
           <span className="eyebrow" style={{ color: "var(--gold-soft)" }}>A new moment</span>
           <h1>Choose your story</h1>
           <p>Pick the occasion and give it a name. Ask Magical designs it, provisions a unique URL, and publishes it — instantly.</p>
+          <p className="cr-header__preview">Not sure yet? <a href="/journeys">Explore each Journey first →</a></p>
         </div>
       </header>
 

@@ -6,7 +6,7 @@ import MobileNav from "@/components/site/MobileNav";
 export default function SiteNav({ active }: { active?: string }) {
   const links = [
     { label: "Home", href: "/", key: "home" },
-    { label: "Experiences", href: "/create", key: "experiences" },
+    { label: "Experiences", href: "/journeys", key: "experiences" },
     { label: "Inspiration Gallery", href: "/inspiration", key: "gallery" },
     { label: "Pricing", href: "/pricing", key: "pricing" },
     { label: "Build Membership", href: "/membership", key: "membership" },

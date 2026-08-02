@@ -1,0 +1,37 @@
+/* ================================================================
+   Housing Hub — the complete housing ecosystem
+   ================================================================ */
+.hh { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); min-height: 100vh; font-family: var(--font-body); }
+.hh .container { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+.hh-hero { padding: clamp(3rem, 7vw, 5rem) 0 clamp(2.5rem, 5vw, 3.5rem); text-align: center; background: radial-gradient(60% 90% at 18% 0%, rgba(92,115,80,0.35), transparent 60%), radial-gradient(50% 80% at 90% 10%, rgba(198,161,90,0.28), transparent 55%), linear-gradient(160deg, #26321d, #17130f); color: var(--cream, #fbf8f3); }
+.hh-hero__eyebrow { color: var(--gold-soft, #d9bd82); text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.72rem; font-weight: 600; }
+.hh-hero h1 { font-family: var(--font-display); font-size: clamp(2.1rem, 5.5vw, 3.6rem); margin: 0.5rem auto 0.7rem; max-width: 18ch; line-height: 1.08; }
+.hh-hero h1 em { color: var(--gold-soft, #d9bd82); font-style: italic; }
+.hh-hero p { color: rgba(248,244,236,0.85); max-width: 48rem; margin: 0 auto; line-height: 1.7; }
+.hh-main { padding: clamp(2rem, 5vw, 3.5rem) 0 5rem; }
+.hh-h2 { font-family: var(--font-display); font-size: clamp(1.5rem, 3vw, 2rem); color: var(--ink); margin: 0 0 1.25rem; }
+.hh-muted { color: var(--muted); margin: -0.5rem 0 1.25rem; max-width: 60ch; line-height: 1.6; }
+
+.hh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+.hh-card { display: flex; flex-direction: column; gap: 0.4rem; padding: 1.4rem; border-radius: 18px; border: 1.5px solid rgba(42,33,48,0.12); background: #fff; text-decoration: none; color: var(--ink); box-shadow: 0 18px 40px -30px rgba(42,33,48,0.4); }
+.hh-card--live { transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), border-color 0.25s var(--ease); border-color: var(--gold); background: linear-gradient(160deg, #fbf5e9, #fff); }
+.hh-card--live:hover { transform: translateY(-4px); box-shadow: 0 26px 50px -30px rgba(198,161,90,0.6); }
+.hh-card--soon { opacity: 0.82; }
+.hh-card__icon { color: var(--gold-deep, #a9843f); }
+.hh-card__label { font-family: var(--font-display); font-size: 1.3rem; line-height: 1.15; }
+.hh-card__blurb { font-size: 0.88rem; color: var(--muted); line-height: 1.5; flex: 1; }
+.hh-card__status { margin-top: 0.5rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.hh-card__status--live { color: var(--gold-deep, #a9843f); }
+.hh-card__status--soon { color: var(--muted); }
+
+.hh-tools { margin-top: 3rem; }
+.hh-tools__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.85rem; }
+.hh-tool { padding: 1.1rem 1.2rem; border-radius: 14px; border: 1px solid rgba(42,33,48,0.1); background: #fff; }
+.hh-tool__label { display: block; font-weight: 700; color: var(--ink); margin-bottom: 0.3rem; }
+.hh-tool__blurb { font-size: 0.83rem; color: var(--muted); line-height: 1.45; }
+
+.hh-disclaimer { margin-top: 2.5rem; font-size: 0.8rem; color: var(--muted); font-style: italic; line-height: 1.6; max-width: 70ch; }
+
+.hh-cta { margin-top: 2rem; text-align: center; background: linear-gradient(150deg, #26321d, #3a4a2b); color: #fff; border-radius: 18px; padding: 1.75rem; }
+.hh-cta a { color: var(--gold-soft, #d9bd82); font-weight: 600; }

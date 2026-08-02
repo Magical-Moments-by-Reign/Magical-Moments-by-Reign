@@ -20,6 +20,13 @@ Bible governs — notify the Founder to confirm direction before continuing.
   live cart, smart savings, Lifetime Collections, Pricing Protection, upgrade
   credit, Journey Protection, Free Forever. *Engine + Build-Your-Membership
   built (first slice).*
+- **[Journey Experience & Preview](./design-bible/STANDARD-journey-experience.md)** —
+  *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
+  welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
+  shown before checkout. *Built (first slice — every Occasion).*
+- **[Housing Hub](./design-bible/HOUSING-HUB.md)** — *Founder Approved · replaces
+  the Home/New Home Journey.* The complete housing ecosystem (9 pathways +
+  shared tools). *Entry + Build-a-Custom-Home built; rest phased.*
 - **[Book III — The Family Vault](./design-bible/BOOK-III-family-vault.md)** —
   the secure command center for everything a family protects and accesses.
 - **[Gifts & Registries](./design-bible/STANDARD-gifts-registries.md)** — *built (first slice).*

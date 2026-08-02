@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import BuildHome from "@/components/newhome/BuildHome";
@@ -16,7 +17,7 @@ export default function BuildHomePage() {
       <SiteNav />
       <header className="bhp-hero">
         <div className="container">
-          <span className="eyebrow bhp-hero__eyebrow">New Home Journey</span>
+          <span className="eyebrow bhp-hero__eyebrow"><Link href="/housing-hub" className="bhp-hero__crumb">Housing Hub</Link> · Build a Custom Home</span>
           <h1>Build a Home — <em>from blueprint to front-door key</em></h1>
           <p>From your first idea and floor plan through construction, final inspection, closing, and move-in — organized in one calm place that becomes the permanent history of your home.</p>
         </div>

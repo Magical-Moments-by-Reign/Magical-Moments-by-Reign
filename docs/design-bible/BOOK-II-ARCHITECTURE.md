@@ -53,7 +53,9 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
 | **Pricing Engine v1.0** (build-your-own membership) | **Built** (first slice — engine + Build-Your-Membership + Free Forever entry) · amounts placeholder except Lifetime Collections · needs auth + Square for real checkout — see [standard](./STANDARD-pricing-engine.md) |
 | Free Forever (required account · $0 entry) | **Built** (selection + $0.00 checkout → Family Vault) · real account persistence needs auth — see [standard](./STANDARD-pricing-engine.md) |
-| New Home — Build-a-Home (blueprint → keys) | **Built** (first slice — intake → personalized roadmap + 28-stage timeline) · data centers (floor plans, budget, build team) need auth + storage — see [journey](./JOURNEY-new-home.md) |
+| Journey Experience & Preview (immersive per-Occasion tour) | **Built** (first slice — every Occasion: hero, AI welcome, timeline, sample, FAQ, pricing, add-to-cart) · marketplace/AI Q&A phased — see [standard](./STANDARD-journey-experience.md) |
+| **Housing Hub** (renames Home/New Home Journey) | **Built** (entry — 9 pathways + Build-a-Custom-Home live) · pathways/tools need data + auth + storage — see [Housing Hub](./HOUSING-HUB.md) |
+| New Home → Build-a-Home (Housing Hub pathway) | **Built** (first slice — intake → roadmap + 28-stage timeline) · data centers (floor plans, budget, build team) need auth + storage — see [journey](./JOURNEY-new-home.md) |
 | Journey Protection™ (pause add-on) | Documented · pricing-model **resolved** (recurring + Free Forever approved) · needs billing/auth — see [standard](./STANDARD-journey-protection.md) |
 | Legacy Guardian™ (continuity/transfer) | Documented · needs auth + verification — see [standard](./STANDARD-legacy-guardian.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
