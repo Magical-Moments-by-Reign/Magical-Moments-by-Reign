@@ -120,6 +120,7 @@ export default async function DashboardPage() {
                     <div className="storycard__actions">
                       <Link href={`/${exp.slug}`} className="storycard__btn storycard__btn--primary">Preview</Link>
                       <Link href={`/dashboard/${exp.slug}/media`} className="storycard__btn">Upload media</Link>
+                      <Link href={`/dashboard/${exp.slug}/gifts`} className="storycard__btn">Gifts</Link>
                       <Link href={`/dashboard/${exp.slug}/domain`} className="storycard__btn">Domain</Link>
                       <Link href="/dashboard/social/share" className="storycard__btn">Share</Link>
                     </div>

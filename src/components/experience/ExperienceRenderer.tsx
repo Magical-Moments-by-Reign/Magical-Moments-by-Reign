@@ -15,6 +15,8 @@ interface Props {
   content: ExperienceContent;
   experienceType?: string;
   slug?: string;
+  /** Optional block rendered just before the footer (e.g. Gifts & Registry). */
+  giftBlock?: React.ReactNode;
 }
 
 // Sections a Celebration of Life should always offer (His Story, Photo
@@ -33,7 +35,7 @@ function effectiveOrder(order: SectionKind[], experienceType?: string): SectionK
   return [...order.slice(0, footerIdx), ...missing, ...order.slice(footerIdx)];
 }
 
-export default function ExperienceRenderer({ designSpec, content, experienceType, slug }: Props) {
+export default function ExperienceRenderer({ designSpec, content, experienceType, slug, giftBlock }: Props) {
   const p = designSpec.palette;
   const sectionOrder = effectiveOrder(designSpec.sectionOrder, experienceType);
 
@@ -69,6 +71,7 @@ export default function ExperienceRenderer({ designSpec, content, experienceType
           return (
             <div key={`${kind}-${i}`}>
               {i === 1 && <span id="mbr-explore" aria-hidden="true" />}
+              {kind === "footer" && giftBlock}
               <Component content={content} spec={designSpec} variant={variant} experienceType={experienceType} slug={slug} />
             </div>
           );

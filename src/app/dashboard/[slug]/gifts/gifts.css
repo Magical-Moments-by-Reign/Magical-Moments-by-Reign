@@ -1,0 +1,40 @@
+/* ================================================================
+   Gifts & Registry editor (owner)
+   ================================================================ */
+.ge-saved { background: #eaf6ee; color: #2f7d4f; border: 1px solid #bfe3cc; border-radius: 12px; padding: 0.8rem 1.1rem; margin-bottom: 1.2rem; font-size: 0.92rem; }
+.ge-form { display: grid; gap: 1.2rem; max-width: 720px; }
+.ge-block { border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.3rem 1.4rem; background: #fff; }
+.ge-block legend { font-family: var(--font-display); font-size: 1.2rem; color: #211d29; padding: 0 0.4rem; }
+.ge-block legend em { font-style: normal; color: #9a93a2; font-size: 0.9rem; }
+.ge-hint { font-size: 0.84rem; color: #7c7583; margin: 0.5rem 0 0; }
+
+.ge-modes { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.4rem; }
+.ge-mode { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: 1px solid var(--gray-200); border-radius: 999px; cursor: pointer; font-size: 0.9rem; color: #4a4551; transition: border-color 0.2s, background 0.2s; }
+.ge-mode.is-on { border-color: var(--gold-deep); background: rgba(198,161,90,0.1); color: #211d29; font-weight: 600; }
+.ge-mode input { accent-color: var(--gold-deep); }
+
+.ge-reg { display: grid; grid-template-columns: 0.8fr 1.4fr auto; gap: 0.6rem; margin-bottom: 0.6rem; }
+.ge-reg input { padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
+.ge-rm { border: none; background: #f3eef0; color: #8a5a5a; border-radius: 8px; cursor: pointer; padding: 0 0.7rem; }
+.ge-add { margin-top: 0.3rem; background: none; border: 1px dashed var(--gold-deep); color: var(--gold-deep); border-radius: 10px; padding: 0.55rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+
+.ge-cash { display: grid; gap: 0.6rem; margin-top: 0.6rem; }
+.ge-cashrow { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 0.6rem; }
+.ge-cashrow span { font-weight: 600; color: #4a4551; font-size: 0.9rem; }
+.ge-cashrow input { padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
+
+.ge-block textarea { width: 100%; margin-top: 0.5rem; padding: 0.75rem 0.9rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; resize: vertical; }
+
+.ge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; align-items: center; }
+.ge-field { display: grid; gap: 0.35rem; }
+.ge-field span { font-size: 0.8rem; font-weight: 600; color: #4a4551; }
+.ge-field select { padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
+.ge-toggle { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.9rem; color: #4a4551; }
+.ge-toggle input { width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; accent-color: var(--gold-deep); flex: none; }
+.ge-actions { margin-top: 1.4rem; }
+
+@media (max-width: 620px) {
+  .ge-reg { grid-template-columns: 1fr auto; }
+  .ge-row { grid-template-columns: 1fr; }
+  .ge-cashrow { grid-template-columns: 90px 1fr; }
+}

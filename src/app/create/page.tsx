@@ -79,6 +79,25 @@ export default async function CreatePage({
             </div>
           </fieldset>
 
+          <fieldset className="cr-fieldset">
+            <legend className="cr-legend">3 · Gifts &amp; registry <span className="cr-legend__opt">(optional)</span></legend>
+            <p className="cr-giftq">Would you like to receive gifts, cash gifts, or create a registry for this journey? Always optional — you can change it anytime.</p>
+            <div className="cr-gifts">
+              {[
+                { id: "none", label: "No gifts" },
+                { id: "registry", label: "Gift registry" },
+                { id: "cash", label: "Cash gifts" },
+                { id: "both", label: "Both" },
+                { id: "later", label: "Add later" },
+              ].map((g, i) => (
+                <label key={g.id} className="cr-gift">
+                  <input type="radio" name="giftMode" value={g.id} defaultChecked={i === 0} />
+                  <span>{g.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <button type="submit" className="btn-gold cr-submit">Create &amp; publish ✦</button>
         </form>
       </main>

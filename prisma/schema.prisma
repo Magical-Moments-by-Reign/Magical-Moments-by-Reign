@@ -62,10 +62,11 @@ model Experience {
 
   ownerId String?
   owner   User?         @relation(fields: [ownerId], references: [id])
-  media    MediaAsset[]
-  shares   SocialShare[]
-  domains  Domain[]
-  tributes Tribute[]
+  media        MediaAsset[]
+  shares       SocialShare[]
+  domains      Domain[]
+  tributes     Tribute[]
+  giftSettings GiftSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -426,6 +427,24 @@ model ShareLink {
   updatedAt DateTime @updatedAt
 
   @@index([token])
+}
+
+// ── Gifts & Registries (optional, per Journey) ──────────────────
+// The platform NEVER holds or processes funds — it stores only the
+// customer's public registry links and payment handles, and routes
+// guests to the customer's own registry/payment app.
+model GiftSettings {
+  id           String     @id @default(cuid())
+  experienceId String     @unique
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  enabled      Boolean    @default(false)
+  mode         String     @default("none") // none | registry | cash | both | later
+  registries   String     @default("[]")   // JSON [{ label, url }]
+  cashMethods  String     @default("[]")   // JSON [{ platform, handle }]
+  message      String?
+  visibility   String     @default("everyone") // everyone | invited | family | hidden
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model WebhookEvent {
