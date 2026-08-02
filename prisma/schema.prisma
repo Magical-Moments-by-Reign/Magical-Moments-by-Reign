@@ -408,10 +408,13 @@ model Tribute {
   @@index([experienceId, kind])
 }
 
-// ── Family Journey: private custom share links ──────────────────
-// The owner curates exactly which experiences a link exposes, with
-// optional password, expiry, view cap, and per-link permissions.
-// Experiences NOT selected are never revealed through the link.
+// ── Guest sharing: private custom share links ───────────────────
+// "Share the Moment — not the entire account." The owner curates exactly
+// which experiences AND which granular features a link exposes; anything
+// not selected is never revealed. Permissions are ENFORCED SERVER-SIDE on
+// every request (see src/lib/guest-sharing.ts) — never by hidden buttons.
+// The private denylist (Library, billing, orders, AI history, vendor
+// contracts, full guest list, other Experiences, …) can never be enabled.
 model ShareLink {
   id            String    @id @default(cuid())
   token         String    @unique
@@ -420,10 +423,30 @@ model ShareLink {
   includeAll    Boolean   @default(false)
   experienceIds String    @default("[]") // JSON array of experience ids
 
+  // Link type + credential/limit gates.
+  linkType      String    @default("public") // public | invitation | password | contributor | expiring
   passwordHash  String?
+  invitationRequired Boolean @default(false)
+  invitedEmails String    @default("[]") // JSON of canonical emails (matching only)
+  invitedPhones String    @default("[]") // JSON of normalized phones (matching only)
   expiresAt     DateTime?
   maxViews      Int?
   viewCount     Int       @default(0)
+  uploadDeadline   DateTime?
+  guestbookCloseAt DateTime?
+
+  // Lifecycle.
+  paused    Boolean   @default(false)
+  revokedAt DateTime?
+
+  // Granular guest permissions (JSON array of SharePermission ids the owner
+  // enabled — validated against the shareable catalog; private ids dropped).
+  permissions String @default("[]")
+
+  // Upload handling.
+  allowUploads         Boolean @default(false)
+  autoPublishUploads   Boolean @default(false) // uploads default to a review queue
+  requireGuestbookApproval Boolean @default(true)
 
   allowDownload  Boolean  @default(false)
   allowComments  Boolean  @default(false)
@@ -433,7 +456,74 @@ model ShareLink {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  guestbookEntries GuestbookEntry[]
+  guestUploads     GuestUpload[]
+  rsvps            Rsvp[]
+
   @@index([token])
+  @@index([ownerId])
+}
+
+// A guestbook message left WITHOUT an account. Collects only what's needed;
+// the email is never exposed publicly. Enters moderation when the owner
+// requires approval; supports anonymous / private-to-host visibility.
+model GuestbookEntry {
+  id           String     @id @default(cuid())
+  experienceId String
+  shareLinkId  String?
+  shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  displayName  String
+  message      String
+  email        String? // optional, never shown publicly
+  relationship String?
+  visibility   String     @default("display_name") // display_name | anonymous | private_host
+  status       String     @default("pending")      // pending | published | hidden | reported
+  consent      Boolean    @default(false)
+  ipHash       String? // for spam/rate-limit controls (seam)
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, status])
+  @@index([shareLinkId])
+}
+
+// A photo/video contributed by a guest. Enters a review queue unless the
+// owner deliberately enables auto-publish. Guests never browse private uploads.
+model GuestUpload {
+  id           String     @id @default(cuid())
+  experienceId String
+  shareLinkId  String?
+  shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  uploaderName String?
+  kind         String     // IMAGE | VIDEO
+  url          String?
+  storagePath  String?
+  status       String     @default("pending") // pending | published | rejected
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, status])
+  @@index([shareLinkId])
+}
+
+// A guest RSVP (no account required). If the guest later creates an account
+// with a VERIFIED matching email/phone, it can connect to "Magical Moments
+// I'm Attending" (accountId set only after verification).
+model Rsvp {
+  id           String     @id @default(cuid())
+  experienceId String
+  shareLinkId  String?
+  shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  guestName    String
+  email        String?
+  phone        String?
+  status       String     @default("yes") // yes | no | maybe
+  partySize    Int        @default(1)
+  message      String?
+  accountId    String? // set only after verified match (Events I'm Attending)
+  createdAt    DateTime   @default(now())
+
+  @@index([experienceId, status])
+  @@index([shareLinkId])
+  @@index([accountId])
 }
 
 // ── Gifts & Registries (optional, per Journey) ──────────────────

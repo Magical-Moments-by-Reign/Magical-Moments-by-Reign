@@ -31,6 +31,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Experiences engine (unique themed page per journey) | Built |
 | Legacy Timeline + layered journeys | Built |
 | Private custom share links (checklist, password, expiry, roles) | Built |
+| **Guest Sharing & Public Experience Mode** (share the Moment, not the account) | **Domain layer built & tested (24 unit tests)** — granular view/interaction permissions, 5 link types, server-side `evaluateAccess`/`resolveCapabilities` (private denylist never exposed, no URL-tamper bypass), account-less guestbook/RSVP/uploads (moderated by default), verified-only attendance connect, account-conversion copy · schema: ShareLink extended + GuestbookEntry/GuestUpload/Rsvp · owner Share panel + Guest Experience View UI gated on auth + storage + notifications — see [standard](./STANDARD-guest-sharing.md) |
 | Media uploads + per-package limits | Built · needs Storage keys |
 | Tributes: family messages + poems | Built |
 | Custom domains + Legacy Protection | Built · needs registrar + scheduler |

@@ -42,6 +42,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
   live cart, smart savings, Lifetime Collections, Pricing Protection, upgrade
   credit, Journey Protection, Free Forever. *Engine + Build-Your-Membership
   built (first slice).*
+- **[Guest Sharing & Public Experience Mode](./design-bible/STANDARD-guest-sharing.md)** —
+  *Founder Approved.* "Share the Moment — not the entire account." Granular
+  per-link permissions, five link types, account-less guestbook/RSVP/uploads
+  (moderated by default), **server-side enforcement** (a private denylist can
+  never be exposed), optional account-conversion. *Domain layer built & tested
+  (24 tests) + schema; owner Share panel & Guest View gated on auth + storage.*
 - **[Journey Experience & Preview](./design-bible/STANDARD-journey-experience.md)** —
   *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
   welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
