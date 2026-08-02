@@ -218,7 +218,7 @@ section { padding: clamp(4rem, 9vw, 7rem) 0; }
 .card:hover { transform: translateY(-6px); box-shadow: 0 26px 50px -30px rgba(43,27,61,0.5); border-color: rgba(201,163,78,0.5); }
 .card .icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(135deg, var(--plum-700), var(--plum-500)); color: var(--gold-200); margin-bottom: 1.1rem; font-size: 1.3rem; }
 .card h3 { color: var(--plum-800); font-size: 1.4rem; }
-.card p { color: var(--muted); margin: 0; font-size: 0.97rem; }
+.card p { color: var(--muted); margin: 0; font-size: 0.97rem; overflow-wrap: anywhere; word-break: break-word; }
 
 /* Experience type chips */
 .type-cloud { display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; }
