@@ -512,6 +512,8 @@ model Rsvp {
   experienceId String
   shareLinkId  String?
   shareLink    ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  accessPassId String?
+  accessPass   MagicalAccessPass? @relation(fields: [accessPassId], references: [id], onDelete: SetNull)
   guestName    String
   email        String?
   phone        String?
@@ -524,6 +526,146 @@ model Rsvp {
   @@index([experienceId, status])
   @@index([shareLinkId])
   @@index([accountId])
+}
+
+// ── Magical Access Pass™ — recipient-bound private sharing ───────
+// "Easy for the invited person. Useless to anyone else." A pass binds ONE
+// Experience · owner · recipient · verified email/phone · permission set ·
+// expiration policy. Access requires a one-time code sent to the recipient's
+// contact, so a forwarded URL grants nothing. The URL carries only the opaque
+// token; the token is stored HASHED. Every protected request is re-checked
+// server-side (see src/lib/magical-access-pass.ts). No account required for the
+// recipient. Card/contact/verification secrets are never stored in the clear.
+model MagicalAccessPass {
+  id           String  @id @default(cuid())
+  tokenHash    String  @unique // sha256 of the opaque URL token — never the token itself
+  experienceId String
+  ownerId      String?
+
+  // Recipient binding. Destination is stored normalized (for matching the code
+  // delivery target) and masked (for display) — never shown in full to anyone.
+  recipientName          String
+  recipientChannel       String  // email | phone
+  recipientDestNormalized String // canonical email / digit phone (binding only)
+  recipientDestMasked    String  // e.g. t••••@email.com
+
+  // What the recipient may see/do (JSON PassPermission[]; private ids dropped).
+  permissions String @default("[]")
+
+  // Access rules.
+  durationPolicy String    @default("{\"kind\":\"until_closed\"}") // JSON AccessDurationPolicy
+  expiresAt      DateTime?
+  viewLimit      String    @default("{\"kind\":\"unlimited\"}")     // JSON ViewLimitPolicy
+  views          Int       @default(0)
+  sessions       Int       @default(0)
+  usedAt         DateTime? // set once a one-view/limited pass is consumed
+  ownerState     String    @default("active") // active | paused | closed | revoked
+
+  // Verification & device.
+  requireVerification Boolean @default(true)
+  devicePolicy        String  @default("{\"kind\":\"verify_every_visit\"}") // JSON DevicePolicy
+
+  // Download / privacy controls.
+  downloadsEnabled       Boolean @default(false)
+  watermarkEnabled       Boolean @default(false)
+  preventIndexing        Boolean @default(true)
+  requireRecipientAgreement Boolean @default(false)
+  privacyScore           String  @default("yellow") // green | yellow | red (cached)
+
+  // Activity (denormalized for the Magical Access dashboard).
+  sentAt        DateTime?
+  firstOpenedAt DateTime?
+  lastOpenedAt  DateTime?
+  uploadsCount  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  verifications      AccessPassVerification[]
+  passSessions       AccessPassSession[]
+  audits             AccessPassAudit[]
+  recipientAgreements RecipientAgreement[]
+  rsvps              Rsvp[]
+
+  @@index([experienceId])
+  @@index([ownerId])
+  @@index([ownerState])
+}
+
+// A one-time verification code send for a pass (rate-limited; codes hashed).
+model AccessPassVerification {
+  id         String            @id @default(cuid())
+  passId     String
+  pass       MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  codeHash   String
+  channel    String            // email | phone
+  attempts   Int               @default(0)
+  sentAt     DateTime          @default(now())
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  ipHash     String? // for rate limiting / abuse detection (seam)
+
+  @@index([passId])
+}
+
+// A short-lived authenticated guest session created after successful
+// verification. Session token stored hashed; optional device binding.
+model AccessPassSession {
+  id               String            @id @default(cuid())
+  passId           String
+  pass             MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  sessionTokenHash String            @unique
+  deviceHash       String?
+  verifiedAt       DateTime          @default(now())
+  contentOpenedAt  DateTime?
+  expiresAt        DateTime
+  endedAt          DateTime?
+
+  @@index([passId])
+}
+
+// Append-only audit trail for a pass (see PASS_AUDIT_EVENTS). The owner sees a
+// friendly activity history; technical security details are not exposed.
+model AccessPassAudit {
+  id        String            @id @default(cuid())
+  passId    String
+  pass      MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  event     String            // pass_created | verification_succeeded | content_opened | ...
+  detail    String?
+  createdAt DateTime          @default(now())
+
+  @@index([passId])
+  @@index([event])
+}
+
+// The recipient's optional privacy agreement (when the owner requires it).
+// Records agreement only — it does not technically prevent capture.
+model RecipientAgreement {
+  id                 String            @id @default(cuid())
+  passId             String
+  pass               MagicalAccessPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  version            String
+  verificationMethod String? // email | phone
+  agreedAt           DateTime          @default(now())
+
+  @@index([passId])
+}
+
+// ── Sharing acknowledgment (owner, versioned, non-erasable) ─────
+// Before sharing, the owner must accept the Private Sharing Notice. Records are
+// append-only history — the current status reads the latest accepted version.
+// The owner may re-enable "show every time"; they cannot erase the audit trail.
+model SharingAcknowledgment {
+  id            String   @id @default(cuid())
+  accountId     String
+  noticeVersion String
+  dontShowAgain Boolean  @default(false)
+  showEveryTime Boolean  @default(false) // owner setting override
+  deviceInfo    String?
+  acceptedAt    DateTime @default(now())
+
+  @@index([accountId])
+  @@index([accountId, noticeVersion])
 }
 
 // ── Gifts & Registries (optional, per Journey) ──────────────────
