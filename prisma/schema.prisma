@@ -2108,3 +2108,41 @@ model FamilyMapLocation {
 
   @@index([familyId])
 }
+
+// ── Family Birthday & Celebration Network ───────────────────────
+// A living family celebration calendar that repeats yearly automatically.
+// Non-members can be added manually and linked later without losing history.
+// Only shared/visible entries appear. Logic in src/lib/celebration-network.ts.
+model CelebrationEntry {
+  id           String   @id @default(cuid())
+  familyId     String
+  type         String   @default("birthday") // birthday | anniversary | graduation | memorial | ...
+  personName   String
+  month        Int      // 1–12
+  day          Int      // 1–31
+  year         Int?     // original year (optional; enables age/years)
+  relationship String?
+  photoUrl     String?
+  memberId     String?  // linked connected member, when applicable
+  source       String   @default("manual") // member | manual
+  visible      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([familyId, month])
+}
+
+model CelebrationReminderPref {
+  id         String   @id @default(cuid())
+  familyId   String
+  memberId   String?  // whose preferences these are
+  group      String   @default("entire") // immediate | entire | grandchildren | friends | custom
+  offsetsDays String  @default("[14,7,2,0]") // JSON reminder offsets
+  include30  Boolean  @default(false)
+  leapMode   String   @default("feb_28") // feb_28 | mar_1
+  channels   String   @default("{}") // JSON notify prefs
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([familyId])
+}

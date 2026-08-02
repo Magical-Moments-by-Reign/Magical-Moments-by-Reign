@@ -123,6 +123,11 @@ Bible governs — notify the Founder to confirm direction before continuing.
   links (FDIC/CFPB/IRS), family savings goals, bank-appointment link-outs,
   age-based Ask Magical. *Domain + schema built & tested (7 tests); persistence/
   payments/bank links gated.*
+- **[Family Birthday & Celebration Network](./design-bible/STANDARD-celebration-network.md)** —
+  *Founder Approved.* A living family calendar that auto-repeats yearly (leap-year
+  aware), monthly view, smart reminders (14/7/2/morning), group prefs, manual
+  non-member entries, one-touch birthday actions, Ask Magical digest — privacy:
+  only shared celebrations appear. *Domain + schema built & tested (12 tests).*
 - **[Family Connections](./design-bible/STANDARD-family-connections.md)** —
   *Founder Approved.* One membership → the whole family participates; the Host
   invites guests (free to join), with host-controlled permissions, graceful
