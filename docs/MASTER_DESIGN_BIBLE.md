@@ -65,6 +65,13 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
   welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
   shown before checkout. *Built (first slice — every Occasion).*
+- **[Magical Preview Pass](./design-bible/STANDARD-trial-membership.md)** —
+  *Founder Approved · billing NOT live until fully verified.* A transparent trial
+  that converts to a paid monthly membership unless canceled — exact price/date/
+  length shown, never-pre-checked consent, easy online cancellation, one trial
+  per customer. *Domain layer built & tested (18 tests) + schema + `/trial`
+  page; card capture, Square recurring, reminders & conversion gated on auth +
+  Square + email + legal review.*
 - **[Magical Journey Preview™](./design-bible/STANDARD-journey-preview.md)** — *Founder
   Approved.* A hands-on **5-day premium trial** (one of three choices on the
   Journey Experience page). *Choice + transparent terms screen built; real

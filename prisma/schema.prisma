@@ -1649,3 +1649,102 @@ model VendorBookingEvent {
 
   @@index([bookingId])
 }
+
+// ── Magical Preview Pass — trial membership + billing ───────────
+// A trial that converts to a paid MONTHLY membership unless canceled. Logic in
+// src/lib/trial-membership.ts. Card capture/tokenization/recurring charges run
+// through Square (seam) — NO raw card data stored here (Square token refs only).
+// Consent is captured immutably with the exact versioned text. Prices are
+// validated server-side. Automatic billing is NOT live until Square production
+// creds + webhook verification + legal review + email delivery are complete.
+enum MembershipStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum TrialBillingStatus {
+  NONE
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model TrialMembership {
+  id                String             @id @default(cuid())
+  accountId         String? // the customer's account (once auth exists)
+  planId            String
+  planName          String
+  monthlyPriceCents Int
+  trialDays         Int                @default(7)
+  trialStart        DateTime
+  trialEnd          DateTime
+  firstBillingDate  DateTime
+  nextBillingDate   DateTime?
+  status            MembershipStatus   @default(TRIALING)
+  billingStatus     TrialBillingStatus @default(NONE)
+
+  // Square references only — never raw card data.
+  squareCustomerId     String?
+  squareCardId         String?
+  squareSubscriptionId String?
+  cardLast4            String?
+
+  canceledAt   DateTime?
+  accessEndsAt DateTime?
+
+  consent   TrialConsent?
+  events    TrialBillingEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([accountId])
+  @@index([trialEnd])
+}
+
+// Immutable consent snapshot — the exact wording + versions the customer saw.
+// Staff may never alter these records.
+model TrialConsent {
+  id                  String          @id @default(cuid())
+  trialId             String          @unique
+  trial               TrialMembership @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  consentTextVersion  String
+  refundPolicyVersion String
+  consentText         String // snapshot of exactly what was shown
+  acceptedAt          DateTime        @default(now())
+  ipHash              String?
+  planId              String
+  trialDays           Int
+  firstChargeDate     DateTime
+  firstChargeCents    Int
+  recurringCents      Int
+  billingFrequency    String          @default("monthly")
+
+  @@index([trialId])
+}
+
+// Append-only billing audit (trial started, reminder sent, converted, charge
+// succeeded/failed, past-due, canceled, refunded, access extended).
+model TrialBillingEvent {
+  id        String          @id @default(cuid())
+  trialId   String
+  trial     TrialMembership @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  type      String
+  detail    String?
+  createdAt DateTime        @default(now())
+
+  @@index([trialId])
+}
+
+// Admin-configurable key/value settings (e.g. trial_days) so values can change
+// without a code deploy.
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
