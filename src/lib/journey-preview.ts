@@ -28,6 +28,46 @@ export interface JourneyPreview {
   marketplace: string[];
 }
 
+// A short "duration" line for the Explore Journeys cards + preview.
+const DURATION: Record<string, string> = {
+  wedding: "A 12-month guided plan", proposal: "From plan to the big moment",
+  baby: "Pregnancy through the first year", babyshower: "Plan the celebration",
+  genderreveal: "Plan the big reveal", birthday: "Plan in a few weeks",
+  firstbirthday: "The whole first year", sweet16: "Plan the big night",
+  quinceanera: "Plan the celebration", graduation: "The whole senior year",
+  anniversary: "Celebrate the years", newhome: "Blueprint to move-in day",
+  vacation: "From first idea to home again", reunion: "Plan the gathering",
+  military: "Countdown to reunion", memorial: "A lasting tribute",
+  retirement: "The next chapter", sports: "Every season", prom: "Plan the night",
+  bridalshower: "Plan the celebration", custom: "A guided journey, your way",
+};
+
+export function journeyDuration(typeId: string): string {
+  return DURATION[typeId] ?? "A guided journey";
+}
+
+// "Continue Your Story" — the natural next chapters for each Journey.
+const RELATED: Record<string, string[]> = {
+  proposal: ["wedding", "anniversary", "newhome"],
+  wedding: ["baby", "newhome", "anniversary"],
+  baby: ["firstbirthday", "birthday", "graduation"],
+  firstbirthday: ["birthday", "graduation", "sweet16"],
+  birthday: ["sweet16", "graduation", "vacation"],
+  sweet16: ["graduation", "birthday", "vacation"],
+  graduation: ["wedding", "newhome", "vacation"],
+  anniversary: ["vacation", "retirement", "newhome"],
+  newhome: ["baby", "anniversary", "reunion"],
+  vacation: ["anniversary", "reunion", "retirement"],
+  reunion: ["vacation", "retirement", "memorial"],
+  retirement: ["vacation", "anniversary", "reunion"],
+  military: ["newhome", "wedding", "reunion"],
+  memorial: ["reunion", "anniversary", "retirement"],
+};
+
+export function relatedJourneys(typeId: string): string[] {
+  return RELATED[typeId] ?? ["wedding", "baby", "vacation"];
+}
+
 // Seeded demo experiences customers can explore as a real sample website.
 const SAMPLE_SLUG: Record<string, string> = {
   wedding: "smithwedding",

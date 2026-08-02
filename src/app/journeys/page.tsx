@@ -6,7 +6,12 @@ import SiteFooter from "@/components/site/SiteFooter";
 import OccasionIcon from "@/components/OccasionIcon";
 import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 import { STORY_PHOTOS } from "@/lib/story-photos";
+import { journeyDuration } from "@/lib/journey-preview";
+import { getPlan, formatPrice } from "@/lib/plans";
 import "./journeys.css";
+
+const START_PRICE = getPlan("silver")?.price ?? 249; // 1-year unlock
+const LIFETIME_PRICE = getPlan("lifetime")?.price ?? 2499;
 
 export const metadata: Metadata = {
   title: "Explore the Journeys",
@@ -40,9 +45,11 @@ export default function JourneysIndexPage() {
                 <span className="jxi-card__scrim" />
                 <span className="jxi-card__icon"><OccasionIcon name={t.icon} size={26} /></span>
                 <span className="jxi-card__body">
+                  <span className="jxi-card__dur">{journeyDuration(t.id)}</span>
                   <span className="jxi-card__label">{t.label}</span>
                   <span className="jxi-card__desc">{t.description}</span>
-                  <span className="jxi-card__cta">Explore this Journey →</span>
+                  <span className="jxi-card__price">Unlock from {formatPrice(START_PRICE)} · Lifetime {formatPrice(LIFETIME_PRICE)}</span>
+                  <span className="jxi-card__cta">✦ Preview Journey →</span>
                 </span>
               </Link>
             );

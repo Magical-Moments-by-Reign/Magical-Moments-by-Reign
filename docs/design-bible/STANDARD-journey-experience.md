@@ -49,10 +49,27 @@ transparent, and exciting.
    · "Can I make this private?"). *Live conversational AI Q&A = later phase.*
 10. **Pricing** — this Occasion priced by term via the Pricing Engine, the Free
     Forever note, and the Lifetime option (Pricing Protection applies).
-11. **Ready to begin — three options** — *Continue with Free Forever* · *Start a
-    Magical Journey Preview™* (the 5-day hands-on trial — see
-    [STANDARD-journey-preview.md](./STANDARD-journey-preview.md)) · *Purchase
-    immediately* — plus *Compare another Journey* / *Return to Occasions*.
+11. **Ready to begin — the Unlock Panel** — *"Ready to Begin? Unlock this
+    Journey today."* with **Start One-Year ($249) · Five-Year ($799) · Ten-Year
+    ($1,499) · Lifetime ($2,499)** (Most Popular / Best Legacy Value badges),
+    an **Already a Legacy Family?** discounted-pricing note, and secondary
+    *Start with Free Forever* / *Try a 5-day Magical Journey Preview* links.
+12. **Continue Your Story** — related next-chapter Journeys with preview images.
+
+### Preview Mode (explore as if owned)
+The tour is framed as **Preview Mode** — a "✦ Preview Mode" badge on the hero
+and a Journey duration line. Customers scroll every section, the Journey Guide
+(Magical AI concierge) speaks, and premium interactive areas appear as blurred
+**"Available when you unlock this Journey"** tiles (AI Journey Guide, Create
+Invitations, Upload Photos, Create Registry, Guest Messages, Memory Timeline,
+Planning Dashboard, Highlight Videos) — visible but inactive. Nothing feels like
+a sales page; customers are invited into the next chapter, never sold to.
+
+**Legacy Family** pricing (discount when a customer already owns a Journey) and
+the real unlock/purchase both need **accounts/auth + billing** — shown as an
+honest note today, wired when those foundations land. Single-Journey unlock
+prices are final ($249 / $799 / $1,499 / $2,499); the multi-occasion build-your-
+own engine remains on the [/membership] builder.
 
 ## Compare Occasions
 

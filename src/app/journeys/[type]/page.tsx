@@ -12,9 +12,14 @@ import { conciergeFor } from "@/lib/journey-concierge";
 import { EXPERIENCE_TYPES, getExperienceType } from "@/lib/experience-types";
 import { STORY_PHOTOS } from "@/lib/story-photos";
 import { galleryFor } from "@/lib/gallery-media";
-import { previewFor } from "@/lib/journey-preview";
-import { TERMS, quote, formatUSD, LIFETIME_COLLECTIONS, FREE_FOREVER } from "@/lib/pricing-engine";
+import { previewFor, journeyDuration, relatedJourneys } from "@/lib/journey-preview";
+import { PLANS, formatPrice } from "@/lib/plans";
 import "../journeys.css";
+
+const LOCKED_FEATURES = [
+  "AI Journey Guide", "Create Invitations", "Upload Photos", "Create Registry",
+  "Guest Messages", "Memory Timeline", "Planning Dashboard", "Highlight Videos",
+];
 
 export function generateStaticParams() {
   return EXPERIENCE_TYPES.map((t) => ({ type: t.id }));
@@ -64,8 +69,9 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
         )}
         <div className="jx-hero__scrim" />
         <div className="container jx-hero__inner">
+          <span className="jx-preview-badge">✦ Preview Mode</span>
           <span className="jx-hero__icon"><OccasionIcon name={t.icon} size={40} /></span>
-          <span className="eyebrow jx-hero__eyebrow">Journey Experience</span>
+          <span className="eyebrow jx-hero__eyebrow">{journeyDuration(type)}</span>
           <h1>{t.label}</h1>
           <p className="jx-hero__tagline">{t.tagline}</p>
         </div>
@@ -128,24 +134,18 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
           <p className="jx-fine">Marketplace partners &amp; member savings are being onboarded — categories shown are what this Journey will connect you with.</p>
         </section>
 
-        {/* Pricing */}
-        <section className="jx-block jx-pricing">
-          <h2 className="jx-h2">Pricing</h2>
-          <p className="jx-muted">This Journey is one Occasion. Your term applies to it, and you can add more Occasions anytime.</p>
-          <div className="jx-prices">
-            {TERMS.filter((tm) => tm.id !== "lifetime").map((tm) => (
-              <div key={tm.id} className="jx-price">
-                <span className="jx-price__term">{tm.label}</span>
-                <span className="jx-price__amt">{formatUSD(quote(1, tm.id).total)}{tm.suffix ?? ""}</span>
+        {/* Available when you unlock */}
+        <section className="jx-block">
+          <h2 className="jx-h2">Available when you unlock this Journey</h2>
+          <p className="jx-muted">Everything below is part of your Journey — a peek now, yours to use the moment you unlock it.</p>
+          <div className="jx-locked">
+            {LOCKED_FEATURES.map((f) => (
+              <div key={f} className="jx-lockedtile">
+                <span className="jx-lockedtile__name">{f}</span>
+                <span className="jx-lockedtile__hint">Available when you unlock this Journey</span>
               </div>
             ))}
-            <div className="jx-price jx-price--life">
-              <span className="jx-price__term">Lifetime</span>
-              <span className="jx-price__amt">{formatUSD(LIFETIME_COLLECTIONS[0].price)}</span>
-              <span className="jx-price__note">from Lifetime Legacy</span>
-            </div>
           </div>
-          <p className="jx-fine">Preview pricing — final amounts are being finalized (Lifetime Collections are set). Every membership includes <strong>{FREE_FOREVER.name}</strong>, and you only ever pay the difference when you upgrade.</p>
         </section>
 
         {/* FAQ */}
@@ -154,31 +154,46 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
           <PreviewFaq items={p.faq} />
         </section>
 
-        {/* Ready to begin — three ways in */}
-        <section className="jx-cta">
-          <h2 className="jx-cta__title">Ready to begin your Journey?</h2>
-          <p className="jx-cta__sub">Choose the experience that fits you best — no pressure, ever.</p>
-          <div className="jx-choices">
-            <div className="jx-choice">
-              <h3>Free Forever</h3>
-              <p>Start free and explore at your own pace. Upgrade anytime with nothing lost.</p>
-              <Link href="/membership" className="btn btn-outline-gold">Continue with Free Forever</Link>
-            </div>
-            <div className="jx-choice jx-choice--feature">
-              <span className="jx-choice__flag">Most loved</span>
-              <h3>Magical Journey Preview</h3>
-              <p>Experience the full premium Journey for <strong>5 days</strong>. No charge until it ends — cancel anytime.</p>
-              <Link href={`/journeys/${type}/preview`} className="btn btn-gold">Start a Magical Journey Preview ✦</Link>
-            </div>
-            <div className="jx-choice">
-              <h3>Purchase now</h3>
-              <p>Ready to commit? Begin your Journey and add it to your cart right away.</p>
-              <Link href={`/create?type=${type}`} className="btn btn-outline-gold">Purchase immediately</Link>
-            </div>
+        {/* Unlock panel */}
+        <section className="jx-unlock" id="unlock">
+          <h2 className="jx-unlock__title">Ready to Begin?</h2>
+          <p className="jx-unlock__sub">Unlock the {t.label} today and start creating your own story.</p>
+          <div className="jx-unlock__grid">
+            {PLANS.map((pl) => (
+              <div key={pl.id} className={`jx-unlockcard${pl.badge ? " jx-unlockcard--feature" : ""}`}>
+                {pl.badge && <span className="jx-unlockcard__badge">{pl.badge}</span>}
+                <span className="jx-unlockcard__term">{pl.termShort}</span>
+                <span className="jx-unlockcard__amt">{formatPrice(pl.price)}</span>
+                <Link href={`/create?type=${type}`} className="btn btn-gold jx-unlockcard__btn">Start {pl.termShort} Journey</Link>
+              </div>
+            ))}
           </div>
-          <div className="jx-cta__foot">
-            <Link href="/journeys" className="jx-cta__link">Compare another Journey</Link>
-            <Link href="/journeys" className="jx-cta__link">Return to Occasions</Link>
+          <p className="jx-unlock__legacy">Already part of the <strong>Legacy Family</strong>? Your loyalty unlocks exclusive pricing — <Link href="/membership">see your discount</Link>.</p>
+          <div className="jx-unlock__foot">
+            <Link href="/membership" className="jx-cta__link">Or start with Free Forever</Link>
+            <Link href={`/journeys/${type}/preview`} className="jx-cta__link">Try a 5-day Magical Journey Preview</Link>
+          </div>
+        </section>
+
+        {/* Continue your story */}
+        <section className="jx-block">
+          <h2 className="jx-h2">Continue Your Story</h2>
+          <div className="jx-related">
+            {relatedJourneys(type).map((rid) => {
+              const rt = getExperienceType(rid);
+              if (!rt) return null;
+              const photo = STORY_PHOTOS[rid];
+              return (
+                <Link key={rid} href={`/journeys/${rid}`} className="jx-relcard" style={{ ["--c1" as string]: rt.gradient[0], ["--c2" as string]: rt.gradient[1] }}>
+                  {photo && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="jx-relcard__img" src={photo} alt="" aria-hidden="true" loading="lazy" />
+                  )}
+                  <span className="jx-relcard__scrim" />
+                  <span className="jx-relcard__label">{rt.label} →</span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       </main>
