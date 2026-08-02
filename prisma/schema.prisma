@@ -1421,6 +1421,7 @@ enum VendorStatus {
   APPROVED
   REJECTED
   SUSPENDED
+  REMOVED
 }
 
 enum VendorApplicationStatus {
@@ -1459,7 +1460,15 @@ model Vendor {
   tier           String       @default("free") // future monetization; disabled today
   ratingAvg      Float        @default(0)
   reviewCount    Int          @default(0)
+
+  // Quality Standards & Review Policy (see src/lib/vendor-quality.ts).
+  verifiedNegatives Int       @default(0) // verified negative reviews = strikes
+  searchPenalty     Boolean   @default(false) // lowered in search rankings
+  probationUntil    DateTime? // one-year probation after removal
+
   reviews        VendorReview[]
+  strikes        VendorStrike[]
+  performanceEvents VendorPerformanceEvent[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -1479,9 +1488,41 @@ model VendorReview {
   photos        String   @default("[]") // JSON [url]
   recommend     Boolean  @default(true)
   status        String   @default("published") // pending | published | hidden
+  // Quality policy: a negative review only becomes a strike after verification.
+  verification  String   @default("pending") // pending | verified | dismissed
+  dismissReason String?  // fraudulent | abusive | retaliatory | unrelated
   createdAt     DateTime @default(now())
 
   @@index([vendorId, status])
+}
+
+// A verified negative review recorded against a vendor (a "strike"). Only
+// verified negatives count toward performance history (see vendor-quality.ts).
+model VendorStrike {
+  id         String   @id @default(cuid())
+  vendorId   String
+  vendor     Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  reviewId   String?
+  strike     Int      // 1 | 2 | 3
+  summary    String
+  verifiedBy String?  // admin identity
+  createdAt  DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// Append-only vendor performance/quality audit (courtesy email, warning,
+// removal, immediate suspension, reinstatement, review dismissal).
+model VendorPerformanceEvent {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  action    String   // courtesy_email | warning | removed | suspended | reinstated | review_dismissed
+  detail    String?
+  actor     String   @default("system")
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
 }
 
 // A "Become a Vendor" application awaiting admin review. Logo/gallery are

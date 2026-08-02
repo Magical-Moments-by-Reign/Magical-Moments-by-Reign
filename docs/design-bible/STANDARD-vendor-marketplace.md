@@ -144,3 +144,40 @@ availability, pricing, or performance.
 syncing, automatic backup matching, AI recommendations, verified vendors,
 premium memberships, emergency replacement, calendar integration, text
 notifications, real-time acceptance.
+
+---
+
+## Vendor Quality Standards & Review Policy
+
+*Founder Approved.* Magical Moments monitors vendor performance to keep the
+marketplace trusted, and may suspend or remove vendors who repeatedly fail
+community standards — while giving vendors a fair chance to improve. Services,
+contracts, and pricing remain solely between customer and independent vendor.
+
+**Built today:** `src/lib/vendor-quality.ts` + `vendor-quality.test.ts`
+(**11 tests**) — the pure policy engine:
+
+- **Negative review** = overall ≤ 2★ or a no-recommend (`isNegativeReview`).
+- **Verification first (fairness):** only a **verified** negative counts
+  (`reviewCountsAsStrike`); fraudulent / abusive / retaliatory / unrelated
+  reviews are **dismissed** and never count (`REVIEW_DISMISS_REASONS`).
+- **Three-strike ladder** (`strikeOutcome`, `recordVerifiedNegative`):
+  1. *First* — remains active; lower search ranking; courtesy email.
+  2. *Second* — remains active; **formal warning**; continued lower priority.
+  3. *Third* — **removed**; profile inactive; no new bookings (existing
+     confirmed bookings may continue); enters **one-year probation**.
+- **Probation & reinstatement** — `inProbation`, `canReapply` (may reapply after
+  `PROBATION_DAYS = 365`; **reinstatement not guaranteed**), criteria list.
+- **Immediate suspension** (bypasses the ladder) for fraud, illegal activity,
+  safety concerns, harassment, discrimination, or customer-risk conduct
+  (`immediateSuspend`, `IMMEDIATE_SUSPENSION_REASONS`).
+- **Marketplace rights** + goal copy.
+
+`prisma/schema.prisma` — `Vendor` gains `verifiedNegatives`, `searchPenalty`,
+`probationUntil`; `VendorStatus` adds `REMOVED`; `VendorReview` gains
+`verification` + `dismissReason`; new `VendorStrike` and
+`VendorPerformanceEvent` (append-only audit).
+
+**Needs (seams):** the post-event review invite, the admin verification/appeal
+UI, search-ranking application, and notification delivery — gated on auth +
+live bookings + notifications. No strike is applied without verification.
