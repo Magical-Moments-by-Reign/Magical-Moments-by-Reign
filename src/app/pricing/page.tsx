@@ -5,6 +5,8 @@ import SiteFooter from "@/components/site/SiteFooter";
 import PlanQuiz from "@/components/pricing/PlanQuiz";
 import AddPlanButton from "@/components/pricing/AddPlanButton";
 import AddOnsShop from "@/components/pricing/AddOnsShop";
+import EverythingIncluded from "@/components/pricing/EverythingIncluded";
+import { PRICING_HEADLINE } from "@/lib/everything-included";
 import {
   PLANS,
   COMPARISON_ROWS,
@@ -15,6 +17,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import "./pricing.css";
+import "./everything-included.css";
 
 export const metadata: Metadata = {
   title: "Choose Your Memory Preservation Plan",
@@ -54,11 +57,18 @@ export default function PricingPage() {
         </div>
       </header>
 
+      {/* Everything Included — full value before price */}
+      <EverythingIncluded />
+
       {/* Plan cards with logo watermark */}
       <section className="pp-plans">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="pp-watermark" src="/brand/logo.png" alt="" aria-hidden="true" />
         <div className="container">
+          <div className="pp-pricing-head">
+            <h2>{PRICING_HEADLINE.title}</h2>
+            <p>{PRICING_HEADLINE.body}</p>
+          </div>
           <div className="pp-plans__grid">
             {PLANS.map((plan) => {
               const inherited = plan.inheritsFrom ? getPlan(plan.inheritsFrom) : undefined;
