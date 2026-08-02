@@ -33,6 +33,18 @@ export default function AskMagical() {
     if (open && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, open, busy]);
 
+  // Let other components (e.g. a Journey concierge card) open the chat and
+  // pre-fill a starter prompt.
+  useEffect(() => {
+    function onOpen(e: Event) {
+      setOpen(true);
+      const seed = (e as CustomEvent<{ seed?: string }>).detail?.seed;
+      if (seed) setInput(seed);
+    }
+    window.addEventListener("mmr:ask-magical", onOpen as EventListener);
+    return () => window.removeEventListener("mmr:ask-magical", onOpen as EventListener);
+  }, []);
+
   async function send() {
     const text = input.trim();
     if (!text || busy) return;

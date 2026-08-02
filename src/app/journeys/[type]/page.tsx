@@ -6,6 +6,9 @@ import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import OccasionIcon from "@/components/OccasionIcon";
 import PreviewFaq from "@/components/journeys/PreviewFaq";
+import MagicalAIConcierge from "@/components/journeys/MagicalAIConcierge";
+import BabyJourneyExperience from "@/components/journeys/BabyJourneyExperience";
+import { conciergeFor } from "@/lib/journey-concierge";
 import { EXPERIENCE_TYPES, getExperienceType } from "@/lib/experience-types";
 import { STORY_PHOTOS } from "@/lib/story-photos";
 import { galleryFor } from "@/lib/gallery-media";
@@ -34,8 +37,20 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
   if (!t || !p) notFound();
 
   const heroPhoto = STORY_PHOTOS[type];
+  const concierge = conciergeFor(type);
   const gallery = p.sampleSlug ? galleryFor(p.sampleSlug)?.slice(0, 8) : undefined;
   const style = { "--c1": t.gradient[0], "--c2": t.gradient[1] } as CSSProperties;
+
+  // The Baby Journey has a bespoke, full guided experience.
+  if (type === "baby") {
+    return (
+      <div className="jx" style={style}>
+        <SiteNav active="experiences" />
+        <BabyJourneyExperience />
+        <SiteFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="jx" style={style}>
@@ -57,14 +72,8 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
       </header>
 
       <main className="container jx-main">
-        {/* AI welcome */}
-        <section className="jx-ai" aria-label="Magical AI welcome">
-          <span className="jx-ai__avatar" aria-hidden="true">✦</span>
-          <div>
-            <span className="jx-ai__name">Magical AI</span>
-            <p className="jx-ai__msg">{p.aiWelcome}</p>
-          </div>
-        </section>
+        {/* Magical AI concierge */}
+        {concierge && <MagicalAIConcierge concierge={concierge} />}
 
         {/* Overview */}
         <section className="jx-block">
