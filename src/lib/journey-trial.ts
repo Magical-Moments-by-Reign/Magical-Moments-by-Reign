@@ -1,4 +1,4 @@
-// ── Journey Preview™ (5-day premium trial) ──────────────────────
+// ── Magical Journey Preview™ (5-day premium trial) ──────────────────────
 // A hands-on trial of a premium Life Journey before committing to a paid
 // membership. Distinct from the Journey EXPERIENCE tour (the no-signup
 // guided look at /journeys/[type]); the trial is one of the three choices
@@ -13,7 +13,7 @@
 export const PREVIEW_DAYS = 5;
 
 export const JOURNEY_PREVIEW = {
-  name: "Journey Preview",
+  name: "Magical Journey Preview",
   days: PREVIEW_DAYS,
   // Experienced as if a paying member:
   included: [
@@ -35,16 +35,16 @@ export const JOURNEY_PREVIEW = {
     "A subtle “Preview” badge until a paid membership begins",
   ],
   rules: [
-    "One active Journey Preview at a time",
-    "One Journey Preview per Journey type",
+    "One active Magical Journey Preview at a time",
+    "One Magical Journey Preview per Journey type",
     "Repeat previews on the same account or payment method are prevented",
   ],
   // Friendly reminders across the 5 days:
   reminders: [
-    { day: 1, label: "Day 1", message: "Welcome! Your Journey Preview has officially begun." },
-    { day: 3, label: "Day 3", message: "You're halfway through your Journey Preview. Let us know if you have questions." },
+    { day: 1, label: "Day 1", message: "Welcome! Your Magical Journey Preview has officially begun." },
+    { day: 3, label: "Day 3", message: "You're halfway through your Magical Journey Preview. Let us know if you have questions." },
     { day: 4, label: "Day 4", message: "Only one day remaining. Everything you've created will remain available if you continue your membership." },
-    { day: 5, label: "Final day", message: "Your Journey Preview ends tomorrow. If you do nothing, your selected membership will begin automatically." },
+    { day: 5, label: "Final day", message: "Your Magical Journey Preview ends tomorrow. If you do nothing, your selected membership will begin automatically." },
   ],
 } as const;
 

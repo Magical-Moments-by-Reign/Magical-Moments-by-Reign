@@ -50,7 +50,7 @@ transparent, and exciting.
 10. **Pricing** — this Occasion priced by term via the Pricing Engine, the Free
     Forever note, and the Lifetime option (Pricing Protection applies).
 11. **Ready to begin — three options** — *Continue with Free Forever* · *Start a
-    Journey Preview™* (the 5-day hands-on trial — see
+    Magical Journey Preview™* (the 5-day hands-on trial — see
     [STANDARD-journey-preview.md](./STANDARD-journey-preview.md)) · *Purchase
     immediately* — plus *Compare another Journey* / *Return to Occasions*.
 

@@ -1,6 +1,6 @@
 "use client";
 
-// The transparent Journey Preview™ terms + checkout summary. Nothing
+// The transparent Magical Journey Preview™ terms + checkout summary. Nothing
 // hidden: the customer picks a future membership term, sees the price,
 // the exact 5-day schedule (start → end → first billing), the renewal
 // schedule, what's included, the limits, and the reminder cadence.
@@ -99,7 +99,7 @@ export default function JourneyPreviewStart({ type, label }: { type: string; lab
           <span>I agree to the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>, and I understand my selected membership begins automatically when the preview ends unless I cancel.</span>
         </label>
         <button type="button" className="btn btn-gold jp-begin" disabled={!tos} aria-disabled={!tos}>
-          Begin my 5-day Journey Preview
+          Begin my 5-day Magical Journey Preview
         </button>
         <p className="jx-fine">Secure payment-method capture and preview billing unlock with accounts &amp; billing (coming soon). Today you can review every detail here — nothing is hidden. Prefer to wait? <Link href="/membership">Start with Free Forever</Link> or <Link href={`/create?type=${type}`}>purchase immediately</Link>.</p>
       </section>

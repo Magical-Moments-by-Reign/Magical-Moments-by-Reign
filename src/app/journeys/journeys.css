@@ -103,7 +103,7 @@
 .jx-choice__flag { position: absolute; top: -0.7rem; left: 50%; transform: translateX(-50%); background: var(--gold, #c6a15a); color: #fff; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.25rem 0.8rem; border-radius: 999px; white-space: nowrap; }
 .jx-cta__foot { display: flex; gap: 1.5rem; justify-content: center; margin-top: 1.75rem; }
 
-/* ── Journey Preview™ (trial) page ── */
+/* ── Magical Journey Preview™ (trial) page ── */
 .jp-hero { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(1.75rem, 4vw, 2.5rem); background: radial-gradient(60% 90% at 15% 0%, rgba(198,161,90,0.3), transparent 60%), radial-gradient(50% 80% at 92% 10%, rgba(169,140,208,0.26), transparent 55%), linear-gradient(160deg, #241f2e, #17131d); color: var(--cream, #fbf8f3); text-align: center; }
 .jp-crumb { color: rgba(248,244,236,0.78); font-size: 0.85rem; text-decoration: none; }
 .jp-crumb:hover { color: var(--gold-soft, #d9bd82); }

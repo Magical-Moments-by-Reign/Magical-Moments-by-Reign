@@ -157,9 +157,9 @@ export default async function JourneyPreviewPage({ params }: { params: Promise<{
             </div>
             <div className="jx-choice jx-choice--feature">
               <span className="jx-choice__flag">Most loved</span>
-              <h3>Journey Preview</h3>
+              <h3>Magical Journey Preview</h3>
               <p>Experience the full premium Journey for <strong>5 days</strong>. No charge until it ends — cancel anytime.</p>
-              <Link href={`/journeys/${type}/preview`} className="btn btn-gold">Start a Journey Preview ✦</Link>
+              <Link href={`/journeys/${type}/preview`} className="btn btn-gold">Start a Magical Journey Preview ✦</Link>
             </div>
             <div className="jx-choice">
               <h3>Purchase now</h3>

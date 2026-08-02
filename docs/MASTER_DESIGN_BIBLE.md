@@ -24,7 +24,7 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* An immersive guided per-Occasion page (hero → Magical AI
   welcome → what's included → timeline → sample → FAQ → pricing → add to cart)
   shown before checkout. *Built (first slice — every Occasion).*
-- **[Journey Preview™](./design-bible/STANDARD-journey-preview.md)** — *Founder
+- **[Magical Journey Preview™](./design-bible/STANDARD-journey-preview.md)** — *Founder
   Approved.* A hands-on **5-day premium trial** (one of three choices on the
   Journey Experience page). *Choice + transparent terms screen built; real
   billing gated on auth/payment.*
