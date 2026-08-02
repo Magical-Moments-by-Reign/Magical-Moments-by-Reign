@@ -1032,7 +1032,12 @@ model Account {
   // Account is the canonical customer identity; this links to the legacy User
   // row that existing dashboard records are keyed on, so nothing breaks while
   // the dashboard is migrated. Nullable; the legacy User model is NOT deleted.
-  legacyUserId      String? @unique
+  // NOT @unique at the DB level: adding a unique constraint to the existing
+  // (populated) Account table trips Prisma's data-loss guard on deploy. The
+  // one-Account-per-User invariant is enforced in application logic (verified
+  // email match + linkAndBackfill's `where legacyUserId: null` guard) and by the
+  // global uniqueness of User.email. Indexed for lookups instead.
+  legacyUserId      String?
 
   identity      AccountIdentity?
   sessions        Session[]
@@ -1067,6 +1072,7 @@ model Account {
 
   @@index([nameNormalized])
   @@index([status])
+  @@index([legacyUserId])
 }
 
 // The normalized identity snapshot used for duplicate detection. Kept
