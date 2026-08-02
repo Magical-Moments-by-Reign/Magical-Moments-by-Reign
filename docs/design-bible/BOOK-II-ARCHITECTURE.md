@@ -51,7 +51,8 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Family Vault (Book III) | Documented · needs Family Account + secure storage — see [book III](./BOOK-III-family-vault.md) |
 | Voice Notes & AI Transcription (global) | Documented · needs speech-to-text — see [standard](./STANDARD-voice-notes.md) |
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
-| Journey Protection™ (pause add-on) | Documented · **needs pricing-model decision** — see [standard](./STANDARD-journey-protection.md) |
+| **Pricing Engine v1.0** (build-your-own membership) | **Built** (first slice — engine + Build-Your-Membership) · amounts placeholder except Lifetime Collections · needs auth + Square for checkout — see [standard](./STANDARD-pricing-engine.md) |
+| Journey Protection™ (pause add-on) | Documented · pricing-model **resolved** (recurring + Free Forever approved) · needs billing/auth — see [standard](./STANDARD-journey-protection.md) |
 | Legacy Guardian™ (continuity/transfer) | Documented · needs auth + verification — see [standard](./STANDARD-legacy-guardian.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |

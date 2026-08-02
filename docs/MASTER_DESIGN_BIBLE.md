@@ -15,6 +15,11 @@ Bible governs — notify the Founder to confirm direction before continuing.
 
 ## Global standards & journeys (documented; build on Founder approval)
 
+- **[Pricing Engine v1.0](./design-bible/STANDARD-pricing-engine.md)** —
+  *Founder Approved · canonical.* Build-your-own membership (Occasions × Term),
+  live cart, smart savings, Lifetime Collections, Pricing Protection, upgrade
+  credit, Journey Protection, Free Forever. *Engine + Build-Your-Membership
+  built (first slice).*
 - **[Book III — The Family Vault](./design-bible/BOOK-III-family-vault.md)** —
   the secure command center for everything a family protects and accesses.
 - **[Gifts & Registries](./design-bible/STANDARD-gifts-registries.md)** — *built (first slice).*
@@ -23,7 +28,7 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Baby Journey](./design-bible/JOURNEY-baby.md)** — pregnancy companion.
 - **[New Home Journey](./design-bible/JOURNEY-new-home.md)** — homeowner experience.
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
-- **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(needs a pricing-model decision).*
+- **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(pricing-model decision resolved by the [Pricing Engine](./design-bible/STANDARD-pricing-engine.md); recurring + Free Forever approved).*
 - **[Legacy Guardian™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & transfer.
 
 Companion operational docs: `docs/COMMERCE.md`, `docs/DOMAINS.md`,
