@@ -44,7 +44,13 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Wedding Journey planner (welcome → roadmap → checklist → budget) | Built (first slice) |
 | AI Roadmap / concierge planner (other journeys) | In progress |
 | Reminders / scheduled nudges | Planned · needs scheduler |
-| Gifts & Registries (global standard) | Documented · pending Founder approval — see [standard](./STANDARD-gifts-registries.md) |
+| Gifts & Registries (global standard) | **Built** (first slice) — see [standard](./STANDARD-gifts-registries.md) |
+| Live Video Calls + Messaging (global) | Documented · needs video/SMS providers — see [standard](./STANDARD-communication.md) |
+| Baby Journey (pregnancy companion) | Documented · phased — see [journey](./JOURNEY-baby.md) |
+| New Home Journey (homeowner experience) | Documented · phased — see [journey](./JOURNEY-new-home.md) |
+| Family Vault (Book III) | Documented · needs Family Account + secure storage — see [book III](./BOOK-III-family-vault.md) |
+| Voice Notes & AI Transcription (global) | Documented · needs speech-to-text — see [standard](./STANDARD-voice-notes.md) |
+| Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
 | Accounts / auth + role-based family access | Planned |
