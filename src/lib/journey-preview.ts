@@ -87,12 +87,12 @@ const BASE_INCLUDED = [
   "Guest messages & guestbook",
   "Magical AI planning assistant",
   "Private sharing & privacy controls",
-  "Kept forever on your Family Legacy Timeline",
+  "Kept forever in your Magical Moments Library",
 ];
 
 // Generic FAQ built from the Founder's example AI questions.
 const BASE_FAQ: FaqItem[] = [
-  { q: "What happens after the event?", a: "Nothing is ever lost. Your Journey becomes a permanent chapter on your Family Legacy Timeline — you can revisit, add to it, and share it for years to come." },
+  { q: "What happens after the event?", a: "Nothing is ever lost. Your Journey becomes a permanent chapter in your Magical Moments Library — you can revisit, add to it, and share it for years to come." },
   { q: "Can I invite guests?", a: "Yes. Share a private link with the people you choose, collect their messages and photos, and control exactly who can see what." },
   { q: "Can I upload videos?", a: "Yes — photos and videos both, up to your membership's storage. You can always upgrade for more room." },
   { q: "Can I transfer ownership?", a: "Lifetime memberships can designate a family member to carry the Journey forward, so your family's story continues across generations." },
@@ -173,7 +173,7 @@ const FLAVOR: Record<string, Flavor> = {
   },
   sports: {
     aiWelcome: "Welcome to the Sports Journey. I'm Magical AI — your recruiting & planning companion. I'll help you preserve every season and navigate the road from youth sports to college and beyond. (Recruiting & NIL guidance is educational only.)",
-    overview: "Not just a photo gallery — one living Journey for the athlete that grows every season, from first practice through college, the pros, coaching, and beyond. Every game, award, stat, and milestone becomes part of a permanent Legacy Timeline.",
+    overview: "Not just a photo gallery — one living Journey for the athlete that grows every season, from first practice through college, the pros, coaching, and beyond. Every game, award, stat, and milestone becomes part of a permanent Magical Moments Library.",
     included: [
       "Athlete profile & pro-style dashboard",
       "Game Center — a page for every game & season",
@@ -186,7 +186,7 @@ const FLAVOR: Record<string, Flavor> = {
       "Coach Portal (parent-controlled permissions)",
       "Parent Dashboard — schedules, travel, forms & expenses",
       "Teammate connections & guestbook",
-      "A permanent athletic Legacy Timeline",
+      "Your athletic story, preserved in your Magical Moments Library",
     ],
     timeline: [
       { when: "Youth sports", what: "Start the profile — first teams & first memories" },
@@ -202,7 +202,7 @@ const FLAVOR: Record<string, Flavor> = {
       { q: "Can coaches contribute?", a: "Yes — invited coaches can verify stats, upload film, and write recommendations. Parents control coach permissions." },
       { q: "What happens to my game film and photos?", a: "Your original uploads are never altered. Magical AI can help assemble highlight reels while the originals stay untouched." },
       { q: "Can I export an athletic resume?", a: "Yes — a professional athlete resume builds automatically and exports to PDF." },
-      { q: "Does the Journey end after high school?", a: "Never. It continues through college, the pros, and coaching — one permanent Legacy Timeline." },
+      { q: "Does the Journey end after high school?", a: "Never. It continues through college, the pros, and coaching — one permanent Magical Moments Library." },
     ],
     marketplace: ["Showcases & camps", "Recruiting services", "Highlight-video editors", "Sports photographers", "Trainers & coaches", "Equipment", "ACT/SAT test prep", "Sports medicine"],
   },
@@ -223,7 +223,7 @@ export function previewFor(typeId: string): JourneyPreview | null {
       { when: "Planning", what: "A personalized timeline & checklist" },
       { when: "The celebration", what: "Your beautiful website goes live" },
       { when: "Sharing", what: "Guests add messages, photos & videos" },
-      { when: "Forever", what: "Kept on your Family Legacy Timeline" },
+      { when: "Forever", what: "Kept in your Magical Moments Library" },
     ],
     faq: f.faq ?? BASE_FAQ,
     sampleSlug: SAMPLE_SLUG[typeId],

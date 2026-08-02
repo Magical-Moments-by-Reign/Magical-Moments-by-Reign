@@ -39,7 +39,7 @@ const CURATED: Record<string, Concierge> = {
       { icon: "🚗", text: "Remind you to install the car seat before delivery" },
       { icon: "🍼", text: "Track baby's monthly milestones and photo reminders" },
       { icon: "📸", text: "Store photos, videos, ultrasound images, and keepsakes" },
-      { icon: "💌", text: "Preserve every memory forever on your Family Legacy Timeline" },
+      { icon: "💌", text: "Preserve every memory forever in your Magical Moments Library" },
     ],
     closing: CLOSING,
     cta: CTA,

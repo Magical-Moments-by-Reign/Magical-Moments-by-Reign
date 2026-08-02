@@ -162,7 +162,7 @@ export const PLANS: Plan[] = [
       "Lifetime Memory Preservation (see terms)",
       "One custom domain included",
       "Ongoing domain management while the plan is active",
-      "Family Legacy Vault",
+      "Family Vault",
       "Multi-generation access",
       "Transfer access to a designated family member",
       "Unlimited story chapters (fair-use)",

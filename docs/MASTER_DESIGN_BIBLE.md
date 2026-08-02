@@ -3,6 +3,10 @@
 **The single source of truth.** If documentation and code ever conflict, the
 Bible governs — notify the Founder to confirm direction before continuing.
 
+- **[Brand Language, Account & Commerce Vision](./design-bible/STANDARD-brand-and-account.md)** —
+  *Founder Approved.* Magical* naming (Magical Tracker™, Magical Moments Library,
+  Magical AI, Magical Invitations, Magical Galleries), account sync, gifting &
+  group contributions, payment roadmap. *Avoid "Legacy Timeline/Library."*
 - **[Founder Constitution — Volume I](./design-bible/CONSTITUTION.md)** —
   *the highest governing document* (mission, purpose, pricing philosophy,
   Lifetime Collections, Founder approval). Referenced before any major decision.

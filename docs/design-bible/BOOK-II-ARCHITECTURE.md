@@ -82,6 +82,17 @@ celebration screen, Founder standard). That document holds the live per-section
 compliance map and the foundation-first path to full compliance. No Journey is
 submitted for Founder approval until all twenty are complete.
 
+## Brand, account & commerce vision
+
+Per the [Brand, Account & Commerce standard](./STANDARD-brand-and-account.md):
+consistent **Magical\*** naming (Magical Moments Library, Magical Tracker™,
+Magical AI, Magical Invitations, Magical Galleries; never "Legacy Timeline/
+Library" — Project Legacy is separate), **one account per verified email** with
+auto-sync of every purchase, **gifting + group contributions**, and a **payment
+roadmap** (Square + Affirm/Klarna → Magical Pay™). Customer-facing "Legacy
+Timeline" copy has been renamed to **Magical Moments Library**; the rest is
+foundation-dependent (auth + billing + storage) and phased — nothing faked.
+
 ## Journey modules (per Founder specs)
 
 - **Wedding Journey — "From Yes… to I Do." → "Our Marriage"**: welcome/stage,
