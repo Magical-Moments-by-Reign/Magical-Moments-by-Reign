@@ -51,7 +51,9 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Family Vault (Book III) | Documented · needs Family Account + secure storage — see [book III](./BOOK-III-family-vault.md) |
 | Voice Notes & AI Transcription (global) | Documented · needs speech-to-text — see [standard](./STANDARD-voice-notes.md) |
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
-| **Pricing Engine v1.0** (build-your-own membership) | **Built** (first slice — engine + Build-Your-Membership) · amounts placeholder except Lifetime Collections · needs auth + Square for checkout — see [standard](./STANDARD-pricing-engine.md) |
+| **Pricing Engine v1.0** (build-your-own membership) | **Built** (first slice — engine + Build-Your-Membership + Free Forever entry) · amounts placeholder except Lifetime Collections · needs auth + Square for real checkout — see [standard](./STANDARD-pricing-engine.md) |
+| Free Forever (required account · $0 entry) | **Built** (selection + $0.00 checkout → Family Vault) · real account persistence needs auth — see [standard](./STANDARD-pricing-engine.md) |
+| New Home — Build-a-Home (blueprint → keys) | **Built** (first slice — intake → personalized roadmap + 28-stage timeline) · data centers (floor plans, budget, build team) need auth + storage — see [journey](./JOURNEY-new-home.md) |
 | Journey Protection™ (pause add-on) | Documented · pricing-model **resolved** (recurring + Free Forever approved) · needs billing/auth — see [standard](./STANDARD-journey-protection.md) |
 | Legacy Guardian™ (continuity/transfer) | Documented · needs auth + verification — see [standard](./STANDARD-legacy-guardian.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |

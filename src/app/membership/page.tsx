@@ -3,6 +3,7 @@ import Link from "next/link";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import MembershipBuilder from "@/components/pricing/MembershipBuilder";
+import MembershipStart from "@/components/pricing/MembershipStart";
 import "./membership.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,8 @@ export default function MembershipPage() {
             anytime without losing a dollar you've invested.
           </p>
         </header>
+
+        <MembershipStart />
 
         <MembershipBuilder />
 

@@ -91,3 +91,34 @@
 
 .mb-closing { text-align: center; margin-top: 3rem; color: var(--muted); font-size: 0.95rem; }
 .mb-closing a { color: var(--gold-deep); font-weight: 600; }
+
+/* ── Every family starts here (membership selection) ───────────── */
+.ms { margin-bottom: 3rem; padding-bottom: 2.5rem; border-bottom: 1px solid rgba(42,33,48,0.1); }
+.ms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.85rem; margin-top: 1rem; }
+.ms-opt { display: flex; flex-direction: column; gap: 0.25rem; padding: 1.1rem 1.15rem 1.25rem; border-radius: 16px; border: 1.5px solid rgba(42,33,48,0.12); background: #fff; cursor: pointer; text-align: left; transition: border-color 0.25s var(--ease), transform 0.25s var(--ease), box-shadow 0.25s var(--ease); }
+.ms-opt:hover { transform: translateY(-3px); border-color: var(--gold-soft); box-shadow: 0 14px 30px -18px rgba(42,33,48,0.4); }
+.ms-opt--on { border-color: var(--gold); box-shadow: 0 12px 28px -16px rgba(198,161,90,0.7); }
+.ms-opt__glyph { font-size: 1.15rem; }
+.ms-opt__name { font-family: var(--font-display); font-size: 1.12rem; color: var(--ink); line-height: 1.2; }
+.ms-opt__price { font-weight: 700; color: var(--gold-deep); font-size: 0.95rem; }
+.ms-opt__note { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+.ms-opt--free { background: linear-gradient(160deg, #f4f0fa, #fff); border-color: var(--lavender-soft, #d8c9ee); }
+.ms-opt--lifetime { background: linear-gradient(160deg, #fbf5e9, #fff); }
+
+.ms-checkout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.5rem; margin-top: 1.5rem; background: #fff; border: 1.5px solid var(--gold-soft); border-radius: 20px; padding: 1.75rem; box-shadow: 0 20px 46px -28px rgba(42,33,48,0.4); }
+@media (max-width: 760px) { .ms-checkout { grid-template-columns: 1fr; } }
+.ms-checkout__title { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); margin: 0 0 0.5rem; }
+.ms-checkout__lead { color: var(--muted); font-size: 0.92rem; line-height: 1.6; margin: 0 0 1rem; }
+.ms-checkout__feats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 1rem; }
+.ms-checkout__feats li { font-size: 0.85rem; color: var(--ink); padding-left: 1.1rem; position: relative; }
+.ms-checkout__feats li::before { content: "✓"; position: absolute; left: 0; color: var(--gold-deep); font-weight: 700; }
+.ms-checkout__pay { background: var(--cream); border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; }
+.ms-checkout__row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--ink); padding: 0.35rem 0; }
+.ms-checkout__row--total { border-top: 1px solid rgba(42,33,48,0.12); margin-top: 0.25rem; padding-top: 0.6rem; align-items: baseline; }
+.ms-checkout__row--total strong { font-family: var(--font-display); font-size: 1.7rem; color: var(--gold-deep); }
+.ms-checkout__tos { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.82rem; color: var(--muted); line-height: 1.5; margin: 0.9rem 0; }
+.ms-checkout__tos input { margin-top: 0.15rem; }
+.ms-checkout__tos strong { color: var(--ink); }
+.ms-checkout__cta { width: 100%; text-align: center; }
+.ms-checkout__cta[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.ms-checkout__fine { font-size: 0.72rem; color: var(--muted); font-style: italic; line-height: 1.45; margin: 0.6rem 0 0; }

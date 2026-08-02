@@ -17,6 +17,9 @@ export default function SiteFooter() {
         </div>
         <nav className="site-footer__links" aria-label="Footer">
           <Link href="/create">Create an experience</Link>
+          <Link href="/membership">Build membership</Link>
+          <Link href="/journey/wedding">Wedding Journey</Link>
+          <Link href="/journey/new-home">Build a Home</Link>
           <Link href="/pricing">Pricing</Link>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/#how">How it works</Link>

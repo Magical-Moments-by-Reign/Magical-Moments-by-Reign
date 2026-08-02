@@ -75,32 +75,72 @@ export const PRICING_CONFIG = {
   journeyProtection: { monthly: 2.99, annual: 29.99 },
 };
 
-// ── Membership options (billing cadence) ────────────────────────
+// ── Membership options (the account-entry selection) ────────────
+// Every account BEGINS by selecting one of these. There is no guest /
+// anonymous membership — everyone (including Free Forever) completes a
+// checkout to create their account and accept the Terms & Privacy Policy.
+export type MembershipTierId =
+  | "free" | "monthly" | "annual" | "5yr" | "10yr" | "legacy" | "reign" | "magical";
+
 export interface MembershipOption {
-  id: "monthly" | "annual" | "5yr" | "10yr" | "lifetime";
-  label: string;
+  id: MembershipTierId;
+  name: string;
+  glyph: string; // small accent (Founder's canonical marker)
+  price: number | null; // 0 = free, null = built from Occasions × term, else fixed
+  priceLabel: string;
+  tier: "free" | "paid" | "lifetime";
   note: string;
 }
+
 export const MEMBERSHIP_OPTIONS: MembershipOption[] = [
+  { id: "free", name: "Free Forever Magical Moments", glyph: "🩶", price: 0, priceLabel: "$0.00", tier: "free", note: "Our gift to every family. Begin organizing and preserving today." },
+  { id: "monthly", name: "Monthly Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "Pay month to month. Upgrade anytime." },
+  { id: "annual", name: "Annual Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "Pay yearly. Upgrade anytime." },
+  { id: "5yr", name: "5-Year Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "One term for five years." },
+  { id: "10yr", name: "10-Year Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "One term for ten years." },
+  { id: "legacy", name: "Lifetime Legacy", glyph: "👑", price: 2499, priceLabel: formatUSD(2499), tier: "lifetime", note: "Up to 5 Lifetime Occasions." },
+  { id: "reign", name: "Lifetime Reign", glyph: "👑", price: 4999, priceLabel: formatUSD(4999), tier: "lifetime", note: "Up to 10 Lifetime Occasions." },
+  { id: "magical", name: "Lifetime Magical Moments", glyph: "✨", price: 9999, priceLabel: formatUSD(9999), tier: "lifetime", note: "Every current + future Occasion, plus 1 Custom Journey." },
+];
+
+// Billing cadences a paid membership can be charged on.
+export const BILLING_CADENCES = [
   { id: "monthly", label: "Monthly", note: "Pay month to month. Upgrade anytime." },
   { id: "annual", label: "Annual", note: "Pay yearly. Upgrade anytime." },
   { id: "5yr", label: "5 Years", note: "One payment for five years." },
   { id: "10yr", label: "10 Years", note: "One payment for ten years." },
   { id: "lifetime", label: "Lifetime", note: "One payment. The best long-term value." },
-];
+] as const;
 
-// ── Free Forever (always included) ──────────────────────────────
+// ── Free Forever (required account · always included) ────────────
+// The account, Family Vault, and dashboard are created at $0.00. Every
+// paid membership also includes these; cancel a paid membership and the
+// account automatically returns to Free Forever — nothing is deleted.
 export const FREE_FOREVER = {
-  name: "Free Forever",
+  name: "Free Forever Magical Moments",
+  price: 0,
+  priceLabel: "$0.00",
   promise:
-    "Every customer receives Free Forever. Every paid membership includes it too. " +
-    "Cancel a paid membership and you return to Free Forever — your account is never " +
-    "deleted simply because you cancel.",
+    "Every family deserves a home inside Magical Moments. Free Forever ensures " +
+    "everyone can begin organizing and preserving life's important moments — whether " +
+    "they upgrade today or not. Your account is never deleted simply because you cancel.",
   features: [
-    "Your account & timeline, kept safe",
-    "View your existing memories anytime",
-    "Download your own photos, videos & documents",
-    "Core sharing with loved ones",
+    "Family Dashboard",
+    "Family Vault (Basic)",
+    "Family Calendar",
+    "Grocery Lists",
+    "Doctor Appointment Tracker",
+    "Medical Timeline (Basic)",
+    "School Center (Basic)",
+    "Emergency Contacts",
+    "Family Profiles",
+    "Voice Notes",
+    "AI Reminders (Basic)",
+    "One Basic Journey",
+    "Limited Photo Storage",
+    "Limited Document Storage",
+    "Basic Message Center",
+    "Basic Sharing",
   ],
 };
 

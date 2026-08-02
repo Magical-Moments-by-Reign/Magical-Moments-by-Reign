@@ -99,11 +99,36 @@ for **1, 2, or 3 months** — their choice, no documentation, no explanation.
 
 *(™ appears in customer-facing UI only once the trademark process completes.)*
 
-## Free Forever
+## Required account · every family starts here
 
-Every customer receives **Free Forever**. Every paid membership also includes
-Free Forever benefits. If a customer cancels a paid membership they **return to
-Free Forever — the account is never deleted simply because they cancel.**
+Every person must create a Magical Moments account — **there is no guest /
+anonymous membership.** Every account **begins by selecting a membership
+option**, and **everyone completes checkout**, including Free Forever members
+(their total is **$0.00**). Checkout creates the account, Family Vault, and
+dashboard, and records acceptance of the **Terms of Service** and **Privacy
+Policy**. Paid memberships follow the same checkout with the applicable charges.
+
+**Membership options (the account-entry selection):** Free Forever · Monthly ·
+Annual · 5-Year · 10-Year · Lifetime Legacy · Lifetime Reign · Lifetime Magical
+Moments.
+
+## Free Forever Magical Moments
+
+Every customer may begin with **Free Forever** — our gift to every family — and
+it is **always included** in every paid membership too. Free Forever includes:
+Family Dashboard · Family Vault (Basic) · Family Calendar · Grocery Lists ·
+Doctor Appointment Tracker · Medical Timeline (Basic) · School Center (Basic) ·
+Emergency Contacts · Family Profiles · Voice Notes · AI Reminders (Basic) · One
+Basic Journey · Limited Photo & Document Storage · Basic Message Center · Basic
+Sharing.
+
+**Upgrading** (any time): no information is lost, no memories deleted, no account
+recreated — premium features simply unlock after payment.
+
+**Downgrading / cancellation:** a cancelled paid membership **automatically
+returns to Free Forever.** The customer keeps their account, Family Vault, core
+memories, and basic features; premium website features become inactive until
+they upgrade again. **The account is never deleted simply because they cancel.**
 
 ---
 
