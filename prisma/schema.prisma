@@ -522,6 +522,10 @@ model TrustedContact {
   phone        String?
   email        String?
   accessLevel  String   @default("emergency") // full | medical | emergency | documents | legal
+  // Legacy Transfer™ (Lifetime benefit): a designated Legacy Guardian who
+  // may assume ownership after a verified continuity process. Being listed
+  // grants NO access by itself.
+  guardianRole String   @default("none") // none | primary | secondary
   createdAt    DateTime @default(now())
 
   @@index([familyId])

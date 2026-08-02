@@ -30,6 +30,20 @@ export const ACCESS_LEVELS = [
   { id: "legal", label: "Legal folder only" },
 ] as const;
 
+// Legacy Transfer™ — Legacy Guardian designation (Lifetime benefit).
+// Being listed grants NO access by itself; ownership transfers only after
+// a verified continuity process (later phase).
+export const GUARDIAN_ROLES = [
+  { id: "none", label: "Not a Legacy Guardian" },
+  { id: "primary", label: "Primary Legacy Guardian" },
+  { id: "secondary", label: "Secondary Legacy Guardian" },
+] as const;
+
+export const GUARDIAN_LABEL: Record<string, string> = {
+  primary: "Primary Legacy Guardian",
+  secondary: "Secondary Legacy Guardian",
+};
+
 /** The current user's family vault, created on first use. */
 export async function getCurrentFamily() {
   const ownerId = await getCurrentUserId();
@@ -113,7 +127,7 @@ export async function deleteDocument(id: string) {
   await prisma.familyDocument.deleteMany({ where: { id, familyId: family.id } });
 }
 
-export async function addContact(input: { name: string; relationship?: string; phone?: string; email?: string; accessLevel?: string }) {
+export async function addContact(input: { name: string; relationship?: string; phone?: string; email?: string; accessLevel?: string; guardianRole?: string }) {
   const family = await getCurrentFamily();
   return prisma.trustedContact.create({
     data: {
@@ -123,8 +137,15 @@ export async function addContact(input: { name: string; relationship?: string; p
       phone: clean(input.phone),
       email: clean(input.email),
       accessLevel: input.accessLevel || "emergency",
+      guardianRole: input.guardianRole || "none",
     },
   });
+}
+
+/** Designated Legacy Guardians (primary first). */
+export function legacyGuardians<T extends { guardianRole: string }>(contacts: T[]): T[] {
+  const rank = (r: string) => (r === "primary" ? 0 : r === "secondary" ? 1 : 2);
+  return contacts.filter((c) => c.guardianRole && c.guardianRole !== "none").sort((a, b) => rank(a.guardianRole) - rank(b.guardianRole));
 }
 
 export async function deleteContact(id: string) {

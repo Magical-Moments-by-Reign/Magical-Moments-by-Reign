@@ -56,6 +56,7 @@ export async function addContactAction(fd: FormData): Promise<void> {
   await addContact({
     name: s(fd, "name"), relationship: s(fd, "relationship"),
     phone: s(fd, "phone"), email: s(fd, "email"), accessLevel: s(fd, "accessLevel"),
+    guardianRole: s(fd, "guardianRole"),
   });
   revalidatePath(VAULT);
 }

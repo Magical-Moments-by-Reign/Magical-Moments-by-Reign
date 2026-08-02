@@ -80,3 +80,10 @@
 .fv-linkbtn--danger { color: #9a3b3b; }
 
 @media (max-width: 620px) { .fv-grid { grid-template-columns: 1fr; } }
+
+/* Legacy Transfer™ */
+.fv-guardbadge { display: inline-block; margin-left: 0.4rem; font-size: 0.68rem; font-weight: 700; color: var(--gold-deep); background: rgba(198,161,90,0.16); border-radius: 999px; padding: 0.08rem 0.5rem; vertical-align: middle; }
+.fv-legacy__prompt { background: rgba(198,161,90,0.12); border: 1px dashed var(--gold-soft); border-radius: 12px; padding: 0.7rem 0.95rem; color: #6a5326; font-size: 0.9rem; margin: 0.5rem 0; }
+.fv-guardians { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
+.fv-guardian { background: #fff; border: 1px solid var(--gray-200); border-left: 4px solid var(--gold); border-radius: 12px; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.fv-guardian__role { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-deep); }

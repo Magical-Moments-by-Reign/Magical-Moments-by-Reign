@@ -46,7 +46,7 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[New Home Journey](./design-bible/JOURNEY-new-home.md)** — homeowner experience.
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
 - **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(pricing-model decision resolved by the [Pricing Engine](./design-bible/STANDARD-pricing-engine.md); recurring + Free Forever approved).*
-- **[Legacy Guardian™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & transfer.
+- **[Legacy Guardian™ / Legacy Transfer™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & the Lifetime ownership-transfer benefit. *Phase A built (designate guardians in the Vault).*
 
 Companion operational docs: `docs/COMMERCE.md`, `docs/DOMAINS.md`,
 `docs/CUSTOM_WEBSITES.md`, `docs/SOCIAL_STUDIO.md`, `DEPLOY.md`.

@@ -1,11 +1,41 @@
 # Master Design Bible — Account Continuity & Transfer
-## Legacy Guardian™
+## Legacy Guardian™ & Legacy Transfer™
 
-**Status:** Documented — pending Founder approval to build.
+**Status:** **Phase A built** — Legacy Guardians can be designated in the Family
+Vault (Primary / Secondary; data only, **no access by itself**). The verified
+ownership-transfer workflow (Legacy Transfer™) is documented and gated.
 **Needs:** multi-user accounts/auth, a secure verification workflow, and
 (for transfer) ownership-reassignment across the Family Vault + Journeys.
 Subordinate to Book I. (™ shown per the Founder's canonical text; use in UI
 only once the trademark process is complete.)
+
+---
+
+## Legacy Transfer™ (Lifetime Membership benefit)
+
+Lifetime Memberships are **fully transferable** — a lasting family asset, not
+just a subscription. If a Lifetime Member passes away or becomes permanently
+unable to manage their account, ownership may transfer to their designated
+**Legacy Guardian.**
+
+- **Every Lifetime Member must designate at least one (1) Legacy Guardian** at
+  setup, and may add backups (Primary Legacy Guardian · Secondary Legacy
+  Guardian · Emergency Contact). *(Built: Family Vault → Trusted Contacts now
+  carries a Legacy Guardian role; the Legacy Transfer card prompts for a Primary
+  when none exists.)*
+- **A Legacy Guardian may** (after transfer): assume ownership of the Lifetime
+  Membership · continue preserving family memories · manage Family Vault
+  documents · continue active Life Journeys · download memories · invite family
+  members · manage connected subscriptions.
+- **Lifetime value:** a Lifetime Membership is **not lost** when ownership
+  transfers — it is preserved across generations.
+- **Recurring memberships are NOT transferable.** If the owner passes or is
+  incapacitated, the Legacy Guardian may request cancellation or account
+  assistance; ownership does not transfer unless the plan was upgraded to
+  Lifetime before transfer eligibility.
+- **Verification:** transfer requests go through reasonable verification to
+  protect the account and ensure ownership is transferred appropriately (never
+  automatic).
 
 Every account may designate one or more trusted **Legacy Guardians** to help
 ensure a family's memories and important information remain protected if the

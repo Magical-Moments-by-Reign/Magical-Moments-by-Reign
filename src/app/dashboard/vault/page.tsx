@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteNav from "@/components/site/SiteNav";
-import { getFamilyBundle, expiringSoon, MEMBER_KINDS, DOC_CATEGORIES, ACCESS_LEVELS } from "@/lib/family";
+import { getFamilyBundle, expiringSoon, legacyGuardians, MEMBER_KINDS, DOC_CATEGORIES, ACCESS_LEVELS, GUARDIAN_ROLES, GUARDIAN_LABEL } from "@/lib/family";
 import { getExperienceType } from "@/lib/experience-types";
 import {
   renameFamilyAction, saveMemberAction, deleteMemberAction,
@@ -26,6 +26,8 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
   const editing = edit ? members.find((m) => m.id === edit) : undefined;
   const expiring = expiringSoon(documents, new Date());
   const emergencyMembers = members.filter((m) => m.allergies || m.medications || m.conditions || m.bloodType || m.emergencyPhone);
+  const guardians = legacyGuardians(contacts);
+  const hasPrimaryGuardian = guardians.some((g) => g.guardianRole === "primary");
 
   return (
     <div className="fv">
@@ -179,6 +181,9 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
                 <div className="fv-contact" key={c.id}>
                   <div>
                     <b>{c.name}</b> {c.relationship && <span className="fv-muted">· {c.relationship}</span>}
+                    {c.guardianRole && c.guardianRole !== "none" && (
+                      <span className="fv-guardbadge">🛡 {GUARDIAN_LABEL[c.guardianRole]}</span>
+                    )}
                     <div className="fv-contact__meta">{[c.phone, c.email].filter(Boolean).join(" · ")}</div>
                     <span className="fv-contact__access">{ACCESS_LABEL[c.accessLevel] ?? c.accessLevel}</span>
                   </div>
@@ -197,9 +202,37 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
               <label><span>Access level</span>
                 <select name="accessLevel" defaultValue="emergency">{ACCESS_LEVELS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select>
               </label>
+              <label><span>Legacy Guardian</span>
+                <select name="guardianRole" defaultValue="none">{GUARDIAN_ROLES.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}</select>
+              </label>
               <div className="fv-grid__full"><button type="submit" className="btn-gold">Add contact</button></div>
             </form>
           </details>
+        </section>
+
+        {/* Legacy Transfer™ */}
+        <section className="fv-section fv-legacy">
+          <h2>🛡 Legacy Transfer</h2>
+          <p className="fv-muted">A Lifetime Membership is more than a subscription — it&apos;s a lasting family asset. Designate a <strong>Legacy Guardian</strong> who can assume ownership and keep preserving your family&apos;s memories if you ever can&apos;t. Being listed grants no access on its own; ownership transfers only after a secure, verified process.</p>
+          {guardians.length === 0 ? (
+            <p className="fv-legacy__prompt">No Legacy Guardian yet. Lifetime Memberships require at least one — add a Trusted Contact above and set their role to <strong>Primary Legacy Guardian</strong>.</p>
+          ) : (
+            <>
+              <div className="fv-guardians">
+                {guardians.map((g) => (
+                  <div className="fv-guardian" key={g.id}>
+                    <span className="fv-guardian__role">{GUARDIAN_LABEL[g.guardianRole]}</span>
+                    <b>{g.name}</b>
+                    <span className="fv-muted">{[g.relationship, g.phone, g.email].filter(Boolean).join(" · ")}</span>
+                  </div>
+                ))}
+              </div>
+              {!hasPrimaryGuardian && (
+                <p className="fv-legacy__prompt">Tip: designate a <strong>Primary</strong> Legacy Guardian so ownership has a clear first successor.</p>
+              )}
+            </>
+          )}
+          <p className="fv-fine">Recurring memberships aren&apos;t transferable (a guardian may request cancellation or assistance); a Lifetime Membership passes to your guardian intact. Verified ownership transfer unlocks with secure accounts &amp; a review process.</p>
         </section>
 
         {/* Connected journeys */}
