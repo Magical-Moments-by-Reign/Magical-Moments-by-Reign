@@ -8,4 +8,6 @@ export const STORY_PHOTOS: Record<string, string> = {
   graduation: "/story/graduation.jpg",
   anniversary: "/story/anniversary.jpg",
   proposal: "/story/proposal.jpg",
+  vacation: "/story/vacation.jpg",
+  newhome: "/story/newhome.jpg",
 };
