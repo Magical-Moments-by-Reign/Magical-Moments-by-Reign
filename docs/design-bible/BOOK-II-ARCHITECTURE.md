@@ -44,7 +44,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Wedding Journey planner (welcome → roadmap → checklist → budget) | Built (first slice) |
 | AI Roadmap / concierge planner (other journeys) | In progress |
 | Reminders / scheduled nudges | Planned · needs scheduler |
-| Gifts & Registries (global standard) | **Built** (first slice) — see [standard](./STANDARD-gifts-registries.md) |
+| Gifts & Registries (global standard) | **Built** (expanded — registry links, cash handles, individual gift items, charitable giving, occasion-specific wording on every experience type) · Square payments / guest reserve / thank-you tracker / notifications phased — see [standard](./STANDARD-gifts-registries.md) |
 | Live Video Calls + Messaging (global) | Documented · needs video/SMS providers — see [standard](./STANDARD-communication.md) |
 | Baby Journey (pregnancy companion) | Documented · phased — see [journey](./JOURNEY-baby.md) |
 | New Home Journey (homeowner experience) | Documented · phased — see [journey](./JOURNEY-new-home.md) |
@@ -52,6 +52,8 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | **Purchase Concierge™** (new core platform) | **Built** (first slice — Purchase Center, Smart Order Tracking, wishlists, delivery reminders) · price compare/payments/in-app returns need merchant partners — see [standard](./STANDARD-purchase-concierge.md) |
 | **App-First Architecture** (web · PWA · native) | **PWA installable** (manifest, service worker, offline, icons) · one backend/one DB confirmed · mobile Today Dashboard next — see [standard](./STANDARD-app-architecture.md) |
 | Voice Notes & AI Transcription (global) | Documented · needs speech-to-text — see [standard](./STANDARD-voice-notes.md) |
+| Digital Invitations & Event Management (RSVP, from real photos) | Documented · phased · needs auth + storage + notifications + AI — see [standard](./STANDARD-invitations.md) |
+| **Magical AI (Ask Magical)** — floating concierge | **Built** (site-wide widget, Qwen-backed via OpenAI-compatible endpoint) · needs `QWEN_API_KEY` to go live; graceful offline reply — see [standard](./STANDARD-magical-ai.md) |
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
 | **Pricing Engine v1.0** (build-your-own membership) | **Built** (engine + Build-Your-Membership + Free Forever entry; Monthly term, 3/8/15 Lifetime recommendations, price ceiling) · amounts placeholder except Lifetime Collections · needs auth + Square for real checkout — see [standard](./STANDARD-pricing-engine.md) |
 | **Admin Specials & Promotions Center** | **Built** (first slice — create/schedule/pause/end, Lifetime Value Protection, audit log) · analytics/email/SMS/test-preview phased — see [standard](./STANDARD-admin-specials.md) |
@@ -59,6 +61,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Journey Experience (immersive per-Occasion tour) | **Built** (first slice — every Occasion: hero, AI welcome, timeline, sample, FAQ, pricing, 3-option CTA) · marketplace/AI Q&A phased — see [standard](./STANDARD-journey-experience.md) |
 | **Magical Journey Preview™** (5-day premium trial) | **Built** (choice + transparent terms/checkout screen: picker, price, dates, limits, reminders) · real start needs auth + payment capture + billing scheduler — see [standard](./STANDARD-journey-preview.md) |
 | **Housing Hub** (renames Home/New Home Journey) | **Built** (entry — 9 pathways + Build-a-Custom-Home live) · pathways/tools need data + auth + storage — see [Housing Hub](./HOUSING-HUB.md) |
+| Sports Journey (athlete platform) | **Preview content built** (athlete-focused Preview Mode page) · full platform (game center, resume, recruiting, scholarships, NIL, coach portal) phased · needs auth + storage + AI — see [journey](./JOURNEY-sports.md) |
 | New Home → Build-a-Home (Housing Hub pathway) | **Built** (first slice — intake → roadmap + 28-stage timeline) · data centers (floor plans, budget, build team) need auth + storage — see [journey](./JOURNEY-new-home.md) |
 | Journey Protection™ (pause add-on) | Documented · pricing-model **resolved** (recurring + Free Forever approved) · needs billing/auth — see [standard](./STANDARD-journey-protection.md) |
 | Legacy Guardian™ / Legacy Transfer™ (Lifetime benefit) | **Phase A built** (designate Primary/Secondary guardians in the Vault — data only) · verified ownership transfer needs auth + review — see [standard](./STANDARD-legacy-guardian.md) |
@@ -67,6 +70,17 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Accounts / auth + role-based family access | Planned |
 
 ---
+
+## The Life Journey Standard (Volume II)
+
+Every Life Journey must contain the **20 standard sections** defined in
+[Volume II — The Life Journey Standard](./STANDARD-life-journey.md) (hero,
+overview, roadmap, smart checklist, calendar, Magical AI, document vault,
+gallery, voice notes, Purchase Concierge, marketplace, messaging, video calls,
+sharing, registry & cash gifts, notifications, settings, final memory book,
+celebration screen, Founder standard). That document holds the live per-section
+compliance map and the foundation-first path to full compliance. No Journey is
+submitted for Founder approval until all twenty are complete.
 
 ## Journey modules (per Founder specs)
 

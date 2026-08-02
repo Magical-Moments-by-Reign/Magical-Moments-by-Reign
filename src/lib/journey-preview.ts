@@ -28,6 +28,46 @@ export interface JourneyPreview {
   marketplace: string[];
 }
 
+// A short "duration" line for the Explore Journeys cards + preview.
+const DURATION: Record<string, string> = {
+  wedding: "A 12-month guided plan", proposal: "From plan to the big moment",
+  baby: "Pregnancy through the first year", babyshower: "Plan the celebration",
+  genderreveal: "Plan the big reveal", birthday: "Plan in a few weeks",
+  firstbirthday: "The whole first year", sweet16: "Plan the big night",
+  quinceanera: "Plan the celebration", graduation: "The whole senior year",
+  anniversary: "Celebrate the years", newhome: "Blueprint to move-in day",
+  vacation: "From first idea to home again", reunion: "Plan the gathering",
+  military: "Countdown to reunion", memorial: "A lasting tribute",
+  retirement: "The next chapter", sports: "Every season", prom: "Plan the night",
+  bridalshower: "Plan the celebration", custom: "A guided journey, your way",
+};
+
+export function journeyDuration(typeId: string): string {
+  return DURATION[typeId] ?? "A guided journey";
+}
+
+// "Continue Your Story" — the natural next chapters for each Journey.
+const RELATED: Record<string, string[]> = {
+  proposal: ["wedding", "anniversary", "newhome"],
+  wedding: ["baby", "newhome", "anniversary"],
+  baby: ["firstbirthday", "birthday", "graduation"],
+  firstbirthday: ["birthday", "graduation", "sweet16"],
+  birthday: ["sweet16", "graduation", "vacation"],
+  sweet16: ["graduation", "birthday", "vacation"],
+  graduation: ["wedding", "newhome", "vacation"],
+  anniversary: ["vacation", "retirement", "newhome"],
+  newhome: ["baby", "anniversary", "reunion"],
+  vacation: ["anniversary", "reunion", "retirement"],
+  reunion: ["vacation", "retirement", "memorial"],
+  retirement: ["vacation", "anniversary", "reunion"],
+  military: ["newhome", "wedding", "reunion"],
+  memorial: ["reunion", "anniversary", "retirement"],
+};
+
+export function relatedJourneys(typeId: string): string[] {
+  return RELATED[typeId] ?? ["wedding", "baby", "vacation"];
+}
+
 // Seeded demo experiences customers can explore as a real sample website.
 const SAMPLE_SLUG: Record<string, string> = {
   wedding: "smithwedding",
@@ -130,6 +170,41 @@ const FLAVOR: Record<string, Flavor> = {
     aiWelcome: "Welcome to the Proposal Journey. Let me show you how we help you plan — and preserve — the moment everything changes.",
     overview: "The question, the yes, the happy tears — planned beautifully and captured the way it deserves to be, ready to flow right into your Wedding Journey.",
     marketplace: ["Jewelers", "Photographers", "Videographers", "Event planners", "Florists"],
+  },
+  sports: {
+    aiWelcome: "Welcome to the Sports Journey. I'm Magical AI — your recruiting & planning companion. I'll help you preserve every season and navigate the road from youth sports to college and beyond. (Recruiting & NIL guidance is educational only.)",
+    overview: "Not just a photo gallery — one living Journey for the athlete that grows every season, from first practice through college, the pros, coaching, and beyond. Every game, award, stat, and milestone becomes part of a permanent Legacy Timeline.",
+    included: [
+      "Athlete profile & pro-style dashboard",
+      "Game Center — a page for every game & season",
+      "Highlight Reel Builder (your uploads stay untouched)",
+      "Auto-built Athletic Resume (export to PDF)",
+      "Recruitment Center — plain-language education & checklists",
+      "College Visit Planner & side-by-side compare",
+      "Scholarship Hub with deadline reminders",
+      "NIL Education Center (educational only)",
+      "Coach Portal (parent-controlled permissions)",
+      "Parent Dashboard — schedules, travel, forms & expenses",
+      "Teammate connections & guestbook",
+      "A permanent athletic Legacy Timeline",
+    ],
+    timeline: [
+      { when: "Youth sports", what: "Start the profile — first teams & first memories" },
+      { when: "Each season", what: "Game Center: stats, film, photos & awards" },
+      { when: "Recruiting years", what: "Athletic resume, highlight reel & readiness" },
+      { when: "College search", what: "Visits, offers, scholarships & NIL education" },
+      { when: "Signing Day", what: "Celebrate the commitment" },
+      { when: "College & beyond", what: "College stats, graduation, pro & coaching" },
+    ],
+    faq: [
+      { q: "Does this guarantee recruitment or a scholarship?", a: "No. We help you organize, prepare, and present your athlete's story with checklists and education — but we never guarantee recruitment or scholarships." },
+      { q: "Is the recruiting and NIL information advice?", a: "It's educational only — plain-language guidance and checklists, not legal, tax, or financial advice. We encourage consulting the appropriate licensed professional." },
+      { q: "Can coaches contribute?", a: "Yes — invited coaches can verify stats, upload film, and write recommendations. Parents control coach permissions." },
+      { q: "What happens to my game film and photos?", a: "Your original uploads are never altered. Magical AI can help assemble highlight reels while the originals stay untouched." },
+      { q: "Can I export an athletic resume?", a: "Yes — a professional athlete resume builds automatically and exports to PDF." },
+      { q: "Does the Journey end after high school?", a: "Never. It continues through college, the pros, and coaching — one permanent Legacy Timeline." },
+    ],
+    marketplace: ["Showcases & camps", "Recruiting services", "Highlight-video editors", "Sports photographers", "Trainers & coaches", "Equipment", "ACT/SAT test prep", "Sports medicine"],
   },
 };
 

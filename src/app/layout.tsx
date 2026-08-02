@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Providers from "@/components/cart/Providers";
 import RegisterSW from "@/components/pwa/RegisterSW";
+import AskMagical from "@/components/ai/AskMagical";
 import "./globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>{children}</Providers>
+        <AskMagical />
         <RegisterSW />
       </body>
     </html>

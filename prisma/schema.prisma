@@ -444,6 +444,8 @@ model GiftSettings {
   mode         String     @default("none") // none | registry | cash | both | later
   registries   String     @default("[]")   // JSON [{ label, url }]
   cashMethods  String     @default("[]")   // JSON [{ platform, handle }]
+  items        String     @default("[]")   // JSON gift items [{ id, name, price, store, url, ... }]
+  charity      String?    // JSON charity { name, url, cause, goal, raised, ... } or null
   message      String?
   visibility   String     @default("everyone") // everyone | invited | family | hidden
   createdAt    DateTime   @default(now())

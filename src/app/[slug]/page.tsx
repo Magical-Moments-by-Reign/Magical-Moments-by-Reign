@@ -29,7 +29,7 @@ export default async function ExperiencePage({ params }: Params) {
   if (!exp) notFound();
 
   const gifts = await getGiftData(exp.id);
-  const giftBlock = showsPublicly(gifts) ? <GiftsSection gifts={gifts!} /> : null;
+  const giftBlock = showsPublicly(gifts) ? <GiftsSection gifts={gifts!} type={exp.type} /> : null;
 
   return (
     <>

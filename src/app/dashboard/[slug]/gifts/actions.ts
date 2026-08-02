@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { upsertGiftData, type Registry, type CashMethod } from "@/lib/gifts";
+import { upsertGiftData, type Registry, type CashMethod, type GiftItem, type Charity } from "@/lib/gifts";
 
 export async function saveGiftsAction(formData: FormData): Promise<void> {
   const slug = String(formData.get("slug") || "");
@@ -15,9 +15,17 @@ export async function saveGiftsAction(formData: FormData): Promise<void> {
   try { registries = JSON.parse(String(formData.get("registries") || "[]")); } catch { /* ignore */ }
   try { cashMethods = JSON.parse(String(formData.get("cashMethods") || "[]")); } catch { /* ignore */ }
 
+  let items: GiftItem[] = [];
+  let charity: Charity | null = null;
+  try { items = JSON.parse(String(formData.get("items") || "[]")); } catch { /* ignore */ }
+  const charityRaw = String(formData.get("charity") || "");
+  if (charityRaw) { try { charity = JSON.parse(charityRaw); } catch { /* ignore */ } }
+
   // Keep only complete entries.
   registries = registries.filter((r) => r && r.url && r.url.trim()).map((r) => ({ label: (r.label || "Registry").trim(), url: r.url.trim() }));
   cashMethods = cashMethods.filter((m) => m && m.handle && m.handle.trim()).map((m) => ({ platform: m.platform, handle: m.handle.trim() }));
+  items = items.filter((i) => i && i.name && i.name.trim());
+  if (charity && !charity.name?.trim()) charity = null;
 
   const mode = String(formData.get("mode") || "none") as "none" | "registry" | "cash" | "both" | "later";
   const enabled = formData.get("enabled") === "on";
@@ -27,6 +35,8 @@ export async function saveGiftsAction(formData: FormData): Promise<void> {
     enabled,
     registries,
     cashMethods,
+    items,
+    charity,
     message: String(formData.get("message") || "").trim() || undefined,
     visibility: String(formData.get("visibility") || "everyone") as "everyone" | "invited" | "family" | "hidden",
   });

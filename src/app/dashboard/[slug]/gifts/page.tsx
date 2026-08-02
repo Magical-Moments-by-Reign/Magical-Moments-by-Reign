@@ -23,7 +23,7 @@ export default async function GiftsAdminPage({
   if (!exp) notFound();
 
   const initial = (await getGiftData(exp.id)) ?? {
-    enabled: true, mode: "both" as const, registries: [], cashMethods: [], message: "", visibility: "everyone" as const,
+    enabled: true, mode: "both" as const, registries: [], cashMethods: [], items: [], charity: null, message: "", visibility: "everyone" as const,
   };
 
   return (

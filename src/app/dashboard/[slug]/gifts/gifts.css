@@ -38,3 +38,11 @@
   .ge-row { grid-template-columns: 1fr; }
   .ge-cashrow { grid-template-columns: 90px 1fr; }
 }
+
+/* Gift items + charity (editor) */
+.ge-item { border: 1px solid rgba(42,33,48,0.14); border-radius: 12px; padding: 0.85rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.ge-item__row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.ge-item__row input, .ge-item__row select { flex: 1; min-width: 120px; padding: 0.55rem 0.65rem; border-radius: 8px; border: 1.5px solid rgba(42,33,48,0.16); font: inherit; }
+.ge-itemcheck { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; white-space: nowrap; }
+.ge-charity { display: flex; flex-direction: column; gap: 0.5rem; }
+.ge-charity > input { padding: 0.6rem 0.7rem; border-radius: 8px; border: 1.5px solid rgba(42,33,48,0.16); font: inherit; }

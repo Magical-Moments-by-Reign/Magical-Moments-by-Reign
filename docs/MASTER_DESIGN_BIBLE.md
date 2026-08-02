@@ -15,6 +15,9 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Book II — Architecture & Build Status](./design-bible/BOOK-II-ARCHITECTURE.md)**
   — the living technical record and phased roadmap, subordinate to Book I and
   submitted for Founder review and acceptance.
+- **[Volume II — The Life Journey Standard](./design-bible/STANDARD-life-journey.md)**
+  — *Founder Approved.* The 20 sections **every** Life Journey must contain, with
+  a live compliance map. No Journey ships until all twenty are complete.
 
 ## Global standards & journeys (documented; build on Founder approval)
 
@@ -34,6 +37,13 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Housing Hub](./design-bible/HOUSING-HUB.md)** — *Founder Approved · replaces
   the Home/New Home Journey.* The complete housing ecosystem (9 pathways +
   shared tools). *Entry + Build-a-Custom-Home built; rest phased.*
+- **[Digital Invitations & Event Management](./design-bible/STANDARD-invitations.md)** —
+  *Founder Approved · phased.* Built-in invitations + RSVP for every event,
+  built from the customer's **real photos** (never replace people). *Needs
+  auth/storage/notifications/AI.*
+- **[Magical AI (Ask Magical)](./design-bible/STANDARD-magical-ai.md)** —
+  *Founder Approved.* Floating site-wide AI concierge, Qwen-backed. *Built —
+  needs `QWEN_API_KEY` to go live.*
 - **[Admin Specials & Promotions](./design-bible/STANDARD-admin-specials.md)** —
   *Founder Approved.* Run promotions without code, with unbreakable Lifetime
   Value Protection + audit log. *Built (first slice).*
@@ -50,6 +60,9 @@ Bible governs — notify the Founder to confirm direction before continuing.
 - **[Voice Notes & AI Transcription](./design-bible/STANDARD-voice-notes.md)**
 - **[Baby Journey](./design-bible/JOURNEY-baby.md)** — pregnancy companion.
 - **[New Home Journey](./design-bible/JOURNEY-new-home.md)** — homeowner experience.
+- **[Sports Journey](./design-bible/JOURNEY-sports.md)** — *Founder Approved · phased.*
+  The complete athlete platform (profile, game center, recruiting, scholarships,
+  NIL education, resume) — educational only, never guarantees. *Preview content built.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
 - **[Journey Protection™](./design-bible/STANDARD-journey-protection.md)** — pause add-on *(pricing-model decision resolved by the [Pricing Engine](./design-bible/STANDARD-pricing-engine.md); recurring + Free Forever approved).*
 - **[Legacy Guardian™ / Legacy Transfer™](./design-bible/STANDARD-legacy-guardian.md)** — account continuity & the Lifetime ownership-transfer benefit. *Phase A built (designate guardians in the Vault).*
