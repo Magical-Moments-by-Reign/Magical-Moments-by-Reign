@@ -53,6 +53,8 @@ export const PLANS: Plan[] = [
     features: [
       "One Magical Moment experience",
       "Magical Moments by Reign page address",
+      "1 AI-generated video included",
+      "Up to 3 family contributors",
       "Photo gallery",
       "Video uploads",
       "Guest messages",
@@ -88,6 +90,8 @@ export const PLANS: Plan[] = [
     inheritsFrom: "silver",
     features: [
       "Five years of Memory Preservation",
+      "3 AI-generated videos included",
+      "Up to 8 family contributors",
       "More photo & video storage",
       "Unlimited page updates during the term",
       "Multiple story chapters",
@@ -125,9 +129,10 @@ export const PLANS: Plan[] = [
       "Ten years of Memory Preservation",
       "One custom domain included",
       "Domain registration for the initial term included",
+      "5 AI-generated videos included",
+      "Up to 15 family contributors",
       "Premium AI-designed experience",
       "Advanced Ask Magical assistance",
-      "AI video enhancement allowance",
       "Priority design generation",
       "Larger media storage",
       "Private family access",
@@ -162,6 +167,8 @@ export const PLANS: Plan[] = [
       "Lifetime Memory Preservation (see terms)",
       "One custom domain included",
       "Ongoing domain management while the plan is active",
+      "10 AI-generated videos included",
+      "Unlimited family contributors (reasonable-use limits)",
       "Family Vault",
       "Multi-generation access",
       "Transfer access to a designated family member",
@@ -193,12 +200,14 @@ export const CONCIERGE = {
     "A dedicated producer & design lead",
     "Personal discovery consultation",
     "Fully bespoke, hand-crafted design (beyond our templates)",
+    "Custom video allowance determined by project scope",
+    "Human copy editing included",
+    "Priority service included",
     "Professional media curation & editing",
     "Cinematic AI video production",
     "Custom domain & premium setup, done for you",
     "Lifetime Memory Preservation included",
     "White-glove revisions until it's perfect",
-    "Priority everything",
   ],
   cta: "Request a Concierge consultation",
 };
@@ -229,7 +238,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   { label: "Photo storage", values: { silver: "2 GB", gold: "15 GB", diamond: "75 GB", lifetime: "250 GB" } },
   { label: "Video storage", values: { silver: "1 GB", gold: "10 GB", diamond: "50 GB", lifetime: "200 GB" } },
   { label: "Ask Magical usage", values: { silver: "Basic", gold: "Enhanced", diamond: "Advanced", lifetime: "Highest" } },
-  { label: "AI video enhancements", values: { silver: "—", gold: "—", diamond: "Allowance", lifetime: "Priority" } },
+  { label: "AI-generated videos included", values: { silver: "1", gold: "3", diamond: "5", lifetime: "10" } },
+  { label: "Family contributors", values: { silver: "Up to 3", gold: "Up to 8", diamond: "Up to 15", lifetime: "Unlimited*" } },
   { label: "Guest uploads", values: { silver: "Messages only", gold: "Family upload", diamond: "Photos & video", lifetime: "Photos & video" } },
   { label: "Password protection", values: { silver: "—", gold: "✓", diamond: "✓", lifetime: "✓" } },
   { label: "Registry links", values: { silver: "—", gold: "✓", diamond: "✓", lifetime: "✓" } },
@@ -261,17 +271,19 @@ export interface AddOn {
   bestWith?: PlanId; // "Best with…" suggestion
 }
 
+// Six approved add-ons only. Everything your plan needs is already included —
+// these are true enhancements, not fees for basic features. (Professional copy
+// review, extended guest uploads, and per-bundle contributors were removed:
+// Ask Magical polishes wording for everyone, uploads follow the plan term, and
+// contributors are included by package. Human copy editing lives in the
+// Concierge Experience.)
 export const ADD_ONS: AddOn[] = [
-  { id: "ai-video", name: "Additional AI video generation", description: "Extra AI-crafted video moments for your experience.", price: 29, unit: "each", icon: "sparkle", receive: "One additional AI-generated video clip.", quantitySelectable: true, maxQty: 20, recurring: false, requiresShipping: false, bestWith: "diamond" },
-  { id: "storage", name: "Additional storage", description: "More room for photos & videos.", price: 19, unit: "per 25 GB", icon: "home", receive: "An extra 25 GB of media storage.", quantitySelectable: true, maxQty: 40, recurring: false, requiresShipping: false },
-  { id: "extra-domain", name: "Extra custom domain", description: "Point a second custom address at your experience.", price: 39, unit: "per year", icon: "star", receive: "One additional custom domain for a year.", quantitySelectable: true, maxQty: 10, recurring: true, requiresShipping: false, requiresAck: "I understand domain registration and availability are subject to confirmation, and extra domains renew annually.", bestWith: "diamond" },
+  { id: "ai-video", name: "Additional AI video generation", description: "Extra AI-crafted video moments — only after you've used the videos included in your plan.", price: 29, unit: "each", icon: "sparkle", receive: "One additional AI-generated video clip.", quantitySelectable: true, maxQty: 20, recurring: false, requiresShipping: false, bestWith: "diamond" },
+  { id: "storage", name: "Additional storage", description: "More room for photos & videos — buy more as you need it.", price: 19, unit: "per 25 GB", icon: "home", receive: "An extra 25 GB of media storage.", quantitySelectable: true, maxQty: 40, recurring: false, requiresShipping: false },
+  { id: "extra-domain", name: "Extra custom domain", description: "Point a second custom address at your experience. Domain availability must be confirmed.", price: 39, unit: "per year", icon: "star", receive: "One additional custom domain for a year.", quantitySelectable: true, maxQty: 10, recurring: true, requiresShipping: false, requiresAck: "I understand domain registration and availability are subject to confirmation, and extra domains renew annually.", bestWith: "diamond" },
   { id: "keepsake-book", name: "Printed keepsake book", description: "A beautifully bound book of your Magical Moment.", price: 119, unit: "each", icon: "gift", receive: "One printed, bound keepsake book (shipped).", quantitySelectable: true, maxQty: 20, recurring: false, requiresShipping: true },
-  { id: "highlight-film", name: "Downloadable highlight film", description: "A shareable highlight film of your memories.", price: 79, unit: "each", icon: "trophy", receive: "One downloadable highlight film.", quantitySelectable: true, maxQty: 10, recurring: false, requiresShipping: false },
-  { id: "priority-design", name: "Priority design service", description: "Move to the front of the design queue.", price: 99, unit: "per experience", icon: "crown", receive: "Priority placement in the design queue.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false },
-  { id: "copy-review", name: "Professional copy review", description: "A human editor polishes your words.", price: 79, unit: "per experience", icon: "heart", receive: "A professional edit of your written content.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false },
-  { id: "extended-uploads", name: "Extended guest upload period", description: "Give guests more time to add their memories.", price: 39, unit: "per experience", icon: "balloon", receive: "An extended window for guest uploads.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false },
-  { id: "family-contributors", name: "Additional family contributors", description: "Invite more loved ones to collaborate.", price: 29, unit: "per bundle of 3", icon: "tree", receive: "A bundle of 3 additional family contributors.", quantitySelectable: true, maxQty: 10, recurring: false, requiresShipping: false, bundleSize: 3 },
-  { id: "rush", name: "Rush creation", description: "Expedited creation for time-sensitive moments.", price: 149, unit: "per experience", icon: "plane", receive: "Expedited creation of your experience.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false, requiresAck: "I understand rush availability must be confirmed by the Magical Moments by Reign team." },
+  { id: "highlight-film", name: "Downloadable highlight film", description: "A professionally formatted, downloadable keepsake film.", price: 79, unit: "each", icon: "trophy", receive: "One downloadable highlight film.", quantitySelectable: true, maxQty: 10, recurring: false, requiresShipping: false },
+  { id: "rush", name: "Rush & priority creation", description: "Move your experience to the front of the creation queue for time-sensitive occasions. Availability must be confirmed.", price: 149, unit: "per experience", icon: "crown", receive: "Front-of-queue, expedited creation of your experience.", quantitySelectable: false, maxQty: 1, recurring: false, requiresShipping: false, requiresAck: "I understand rush & priority availability must be confirmed by the Magical Moments by Reign team." },
 ];
 
 export function getAddOn(id: string): AddOn | undefined {

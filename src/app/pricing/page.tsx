@@ -247,8 +247,8 @@ export default function PricingPage() {
       <section className="pp-section" style={{ background: "var(--cream-200)" }} id="add-ons">
         <div className="container">
           <div className="pp-section__head">
-            <h2>Make Your Moment <em>Even More</em> Magical</h2>
-            <p>Personalize your experience with optional upgrades designed to make your story even more memorable.</p>
+            <h2>Enhance Your <em>Experience</em></h2>
+            <p>Your plan already includes everything needed to create a beautiful Magical Moment. These optional upgrades allow you to add more storage, videos, keepsakes, domains, or expedited service.</p>
           </div>
           <AddOnsShop />
           <p className="pp-addons__note" style={{ color: "#7a7280", textAlign: "center", marginTop: "1.6rem" }}>
