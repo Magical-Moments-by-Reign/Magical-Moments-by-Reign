@@ -154,7 +154,7 @@ export default function PricingPage() {
 
       {/* Lower area: comparison + domain + expiration on ombré */}
       <div className="pp-lower">
-        <section className="pp-section pp-compare">
+        <section className="pp-section pp-compare" id="compare">
           <div className="container">
             <div className="pp-section__head">
               <h2>Compare Every Plan</h2>
@@ -275,7 +275,7 @@ export default function PricingPage() {
           <p>Choose how your memories will be preserved — and let us make them unforgettable.</p>
           <div className="pp-closing__actions">
             <Link href="/create" className="btn-gold">Start your magic ✦</Link>
-            <Link href="#top" className="btn-outline-gold">Compare plans again</Link>
+            <Link href="#compare" className="btn-outline-gold">Compare plans again</Link>
           </div>
         </div>
       </section>
