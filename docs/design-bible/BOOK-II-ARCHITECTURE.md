@@ -48,9 +48,20 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Live Video Calls + Messaging (global) | Documented · needs video/SMS providers — see [standard](./STANDARD-communication.md) |
 | Baby Journey (pregnancy companion) | Documented · phased — see [journey](./JOURNEY-baby.md) |
 | New Home Journey (homeowner experience) | Documented · phased — see [journey](./JOURNEY-new-home.md) |
-| Family Vault (Book III) | Documented · needs Family Account + secure storage — see [book III](./BOOK-III-family-vault.md) |
+| Family Vault (Book III) | **Built** (first slice) · needs auth + secure storage — see [book III](./BOOK-III-family-vault.md) |
+| **Purchase Concierge™** (new core platform) | **Built** (first slice — Purchase Center, Smart Order Tracking, wishlists, delivery reminders) · price compare/payments/in-app returns need merchant partners — see [standard](./STANDARD-purchase-concierge.md) |
+| **App-First Architecture** (web · PWA · native) | **PWA installable** (manifest, service worker, offline, icons) · one backend/one DB confirmed · mobile Today Dashboard next — see [standard](./STANDARD-app-architecture.md) |
 | Voice Notes & AI Transcription (global) | Documented · needs speech-to-text — see [standard](./STANDARD-voice-notes.md) |
 | Life Operating System (vision) | North-star — see [vision](./VISION-life-operating-system.md) |
+| **Pricing Engine v1.0** (build-your-own membership) | **Built** (engine + Build-Your-Membership + Free Forever entry; Monthly term, 3/8/15 Lifetime recommendations, price ceiling) · amounts placeholder except Lifetime Collections · needs auth + Square for real checkout — see [standard](./STANDARD-pricing-engine.md) |
+| **Admin Specials & Promotions Center** | **Built** (first slice — create/schedule/pause/end, Lifetime Value Protection, audit log) · analytics/email/SMS/test-preview phased — see [standard](./STANDARD-admin-specials.md) |
+| Free Forever (required account · $0 entry) | **Built** (selection + $0.00 checkout → Family Vault) · real account persistence needs auth — see [standard](./STANDARD-pricing-engine.md) |
+| Journey Experience (immersive per-Occasion tour) | **Built** (first slice — every Occasion: hero, AI welcome, timeline, sample, FAQ, pricing, 3-option CTA) · marketplace/AI Q&A phased — see [standard](./STANDARD-journey-experience.md) |
+| **Magical Journey Preview™** (5-day premium trial) | **Built** (choice + transparent terms/checkout screen: picker, price, dates, limits, reminders) · real start needs auth + payment capture + billing scheduler — see [standard](./STANDARD-journey-preview.md) |
+| **Housing Hub** (renames Home/New Home Journey) | **Built** (entry — 9 pathways + Build-a-Custom-Home live) · pathways/tools need data + auth + storage — see [Housing Hub](./HOUSING-HUB.md) |
+| New Home → Build-a-Home (Housing Hub pathway) | **Built** (first slice — intake → roadmap + 28-stage timeline) · data centers (floor plans, budget, build team) need auth + storage — see [journey](./JOURNEY-new-home.md) |
+| Journey Protection™ (pause add-on) | Documented · pricing-model **resolved** (recurring + Free Forever approved) · needs billing/auth — see [standard](./STANDARD-journey-protection.md) |
+| Legacy Guardian™ / Legacy Transfer™ (Lifetime benefit) | **Phase A built** (designate Primary/Secondary guardians in the Vault — data only) · verified ownership transfer needs auth + review — see [standard](./STANDARD-legacy-guardian.md) |
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
 | Accounts / auth + role-based family access | Planned |

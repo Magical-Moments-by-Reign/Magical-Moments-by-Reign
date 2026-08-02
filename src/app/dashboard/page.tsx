@@ -17,12 +17,6 @@ export default async function DashboardPage() {
   const all = await listExperiences();
   // Business websites are custom projects — never shown in the customer library.
   const experiences = all.filter((e) => e.type !== "business");
-  // One master timeline: every journey as a connected chapter, in order.
-  const timeline = [...experiences].sort((a, b) => {
-    const da = (a.eventDate ? new Date(a.eventDate) : new Date(a.createdAt)).getTime();
-    const db = (b.eventDate ? new Date(b.eventDate) : new Date(b.createdAt)).getTime();
-    return da - db;
-  });
 
   return (
     <div className="ss">
@@ -37,29 +31,12 @@ export default async function DashboardPage() {
       </header>
 
       <main className="container" style={{ padding: "2.5rem 0 5rem" }}>
-        {/* Legacy Timeline — the master family timeline */}
-        {timeline.length > 0 && (
-          <section className="legacy">
-            <div className="legacy__head">
-              <h2>Your Family Timeline</h2>
-              <Link href="/create" className="btn-gold">+ Start a New Journey</Link>
-            </div>
-            <ol className="legacy__track">
-              {timeline.map((exp) => {
-                const t = getExperienceType(exp.type);
-                return (
-                  <li className="legacy__chapter" key={exp.id}>
-                    <Link href={`/${exp.slug}`}>
-                      <span className="legacy__emoji" aria-hidden="true">{t?.emoji ?? "✦"}</span>
-                      <span className="legacy__title">{exp.title}</span>
-                      <span className="legacy__date">{exp.eventDate ? fmtDate(exp.eventDate) : fmtDate(exp.createdAt)}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        )}
+        {/* Start a Journey — the central call to action */}
+        <section className="studio-start">
+          <h2 className="studio-start__title">Start a Journey</h2>
+          <p className="studio-start__sub">Begin a new chapter of your family&apos;s story — we&apos;ll guide you every step.</p>
+          <Link href="/create" className="btn-gold studio-start__btn">Start a Journey ✦</Link>
+        </section>
 
         <div className="studio-tiles">
           <div className="studio-tile">
@@ -75,6 +52,20 @@ export default async function DashboardPage() {
               <p>Create a private link that includes only the journeys you choose — with an optional password, expiry, and view limit. Everything else stays hidden.</p>
             </div>
             <Link href="/dashboard/shares" className="btn-gold">Create a share link ✦</Link>
+          </div>
+          <div className="studio-tile studio-tile--vault">
+            <div>
+              <h3><span className="studio-tile__icon" aria-hidden="true">🗂</span> The Family Vault</h3>
+              <p>The secure heart of your family — profiles, emergency &amp; medical info, documents, and trusted contacts. Every journey connects here.</p>
+            </div>
+            <Link href="/dashboard/vault" className="btn-gold">Open the Family Vault ✦</Link>
+          </div>
+          <div className="studio-tile studio-tile--purchases">
+            <div>
+              <h3><span className="studio-tile__icon" aria-hidden="true">📦</span> Purchase Concierge</h3>
+              <p>Every order, organized. Connect purchases from any merchant to track deliveries, warranties &amp; returns — and keep wishlists for what&apos;s next.</p>
+            </div>
+            <Link href="/dashboard/purchases" className="btn-gold">Open Purchase Concierge ✦</Link>
           </div>
         </div>
 

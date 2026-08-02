@@ -39,9 +39,9 @@ export const INSPIRATION: InspirationItem[] = [
     blurb: "Two weeks along the Amalfi Coast.",
   },
   {
-    slug: "thejohnsonhome", title: "The Johnson Home", kind: "New Home", emoji: "🏡",
-    video: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg",
-    blurb: "From groundbreaking to move-in day.",
+    slug: "thejohnsonhome", title: "The Johnson Family", kind: "New Home", emoji: "🏡",
+    video: "/hero/johnson.mp4", poster: "/hero/johnson-poster.jpg",
+    blurb: "Built from the ground up — groundbreaking to move-in day.",
   },
 ];
 

@@ -17,6 +17,7 @@ export interface CreateExperienceInput {
   desiredSlug?: string;
   eventDate?: Date | null;
   ownerId?: string | null;
+  familyId?: string | null;
   preferences?: Record<string, unknown>;
 }
 
@@ -51,6 +52,7 @@ export async function createExperience(input: CreateExperienceInput): Promise<Hy
       designSpec: serialize(designSpec),
       content: serialize(content),
       ownerId: input.ownerId ?? null,
+      familyId: input.familyId ?? null,
     },
   });
 

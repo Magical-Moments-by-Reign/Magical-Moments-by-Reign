@@ -10,6 +10,33 @@
 
 ---
 
+## Preface — Why We Exist
+
+Before Magical Moments by Reign was a platform… it was an idea. An idea born
+from watching life move faster than people can keep up with.
+
+Families are busy. Parents are overwhelmed. Important moments pass too quickly.
+Important documents get misplaced. Appointments are forgotten. Dreams are
+delayed. Photos stay trapped on old phones. Memories fade. Life keeps moving.
+
+Magical Moments by Reign exists for one simple reason: **to help people stay
+ahead while preserving what matters most.**
+
+We don't want families worrying about what they forgot. We want them enjoying
+the people they love. The platform should quietly organize, remind, encourage,
+and simplify life — not because technology is the goal, but because **peace of
+mind is.**
+
+Every reminder, every Journey, every checklist, every calendar, every document,
+every memory, every celebration should answer one question:
+
+> **"How can we make life a little easier today?"**
+
+Because life will always keep life-ing. Magical Moments will be there every
+step of the way.
+
+---
+
 ## Chapter 1 — The Dream
 
 Magical Moments by Reign was created from one simple belief:

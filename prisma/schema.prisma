@@ -62,6 +62,9 @@ model Experience {
 
   ownerId String?
   owner   User?         @relation(fields: [ownerId], references: [id])
+  // Every Journey attaches to the Family Vault — nothing exists independently.
+  familyId String?
+  family   Family?       @relation(fields: [familyId], references: [id])
   media        MediaAsset[]
   shares       SocialShare[]
   domains      Domain[]
@@ -445,6 +448,176 @@ model GiftSettings {
   visibility   String     @default("everyone") // everyone | invited | family | hidden
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+// ── The Family Vault (Book III) — the heart of the platform ─────
+// The secure command center a family uses to protect, organize, and
+// access everything they need. Every Journey attaches to a Family.
+model Family {
+  id          String   @id @default(cuid())
+  name        String   @default("Our Family")
+  ownerId     String?
+  members     FamilyMember[]
+  documents   FamilyDocument[]
+  contacts    TrustedContact[]
+  experiences Experience[]
+  purchases   Purchase[]
+  wishlist    WishlistItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+// A person (or pet) in the family, with profile + emergency/medical/
+// insurance fields the owner chooses to store.
+model FamilyMember {
+  id            String   @id @default(cuid())
+  familyId      String
+  family        Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  kind          String   @default("parent") // parent | child | grandparent | guardian | pet
+  name          String
+  preferredName String?
+  birthday      String?
+  bloodType     String?
+  allergies     String?
+  medications   String?
+  conditions    String?
+  doctor        String?
+  hospital      String?
+  insuranceProvider String?
+  insurancePolicy   String?
+  emergencyName     String?
+  emergencyPhone    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+// A stored document / record in the vault library.
+model FamilyDocument {
+  id        String    @id @default(cuid())
+  familyId  String
+  family    Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category  String    @default("Other") // Birth Certificate | Passport | Insurance | ...
+  title     String
+  url       String?   // stored file (secure storage) or link
+  notes     String?
+  expiresAt DateTime? // AI reminders monitor expirations
+  memberId  String?   // optionally tied to a family member
+  createdAt DateTime  @default(now())
+
+  @@index([familyId, category])
+}
+
+// A trusted contact with a chosen access level (permissions groundwork).
+model TrustedContact {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  name         String
+  relationship String?
+  phone        String?
+  email        String?
+  accessLevel  String   @default("emergency") // full | medical | emergency | documents | legal
+  // Legacy Transfer™ (Lifetime benefit): a designated Legacy Guardian who
+  // may assume ownership after a verified continuity process. Being listed
+  // grants NO access by itself.
+  guardianRole String   @default("none") // none | primary | secondary
+  createdAt    DateTime @default(now())
+
+  @@index([familyId])
+}
+
+// Purchase Concierge — a purchase the customer connects to a Journey so
+// they can track and organize it (we never replace the merchant). Order
+// status mirrors Smart Order Tracking states.
+model Purchase {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  experienceId String?  // optional link to a Life Journey
+  product      String
+  store        String?
+  orderDate    String?
+  estDelivery  String?
+  tracking     String?
+  price        Float?
+  warranty     String?
+  returnWindow String?
+  status       String   @default("confirmed") // confirmed|preparing|shipped|out_for_delivery|delivered|delayed|return_initiated|completed
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+// Purchase Concierge — a saved product to consider before buying.
+model WishlistItem {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category  String   @default("General") // Wedding | Baby | New Home | Vacation | Graduation | General
+  name      String
+  store     String?
+  url       String?
+  price     Float?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([familyId, category])
+}
+
+// ── Admin Specials & Promotions ─────────────────────────────────
+// Founder-run promotions. Every special must pass Lifetime Value
+// Protection before it can be approved/published — no special may make a
+// recurring/term option a better value than the comparable Lifetime
+// Collection. Records are never silently deleted; changes are audited.
+model Special {
+  id            String   @id @default(cuid())
+  name          String
+  internalNote  String?
+  publicDesc    String?
+  code          String?  // coupon code; null when auto-applied
+  auto          Boolean  @default(false) // auto-apply vs code-required
+  offerType     String   @default("percent") // percent | fixed | preview_extension | custom ...
+  discountType  String   @default("percent") // percent | fixed
+  discountValue Float    @default(0) // percent (0–100) or dollars
+  scope         String   @default("all") // all | recurring | lifetime | term | journey
+  scopeValue    String?  // term id / journey id / lifetime collection id when scoped
+  audience      String   @default("all") // all | new | existing | upgrade
+  startAt       DateTime?
+  endAt         DateTime?
+  maxRedemptions Int?
+  perCustomer   Int?
+  minPurchase   Float?
+  stackable     Boolean  @default(false)
+  isPublic      Boolean  @default(true)
+  status        String   @default("draft") // draft | scheduled | active | paused | ended
+  approved      Boolean  @default(false)
+  redemptions   Int      @default(0)
+  createdBy     String   @default("Founder")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  audits        SpecialAudit[]
+
+  @@index([status])
+}
+
+// Append-only audit trail for every promotion action.
+model SpecialAudit {
+  id        String   @id @default(cuid())
+  specialId String
+  special   Special  @relation(fields: [specialId], references: [id], onDelete: Cascade)
+  actor     String   @default("Founder")
+  action    String   // created | edited | approved | published | paused | resumed | ended | blocked
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([specialId])
 }
 
 model WebhookEvent {

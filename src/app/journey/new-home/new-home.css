@@ -1,0 +1,68 @@
+/* ================================================================
+   Build a Home — New Home Journey
+   ================================================================ */
+.bhp { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); min-height: 100vh; font-family: var(--font-body); }
+.bhp .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+.bhp-hero {
+  padding: clamp(3rem, 7vw, 5rem) 0 clamp(2.5rem, 5vw, 3.5rem); text-align: center;
+  background:
+    radial-gradient(60% 90% at 18% 0%, rgba(92,115,80,0.35), transparent 60%),
+    radial-gradient(50% 80% at 90% 10%, rgba(198,161,90,0.28), transparent 55%),
+    linear-gradient(160deg, #26321d, #17130f);
+  color: var(--cream, #fbf8f3);
+}
+.bhp-hero__eyebrow { color: var(--gold-soft, #d9bd82); text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.72rem; font-weight: 600; }
+.bhp-hero__crumb { color: var(--gold-soft, #d9bd82); text-decoration: underline; }
+.bhp-hero h1 { font-family: var(--font-display); font-size: clamp(2.1rem, 5.5vw, 3.6rem); margin: 0.5rem auto 0.7rem; max-width: 20ch; line-height: 1.08; }
+.bhp-hero h1 em { color: var(--gold-soft, #d9bd82); font-style: italic; }
+.bhp-hero p { color: rgba(248,244,236,0.85); max-width: 46rem; margin: 0 auto; line-height: 1.7; }
+.bhp-main { padding: clamp(2rem, 5vw, 3.5rem) 0 5rem; }
+
+.bh-loading { text-align: center; color: var(--muted); padding: 3rem; }
+
+/* Intake */
+.bh-intro { text-align: center; color: var(--muted); max-width: 40rem; margin: 0 auto 2rem; font-size: 1.02rem; line-height: 1.6; }
+.bh-q { margin-bottom: 1.5rem; }
+.bh-q__label { display: block; font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; }
+.bh-choices { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.bh-choice { padding: 0.6rem 1.1rem; border-radius: 999px; border: 1.5px solid rgba(42,33,48,0.15); background: #fff; color: var(--ink); font: inherit; font-size: 0.9rem; cursor: pointer; transition: border-color 0.2s, background 0.2s, color 0.2s; }
+.bh-choice:hover { border-color: var(--gold-soft); }
+.bh-choice--on { border-color: var(--gold); background: var(--gold); color: #fff; }
+.bh-input { width: 100%; max-width: 24rem; padding: 0.7rem 0.9rem; border-radius: 12px; border: 1.5px solid rgba(42,33,48,0.15); background: #fff; color: var(--ink); font: inherit; }
+.bh-input:focus { outline: none; border-color: var(--gold); }
+.bh-intake__foot { display: flex; align-items: center; gap: 1.25rem; margin-top: 2rem; }
+.bh-intake__count { color: var(--muted); font-size: 0.9rem; }
+.bh-disclaimer { margin-top: 1.5rem; font-size: 0.78rem; color: var(--muted); font-style: italic; line-height: 1.55; }
+
+/* Roadmap + timeline */
+.bh-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+.bh-link { background: none; border: none; color: var(--gold-deep); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
+.bh-loc { color: var(--muted); font-size: 0.9rem; }
+.bh-card { background: #fff; border: 1px solid rgba(42,33,48,0.1); border-radius: 18px; padding: clamp(1.3rem, 3vw, 2rem); box-shadow: 0 24px 50px -44px rgba(42,33,48,0.5); margin-bottom: 1.5rem; }
+.bh-h2 { font-family: var(--font-display); font-size: 1.6rem; color: var(--ink); margin: 0 0 1rem; }
+
+.bh-steps { margin: 0; padding-left: 1.3rem; display: flex; flex-direction: column; gap: 0.7rem; color: var(--ink); line-height: 1.55; }
+.bh-steps li::marker { color: var(--gold-deep); font-weight: 700; }
+.bh-budgetline { margin: 1.1rem 0 0; color: var(--muted); font-size: 0.92rem; }
+.bh-budgetline strong { color: var(--gold-deep); }
+
+.bh-progress__head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.bh-progress__pct { color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
+.bh-progress { height: 8px; border-radius: 999px; background: rgba(42,33,48,0.1); overflow: hidden; margin: 0.5rem 0 1.5rem; }
+.bh-progress__bar { height: 100%; background: linear-gradient(90deg, var(--gold-soft), var(--gold-deep)); border-radius: 999px; transition: width 0.4s var(--ease); }
+
+.bh-phase { margin-bottom: 1.5rem; }
+.bh-phase__title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--gold-deep); font-weight: 700; margin: 0 0 0.75rem; }
+.bh-stages { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+@media (max-width: 640px) { .bh-stages { grid-template-columns: 1fr; } }
+.bh-stage { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.85rem 1rem; border-radius: 14px; border: 1.5px solid rgba(42,33,48,0.12); background: #fff; text-align: left; cursor: pointer; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
+.bh-stage:hover { transform: translateY(-2px); border-color: var(--gold-soft); box-shadow: 0 14px 28px -20px rgba(42,33,48,0.4); }
+.bh-stage--on { border-color: var(--gold); background: linear-gradient(160deg, #fbf5e9, #fff); }
+.bh-stage__n { flex: 0 0 auto; width: 1.7rem; height: 1.7rem; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: rgba(42,33,48,0.08); color: var(--muted); }
+.bh-stage--on .bh-stage__n { background: var(--gold); color: #fff; }
+.bh-stage__body { display: flex; flex-direction: column; gap: 0.15rem; }
+.bh-stage__title { font-weight: 600; color: var(--ink); font-size: 0.95rem; line-height: 1.2; }
+.bh-stage__captures { font-size: 0.76rem; color: var(--muted); line-height: 1.35; }
+
+.bh-next p { color: var(--ink); line-height: 1.6; margin: 0; }
+.bh-next a { color: var(--gold-deep); font-weight: 600; }

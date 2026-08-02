@@ -40,6 +40,7 @@ export default async function CustomWebsitesAdminPage() {
             <p>Every custom business website request, updated as they come in.</p>
           </div>
           <div className="adm-header__actions">
+            <a href="/admin/specials" className="adm-link">Specials Center</a>
             <a href="/admin/custom-websites/export" className="btn-outline-gold">⤓ Export spreadsheet (CSV)</a>
             <form action={adminLogoutAction}><button className="adm-link" type="submit">Sign out</button></form>
           </div>
