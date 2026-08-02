@@ -1466,6 +1466,20 @@ model Vendor {
   searchPenalty     Boolean   @default(false) // lowered in search rankings
   probationUntil    DateTime? // one-year probation after removal
 
+  // Magical Moments Verified Program (see src/lib/vendor-badges.ts).
+  // Qualification data:
+  completedEvents      Int     @default(0)
+  unresolvedComplaints Int     @default(0)
+  businessInfoVerified Boolean @default(false)
+  onTimeConsistent     Boolean @default(false)
+  // Recognition state — `badge` is the derived tier (cached for display/sort).
+  badge          String     @default("new") // new | trusted | family_favorite | verified | elite
+  // Admin gates — Verified needs approval; Elite is invitation-only; override is manual.
+  verifiedApproved Boolean  @default(false)
+  eliteInvited     Boolean  @default(false)
+  badgeOverride    String? // admin manual override tier, or null
+  badgeAudits      VendorBadgeAudit[]
+
   reviews        VendorReview[]
   strikes        VendorStrike[]
   performanceEvents VendorPerformanceEvent[]
@@ -1507,6 +1521,21 @@ model VendorStrike {
   summary    String
   verifiedBy String?  // admin identity
   createdAt  DateTime @default(now())
+
+  @@index([vendorId])
+}
+
+// Append-only badge history for the Magical Moments Verified Program — every
+// award, downgrade, admin approval/override, Elite invitation, and revocation.
+model VendorBadgeAudit {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  fromBadge String?
+  toBadge   String
+  reason    String? // e.g. earned | downgraded | admin_approved | admin_override | elite_invited | revoked
+  actor     String   @default("system") // "system" for auto changes, admin identity otherwise
+  createdAt DateTime @default(now())
 
   @@index([vendorId])
 }
