@@ -43,6 +43,7 @@ export default function MembershipBuilder() {
   const selectedTypes = OCCASIONS.filter((o) => selected.has(o.id));
 
   return (
+    <>
     <div className="mb-build">
       {/* ── Left: the builder ── */}
       <div className="mb-build__main">
@@ -186,6 +187,7 @@ export default function MembershipBuilder() {
           )}
         </div>
       </aside>
+      </div>
 
       {/* ── Below: always-included + protection ── */}
       <div className="mb-build__extras">
@@ -205,6 +207,6 @@ export default function MembershipBuilder() {
           <p className="mb-extra__fine">{JOURNEY_PROTECTION.billingNote} You keep your account, memories, photos, videos, documents & website; premium features simply pause.</p>
         </div>
       </div>
-    </div>
+    </>
   );
 }

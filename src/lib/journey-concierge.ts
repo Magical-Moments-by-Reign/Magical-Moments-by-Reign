@@ -23,6 +23,7 @@ const LABEL = "Magical AI Journey Assistant";
 const CTA = "✨ Start Planning My Journey";
 const CLOSING =
   "Whenever you're ready, simply ask me a question or let me guide you to the next step in your journey.";
+const HELP_INTRO = "I'll help you build:";
 
 const CURATED: Record<string, Concierge> = {
   baby: {
@@ -30,7 +31,7 @@ const CURATED: Record<string, Concierge> = {
     heading: "Welcome to Your Baby Journey",
     intro:
       "Congratulations on your growing family! I'm here to guide you through every milestone—from the first heartbeat to your baby's first birthday and beyond.",
-    helpIntro: "I'll help you:",
+    helpIntro: HELP_INTRO,
     items: [
       { icon: "✨", text: "Plan your gender reveal and send invitations" },
       { icon: "👶", text: "Organize your baby shower and manage RSVPs" },
@@ -57,7 +58,7 @@ export function conciergeFor(typeId: string): Concierge | null {
     label: LABEL,
     heading: `Welcome to Your ${t.label}`,
     intro: `${p.overview} I'm Magical AI — your personal concierge for this journey.`,
-    helpIntro: "I'll help you:",
+    helpIntro: HELP_INTRO,
     items: p.included.slice(0, 8).map((text) => ({ icon: "✨", text })),
     closing: CLOSING,
     cta: CTA,
