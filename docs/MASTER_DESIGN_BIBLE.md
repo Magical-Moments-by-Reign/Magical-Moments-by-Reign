@@ -111,6 +111,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
   plain-language guides, official resources, state-specific pointers, grade-based
   Ask Magical. *Domain + CMS schema + `/life-guidance` built & tested (8 tests);
   admin CMS + state-link curation gated.*
+- **[Life After High School Ecosystem](./design-bible/STANDARD-life-after-highschool.md)** —
+  *Founder Approved · educational only.* College discovery/compare, scholarship
+  command center, financial calculators, savings goals, **every pathway with
+  equal respect** (college/military/trade/apprenticeship/entrepreneurship/
+  workforce/gap year), career exploration, application & enrollment checklists.
+  *Domain + trackers schema built & tested (12 tests); datasets/UI/payments gated.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
 - **[The Magical Moments Ecosystem](./design-bible/VISION-ecosystem.md)** —
   *Founder Vision.* A complete Life Celebration Ecosystem — "We've got you." /

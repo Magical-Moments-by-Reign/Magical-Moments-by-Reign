@@ -1839,3 +1839,89 @@ model GuideArticle {
   @@index([stateCode])
   @@index([grade])
 }
+
+// ── Life After High School — trackers ───────────────────────────
+// Per-student/family planning data (gated on auth). Documents (essays,
+// transcripts, recommendation letters) are secure storage references only.
+// SavingsGoal is generic (college, car, wedding, home, emergency…) so it also
+// powers Family Financial Foundation savings goals.
+model CollegeFavorite {
+  id          String   @id @default(cuid())
+  accountId   String?
+  collegeName String
+  state       String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+}
+
+model CollegeVisit {
+  id          String   @id @default(cuid())
+  accountId   String?
+  collegeName String
+  visitDate   DateTime?
+  rating      Int? // 1–5
+  notes       String?
+  photosCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+}
+
+model ScholarshipEntry {
+  id         String   @id @default(cuid())
+  accountId  String?
+  name       String
+  status     String   @default("applied") // applied | awarded | pending | declined
+  amountCents Int     @default(0)
+  deadline   DateTime?
+  essayUrl   String? // secure storage ref
+  recLetterUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([accountId, status])
+}
+
+model CollegeApplication {
+  id              String   @id @default(cuid())
+  accountId       String?
+  collegeName     String
+  status          String   @default("draft") // draft | submitted | accepted | waitlisted | declined
+  essayUrl        String?
+  transcriptUrl   String?
+  housingDeadline DateTime?
+  orientationDate DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([accountId, status])
+}
+
+model SavingsGoal {
+  id                 String   @id @default(cuid())
+  accountId          String?
+  name               String
+  purpose            String   @default("college") // college | car | graduation | wedding | home | emergency | study_abroad | other
+  targetCents        Int      @default(0)
+  savedCents         Int      @default(0)
+  allowContributions Boolean  @default(false) // loved ones may contribute when enabled
+  contributions      SavingsContribution[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model SavingsContribution {
+  id              String      @id @default(cuid())
+  goalId          String
+  goal            SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  contributorName String
+  amountCents     Int         @default(0)
+  createdAt       DateTime    @default(now())
+
+  @@index([goalId])
+}
