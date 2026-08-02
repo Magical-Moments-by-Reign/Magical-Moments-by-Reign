@@ -25,13 +25,31 @@
 
 /* Occasion grid */
 .mb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.85rem; }
-.mb-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.15rem 0.75rem; border-radius: 16px; border: 1.5px solid rgba(42,33,48,0.12); background: #fff; color: var(--ink); cursor: pointer; text-align: center; transition: border-color 0.25s var(--ease), transform 0.25s var(--ease), box-shadow 0.25s var(--ease); }
-.mb-tile:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -18px rgba(42,33,48,0.4); border-color: var(--gold-soft); }
-.mb-tile__icon { color: var(--gold-deep); }
-.mb-tile__label { font-size: 0.85rem; font-weight: 600; line-height: 1.25; }
-.mb-tile__check { position: absolute; top: 0.5rem; right: 0.5rem; width: 1.4rem; height: 1.4rem; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: rgba(42,33,48,0.08); color: var(--muted); transition: all 0.2s var(--ease); }
-.mb-tile--on { border-color: var(--gold); background: linear-gradient(160deg, color-mix(in srgb, var(--tile-a) 14%, #fff), color-mix(in srgb, var(--tile-b) 10%, #fff)); box-shadow: 0 12px 28px -16px rgba(198,161,90,0.7); }
-.mb-tile--on .mb-tile__check { background: var(--gold); color: #fff; }
+/* Luxe dark tiles — each tinted by its occasion color so they pop off the
+   cream page and invite a click (not washed-out white-on-white). */
+.mb-tile {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.55rem; padding: 1.35rem 0.75rem; border-radius: 16px;
+  border: 1px solid rgba(198,161,90,0.35);
+  background:
+    radial-gradient(130% 115% at 22% 0%, color-mix(in srgb, var(--tile-a, #7a6ea0) 48%, transparent), transparent 62%),
+    linear-gradient(160deg, #2a2233, #17131d);
+  color: var(--cream, #fbf8f3); cursor: pointer; text-align: center;
+  box-shadow: 0 16px 34px -24px rgba(23,19,29,0.9);
+  transition: border-color 0.25s var(--ease), transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.mb-tile:hover { transform: translateY(-4px); box-shadow: 0 24px 46px -22px rgba(198,161,90,0.5); border-color: var(--gold, #c6a15a); }
+.mb-tile__icon { color: var(--gold-soft, #d9bd82); }
+.mb-tile__label { font-size: 0.9rem; font-weight: 600; line-height: 1.25; color: var(--cream, #fbf8f3); letter-spacing: 0.01em; }
+.mb-tile__check { position: absolute; top: 0.5rem; right: 0.5rem; width: 1.4rem; height: 1.4rem; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.14); color: rgba(248,244,236,0.85); transition: all 0.2s var(--ease); }
+.mb-tile--on {
+  border: 2px solid var(--gold, #c6a15a);
+  background:
+    radial-gradient(130% 115% at 22% 0%, color-mix(in srgb, var(--tile-a, #7a6ea0) 72%, transparent), transparent 60%),
+    linear-gradient(160deg, #33283f, #1c1622);
+  box-shadow: 0 0 0 3px rgba(198,161,90,0.25), 0 22px 44px -20px rgba(198,161,90,0.7);
+}
+.mb-tile--on .mb-tile__check { background: var(--gold, #c6a15a); color: #fff; }
 
 /* Term selector */
 .mb-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; }
