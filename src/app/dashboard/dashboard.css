@@ -48,5 +48,5 @@
 .legacy__title { font-weight: 600; color: #211d29; font-size: 0.95rem; line-height: 1.25; }
 .legacy__date { font-size: 0.74rem; color: var(--gold-deep); letter-spacing: 0.03em; }
 
-.studio-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 2rem; }
+.studio-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.1rem; margin-bottom: 2rem; }
 @media (max-width: 780px) { .studio-tiles { grid-template-columns: 1fr; } }

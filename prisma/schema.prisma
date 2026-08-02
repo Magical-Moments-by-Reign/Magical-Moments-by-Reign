@@ -62,6 +62,9 @@ model Experience {
 
   ownerId String?
   owner   User?         @relation(fields: [ownerId], references: [id])
+  // Every Journey attaches to the Family Vault — nothing exists independently.
+  familyId String?
+  family   Family?       @relation(fields: [familyId], references: [id])
   media        MediaAsset[]
   shares       SocialShare[]
   domains      Domain[]
@@ -445,6 +448,81 @@ model GiftSettings {
   visibility   String     @default("everyone") // everyone | invited | family | hidden
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+// ── The Family Vault (Book III) — the heart of the platform ─────
+// The secure command center a family uses to protect, organize, and
+// access everything they need. Every Journey attaches to a Family.
+model Family {
+  id          String   @id @default(cuid())
+  name        String   @default("Our Family")
+  ownerId     String?
+  members     FamilyMember[]
+  documents   FamilyDocument[]
+  contacts    TrustedContact[]
+  experiences Experience[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+// A person (or pet) in the family, with profile + emergency/medical/
+// insurance fields the owner chooses to store.
+model FamilyMember {
+  id            String   @id @default(cuid())
+  familyId      String
+  family        Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  kind          String   @default("parent") // parent | child | grandparent | guardian | pet
+  name          String
+  preferredName String?
+  birthday      String?
+  bloodType     String?
+  allergies     String?
+  medications   String?
+  conditions    String?
+  doctor        String?
+  hospital      String?
+  insuranceProvider String?
+  insurancePolicy   String?
+  emergencyName     String?
+  emergencyPhone    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+// A stored document / record in the vault library.
+model FamilyDocument {
+  id        String    @id @default(cuid())
+  familyId  String
+  family    Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category  String    @default("Other") // Birth Certificate | Passport | Insurance | ...
+  title     String
+  url       String?   // stored file (secure storage) or link
+  notes     String?
+  expiresAt DateTime? // AI reminders monitor expirations
+  memberId  String?   // optionally tied to a family member
+  createdAt DateTime  @default(now())
+
+  @@index([familyId, category])
+}
+
+// A trusted contact with a chosen access level (permissions groundwork).
+model TrustedContact {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  name         String
+  relationship String?
+  phone        String?
+  email        String?
+  accessLevel  String   @default("emergency") // full | medical | emergency | documents | legal
+  createdAt    DateTime @default(now())
+
+  @@index([familyId])
 }
 
 model WebhookEvent {

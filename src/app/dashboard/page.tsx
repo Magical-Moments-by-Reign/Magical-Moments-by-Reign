@@ -76,6 +76,13 @@ export default async function DashboardPage() {
             </div>
             <Link href="/dashboard/shares" className="btn-gold">Create a share link ✦</Link>
           </div>
+          <div className="studio-tile studio-tile--vault">
+            <div>
+              <h3><span className="studio-tile__icon" aria-hidden="true">🗂</span> The Family Vault</h3>
+              <p>The secure heart of your family — profiles, emergency &amp; medical info, documents, and trusted contacts. Every journey connects here.</p>
+            </div>
+            <Link href="/dashboard/vault" className="btn-gold">Open the Family Vault ✦</Link>
+          </div>
         </div>
 
         <div className="toolbar">

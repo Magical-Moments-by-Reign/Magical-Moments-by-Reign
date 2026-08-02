@@ -1,0 +1,82 @@
+/* ================================================================
+   The Family Vault
+   ================================================================ */
+.fv { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
+.fv .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+.fv-header { padding: clamp(2rem, 5vw, 3.4rem) 0 clamp(1.6rem, 3vw, 2.4rem); background: linear-gradient(160deg, var(--charcoal-900, #17141d), var(--charcoal-800, #221d2b)); color: var(--cream-100); }
+.fv-back { display: block; margin-bottom: 0.9rem; color: rgba(248,244,236,0.7); font-size: 0.84rem; text-decoration: none; }
+.fv-back:hover { color: var(--gold-soft); }
+.fv-header h1 { font-family: var(--font-display); font-size: clamp(1.9rem, 4.5vw, 2.9rem); margin: 0.5rem 0 0.4rem; }
+.fv-header p { color: rgba(248,244,236,0.8); margin: 0 0 1rem; max-width: 46rem; }
+.fv-rename { display: flex; gap: 0.5rem; align-items: center; }
+.fv-rename input { padding: 0.5rem 0.8rem; border-radius: 9px; border: 1px solid rgba(214,196,160,0.35); background: rgba(255,255,255,0.06); color: var(--cream-100); font: inherit; font-size: 0.9rem; }
+
+.fv-main { padding: 2rem 0 5rem; }
+.fv-muted { color: #7c7583; }
+.fv-fine { font-size: 0.8rem; color: #9a93a2; margin-top: 0.8rem; }
+
+.fv-stats { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.4rem; }
+.fv-stat { background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.8rem 1.3rem; min-width: 6.5rem; text-align: center; }
+.fv-stat b { display: block; font-family: var(--font-display); font-size: 1.6rem; color: #211d29; }
+.fv-stat span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9a93a2; }
+
+.fv-banner { background: #fff9ee; border: 1px solid #eccf9a; color: #8a6a24; border-radius: 12px; padding: 0.85rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.92rem; }
+
+.fv-section { margin-bottom: 2.2rem; }
+.fv-section > h2 { font-family: var(--font-display); font-size: 1.5rem; color: #211d29; margin: 0 0 1rem; }
+
+/* Emergency */
+.fv-emergency { background: #fff; border: 1px solid #eccaca; border-radius: 18px; padding: 1.3rem 1.4rem; }
+.fv-emgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.fv-emcard { background: #fdf6f5; border: 1px solid #f0d9d7; border-radius: 12px; padding: 1rem 1.1rem; }
+.fv-emcard__name { font-weight: 700; color: #211d29; margin-bottom: 0.5rem; }
+.fv-emcard p { margin: 0.2rem 0; font-size: 0.88rem; color: #4a4551; }
+.fv-emcard p span { display: inline-block; min-width: 92px; color: #9a3b3b; font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Members */
+.fv-members { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+.fv-member { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.1rem 1.2rem; }
+.fv-member__top { display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.6rem; }
+.fv-member__emoji { font-size: 1.7rem; }
+.fv-member__name { font-weight: 700; color: #211d29; }
+.fv-member__kind { font-size: 0.8rem; color: #9a93a2; }
+.fv-member__row { font-size: 0.85rem; color: #4a4551; margin: 0.3rem 0; }
+.fv-member__row span { color: #9a93a2; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 0.3rem; }
+.fv-member__notes { font-size: 0.86rem; color: #5f5866; margin: 0.4rem 0 0; }
+.fv-member__actions { display: flex; gap: 0.9rem; margin-top: 0.8rem; }
+
+/* Forms */
+.fv-form { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 0.4rem 1.2rem; }
+.fv-form > summary { cursor: pointer; font-weight: 600; color: var(--gold-deep); padding: 0.8rem 0; list-style: none; }
+.fv-form > summary::-webkit-details-marker { display: none; }
+.fv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; padding: 0.6rem 0 1.2rem; }
+.fv-grid label { display: grid; gap: 0.3rem; }
+.fv-grid label span { font-size: 0.76rem; font-weight: 600; color: #4a4551; }
+.fv-grid input, .fv-grid select, .fv-grid textarea { width: 100%; padding: 0.6rem 0.75rem; border-radius: 9px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
+.fv-grid__full { grid-column: 1 / -1; }
+.fv-formactions { display: flex; gap: 1rem; align-items: center; }
+
+/* Documents */
+.fv-docs { display: grid; gap: 0.7rem; margin-bottom: 1.2rem; }
+.fv-doc { display: flex; justify-content: space-between; gap: 1rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1.1rem; }
+.fv-doc__cat { display: inline-block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold-deep); font-weight: 700; margin-right: 0.6rem; }
+.fv-doc__exp { display: inline-block; margin-left: 0.6rem; font-size: 0.76rem; color: #9a3b3b; }
+.fv-doc__notes { font-size: 0.84rem; color: #5f5866; margin: 0.3rem 0 0; }
+.fv-doc__actions { display: flex; gap: 0.9rem; align-items: flex-start; white-space: nowrap; }
+
+/* Contacts */
+.fv-contacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem; }
+.fv-contact { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1.1rem; display: flex; justify-content: space-between; gap: 0.6rem; }
+.fv-contact__meta { font-size: 0.82rem; color: #5f5866; margin: 0.2rem 0; }
+.fv-contact__access { font-size: 0.72rem; background: var(--cream-100); border: 1px solid var(--gray-200); border-radius: 999px; padding: 0.1rem 0.55rem; color: #6a6472; }
+
+/* Journeys */
+.fv-journeys { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.fv-journey { background: #fff; border: 1px solid var(--gray-200); border-radius: 999px; padding: 0.5rem 1rem; text-decoration: none; color: #211d29; font-size: 0.9rem; }
+.fv-journey:hover { border-color: var(--gold-soft); }
+
+.fv-linkbtn { font: inherit; font-size: 0.84rem; font-weight: 600; color: var(--gold-deep); background: none; border: none; cursor: pointer; text-decoration: none; padding: 0; }
+.fv-linkbtn:hover { text-decoration: underline; }
+.fv-linkbtn--danger { color: #9a3b3b; }
+
+@media (max-width: 620px) { .fv-grid { grid-template-columns: 1fr; } }

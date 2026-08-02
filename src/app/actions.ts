@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createExperience, regenerateDesign } from "@/lib/experiences";
 import { upsertGiftData } from "@/lib/gifts";
+import { getCurrentFamily } from "@/lib/family";
+import { getCurrentUserId } from "@/lib/session";
 
 export async function createExperienceAction(formData: FormData): Promise<void> {
   const type = String(formData.get("type") || "").trim();
@@ -18,11 +20,15 @@ export async function createExperienceAction(formData: FormData): Promise<void> 
     redirect("/create?error=missing");
   }
 
+  // Every Journey attaches to the Family Vault — nothing exists independently.
+  const [ownerId, family] = await Promise.all([getCurrentUserId(), getCurrentFamily()]);
   const experience = await createExperience({
     type,
     title,
     subtitle: subtitle || undefined,
     desiredSlug: desiredSlug || undefined,
+    ownerId,
+    familyId: family.id,
   });
 
   // Optional Gifts & Registry — asked (never required) during setup.
