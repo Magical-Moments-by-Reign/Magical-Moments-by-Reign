@@ -199,6 +199,9 @@ model Order {
   number            String   @unique // MMR-YYYYMMDD-####
   customerId        String?
   customer          Customer? @relation(fields: [customerId], references: [id])
+  // Every purchase attaches to the permanent Magical Moments Account.
+  accountId         String?
+  account           Account?  @relation(fields: [accountId], references: [id])
   experienceId      String?
   planId            String?
   experienceTitle   String?
@@ -237,6 +240,7 @@ model Order {
   @@index([paymentStatus])
   @@index([fulfillmentStatus])
   @@index([createdAt])
+  @@index([accountId])
 }
 
 model OrderItem {
@@ -622,52 +626,197 @@ model SpecialAudit {
   @@index([specialId])
 }
 
-// ── Customer Identity, Duplicate Prevention & Balance Controls ───
-// One person = one Magical Moments account. This is the data foundation for
-// src/lib/account-identity.ts. Normalized identifiers (canonical email, digit
-// phone, name, address keys) power probable-duplicate detection so a customer
-// cannot open a second account to dodge a balance. NO lending/credit-scoring
-// data lives here — only platform identity + balance state. Sensitive values
-// are encrypted at rest at the app layer (see src/lib/crypto.ts) once auth
-// exists; card numbers are never stored (Square tokens only).
+// ════════════════════════════════════════════════════════════════
+// PLATFORM FOUNDATION — the operating system every Experience uses:
+// (1) Customer Accounts  (2) Magical Moments Library  (3) Magical
+// Tracker  (4) Purchasing Flow  (5) Magical AI.
+//
+// ONE PERSON = ONE MAGICAL MOMENTS ACCOUNT. ONE ACCOUNT = ONE LIBRARY.
+// Every purchase attaches to the verified account. This is the data
+// foundation for src/lib/account-identity.ts.
+//
+// Guardrails baked into this schema:
+//   • NO lending/credit-scoring data — only platform identity + balance
+//     state. Financing runs through the provider-agnostic gateway.
+//   • NEVER store raw card numbers, CVVs, SSNs, or financing credentials.
+//     Square / SMS / email / encryption / storage appear ONLY as secure
+//     external identifiers and integration seams.
+//   • A shared residential address alone is never proof of identity.
+// ════════════════════════════════════════════════════════════════
+
+enum AccountStatus {
+  ACTIVE
+  PAYMENT_DUE
+  PAST_DUE
+  PAYMENT_PLAN_ACTIVE
+  PAYMENT_METHOD_FAILED
+  UNDER_REVIEW
+  CHARGEBACK_REVIEW
+  PURCHASE_RESTRICTED
+  FINANCING_RESTRICTED
+  CLOSED
+}
+
+enum AddressKind {
+  RESIDENTIAL
+  BILLING
+}
+
+enum RestrictionKind {
+  PURCHASE
+  FINANCING
+  PAYMENT_PLAN
+  ACCOUNT
+}
+
+enum RecoveryChannel {
+  EMAIL
+  SMS
+  PASSWORD
+  SUPPORT
+}
+
+enum RecoveryStatus {
+  SENT
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum DuplicateTier {
+  REVIEW
+  STRONG
+}
+
+enum DuplicateStatus {
+  OPEN
+  SAME_CUSTOMER
+  DIFFERENT_PEOPLE
+  MERGED
+  DISMISSED
+}
+
+enum LibraryEntryKind {
+  EXPERIENCE
+  PHOTO
+  VIDEO
+  GALLERY
+  INVITATION
+  GUESTBOOK
+  REGISTRY
+  GIFT_CONTRIBUTION
+  RECEIPT
+  ORDER
+  UPCOMING_EVENT
+  COMPLETED_EVENT
+  FAVORITE
+  ARCHIVED
+}
+
+enum TrackerStageStatus {
+  PENDING
+  ACTIVE
+  COMPLETE
+  NEEDS_ATTENTION
+}
+
+enum BalanceStatus {
+  CURRENT
+  DUE
+  PAST_DUE
+  IN_PLAN
+  CLEARED
+}
+
+enum PaymentPlanStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  CANCELLED
+}
+
+enum GiftStatus {
+  PENDING
+  PURCHASED
+  DELIVERED
+  CANCELLED
+}
+
+enum CollaboratorScope {
+  VIEW
+  ASSIST
+  MANAGE
+}
+
+enum CollaboratorStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+// ── (1) Customer Account — the permanent identity spine ─────────
+// One row per person, for life. `customerId` is the human-friendly
+// permanent ID (e.g. MMR-C-XXXXXX). Passwords are hashed; social sign-in
+// stores only the provider's subject id (never tokens/credentials here).
+model Account {
+  id            String        @id @default(cuid())
+  customerId    String        @unique // permanent human-friendly Customer ID
+  status        AccountStatus @default(ACTIVE)
+
+  firstName      String
+  lastName       String
+  nameNormalized String  @default("") // for probable-duplicate matching only
+  dateOfBirth    String? // only when payment-plan/identity verification requires it
+
+  // External identifiers only — no secrets, no card data.
+  squareCustomerId String? @unique
+  googleSub        String? @unique // Google sign-in subject
+  appleSub         String? @unique // Apple sign-in subject
+  passwordHash     String? // hashed only; null when social-only
+
+  identity      AccountIdentity?
+  emails        CustomerEmail[]
+  phones        CustomerPhone[]
+  addresses     CustomerAddress[]
+  restrictions  AccountRestriction[]
+  recoveryAttempts AccountRecoveryAttempt[]
+  statusHistory AccountStatusHistory[]
+  auditLogs     CustomerAuditLog[]
+  libraryEntries LibraryEntry[]
+  trackers      MagicalTracker[]
+  orders        Order[]
+  balances      Balance[]
+  paymentPlans  PaymentPlan[]
+  giftsPurchased GiftPurchase[]      @relation("giftBuyer")
+  contributions  GroupContribution[]
+  collaboratorsGranted CollaboratorPermission[] @relation("grantor")
+  collaboratingOn      CollaboratorPermission[] @relation("collaborator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nameNormalized])
+  @@index([status])
+}
+
+// The normalized identity snapshot used for duplicate detection. Kept
+// alongside the Account so matching never has to touch private display
+// data. Alternate emails/phones/billing addresses catch balance-dodgers.
 model AccountIdentity {
-  id            String  @id @default(cuid())
-  userId        String? @unique // links to User once auth exists
-  firstName     String
-  lastName      String
-  email         String
-  phone         String
-  // Normalized forms used ONLY for matching (never displayed).
-  emailCanonical String @default("")
+  id        String  @id @default(cuid())
+  accountId String  @unique
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  emailCanonical  String @default("")
   phoneNormalized String @default("")
   nameNormalized  String @default("")
   addressKey      String @default("") // shared address alone is NOT proof of identity
 
-  // Residential address.
-  line1   String?
-  line2   String?
-  city    String?
-  state   String?
-  postal  String?
-  country String  @default("US")
+  previousEmails   String @default("[]") // JSON array
+  previousPhones   String @default("[]") // JSON array
+  billingAddresses String @default("[]") // JSON array of address keys
 
-  dateOfBirth String? // only captured when payment-plan/identity verification requires it
-
-  // Verification gates — purchasing is off until BOTH are true (delivery is a seam).
-  emailVerified Boolean @default(false)
-  phoneVerified Boolean @default(false)
-
-  // Alternate identifiers that catch balance-dodgers (JSON arrays as TEXT).
-  previousEmails    String @default("[]")
-  previousPhones    String @default("[]")
-  billingAddresses  String @default("[]")
-  squareCustomerId  String?
-
-  // Account + balance state (see AccountStatus in account-identity.ts).
-  status        String  @default("ACTIVE")
-  balanceCents  Int     @default(0)
-
-  statusHistory AccountStatusHistory[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -675,47 +824,134 @@ model AccountIdentity {
   @@index([phoneNormalized])
   @@index([nameNormalized])
   @@index([addressKey])
-  @@index([status])
+}
+
+// Verified & unverified emails. Purchasing stays off until a primary email
+// is verified (delivery of the link/code is an integration seam).
+model CustomerEmail {
+  id         String    @id @default(cuid())
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email      String
+  canonical  String    @default("") // matching form
+  isPrimary  Boolean   @default(false)
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([accountId, canonical])
+  @@index([canonical])
+}
+
+// Verified & unverified phone numbers (SMS verification is a seam).
+model CustomerPhone {
+  id         String    @id @default(cuid())
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  phone      String
+  normalized String    @default("") // matching form
+  isPrimary  Boolean   @default(false)
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([accountId, normalized])
+  @@index([normalized])
+}
+
+// Residential & billing addresses. `addressKey` folds formatting variants;
+// a shared key never, by itself, implies the same customer.
+model CustomerAddress {
+  id         String      @id @default(cuid())
+  accountId  String
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind       AddressKind @default(RESIDENTIAL)
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postal     String
+  country    String      @default("US")
+  addressKey String      @default("")
+  isPrimary  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  @@index([accountId, kind])
+  @@index([addressKey])
+}
+
+// An active restriction on an account (purchase/financing/plan/account).
+// Applied & lifted only by authorized admins; both are audited.
+model AccountRestriction {
+  id        String          @id @default(cuid())
+  accountId String
+  account   Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind      RestrictionKind
+  reason    String
+  active    Boolean         @default(true)
+  createdBy String          // admin identity
+  liftedBy  String?
+  liftedAt  DateTime?
+  createdAt DateTime        @default(now())
+
+  @@index([accountId, active])
+}
+
+// Account-recovery attempts — the groundwork for rate limiting & the
+// "recover before duplicate" flow. Stores only a masked target, never the
+// full contact value. Delivery of the code/link is an integration seam.
+model AccountRecoveryAttempt {
+  id           String          @id @default(cuid())
+  accountId    String?
+  account      Account?        @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  channel      RecoveryChannel
+  maskedTarget String          // e.g. t••••@email.com — never the full value
+  status       RecoveryStatus  @default(SENT)
+  ipHash       String? // hashed IP for velocity checks (seam)
+  createdAt    DateTime        @default(now())
+
+  @@index([accountId])
+  @@index([createdAt])
 }
 
 // Append-only history of every account-status change (who, when, why).
 model AccountStatusHistory {
-  id          String          @id @default(cuid())
-  identityId  String
-  identity    AccountIdentity @relation(fields: [identityId], references: [id], onDelete: Cascade)
-  fromStatus  String?
-  toStatus    String
-  reason      String?
-  actor       String          @default("system") // admin identity or "system"
-  createdAt   DateTime        @default(now())
+  id         String        @id @default(cuid())
+  accountId  String
+  account    Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fromStatus AccountStatus?
+  toStatus   AccountStatus
+  reason     String?
+  actor      String        @default("system") // admin identity or "system"
+  createdAt  DateTime      @default(now())
 
-  @@index([identityId])
+  @@index([accountId])
 }
 
 // A flagged potential-duplicate pair awaiting admin review. Records the
 // weighted match reasons; resolution is logged, never silently applied.
-model DuplicateReview {
-  id           String   @id @default(cuid())
-  candidateId  String   // the account that triggered the flag
-  matchedId    String   // the existing account it may duplicate
-  score        Float    @default(0)
-  tier         String   @default("review") // review | strong
-  reasons      String   @default("[]")     // JSON array of human-readable signals
-  riskFlags    String   @default("[]")     // JSON device/velocity indicators (seam)
-  status       String   @default("open")   // open | same_customer | different_people | merged | dismissed
-  resolvedBy   String?
-  resolvedAt   DateTime?
-  notes        String?
-  createdAt    DateTime @default(now())
+model DuplicateCandidate {
+  id                 String          @id @default(cuid())
+  candidateAccountId String          // the account that triggered the flag
+  matchedAccountId   String          // the existing account it may duplicate
+  score              Float           @default(0)
+  tier               DuplicateTier   @default(REVIEW)
+  reasons            String          @default("[]") // JSON human-readable signals
+  riskFlags          String          @default("[]") // JSON device/velocity indicators (seam)
+  status             DuplicateStatus @default(OPEN)
+  resolvedBy         String?
+  resolvedAt         DateTime?
+  notes              String?
+  createdAt          DateTime        @default(now())
 
   @@index([status])
-  @@index([candidateId])
-  @@index([matchedId])
+  @@index([candidateAccountId])
+  @@index([matchedAccountId])
 }
 
-// Append-only audit of an approved account merge. Balances, disputes, and
+// Append-only record of an approved account merge. Balances, disputes, and
 // history are preserved — never erased — and the duplicate is closed for reuse.
-model AccountMergeAudit {
+model AccountMergeRecord {
   id          String   @id @default(cuid())
   primaryId   String
   duplicateId String
@@ -726,6 +962,187 @@ model AccountMergeAudit {
   createdAt   DateTime @default(now())
 
   @@index([primaryId])
+}
+
+// Append-only per-account audit log (identity, action, prev/new state).
+model CustomerAuditLog {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  actor     String   @default("system")
+  action    String   // e.g. account_created | status_changed | restriction_added | merged
+  detail    String?
+  prevValue String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@index([action])
+}
+
+// ── (2) Magical Moments Library — the customer's home ───────────
+// Everything a customer has ever purchased/created appears here. Entries
+// reference their source object by id (loose ref) so the Library indexes
+// across Experiences, orders, media, galleries, invitations, etc.
+model LibraryEntry {
+  id         String           @id @default(cuid())
+  accountId  String
+  account    Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind       LibraryEntryKind
+  refId      String? // id of the referenced Experience/Order/MediaAsset/…
+  title      String
+  subtitle   String?
+  thumbnail  String?
+  // Lightweight, denormalized search text (people, dates, locations, guests).
+  searchText String           @default("")
+  occurredAt DateTime?
+  favorite   Boolean          @default(false)
+  archived   Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([accountId, kind])
+  @@index([accountId, archived])
+  @@index([accountId, favorite])
+}
+
+// ── (3) Magical Tracker — per-Experience progress dashboard ─────
+model MagicalTracker {
+  id           String                @id @default(cuid())
+  accountId    String
+  account      Account               @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  experienceId String                @unique // one tracker per Experience
+  currentStage String? // key of the active stage
+  stages       MagicalTrackerStage[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([accountId])
+}
+
+model MagicalTrackerStage {
+  id          String             @id @default(cuid())
+  trackerId   String
+  tracker     MagicalTracker     @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  key         String             // canonical stage key (see src/lib/magical-tracker.ts)
+  label       String
+  status      TrackerStageStatus @default(PENDING)
+  order       Int                @default(0)
+  completedAt DateTime?
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([trackerId, key])
+  @@index([trackerId, order])
+}
+
+// ── (4) Purchasing Flow — balances & payment plans ──────────────
+// Orders / OrderItems / Payments already exist (commerce section) and now
+// attach to the Account. Balances track what a customer owes; PaymentPlans
+// track an externally-approved installment plan (NO lending logic here).
+model Balance {
+  id           String        @id @default(cuid())
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  amountCents  Int           @default(0) // outstanding, in cents
+  currency     String        @default("USD")
+  status       BalanceStatus @default(CURRENT)
+  orderId      String? // optional link to the originating order
+  dueAt        DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([accountId, status])
+}
+
+// An installment plan APPROVED & PROCESSED by an external provider. We only
+// track its state — no internal lending or credit-scoring is performed.
+model PaymentPlan {
+  id               String            @id @default(cuid())
+  accountId        String
+  account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  orderId          String?
+  provider         String            // external financing provider id
+  providerRef      String? // provider's plan reference (no credentials)
+  status           PaymentPlanStatus @default(ACTIVE)
+  totalCents       Int               @default(0)
+  remainingCents   Int               @default(0)
+  installmentCents Int               @default(0)
+  cadence          String            @default("monthly") // weekly | biweekly | monthly
+  nextChargeAt     DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([accountId, status])
+}
+
+// ── Gifts & group contributions ────────────────────────────────
+// A gift a customer buys for a recipient. The platform never holds funds
+// for cash gifts — those route to the customer's own payment handles.
+model GiftPurchase {
+  id           String        @id @default(cuid())
+  buyerId      String
+  buyer        Account       @relation("giftBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  recipientId  String?
+  recipient    GiftRecipient? @relation(fields: [recipientId], references: [id])
+  experienceId String?
+  label        String
+  amountCents  Int           @default(0)
+  status       GiftStatus    @default(PENDING)
+  orderId      String?
+  createdAt    DateTime      @default(now())
+
+  @@index([buyerId])
+}
+
+// Gift-recipient records — used both for delivery and (per the identity
+// standard) as one of the signals in duplicate detection. `matchedAccountId`
+// links a recipient to an existing account once verified.
+model GiftRecipient {
+  id               String         @id @default(cuid())
+  name             String
+  emailCanonical   String? // matching form only
+  phoneNormalized  String?
+  matchedAccountId String?
+  gifts            GiftPurchase[]
+  createdAt        DateTime       @default(now())
+
+  @@index([emailCanonical])
+  @@index([phoneNormalized])
+}
+
+// Group funding toward an Experience (Magical+ gift pools). Progress and
+// auto-unlock math live in src/lib/magical-plus.ts (poolProgress).
+model GroupContribution {
+  id            String   @id @default(cuid())
+  experienceId  String
+  contributorId String?
+  contributor   Account? @relation(fields: [contributorId], references: [id], onDelete: SetNull)
+  contributorName String
+  amountCents   Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([experienceId])
+}
+
+// ── Family & collaborator permissions ──────────────────────────
+// Time-bound, revocable delegated access (e.g. an adult child assisting a
+// parent with a specific Experience). Never merges balances or identities.
+model CollaboratorPermission {
+  id                  String             @id @default(cuid())
+  grantorId           String
+  grantor             Account            @relation("grantor", fields: [grantorId], references: [id], onDelete: Cascade)
+  collaboratorId      String?
+  collaborator        Account?           @relation("collaborator", fields: [collaboratorId], references: [id], onDelete: SetNull)
+  invitedEmailMasked  String? // masked until the collaborator accepts
+  experienceId        String? // null = account-wide (rare); usually scoped to one Experience
+  scope               CollaboratorScope  @default(VIEW)
+  status              CollaboratorStatus @default(INVITED)
+  expiresAt           DateTime? // access auto-expires; revocable anytime
+  revokedAt           DateTime?
+  createdAt           DateTime           @default(now())
+
+  @@index([grantorId, status])
+  @@index([collaboratorId])
 }
 
 model WebhookEvent {

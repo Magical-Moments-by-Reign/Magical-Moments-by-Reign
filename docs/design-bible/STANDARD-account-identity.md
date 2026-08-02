@@ -19,10 +19,35 @@ internal lending or credit-scoring logic is built at this stage.**
 
 ---
 
+## The five platform systems (the operating system)
+
+Per the **Platform Foundation** directive, five core systems are the operating
+system of Magical Moments — every Experience must plug into all five, with no
+exceptions: **(1) Customer Accounts · (2) Magical Moments Library · (3) Magical
+Tracker™ · (4) Purchasing Flow · (5) Magical AI.** This standard owns system
+(1) and the identity/balance controls the other four depend on. The canonical
+rules:
+
+- **One person = one Magical Moments account** (for life, across every purchase).
+- **One account = one Magical Moments Library.**
+- **Every purchase attaches to the verified customer account** — no duplicate
+  purchases, libraries, or balances.
+- **Duplicate detection must lead to recovery before new-account creation.**
+- **A shared residential address does not automatically mean duplicate
+  customers.**
+- **Customers retain access to existing purchased content while resolving a
+  balance** — memories are never deleted over a payment issue.
+- **New financing may be restricted while balances remain unresolved.**
+- **Account merges require verification, audit logs, and authorized approval.**
+- **Magical Moments does not provide internal lending at this stage.**
+- **External verification (email/SMS), Square, storage, and encryption remain
+  documented integration seams.**
+
 ## Built today (real & verifiable)
 
-`src/lib/account-identity.ts` — the **pure domain layer**, fully unit-tested
-(24 checks) with no external dependency:
+`src/lib/account-identity.ts` — the **pure domain layer**, covered by a
+committed unit suite (`src/lib/account-identity.test.ts`, **38 tests, run via
+`npm test`**), no external dependency:
 
 - **Required-field + verification gates** — `missingRequiredFields()`,
   `purchasingEnabled()` (purchasing stays off until email **and** phone are
@@ -31,21 +56,48 @@ internal lending or credit-scoring logic is built at this stage.**
   collapse, matching only), `normalizePhone`, `normalizeName`, `addressKey`
   (with street-abbreviation folding).
 - **Masking** — `maskEmail` (`t••••@e••••.com`), `maskPhone` (`•••-•••-4821`).
-- **Duplicate detection** — `matchSignals`, `scoreMatch`, `findProbableMatches`
-  with weighted signals and two thresholds (`REVIEW_THRESHOLD`,
+- **Exact-match detection** — `exactMatch()` (verified email / phone / Square id).
+- **Weighted probable duplicate detection** — `matchSignals`, `scoreMatch`,
+  `findProbableMatches` with two thresholds (`REVIEW_THRESHOLD`,
   `STRONG_THRESHOLD`). **A shared residential address alone scores 0** — it
   never flags a match.
+- **Existing-account recovery decisions** — `recoveryDecision()` returns
+  recover-vs-create and exposes **only masked** contact of the best match.
 - **Balance-aware purchase gating** — `AccountStatus`, `ACCOUNT_STATUSES`,
   `canPerform(status, action, config)`, `allowedActions`, `isUnresolved`.
 - **Merge planning** — `planMerge()` returns an auditable plan that preserves
   balances/disputes/history and prevents duplicate reuse.
+- **Admin-review decision objects** — `ADMIN_ACTIONS`, `adminDecision()`
+  (each action's verification/authorization requirements, resolution, audit).
 - **Customer-facing copy** — `MESSAGES`, `PREFERRED_FLOW` (respectful,
   never accusatory).
 
-`prisma/schema.prisma` — the **data foundation**: `AccountIdentity` (normalized
-identifiers + verification flags + status + balance), `AccountStatusHistory`
-(append-only who/when/why), `DuplicateReview` (flagged pairs for admin), and
-`AccountMergeAudit` (append-only merge log).
+`src/lib/magical-tracker.ts` — the canonical **17-stage** Magical Tracker
+catalog (`MAGICAL_TRACKER_STAGES`, `initialTrackerStages`, `trackerProgress`).
+Stage *status* is computed from real state once Experiences/orders exist — no
+fabricated progress.
+
+`prisma/schema.prisma` — the **data foundation** (PostgreSQL, 14 enums):
+
+- **Accounts & identity:** `Account` (permanent `customerId`, `AccountStatus`,
+  social-sign-in subject ids + hashed password only), `AccountIdentity`
+  (normalized matching snapshot + alternate emails/phones/billing keys),
+  `CustomerEmail` / `CustomerPhone` (verified + unverified), `CustomerAddress`
+  (`RESIDENTIAL` / `BILLING` + `addressKey`).
+- **Controls & audit:** `AccountRestriction`, `AccountRecoveryAttempt`,
+  `AccountStatusHistory`, `DuplicateCandidate`, `AccountMergeRecord`,
+  `CustomerAuditLog` (all append-only where they record history).
+- **Library & tracker:** `LibraryEntry` (14 kinds + search text),
+  `MagicalTracker` + `MagicalTrackerStage`.
+- **Purchasing:** `Order` now carries `accountId`; `Balance`, `PaymentPlan`
+  (tracks an externally-approved plan — **no lending logic**).
+- **Gifts & people:** `GiftPurchase`, `GiftRecipient` (also a matching signal),
+  `GroupContribution`, `CollaboratorPermission` (time-bound, revocable
+  delegated access — never merges balances or identities).
+
+Card numbers, CVVs, SSNs, and financing credentials are **never** stored;
+Square/SMS/email/encryption/storage appear only as secure external identifiers
+and seams.
 
 ## Needs (foundation seams — never faked)
 

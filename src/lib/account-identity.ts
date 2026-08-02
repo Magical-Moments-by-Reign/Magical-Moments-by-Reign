@@ -469,3 +469,121 @@ export const PREFERRED_FLOW = [
   "Provide a clear resolution path",
   "Restore eligible purchasing access",
 ] as const;
+
+// ── Exact-match detection ───────────────────────────────────────
+/**
+ * True when two identities share a *decisive* identifier — verified email,
+ * verified phone, or Square customer id. Exact matches always route to
+ * recovery, never a new account.
+ */
+export function exactMatch(a: IdentitySnapshot, b: IdentitySnapshot): boolean {
+  if (a.email && canonicalEmail(a.email) === canonicalEmail(b.email)) return true;
+  const pa = normalizePhone(a.phone);
+  if (pa.length >= 7 && pa === normalizePhone(b.phone)) return true;
+  if (a.squareCustomerId && a.squareCustomerId === b.squareCustomerId) return true;
+  return false;
+}
+
+// ── Existing-account recovery decision ──────────────────────────
+// Given the probable matches for a signup, decide whether to block a new
+// account and route to recovery. NEVER exposes private info — only masked
+// email/phone of the best match are surfaced.
+export interface RecoveryMatch {
+  accountId?: string;
+  tier: MatchTier;
+  score: number;
+  reasons: string[];
+  maskedEmail: string;
+  maskedPhone: string;
+}
+
+export interface RecoveryDecision {
+  /** "recover" = block new account, route to recovery; "create" = safe to proceed. */
+  action: "recover" | "create";
+  message: string;
+  options: string[];      // recovery options (only when action === "recover")
+  match: RecoveryMatch | null;
+}
+
+/**
+ * Decide the signup outcome from ranked matches (best first). Any review/strong
+ * match prefers recovery over creating a duplicate.
+ */
+export function recoveryDecision(matches: MatchResult[]): RecoveryDecision {
+  const best = matches[0];
+  if (!best || best.tier === "none") {
+    return { action: "create", message: "", options: [], match: null };
+  }
+  return {
+    action: "recover",
+    message: MESSAGES.possibleExisting,
+    options: [...MESSAGES.recoveryOptions],
+    match: {
+      accountId: best.candidate.accountId,
+      tier: best.tier,
+      score: best.score,
+      reasons: best.reasons,
+      maskedEmail: maskEmail(best.candidate.email),
+      maskedPhone: maskPhone(best.candidate.phone),
+    },
+  };
+}
+
+// ── Admin-review decision objects ───────────────────────────────
+export type AdminAction =
+  | "confirm_same"
+  | "confirm_different"
+  | "send_recovery"
+  | "merge"
+  | "restrict"
+  | "remove_restriction"
+  | "add_note"
+  | "escalate";
+
+export const ADMIN_ACTIONS: { id: AdminAction; label: string }[] = [
+  { id: "confirm_same", label: "Confirm same customer" },
+  { id: "confirm_different", label: "Confirm different people" },
+  { id: "send_recovery", label: "Send account-recovery message" },
+  { id: "merge", label: "Merge accounts" },
+  { id: "restrict", label: "Restrict new purchases" },
+  { id: "remove_restriction", label: "Remove an incorrect restriction" },
+  { id: "add_note", label: "Add internal note" },
+  { id: "escalate", label: "Escalate for payment / fraud review" },
+];
+
+export interface AdminReviewDecision {
+  action: AdminAction;
+  /** Requires re-verifying the customer's identity before applying. */
+  requiresVerification: boolean;
+  /** Requires an authorized support/admin role. */
+  requiresAuthorization: boolean;
+  /** The DuplicateReview status this action resolves to (null = no change). */
+  resolvesReviewTo: "same_customer" | "different_people" | "merged" | "dismissed" | null;
+  /** Plain description of the effect. */
+  effect: string;
+  /** Every admin action is logged (identity, time, reason, prev/new status). */
+  auditRequired: true;
+}
+
+/** Describe the effect + guardrails of an admin review action (pure; applying it is a seam). */
+export function adminDecision(action: AdminAction): AdminReviewDecision {
+  const base = { action, auditRequired: true as const };
+  switch (action) {
+    case "confirm_same":
+      return { ...base, requiresVerification: true, requiresAuthorization: true, resolvesReviewTo: "same_customer", effect: "Marks the accounts as the same customer; recommend a verified merge." };
+    case "confirm_different":
+      return { ...base, requiresVerification: false, requiresAuthorization: true, resolvesReviewTo: "different_people", effect: "Marks the accounts as different people; clears the duplicate flag." };
+    case "send_recovery":
+      return { ...base, requiresVerification: false, requiresAuthorization: true, resolvesReviewTo: null, effect: "Sends a masked account-recovery message to the existing account's verified channel." };
+    case "merge":
+      return { ...base, requiresVerification: true, requiresAuthorization: true, resolvesReviewTo: "merged", effect: "Executes a verified merge into the primary; preserves balances/disputes/history; closes the duplicate for reuse." };
+    case "restrict":
+      return { ...base, requiresVerification: false, requiresAuthorization: true, resolvesReviewTo: null, effect: "Applies a purchase/financing restriction; logged with reason and prior status." };
+    case "remove_restriction":
+      return { ...base, requiresVerification: false, requiresAuthorization: true, resolvesReviewTo: null, effect: "Removes an incorrect restriction; logged with reason (correction process)." };
+    case "add_note":
+      return { ...base, requiresVerification: false, requiresAuthorization: true, resolvesReviewTo: null, effect: "Adds an internal note to the review record." };
+    case "escalate":
+      return { ...base, requiresVerification: false, requiresAuthorization: true, resolvesReviewTo: null, effect: "Escalates to payment/fraud review; no automated decision is made." };
+  }
+}

@@ -12,11 +12,13 @@ Bible governs — notify the Founder to confirm direction before continuing.
   provider-agnostic **Financing Gateway** — **not a bank/lender, no lending
   logic.** *Architecture layer built; balances/payments foundation-gated.*
 - **[Customer Identity & Duplicate Prevention](./design-bible/STANDARD-account-identity.md)** —
-  *Founder Approved.* One person = one account. Multi-signal duplicate
-  detection (shared address alone never matches), balance-aware purchase
-  gating, safe merges, respectful recovery flow — **no lending/credit logic.**
-  *Pure domain layer built & tested + data foundation; verification/UI gated on
-  auth + billing.*
+  *Founder Approved · Platform Foundation.* One person = one account, one
+  account = one Library, every purchase attaches to the verified account.
+  Multi-signal duplicate detection (shared address alone never matches),
+  recovery-before-duplicate, balance-aware purchase gating, safe merges — **no
+  lending/credit logic.** *Domain layer built & tested (38 unit tests) + full
+  PostgreSQL data foundation (Accounts · Library · Tracker · Purchasing · gifts
+  · collaborators, 14 enums); verification/UI gated on auth + billing.*
 - **[Founder Constitution — Volume I](./design-bible/CONSTITUTION.md)** —
   *the highest governing document* (mission, purpose, pricing philosophy,
   Lifetime Collections, Founder approval). Referenced before any major decision.

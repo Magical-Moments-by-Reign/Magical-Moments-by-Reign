@@ -68,8 +68,9 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
 | **Magical+ Ecosystem** (wallet, credits, gifting, financing gateway) | **Architecture built** (pure domain + provider-agnostic Financing Gateway, no lending logic) · balances/payments/financing need auth + billing + providers — see [standard](./STANDARD-magical-plus.md) |
-| **Customer Identity & Duplicate Prevention** (one person = one account) | **Domain layer built & tested** (normalization, weighted duplicate detection — shared address alone never matches, balance-aware purchase gating, masking, safe merge planning, recovery copy) + data foundation (AccountIdentity / StatusHistory / DuplicateReview / MergeAudit) · verification (email/SMS), Square ids, admin review UI need auth + billing · **no lending/credit logic** — see [standard](./STANDARD-account-identity.md) |
-| Accounts / auth + role-based family access | Planned |
+| **Platform Foundation** (Customer Accounts · Library · Tracker · Purchasing · AI) | **Foundation slice built** — see the identity row below + the Library/Tracker data models; the five systems are the operating system every Experience must plug into · UI/wiring gated on auth + billing + storage |
+| **Customer Identity & Duplicate Prevention** (one person = one account) | **Domain layer built & tested (38 unit tests, `npm test`)** + full PostgreSQL data foundation (Account, AccountIdentity, CustomerEmail/Phone/Address, AccountRestriction, AccountRecoveryAttempt, AccountStatusHistory, DuplicateCandidate, AccountMergeRecord, CustomerAuditLog, LibraryEntry, MagicalTracker(+Stage), Balance, PaymentPlan, GiftPurchase, GiftRecipient, GroupContribution, CollaboratorPermission; 14 enums) — normalization, exact + weighted duplicate detection (shared address alone never matches), recovery decisions, balance-aware purchase gating, masking, safe merge planning, admin-review objects · verification (email/SMS), Square ids, encryption, admin review UI need auth + billing · **no lending/credit logic** — see [standard](./STANDARD-account-identity.md) |
+| Accounts / auth + role-based family access | Planned (next: auth wiring onto the built Account foundation) |
 
 ---
 
