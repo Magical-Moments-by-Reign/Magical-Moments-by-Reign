@@ -123,6 +123,11 @@ Bible governs — notify the Founder to confirm direction before continuing.
   links (FDIC/CFPB/IRS), family savings goals, bank-appointment link-outs,
   age-based Ask Magical. *Domain + schema built & tested (7 tests); persistence/
   payments/bank links gated.*
+- **[Family Command Center](./design-bible/STANDARD-family-command.md)** —
+  *Founder Approved.* Private family communication & organization — roles,
+  configurable permissions, messages, reminders, tasks, calendar, achievements,
+  Ask Magical digest. **No location tracking / monitoring / surveillance, ever.**
+  *Domain + schema built & tested (10 tests); logins/delivery/UI gated on auth.*
 - **[The Life Operating System](./design-bible/VISION-life-operating-system.md)** — north-star vision.
 - **[The Magical Moments Ecosystem](./design-bible/VISION-ecosystem.md)** —
   *Founder Vision.* A complete Life Celebration Ecosystem — "We've got you." /

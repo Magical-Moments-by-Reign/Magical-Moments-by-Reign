@@ -701,6 +701,12 @@ model Family {
   experiences Experience[]
   purchases   Purchase[]
   wishlist    WishlistItem[]
+  // Family Command Center (see src/lib/family-command.ts)
+  messages    FamilyMessage[]
+  reminders   FamilyReminder[]
+  tasks       FamilyTask[]
+  calendarEvents FamilyCalendarEvent[]
+  achievements FamilyAchievement[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -728,6 +734,9 @@ model FamilyMember {
   emergencyName     String?
   emergencyPhone    String?
   notes         String?
+  // Family Command Center: owner-configurable permissions + notification prefs.
+  permissions   String   @default("{}") // JSON PermissionSet (see family-command.ts)
+  notifyPrefs   String   @default("{}") // JSON NotifyPrefs
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1956,4 +1965,77 @@ model BankAppointment {
   updatedAt       DateTime  @updatedAt
 
   @@index([accountId])
+}
+
+// ── Family Command Center ───────────────────────────────────────
+// Private family communication & organization. NOT a tracker, social platform,
+// or surveillance — no location tracking, ever. Logic in src/lib/family-command.ts.
+model FamilyMessage {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  senderId     String
+  recipientIds String   @default("[]") // JSON of member ids
+  body         String
+  dueDate      DateTime?
+  remindAt     DateTime?
+  priority     String   @default("normal") // low | normal | high
+  completed    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([familyId])
+}
+
+model FamilyReminder {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  forMemberId  String?
+  type         String
+  title        String
+  dueAt        DateTime?
+  status       String   @default("pending") // pending | completed
+  confirmParent Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([familyId, status])
+}
+
+model FamilyTask {
+  id          String   @id @default(cuid())
+  familyId    String
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title       String
+  assigneeIds String   @default("[]") // JSON of member ids (one or many)
+  status      String   @default("open") // open | in_progress | done
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([familyId, status])
+}
+
+model FamilyCalendarEvent {
+  id         String   @id @default(cuid())
+  familyId   String
+  family     Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title      String
+  category   String
+  startAt    DateTime
+  endAt      DateTime?
+  visibility String   @default("family") // family | adults | custom
+  createdAt  DateTime @default(now())
+
+  @@index([familyId, startAt])
+}
+
+model FamilyAchievement {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  memberId  String?
+  type      String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([familyId])
 }
