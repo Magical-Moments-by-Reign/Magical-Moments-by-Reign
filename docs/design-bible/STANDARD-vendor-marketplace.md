@@ -103,3 +103,44 @@ rebuilding — **left disabled** until implemented.
 contact/quote; only approved, non-hidden vendors appear; no vendors are
 invented before real listings exist; no payments run through the marketplace;
 monetization tiers stay disabled until built.
+
+---
+
+## Primary & Standby Vendor System (Vendor Protection)
+
+*Founder Approved.* For important events a customer may choose **Primary Vendor
+only** or **Primary + optional Standby Vendor** — an extra layer of peace of
+mind if the primary becomes unavailable. The standby **reserves availability;
+it is not automatically hired.** No vendor is confirmed until they accept.
+
+**Built today:** `src/lib/vendor-protection.ts` + `vendor-protection.test.ts`
+(**16 tests**) — the pure state machine:
+
+- Choice (`primary_only` / `primary_plus_standby`), acceptance copy, statuses
+  (Primary: pending/accepted/declined/completed · Standby:
+  pending/accepted/released/activated/declined).
+- Transitions returning new state **and who to notify**: `acceptPrimary`,
+  `declinePrimary` (flags admins when a standby is reserved), `completePrimary`,
+  `acceptStandby`, `declineStandby`, `activateStandby` (only after the primary
+  is gone **and** the standby accepted → notifies standby, customer, admins),
+  `releaseStandby` (only while reserved **and** the primary is confirmed →
+  appreciation message).
+- Guards `canActivateStandby` / `canReleaseStandby`, timeline milestones
+  (`vendorMilestones`), disclaimers, and the future-enhancements list.
+
+`prisma/schema.prisma` — `VendorBooking` (+ `VendorBookingEvent` audit;
+`ProtectionChoice`, `PrimaryVendorStatus`, `StandbyVendorStatus` enums).
+
+**Needs (seams):** the customer booking prompt + dashboard, the vendor dashboard
+(role, event info, acceptance, calendar, messages), and **notification
+delivery** — all gated on auth + live vendors + notifications.
+
+**Disclaimers (shown to customers):** Magical Moments only facilitates
+communication; the customer confirms contracts & pricing directly with each
+vendor; a Standby Vendor is an option for continuity, not a guarantee of
+availability, pricing, or performance.
+
+**Future enhancements (documented, not built):** vendor deposits, availability
+syncing, automatic backup matching, AI recommendations, verified vendors,
+premium memberships, emergency replacement, calendar integration, text
+notifications, real-time acceptance.

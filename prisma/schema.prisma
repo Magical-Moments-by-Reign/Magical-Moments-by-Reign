@@ -1514,3 +1514,68 @@ model VendorApplication {
   @@index([status])
   @@index([createdAt])
 }
+
+// ── Primary & Standby Vendor System (Vendor Protection) ─────────
+// A customer may book a Primary Vendor and an OPTIONAL Standby Vendor for an
+// event. No vendor is confirmed until they accept; the standby reserves
+// availability (not hired) until released or activated. State transitions live
+// in src/lib/vendor-protection.ts. Notifications are a seam.
+enum ProtectionChoice {
+  PRIMARY_ONLY
+  PRIMARY_PLUS_STANDBY
+}
+
+enum PrimaryVendorStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
+enum StandbyVendorStatus {
+  PENDING
+  ACCEPTED
+  RELEASED
+  ACTIVATED
+  DECLINED
+}
+
+model VendorBooking {
+  id             String              @id @default(cuid())
+  experienceId   String
+  accountId      String? // the customer's account (once auth exists)
+  choice         ProtectionChoice    @default(PRIMARY_ONLY)
+
+  primaryVendorId String
+  primaryStatus   PrimaryVendorStatus @default(PENDING)
+  primaryAcceptedAt DateTime?
+
+  standbyVendorId   String?
+  standbyStatus     StandbyVendorStatus?
+  standbyAcceptedAt  DateTime?
+  standbyReleasedAt  DateTime?
+  standbyActivatedAt DateTime?
+
+  completedAt DateTime?
+  events      VendorBookingEvent[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([experienceId])
+  @@index([primaryVendorId])
+  @@index([standbyVendorId])
+  @@index([accountId])
+}
+
+// Append-only timeline/audit for a vendor booking (confirmations, release,
+// activation, completion) — the customer sees a friendly milestone view.
+model VendorBookingEvent {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   VendorBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type      String // primary_confirmed | standby_confirmed | standby_released | standby_activated | event_completed | ...
+  detail    String?
+  createdAt DateTime      @default(now())
+
+  @@index([bookingId])
+}
