@@ -11,6 +11,12 @@ Bible governs — notify the Founder to confirm direction before continuing.
   *Founder Approved.* Wallet, credits, gift contributions, payments, and a
   provider-agnostic **Financing Gateway** — **not a bank/lender, no lending
   logic.** *Architecture layer built; balances/payments foundation-gated.*
+- **[Customer Identity & Duplicate Prevention](./design-bible/STANDARD-account-identity.md)** —
+  *Founder Approved.* One person = one account. Multi-signal duplicate
+  detection (shared address alone never matches), balance-aware purchase
+  gating, safe merges, respectful recovery flow — **no lending/credit logic.**
+  *Pure domain layer built & tested + data foundation; verification/UI gated on
+  auth + billing.*
 - **[Founder Constitution — Volume I](./design-bible/CONSTITUTION.md)** —
   *the highest governing document* (mission, purpose, pricing philosophy,
   Lifetime Collections, Founder approval). Referenced before any major decision.

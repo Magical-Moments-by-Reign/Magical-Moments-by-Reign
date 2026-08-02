@@ -68,6 +68,7 @@ Nothing is ever deleted. Nothing is ever lost. Every chapter stays connected.
 | Vendor discovery + booking | Planned · needs 3rd-party APIs |
 | AI venue/decor visualizer | Planned · needs image generation |
 | **Magical+ Ecosystem** (wallet, credits, gifting, financing gateway) | **Architecture built** (pure domain + provider-agnostic Financing Gateway, no lending logic) · balances/payments/financing need auth + billing + providers — see [standard](./STANDARD-magical-plus.md) |
+| **Customer Identity & Duplicate Prevention** (one person = one account) | **Domain layer built & tested** (normalization, weighted duplicate detection — shared address alone never matches, balance-aware purchase gating, masking, safe merge planning, recovery copy) + data foundation (AccountIdentity / StatusHistory / DuplicateReview / MergeAudit) · verification (email/SMS), Square ids, admin review UI need auth + billing · **no lending/credit logic** — see [standard](./STANDARD-account-identity.md) |
 | Accounts / auth + role-based family access | Planned |
 
 ---

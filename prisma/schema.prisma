@@ -622,6 +622,112 @@ model SpecialAudit {
   @@index([specialId])
 }
 
+// ── Customer Identity, Duplicate Prevention & Balance Controls ───
+// One person = one Magical Moments account. This is the data foundation for
+// src/lib/account-identity.ts. Normalized identifiers (canonical email, digit
+// phone, name, address keys) power probable-duplicate detection so a customer
+// cannot open a second account to dodge a balance. NO lending/credit-scoring
+// data lives here — only platform identity + balance state. Sensitive values
+// are encrypted at rest at the app layer (see src/lib/crypto.ts) once auth
+// exists; card numbers are never stored (Square tokens only).
+model AccountIdentity {
+  id            String  @id @default(cuid())
+  userId        String? @unique // links to User once auth exists
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  // Normalized forms used ONLY for matching (never displayed).
+  emailCanonical String @default("")
+  phoneNormalized String @default("")
+  nameNormalized  String @default("")
+  addressKey      String @default("") // shared address alone is NOT proof of identity
+
+  // Residential address.
+  line1   String?
+  line2   String?
+  city    String?
+  state   String?
+  postal  String?
+  country String  @default("US")
+
+  dateOfBirth String? // only captured when payment-plan/identity verification requires it
+
+  // Verification gates — purchasing is off until BOTH are true (delivery is a seam).
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
+
+  // Alternate identifiers that catch balance-dodgers (JSON arrays as TEXT).
+  previousEmails    String @default("[]")
+  previousPhones    String @default("[]")
+  billingAddresses  String @default("[]")
+  squareCustomerId  String?
+
+  // Account + balance state (see AccountStatus in account-identity.ts).
+  status        String  @default("ACTIVE")
+  balanceCents  Int     @default(0)
+
+  statusHistory AccountStatusHistory[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emailCanonical])
+  @@index([phoneNormalized])
+  @@index([nameNormalized])
+  @@index([addressKey])
+  @@index([status])
+}
+
+// Append-only history of every account-status change (who, when, why).
+model AccountStatusHistory {
+  id          String          @id @default(cuid())
+  identityId  String
+  identity    AccountIdentity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  reason      String?
+  actor       String          @default("system") // admin identity or "system"
+  createdAt   DateTime        @default(now())
+
+  @@index([identityId])
+}
+
+// A flagged potential-duplicate pair awaiting admin review. Records the
+// weighted match reasons; resolution is logged, never silently applied.
+model DuplicateReview {
+  id           String   @id @default(cuid())
+  candidateId  String   // the account that triggered the flag
+  matchedId    String   // the existing account it may duplicate
+  score        Float    @default(0)
+  tier         String   @default("review") // review | strong
+  reasons      String   @default("[]")     // JSON array of human-readable signals
+  riskFlags    String   @default("[]")     // JSON device/velocity indicators (seam)
+  status       String   @default("open")   // open | same_customer | different_people | merged | dismissed
+  resolvedBy   String?
+  resolvedAt   DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@index([status])
+  @@index([candidateId])
+  @@index([matchedId])
+}
+
+// Append-only audit of an approved account merge. Balances, disputes, and
+// history are preserved — never erased — and the duplicate is closed for reuse.
+model AccountMergeAudit {
+  id          String   @id @default(cuid())
+  primaryId   String
+  duplicateId String
+  actor       String   // authorized support/admin identity
+  moved       String   @default("[]") // JSON of what transferred
+  preserved   String   @default("[]") // JSON of what was preserved
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@index([primaryId])
+}
+
 model WebhookEvent {
   id            String   @id @default(cuid())
   squareEventId String   @unique
