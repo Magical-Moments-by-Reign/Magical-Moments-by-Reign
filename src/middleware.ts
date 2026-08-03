@@ -14,7 +14,10 @@ const SESSION_COOKIE = "mmr_session";
 // Authenticated, Account-based areas activated by the platform foundation.
 // /dashboard and /create now require a real Account session (bridged to the
 // legacy dashboard identity) — no demo login.
-const PROTECTED_PREFIXES = ["/account", "/notifications", "/dashboard", "/create"];
+// Vendor dashboard joins the protected set (real authz is in requireVendor).
+// NOTE: /admin is intentionally NOT here — it still supports the legacy
+// mmr_admin password cookie during transition; requireAdmin handles both.
+const PROTECTED_PREFIXES = ["/account", "/notifications", "/dashboard", "/create", "/vendors/dashboard"];
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -31,5 +34,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/notifications/:path*", "/dashboard/:path*", "/create"],
+  matcher: ["/account/:path*", "/notifications/:path*", "/dashboard/:path*", "/create", "/vendors/dashboard/:path*"],
 };
