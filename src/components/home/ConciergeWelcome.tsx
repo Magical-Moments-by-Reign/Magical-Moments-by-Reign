@@ -21,7 +21,8 @@ export default function ConciergeWelcome({
   return (
     <div className="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-h">
       <div className="welcome__card">
-        <span className="welcome__sparkle" aria-hidden="true">✨</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo-champagne.png" alt="" className="welcome__crown" width={52} height={52} />
 
         {!skipping ? (
           <>

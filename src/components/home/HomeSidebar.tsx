@@ -27,8 +27,10 @@ export default function HomeSidebar({ memberSince }: { memberSince: string }) {
   return (
     <aside className="home__side">
       <Link href="/home" className="home__brand" aria-label="Magical Moments — home">
+        {/* Champagne-gold finish of the SAME mark — the quiet, refined presentation
+            for inside the member space. The colorful original stays on the public site. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/logo-mark.png" alt="" className="home__brand-mark" width={58} height={58} />
+        <img src="/brand/logo-champagne.png" alt="" className="home__brand-mark" width={58} height={58} />
         <span className="home__brand-name">Magical Moments</span>
         <span className="home__brand-sub">Your Space</span>
       </Link>
