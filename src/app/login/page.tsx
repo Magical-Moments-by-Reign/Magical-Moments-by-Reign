@@ -27,7 +27,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; next?: string; email?: string; resent?: string; registered?: string; reset?: string }>;
 }) {
   const sp = await searchParams;
-  const next = safeRedirect(sp.next || "", "/account");
+  const next = safeRedirect(sp.next || "", "/home");
 
   // Already signed in → go where they were headed.
   if (await currentAccount()) redirect(next);
