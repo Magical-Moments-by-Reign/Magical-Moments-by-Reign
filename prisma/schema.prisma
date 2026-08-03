@@ -1074,6 +1074,9 @@ model Account {
   contributions  GroupContribution[]
   collaboratorsGranted CollaboratorPermission[] @relation("grantor")
   collaboratingOn      CollaboratorPermission[] @relation("collaborator")
+  // Every account gets its own personal concierge — a named companion the
+  // customer builds a relationship with (see model Concierge / src/lib/concierge.ts).
+  concierge     Concierge?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2219,6 +2222,34 @@ model Session {
   revokedAt     DateTime?
 
   @@index([accountId])
+}
+
+// ── Personal Concierge ─────────────────────────────────────────
+// Every account has its OWN concierge — a named companion, not a shared
+// household assistant. Each family member (child, teen, parent, grandparent,
+// invited relative) is a separate Account, so each person names and grows their
+// own concierge. "Magical" is always the platform/technology; the concierge's
+// NAME belongs to the customer ("Powered by Magical, and its name is Journey").
+//
+// First-run signal: no row → the person hasn't met their concierge yet (show
+// the welcome). A row with welcomedAt set but name null → they met it and
+// skipped naming for now (call it "Magical", offer gentle, no-pressure
+// reminders). A row with a name → use the name everywhere.
+//
+// Built to grow: persona/voice and a JSON preferences bag (favorite colors,
+// family members, anniversaries, communication style…) are here for the
+// concierge to become smarter and more personal the longer someone stays.
+model Concierge {
+  id          String    @id @default(cuid())
+  accountId   String    @unique
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name        String?   // customer-chosen name; null = not yet named (may have skipped)
+  welcomedAt  DateTime? // set once the person has seen the welcome/introduction
+  persona     String?   // future: personality preset (warm, elegant, coach…)
+  voice       String?   // future: voice / accent selection
+  preferences String    @default("{}") // JSON growth bag (colors, family, dates…)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // An in-app notification (source of truth) + record of external delivery.

@@ -29,7 +29,7 @@ export default async function SignupPage({
   searchParams: Promise<{ error?: string; next?: string; role?: string; done?: string; recover?: string; mail?: string }>;
 }) {
   const sp = await searchParams;
-  const next = safeRedirect(sp.next || "", "/account");
+  const next = safeRedirect(sp.next || "", "/home");
   if (await currentAccount()) redirect(next);
 
   // ── Success states ──

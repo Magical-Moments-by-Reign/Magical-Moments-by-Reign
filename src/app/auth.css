@@ -139,6 +139,8 @@
 .acct__bar-brand img { width: 34px; height: 34px; }
 .acct__bar-brand span { font-family: var(--font-display, serif); letter-spacing: 0.12em; }
 .acct__bar-right { display: flex; align-items: center; gap: 1rem; }
+.acct__homelink { color: #f6efe2; text-decoration: none; font-size: 0.9rem; opacity: 0.85; transition: opacity .2s ease; }
+.acct__homelink:hover { opacity: 1; }
 .bell { position: relative; display: inline-flex; align-items: center; font-size: 1.3rem; }
 .bell__count {
   position: absolute; top: -6px; right: -8px; background: #c6a15a; color: #241f2e;

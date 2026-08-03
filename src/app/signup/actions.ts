@@ -7,7 +7,7 @@ import { checkRateLimit, recordAttempt, clientIp } from "@/lib/rate-limit";
 import type { PlatformRole } from "@/lib/roles";
 
 export async function signupAction(formData: FormData): Promise<void> {
-  const next = safeRedirect(String(formData.get("next") || ""), "/account");
+  const next = safeRedirect(String(formData.get("next") || ""), "/home");
   const role = String(formData.get("role") || "") as PlatformRole;
   const back = (code: string) =>
     redirect(`/signup?error=${code}&next=${encodeURIComponent(next)}${role ? `&role=${role}` : ""}`);

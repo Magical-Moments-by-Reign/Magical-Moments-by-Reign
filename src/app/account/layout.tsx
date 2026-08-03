@@ -21,6 +21,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
           <span>Magical Moments</span>
         </Link>
         <div className="acct__bar-right">
+          <Link href="/home" className="acct__homelink">← Home</Link>
           <Link href="/notifications" className="bell" aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}>
             🔔{unread > 0 && <span className="bell__count">{unread > 99 ? "99+" : unread}</span>}
           </Link>

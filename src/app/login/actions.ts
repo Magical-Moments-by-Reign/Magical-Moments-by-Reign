@@ -9,7 +9,8 @@ import { checkRateLimit, recordAttempt, clientIp } from "@/lib/rate-limit";
 export async function loginAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
-  const next = safeRedirect(String(formData.get("next") || ""), "/account");
+  // The front door is Home — the personal Magical Space — not the settings area.
+  const next = safeRedirect(String(formData.get("next") || ""), "/home");
 
   if (!email || !password) {
     redirect(`/login?error=invalid_credentials&next=${encodeURIComponent(next)}`);
