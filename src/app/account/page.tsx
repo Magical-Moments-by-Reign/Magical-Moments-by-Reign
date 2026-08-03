@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { roleDef } from "@/lib/roles";
-import { maskEmail } from "@/lib/account-identity";
+import { maskEmail, maskPhone } from "@/lib/account-identity";
 
 export const metadata: Metadata = { title: "Your account", robots: { index: false } };
 
@@ -15,11 +15,14 @@ export default async function AccountHome({ searchParams }: { searchParams: Prom
     select: {
       customerId: true, createdAt: true, googleSub: true, appleSub: true,
       emails: { where: { isPrimary: true }, select: { email: true, verified: true }, take: 1 },
-      phones: { where: { isPrimary: true }, select: { verified: true }, take: 1 },
+      phones: { where: { isPrimary: true }, select: { phone: true, verified: true }, take: 1 },
     },
   });
   const email = data?.emails[0];
-  const phoneVerified = data?.phones[0]?.verified ?? false;
+  const phone = data?.phones[0];
+  // Distinguish "no phone on file" from "phone present but unverified". An empty
+  // or whitespace-only value must NOT be shown as an unverified phone.
+  const hasPhone = !!phone?.phone?.trim();
   const connected = [data?.googleSub && "Google", data?.appleSub && "Apple"].filter(Boolean) as string[];
 
   return (
@@ -50,7 +53,19 @@ export default async function AccountHome({ searchParams }: { searchParams: Prom
       </div>
       <div className="acct__row">
         <span className="acct__k">Phone</span>
-        <span className="acct__v"><span className={`chip ${phoneVerified ? "chip--ok" : "chip--warn"}`}>{phoneVerified ? "verified" : "unverified"}</span></span>
+        <span className="acct__v">
+          {!hasPhone ? (
+            // No number on file — plain text, never an "unverified" badge.
+            <span style={{ color: "#7a7385" }}>No phone number added</span>
+          ) : (
+            <>
+              {maskPhone(phone!.phone)}{" "}
+              <span className={`chip ${phone!.verified ? "chip--ok" : "chip--warn"}`}>{phone!.verified ? "verified" : "unverified"}</span>
+              {/* SMS verification isn't connected yet — say so honestly rather than offer a fake action. */}
+              {!phone!.verified && <span className="chip chip--muted" style={{ marginLeft: "0.4rem" }}>verification coming soon</span>}
+            </>
+          )}
+        </span>
       </div>
       <div className="acct__row"><span className="acct__k">Member since</span><span className="acct__v">{data?.createdAt.toLocaleDateString()}</span></div>
       <div className="acct__row">
