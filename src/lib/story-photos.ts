@@ -5,12 +5,13 @@ export const STORY_PHOTOS: Record<string, string> = {
   wedding: "/story/wedding.jpg",
   baby: "/story/baby.jpg",
   birthday: "/story/birthday.jpg",
-  // Backgrounds for the previously-empty occasion tiles, using approved in-repo
-  // imagery (reused, originals unaltered). Graduation still needs its own photo.
-  anniversary: "/gallery/smith/07-sunset.jpg",
-  proposal: "/gallery/smith/09-rings.jpg",
-  vacation: "/hero/italy-poster.jpg",
-  newhome: "/gallery/johnson/our-new-home.jpg",
+  // Dedicated, approved occasion photography (uploaded by the Founder,
+  // optimized to landscape ~1400px / <400KB for the card crop).
+  graduation: "/story/graduation.jpg",
+  anniversary: "/story/anniversary.jpg",
+  proposal: "/story/proposal.jpg",
+  vacation: "/story/vacation.jpg",
+  newhome: "/story/newhome.jpg",
   military: "/story/military.jpg",
   reunion: "/story/reunion.jpg",
   retirement: "/story/retirement.jpg",
