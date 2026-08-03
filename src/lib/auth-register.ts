@@ -52,7 +52,7 @@ export interface RegisterInput extends AccountInput {
 }
 
 export type RegisterResult =
-  | { ok: true; accountId: string; minor: boolean }
+  | { ok: true; accountId: string; minor: boolean; emailSent: boolean }
   | { ok: false; reason: "missing_fields"; missing: string[] }
   | { ok: false; reason: "weak_password"; issues: string[] }
   | { ok: false; reason: "recover_existing"; recovery: RecoveryDecision }
@@ -109,8 +109,9 @@ export async function registerAccount(input: RegisterInput): Promise<RegisterRes
     select: { id: true, firstName: true },
   });
 
-  await issueEmailVerification(account.id, normalizeEmail(input.email), account.firstName);
+  // Account is already created; delivery failure must not undo that.
+  const emailResult = await issueEmailVerification(account.id, normalizeEmail(input.email), account.firstName);
   if (minor) await requestGuardianApproval(account.id, `${input.firstName} ${input.lastName}`.trim(), input.guardianEmail!);
 
-  return { ok: true, accountId: account.id, minor };
+  return { ok: true, accountId: account.id, minor, emailSent: emailResult.sent };
 }
