@@ -22,6 +22,8 @@ export default function SiteFooter() {
           <Link href="/housing-hub">Housing Hub</Link>
           <Link href="/pricing">Pricing</Link>
           <Link href="/dashboard">Dashboard</Link>
+          <Link href="/vendors">Vendor Marketplace</Link>
+          <Link href="/vendors/login">Vendor Login</Link>
           <Link href="/#how">How it works</Link>
         </nav>
       </div>
