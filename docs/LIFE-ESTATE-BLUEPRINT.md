@@ -7,10 +7,17 @@
 > Magical Moments, they should feel like someone has finally said: *"Welcome home.
 > We've got you from here."*
 
-**Status:** Approved by the founder as the master reference. This document is the
-constitution for the platform — every future feature, page, workflow, database table,
-and experience is measured against it **before** development begins. Nothing is built
-that doesn't support this vision.
+**Status:** Adopted as the platform's master reference — the "constitution." Every
+future feature, page, workflow, database table, and experience is measured against it
+**before** development begins; nothing is built that doesn't support this vision. The
+document remains open to founder revision (Build Order · Step 2) before Home is built.
+
+**On the luxury Home preview:** its *visual language* is approved — the estate
+atmosphere, ivory-and-champagne palette, champagne-gold logo, named concierge, and warm
+"Welcome Home." That becomes the **approved visual foundation all member experiences
+inherit.** Its current *dashboard structure* (cards, nav, information hierarchy) is **not**
+locked as the final Home — Home's structure is defined by this blueprint and built at
+Step 10.
 
 This is the master plan for Magical Moments as a **complete luxury life platform** —
 not a website, but the intelligent engine that guides a family through life's biggest
@@ -276,7 +283,31 @@ existing brand-naming guardrail.)*
 
 ---
 
-## 6. Data & Technical Architecture (how the blueprint becomes real)
+## 6. Cross-Estate Continuity — one life, not separate websites
+
+Estates are wings of one estate, never separate sites. Continuity is engineered, not
+implied:
+
+- **One shell, one identity.** Every estate renders inside the same Magical Space chrome
+  (champagne logo, quiet nav, the member's presence). Entering an estate is walking into
+  a room — the walls, light, and staff don't change.
+- **The concierge carries the thread.** The member's named concierge follows them across
+  estates with memory and context intact; one continuous conversation, not a new bot per
+  room. It can hand off naturally ("your honeymoon can move into Travel," "this renovation
+  ties to your Financial goals").
+- **One connected life-record.** Progress, documents, tasks, family participation, and
+  memories are keyed to the **account**, not siloed per estate — so they surface together
+  on Home and in the family timeline, and cross-reference across estates:
+  - *Progress & milestones* → one `MagicalTracker` model, every estate's stages in one place.
+  - *Documents* → one vault; a pre-approval letter raised in Home is visible wherever relevant.
+  - *Tasks & reminders* → one list, estate-tagged, all feeding "what's next" on Home.
+  - *Family participation* → the Family estate is the connective tissue; invited members
+    (each with their own concierge) can join any estate's journey.
+  - *Memories* → everything flows into the one Magical Moments Library and timeline.
+- **Smooth movement.** Related estates link where life actually connects (Wedding→Travel,
+  Home→Financial, Retirement→Legacy) so the member is guided onward, never dead-ended.
+
+## 7. Data & Technical Architecture (how the blueprint becomes real)
 
 - **`LifeEstate` (catalog)** — the definition of an estate (key, name, rooms, milestone
   sets, checklist templates, learning paths). **Config-driven so estates are data, not
@@ -296,10 +327,11 @@ estate should be mostly data + content + a few unique tools — not a rebuild.
 
 ---
 
-## 7. Trust & Compliance Layer (non-negotiables, wired in from day one)
+## 8. Trust & Compliance Layer (non-negotiables, wired in from day one)
 
-1. **No fabrication** — no invented partners, rates, approvals, matches, or numbers. Real
-   data or an honest "coming soon."
+1. **No fabrication — ever.** We never invent: interest rates · loan approvals ·
+   eligibility · savings projections · matched professionals · partner availability ·
+   vendor credentials · financial outcomes. Real, verified data or an honest "coming soon."
 2. **Education is neutral** — explain trade-offs and fit; don't steer to a paid party.
 3. **Licensed-professional deferral** — legal, medical, financial, tax, insurance, and
    construction specifics always route to a qualified professional.
@@ -311,27 +343,32 @@ estate should be mostly data + content + a few unique tools — not a rebuild.
 
 ---
 
-## 8. Build Order — *the city before the first mansion* (founder-approved)
+## 9. Build Order — *the city before the first mansion* (founder-approved)
 
 Foundation first, once, so every future experience inherits excellence instead of
 requiring redesigns. No estate should ever feel like a separate website — each is
 another elegant wing of the same estate.
 
-1. **Finalize & approve the Master Blueprint** *(this document — approved).*
-2. **Refine the shared Life Estate framework** (the fifteen systems as a coherent whole).
-3. **Refine the Concierge architecture** (persona + context + governance + growth).
-4. **Design the shared Partner Ecosystem** (vetted marketplace + institutional partners).
-5. **Design the Education Engine** (learning paths + neutral, honest content model).
-6. **Design the Document Vault** (secure, owner-controlled, per-estate documents).
-7. **Design the Planning Engine** (timelines, budgets, honest comparison tools).
-8. **Design the Progress Engine** (trackers, stages, milestones, celebration hooks).
-9. **Build the 🏡 Home Estate** as the flagship implementation on the finished
-   foundation — the full ecosystem in §4.1, proving all fifteen systems end to end.
-10. **Every future Estate inherits this framework** rather than reinventing it.
+1. **Publish the Master Blueprint privately** *(done).*
+2. **Review & revise until founder-approved.**
+3. **Define the reusable Life Estate framework** (the fifteen systems as a coherent whole).
+4. **Define the Concierge architecture** (persona + context + governance + growth).
+5. **Define the Education Engine** (learning paths + neutral, honest content model).
+6. **Define the Planning & Checklist Engine** (timelines, budgets, honest comparisons,
+   intelligent checklists).
+7. **Define the Document Vault** (secure, owner-controlled, per-estate documents).
+8. **Define the Progress & Milestone Engine** (trackers, stages, milestones, celebration
+   hooks).
+9. **Define the Partner Ecosystem** (vetted professional marketplace + institutional
+   partners, introduced honestly).
+10. **Build the 🏡 Home Estate** as the flagship implementation on the finished
+    foundation — the full ecosystem in §4.1, proving all fifteen systems end to end.
+11. **Validate the pattern** (Home end to end against the Definition of Done).
+12. **Every future Estate inherits the approved foundation** rather than reinventing it.
 
-*(Steps 2–8 are architecture/design deliverables — the foundation. Product code
-resumes at Step 9. Home is refined and re-approved before it becomes the standard.
-Public World — homepage/login — remains on hold until Home is locked.)*
+*(Steps 2–9 are architecture/design deliverables — the foundation. Product **code
+resumes at Step 10**. Login redesign, public-homepage redesign, and Home implementation
+do **not** begin until this blueprint is approved.)*
 
 **Definition of done, per estate:** all fifteen foundation systems present; every "next
 step" answered inside the platform; honesty rules satisfied; the concierge can guide the
@@ -339,7 +376,7 @@ whole arc; before/during/after all served.
 
 ---
 
-## 9. What I need from you
+## 10. What I need from you
 
 1. **Approve or adjust this blueprint** — especially the fourteen-estate list, the fifteen
    foundation systems, the "estates = evolved Journeys" model, and the phasing.
