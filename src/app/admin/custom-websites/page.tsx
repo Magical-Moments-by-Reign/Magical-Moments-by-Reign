@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteNav from "@/components/site/SiteNav";
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-access";
 import { CUSTOM_STATUSES } from "@/lib/custom-website";
 import { adminLogoutAction } from "../actions";
 import { acceptRequestAction, setStatusAction, saveNotesAction } from "./actions";
@@ -21,7 +21,7 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 export default async function CustomWebsitesAdminPage() {
-  if (!(await isAdmin())) redirect("/admin/login?next=/admin/custom-websites");
+  await requireAdmin("customers.view", "/admin/custom-websites");
 
   const rows = await prisma.customWebsiteRequest.findMany({ orderBy: { createdAt: "desc" } });
   const counts = rows.reduce<Record<string, number>>((a, r) => {

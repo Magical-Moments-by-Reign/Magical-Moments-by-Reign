@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteNav from "@/components/site/SiteNav";
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-access";
 import { STATUS_LABEL } from "@/lib/domains";
 import { formatPrice } from "@/lib/plans";
 import { adminLogoutAction } from "../actions";
@@ -29,7 +29,7 @@ function fmt(d?: Date | null) {
 }
 
 export default async function AdminDomainsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  if (!(await isAdmin())) redirect("/admin/login?next=/admin/domains");
+  await requireAdmin("finance.view", "/admin/domains");
   const { status } = await searchParams;
 
   const domains = await prisma.domain.findMany({
