@@ -1,7 +1,16 @@
 # Magical Moments by Reign — Master Architecture Blueprint
-### The operating system for life's biggest moments · Founder Review Draft
+### The operating system for life's biggest moments · **Approved — Platform Constitution**
 
 > *Design the city before we build the first mansion.*
+>
+> **We are not building software. We are building peace of mind.** When someone enters
+> Magical Moments, they should feel like someone has finally said: *"Welcome home.
+> We've got you from here."*
+
+**Status:** Approved by the founder as the master reference. This document is the
+constitution for the platform — every future feature, page, workflow, database table,
+and experience is measured against it **before** development begins. Nothing is built
+that doesn't support this vision.
 
 This is the master plan for Magical Moments as a **complete luxury life platform** —
 not a website, but the intelligent engine that guides a family through life's biggest
@@ -144,10 +153,16 @@ Each: **purpose**, **rooms/journeys**, **what's unique**, **existing seeds**. Ho
 the flagship and is specified in full.
 
 ### 4.1 🏡 Home — *the flagship* (nav label: "Home")
+- **Feeling:** not a real estate website — like having *the world's greatest real
+  estate advisor, educator, planner, and concierge* living inside Magical Moments.
+  The rooms below are **complete concierge-guided experiences, not pages.**
 - **Purpose:** the intelligent engine for every housing decision, from dream to
-  completion. We don't simply refer people — we educate, connect them with trusted
-  professionals, compare options honestly, help them decide with confidence, and stay
-  with them until the journey is complete.
+  completion. We don't simply refer people — we educate first, compare honestly,
+  explain every option, connect trusted professionals, help members decide with
+  confidence, organize everything, and stay beside them until the journey is complete.
+- **Status:** the concept is approved but Home is **not yet locked** — its philosophy
+  and content have expanded (below); it will be refined and re-approved before it
+  becomes the standard.
 - **Rooms / journeys (includes, but not limited to):**
   - **Buying:** first home · buying an existing home · finding the best mortgage lender ·
     comparing interest rates · FHA / VA / USDA / Conventional / Jumbo · first-time-buyer
@@ -296,20 +311,27 @@ estate should be mostly data + content + a few unique tools — not a rebuild.
 
 ---
 
-## 8. Phasing — build Home to the gold standard, then inherit
+## 8. Build Order — *the city before the first mansion* (founder-approved)
 
-1. **Phase 0 — Approve this blueprint.** *(You are here.)*
-2. **Phase 1 — Lock the member Home** (apply your pending change notes to the already-
-   built luxury Home). The hub every estate opens from.
-3. **Phase 2 — Build the reusable framework** (the fifteen shared systems as real,
-   config-driven services).
-4. **Phase 3 — Build 🏡 Home as the flagship** on that framework — the full ecosystem in
-   §4.1 — proving all fifteen systems end to end. The reference every estate copies.
-5. **Phase 4 — Roll out estates** in a deliberate order (by existing data readiness +
-   emotional pull): **Celebrations, Family, Education, Financial** → **Wedding, Travel** →
-   the rest. Each new estate = mostly configuration + content + a few unique tools.
-6. **Ongoing — Public World** (homepage/login) once Home is locked — on hold per your
-   instruction until then.
+Foundation first, once, so every future experience inherits excellence instead of
+requiring redesigns. No estate should ever feel like a separate website — each is
+another elegant wing of the same estate.
+
+1. **Finalize & approve the Master Blueprint** *(this document — approved).*
+2. **Refine the shared Life Estate framework** (the fifteen systems as a coherent whole).
+3. **Refine the Concierge architecture** (persona + context + governance + growth).
+4. **Design the shared Partner Ecosystem** (vetted marketplace + institutional partners).
+5. **Design the Education Engine** (learning paths + neutral, honest content model).
+6. **Design the Document Vault** (secure, owner-controlled, per-estate documents).
+7. **Design the Planning Engine** (timelines, budgets, honest comparison tools).
+8. **Design the Progress Engine** (trackers, stages, milestones, celebration hooks).
+9. **Build the 🏡 Home Estate** as the flagship implementation on the finished
+   foundation — the full ecosystem in §4.1, proving all fifteen systems end to end.
+10. **Every future Estate inherits this framework** rather than reinventing it.
+
+*(Steps 2–8 are architecture/design deliverables — the foundation. Product code
+resumes at Step 9. Home is refined and re-approved before it becomes the standard.
+Public World — homepage/login — remains on hold until Home is locked.)*
 
 **Definition of done, per estate:** all fifteen foundation systems present; every "next
 step" answered inside the platform; honesty rules satisfied; the concierge can guide the
