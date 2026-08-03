@@ -1,14 +1,11 @@
 // ── Admin access (server) ───────────────────────────────────────
-// Account-based, role-scoped admin authorization built on the SAME Account +
-// mmr_session foundation (no second login/cookie/user table). During the
-// transition it also honors the legacy shared ADMIN_PASSWORD gate so current
-// admin access never breaks — that legacy path is treated as an Owner and is
-// meant to be retired once a real Owner account exists.
+// Account-based, role-scoped admin authorization on the SAME Account +
+// mmr_session foundation (no second identity, no second cookie). Gathers the
+// account's roles/status/verification + session age + the legacy-password
+// bridge, then defers the decision to the pure core (admin-access-core.ts).
 //
-// Owner bootstrap: the account whose VERIFIED primary email equals
-// ADMIN_BOOTSTRAP_EMAIL is treated as Owner (and can be persisted via
-// bootstrapOwner()), so the first Owner can be established without a shared
-// password.
+// Owner bootstrap uses ADMIN_OWNER_EMAIL (never hard-coded). The legacy shared
+// ADMIN_PASSWORD remains a documented bridge until the first Owner is confirmed.
 //
 // SERVER ONLY.
 
@@ -17,85 +14,105 @@ import { prisma } from "@/lib/db";
 import { currentAccount, type CurrentAccount } from "@/lib/auth-session";
 import { isAdmin as legacyPasswordAdmin } from "@/lib/admin-auth";
 import { canonicalEmail } from "@/lib/account-identity";
-import { parseStaffRoles, hasCapability, type AdminRole, type AdminCapability } from "@/lib/admin-roles";
+import { hasCapability, type AdminRole, type AdminCapability } from "@/lib/admin-roles";
+import { adminAccess, bootstrapDecision, ADMIN_SESSION_MAX_HOURS, type AdminAccessResult, type AdminVia } from "@/lib/admin-access-core";
 
-// Shorter admin sessions than customer sessions are expected; enforced when the
-// admin session layer lands. Documented here as the intended policy.
-export const ADMIN_SESSION_MAX_HOURS = 8;
-// High-risk actions (role changes, removals, finance) should re-authenticate.
-// Seam: wire a reauth challenge + MFA before enabling those in production.
+export { ADMIN_SESSION_MAX_HOURS };
+// High-risk actions should re-authenticate + MFA before enabling in production
+// (documented seam — not yet enforced, never shown as active).
 export const REAUTH_REQUIRED_FOR: AdminCapability[] = ["security.manage", "finance.manage", "vendors.manage"];
 
 export interface AdminContext {
-  account: CurrentAccount | null; // null only for the legacy password bridge
+  account: CurrentAccount | null; // null only via the legacy password bridge
   roles: AdminRole[];
-  via: "account_roles" | "bootstrap_email" | "legacy_password";
-  /** actor string for audit logs. */
-  actor: string;
+  via: AdminVia;
+  actor: string; // for audit logs
 }
 
-function bootstrapEmail(): string | null {
-  const e = process.env.ADMIN_BOOTSTRAP_EMAIL;
+function ownerEmail(): string | null {
+  const e = process.env.ADMIN_OWNER_EMAIL || process.env.ADMIN_BOOTSTRAP_EMAIL;
   return e ? canonicalEmail(e) : null;
 }
 
-/**
- * Resolve the current admin, or null if not an admin. Order: account staffRoles,
- * then the bootstrap-email Owner bridge, then the legacy password bridge.
- */
-export async function currentAdmin(): Promise<AdminContext | null> {
+async function resolveAdmin(): Promise<{ account: CurrentAccount | null; access: AdminAccessResult }> {
   const account = await currentAccount();
+  const legacyPasswordValid = await legacyPasswordAdmin();
 
-  if (account) {
-    const row = await prisma.account.findUnique({
-      where: { id: account.id },
-      select: { staffRoles: true, emails: { where: { isPrimary: true, verified: true }, select: { email: true }, take: 1 } },
-    });
-    const roles = parseStaffRoles(row?.staffRoles);
-    if (roles.length > 0) {
-      return { account, roles, via: "account_roles", actor: account.customerId };
-    }
-    const be = bootstrapEmail();
-    const primary = row?.emails[0]?.email;
-    if (be && primary && canonicalEmail(primary) === be) {
-      return { account, roles: ["owner"], via: "bootstrap_email", actor: account.customerId };
-    }
-  }
+  if (!account) return { account: null, access: adminAccess({ accountFound: false, legacyPasswordValid }) };
 
-  // Legacy transition: the shared ADMIN_PASSWORD cookie → treat as Owner.
-  if (await legacyPasswordAdmin()) {
-    return { account, roles: ["owner"], via: "legacy_password", actor: account?.customerId ?? "legacy_admin" };
-  }
-  return null;
+  const row = await prisma.account.findUnique({
+    where: { id: account.id },
+    select: { staffRoles: true, status: true, platformRole: true, emails: { where: { isPrimary: true }, select: { email: true, verified: true }, take: 1 } },
+  });
+  const primary = row?.emails[0];
+  const oe = ownerEmail();
+  const bootstrapMatch = !!(oe && primary?.verified && primary.email && canonicalEmail(primary.email) === oe);
+
+  let sessionAgeHours: number | null = null;
+  try {
+    const s = await prisma.session.findUnique({ where: { id: account.sessionId }, select: { createdAt: true } });
+    if (s) sessionAgeHours = (Date.now() - s.createdAt.getTime()) / 3_600_000;
+  } catch { /* age unknown — core treats null as not-expired */ }
+
+  const access = adminAccess({
+    accountFound: true,
+    status: row?.status ?? account.status,
+    emailVerified: primary?.verified ?? false,
+    platformRole: row?.platformRole ?? account.role,
+    staffRolesJson: row?.staffRoles ?? "[]",
+    sessionAgeHours,
+    bootstrapMatch,
+    legacyPasswordValid,
+  });
+  return { account, access };
+}
+
+/** Current admin context, or null if not an admin. */
+export async function currentAdmin(): Promise<AdminContext | null> {
+  const { account, access } = await resolveAdmin();
+  if (!access.allowed) return null;
+  return { account, roles: access.roles, via: access.via, actor: account?.customerId ?? "legacy_admin" };
 }
 
 /**
- * Require an admin (optionally with a specific capability). Redirects to the
- * admin login when not an admin, or back to /admin with a denied flag when the
- * capability is missing. Enforcement is server-side; roles are never trusted
- * from the client.
+ * Require an admin (optionally with a capability). Unauthenticated → login;
+ * authenticated-but-not-permitted → a professional Access Denied page (never
+ * bounced into the admin area). All checks are server-side.
  */
 export async function requireAdmin(capability?: AdminCapability, next = "/admin"): Promise<AdminContext> {
-  const admin = await currentAdmin();
-  if (!admin) redirect(`/admin/login?next=${encodeURIComponent(next)}`);
-  if (capability && !hasCapability(admin.roles, capability)) redirect("/admin?denied=1");
-  return admin;
+  const { account, access } = await resolveAdmin();
+  if (!access.allowed) {
+    if (access.reason === "no_account") redirect(`/admin/login?next=${encodeURIComponent(next)}`);
+    if (access.reason === "session_expired") redirect(`/admin/login?next=${encodeURIComponent(next)}&reason=session`);
+    redirect(`/admin/denied?reason=${access.reason}`);
+  }
+  if (capability && !hasCapability(access.roles, capability)) redirect("/admin/denied?reason=capability");
+  return { account, roles: access.roles, via: access.via, actor: account?.customerId ?? "legacy_admin" };
 }
 
-/**
- * Persist Owner on an account — the documented bootstrap. Only permitted for the
- * bootstrap-email account or an existing legacy-password admin, so it can't be
- * used to self-escalate. Retire the ADMIN_PASSWORD once an Owner exists.
- */
-export async function bootstrapOwner(accountId: string): Promise<{ ok: boolean; reason?: string }> {
-  const admin = await currentAdmin();
-  const via = admin?.via;
-  if (via !== "legacy_password" && via !== "bootstrap_email") {
-    return { ok: false, reason: "not_authorized" };
-  }
-  await prisma.account.update({ where: { id: accountId }, data: { staffRoles: JSON.stringify(["owner"]) } });
-  await prisma.customerAuditLog.create({
-    data: { accountId, actor: admin?.actor ?? "system", action: "admin_owner_bootstrapped", detail: `via ${via}` },
-  }).catch(() => {});
-  return { ok: true };
+// ── Owner bootstrap (used by the protected script scripts/bootstrap-owner.mjs) ──
+export async function ownerExists(): Promise<boolean> {
+  const n = await prisma.account.count({ where: { staffRoles: { contains: "\"owner\"" } } });
+  return n > 0;
+}
+
+export type BootstrapOutcome = { ok: true; accountId: string } | { ok: false; reason: "owner_exists" | "account_not_found" | "not_verified" | "no_owner_email" };
+
+/** Promote the ADMIN_OWNER_EMAIL account to Owner — once only. */
+export async function bootstrapOwner(): Promise<BootstrapOutcome> {
+  const oe = ownerEmail();
+  if (!oe) return { ok: false, reason: "no_owner_email" };
+
+  const email = await prisma.customerEmail.findFirst({ where: { canonical: oe }, select: { accountId: true, verified: true } });
+  const decision = bootstrapDecision({
+    accountFound: !!email, emailVerified: !!email?.verified, ownerAlreadyExists: await ownerExists(),
+  });
+  if (!decision.ok) return { ok: false, reason: decision.reason };
+
+  const accountId = email!.accountId;
+  await prisma.$transaction([
+    prisma.account.update({ where: { id: accountId }, data: { staffRoles: JSON.stringify(["owner"]), platformRole: "admin" } }),
+    prisma.customerAuditLog.create({ data: { accountId, actor: "system", action: "admin_owner_bootstrapped", detail: "via ADMIN_OWNER_EMAIL" } }),
+  ]);
+  return { ok: true, accountId };
 }

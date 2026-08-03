@@ -26,7 +26,7 @@ const ERRORS: Record<string, string> = {
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string; role?: string; done?: string; recover?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; role?: string; done?: string; recover?: string; mail?: string }>;
 }) {
   const sp = await searchParams;
   const next = safeRedirect(sp.next || "", "/account");
@@ -34,6 +34,7 @@ export default async function SignupPage({
 
   // ── Success states ──
   if (sp.done === "adult" || sp.done === "minor") {
+    const mailFailed = sp.done === "adult" && sp.mail === "failed";
     return (
       <AuthShell>
         <div className="auth-card auth-result">
@@ -44,6 +45,15 @@ export default async function SignupPage({
               Your account was created and is <b>pending a parent or guardian's approval</b>. We've emailed them a
               secure link. You'll be able to sign in as soon as they approve — and we'll email you the moment they do.
             </p>
+          ) : mailFailed ? (
+            <>
+              <p className="auth-lede">
+                Your account was created — but we couldn&apos;t send your verification email right now. Please try
+                again shortly from the sign-in page, or contact support at{" "}
+                <a href="mailto:info@magicalmomentsbyreign.com" className="auth-link">info@magicalmomentsbyreign.com</a>.
+              </p>
+              <div className="auth-note auth-note--error">Your account is safe; you just need a verification link before you can sign in.</div>
+            </>
           ) : (
             <p className="auth-lede">
               Your account was created. We've sent a verification link to your email — please confirm your address,

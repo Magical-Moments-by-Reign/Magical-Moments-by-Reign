@@ -49,9 +49,14 @@ export default async function LoginPage({
         {sp.reset && (
           <div className="auth-note auth-note--ok">Your password was updated. Please sign in with your new password.</div>
         )}
-        {sp.resent && (
+        {sp.resent === "failed" ? (
+          <div className="auth-note auth-note--error">
+            We couldn&apos;t send the verification email right now. Please try again shortly or contact support at{" "}
+            <a href="mailto:info@magicalmomentsbyreign.com" className="auth-link">info@magicalmomentsbyreign.com</a>.
+          </div>
+        ) : sp.resent ? (
           <div className="auth-note auth-note--info">If an account exists for that email, a new verification link is on its way.</div>
-        )}
+        ) : null}
         {error && <div className="auth-note auth-note--error">{error}</div>}
 
         <form action={loginAction}>
@@ -74,10 +79,12 @@ export default async function LoginPage({
           <button type="submit" className="auth-btn">Sign in</button>
         </form>
 
-        {sp.error === "email_unverified" && sp.email && (
+        {(sp.error === "email_unverified" || sp.resent) && sp.email && (
           <form action={resendVerificationAction} style={{ marginTop: "0.9rem" }}>
             <input type="hidden" name="email" value={sp.email} />
-            <button type="submit" className="auth-btn auth-btn--ghost">Resend verification email</button>
+            <button type="submit" className="auth-btn auth-btn--ghost">
+              {sp.resent === "failed" ? "Try sending the verification email again" : "Resend verification email"}
+            </button>
           </form>
         )}
 

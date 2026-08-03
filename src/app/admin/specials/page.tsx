@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import SiteNav from "@/components/site/SiteNav";
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-access";
 import { effectiveStatus, describeOffer, OFFER_TYPES, SCOPES, AUDIENCES } from "@/lib/specials";
 import { LIFETIME_COLLECTIONS, formatUSD } from "@/lib/pricing-engine";
 import { adminLogoutAction } from "../actions";
@@ -21,7 +21,7 @@ function fmt(d: Date | null) {
 }
 
 export default async function SpecialsAdminPage({ searchParams }: { searchParams: Promise<{ error?: string; floors?: string }> }) {
-  if (!(await isAdmin())) redirect("/admin/login?next=/admin/specials");
+  await requireAdmin("content.manage", "/admin/specials");
   const { error, floors } = await searchParams;
 
   const specials = await prisma.special.findMany({

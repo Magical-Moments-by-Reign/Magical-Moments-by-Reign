@@ -8,34 +8,40 @@
 //   MAIL_FROM        e.g. "Magical Moments by Reign <info@magicalmomentsbyreign.com>"
 //   ADMIN_EMAIL      where admin notifications go (default info@magicalmomentsbyreign.com)
 
-// Prefer RESEND_FROM_EMAIL (the project standard going forward); fall back to
-// MAIL_FROM for backwards compatibility, then a safe default. The default is
-// only used once the sending domain is verified in Resend.
-const FROM =
-  process.env.RESEND_FROM_EMAIL ||
-  process.env.MAIL_FROM ||
-  "Magical Moments by Reign <info@magicalmomentsbyreign.com>";
+// From-address resolution + response interpretation live in the pure core so
+// they're unit-tested. Prefer RESEND_FROM_EMAIL, then MAIL_FROM, then a default
+// (only valid once the sending domain is verified in Resend).
+import { type SendResult, resolveFrom, preflight, interpretResendResponse, redact } from "@/lib/email-delivery";
+export type { SendResult } from "@/lib/email-delivery";
+
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@magicalmomentsbyreign.com";
 
-export interface SendResult { sent: boolean; skipped?: boolean; error?: string; id?: string }
-
 export async function sendEmail(params: { to: string; subject: string; html: string; replyTo?: string }): Promise<SendResult> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.log(`[email] (not configured) → ${params.to}: ${params.subject}`);
-    return { sent: false, skipped: true };
+  // No key ⇒ nothing is delivered. This MUST be visible in production logs
+  // (Netlify function logs), not a quiet info line that hides the outage.
+  if (!preflight({ RESEND_API_KEY: process.env.RESEND_API_KEY }).canSend) {
+    console.error(`[email] NOT SENT — RESEND_API_KEY is not set (to=${params.to}, subject="${params.subject}")`);
+    return { sent: false, skipped: true, error: "RESEND_API_KEY not set" };
   }
+  const { from } = resolveFrom({ RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL, MAIL_FROM: process.env.MAIL_FROM });
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ from: FROM, to: params.to, subject: params.subject, html: params.html, reply_to: params.replyTo }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({ from, to: params.to, subject: params.subject, html: params.html, reply_to: params.replyTo }),
     });
-    const data = await res.json();
-    if (!res.ok) return { sent: false, error: data?.message || "send failed" };
-    return { sent: true, id: data?.id };
+    const body = await res.json().catch(() => ({}));
+    const result = interpretResendResponse({ ok: res.ok, status: res.status, body });
+    if (!result.sent) {
+      // Surface the real cause (e.g. "domain is not verified") — redacted of
+      // any secret — so it's diagnosable from the logs instead of swallowed.
+      console.error(`[email] Resend rejected (to=${params.to}, from="${from}", http=${res.status}): ${redact(result.error ?? "")}`);
+    }
+    return result;
   } catch (e) {
-    return { sent: false, error: (e as Error).message };
+    const msg = redact((e as Error).message);
+    console.error(`[email] Resend request failed (to=${params.to}): ${msg}`);
+    return { sent: false, error: msg };
   }
 }
 

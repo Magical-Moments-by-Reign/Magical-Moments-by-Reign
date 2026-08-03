@@ -41,7 +41,10 @@ export async function signupAction(formData: FormData): Promise<void> {
   });
 
   if (result.ok) {
-    redirect(`/signup?done=${result.minor ? "minor" : "adult"}`);
+    // Adults verify by email; if delivery failed, say so honestly rather than
+    // telling them to "check your email" for a message that never sent.
+    const mailFailed = !result.minor && !result.emailSent;
+    redirect(`/signup?done=${result.minor ? "minor" : "adult"}${mailFailed ? "&mail=failed" : ""}`);
   }
 
   switch (result.reason) {

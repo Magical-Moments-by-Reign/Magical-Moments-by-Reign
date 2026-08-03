@@ -36,11 +36,13 @@ export async function loginAction(formData: FormData): Promise<void> {
 export async function resendVerificationAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") || "").trim();
   const ip = await clientIp();
-  // Rate-limit resend requests; always return the same generic result.
+  // Rate-limit resend requests.
   const rl = await checkRateLimit("verify_resend", { ip, email });
   if (email && !rl.limited) {
     await recordAttempt("verify_resend", { ip, email });
-    await resendVerification(email);
+    const result = await resendVerification(email);
+    // Don't claim success if the provider actually rejected the message.
+    if (!result.ok) redirect(`/login?resent=failed&email=${encodeURIComponent(email)}`);
   }
   redirect("/login?resent=1");
 }
