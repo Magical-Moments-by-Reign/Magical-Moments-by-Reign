@@ -5,6 +5,12 @@ export const STORY_PHOTOS: Record<string, string> = {
   wedding: "/story/wedding.jpg",
   baby: "/story/baby.jpg",
   birthday: "/story/birthday.jpg",
+  // Backgrounds for the previously-empty occasion tiles, using approved in-repo
+  // imagery (reused, originals unaltered). Graduation still needs its own photo.
+  anniversary: "/gallery/smith/07-sunset.jpg",
+  proposal: "/gallery/smith/09-rings.jpg",
+  vacation: "/hero/italy-poster.jpg",
+  newhome: "/gallery/johnson/our-new-home.jpg",
   military: "/story/military.jpg",
   reunion: "/story/reunion.jpg",
   retirement: "/story/retirement.jpg",

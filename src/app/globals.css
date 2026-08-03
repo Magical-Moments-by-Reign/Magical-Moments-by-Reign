@@ -280,7 +280,7 @@ section { padding: clamp(4rem, 9vw, 7rem) 0; }
 .section-head--left h2 { color: var(--plum-800); }
 
 /* Occasion cards */
-.story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.1rem; }
+.story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 1.9rem; }
 .occ-card {
   position: relative; display: block; border-radius: 18px; overflow: hidden; min-height: 200px;
   color: var(--ivory); padding: 1.3rem; isolation: isolate;

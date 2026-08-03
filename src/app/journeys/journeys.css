@@ -10,7 +10,7 @@
 .jxi-hero p { color: rgba(248,244,236,0.85); max-width: 42rem; margin: 0 auto; line-height: 1.6; font-size: 0.98rem; }
 /* Generous cream band so the dark hero never touches the occasion cards. */
 .jxi-main { padding: clamp(5rem, 9vw, 8rem) 0 5rem; }
-.jxi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.1rem; }
+.jxi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; margin-top: 1.4rem; }
 .jxi-card { position: relative; overflow: hidden; border-radius: 18px; min-height: 210px; display: flex; align-items: flex-end; color: #fff; text-decoration: none; background: linear-gradient(150deg, var(--c1), var(--c2)); box-shadow: 0 20px 44px -30px rgba(42,33,48,0.6); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
 .jxi-card:hover { transform: translateY(-5px); box-shadow: 0 30px 56px -30px rgba(42,33,48,0.65); }
 .jxi-card__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
