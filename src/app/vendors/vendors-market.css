@@ -1,0 +1,97 @@
+/* ── Vendor Marketplace — the public storefront ──────────────────
+   Luxury ivory + champagne, matching the public website. Honest: the
+   browse tools are real, but no vendors are invented before real,
+   approved listings exist. Scoped under .vmk.                          */
+.vmk {
+  --ivory: #f6f0e5; --champ: #c9a34e; --champ-d: #a9843f; --ink: #3c342b;
+  --soft: #8a7d6a; --line: rgba(169, 132, 63, 0.22); --dark: #241b12;
+  --serif: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  --sans: var(--font-body, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-family: var(--sans); color: var(--ink); background: var(--ivory); overflow-x: hidden;
+}
+.vmk-wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 2rem); }
+
+/* Hero */
+.vmk-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 2rem; align-items: center; padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(1.5rem, 3vw, 2.5rem); }
+.vmk-eye { display: inline-flex; align-items: center; gap: 0.5rem; font: 600 0.76rem/1 var(--sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--champ-d); }
+.vmk-h1 { font-family: var(--serif); font-size: clamp(2.4rem, 5.5vw, 4rem); font-weight: 600; line-height: 1.05; color: var(--ink); margin: 0.9rem 0 0; }
+.vmk-h1 i { font-style: italic; color: var(--champ-d); }
+.vmk-rule { width: 130px; height: 1px; background: linear-gradient(90deg, var(--champ), transparent); margin: 1.2rem 0; }
+.vmk-hero__s { color: var(--soft); font-size: 1.05rem; line-height: 1.65; max-width: 46ch; margin: 0 0 1.7rem; }
+.vmk-actions { display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap; }
+.vmk-cta { display: inline-flex; align-items: center; gap: 0.6rem; background: linear-gradient(180deg, #d8bd7b, #c9a34e); color: #3a2c12; border-radius: 999px; padding: 0.95rem 1.7rem; font: 600 0.74rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; box-shadow: 0 16px 36px -18px rgba(169, 132, 63, 0.9); }
+.vmk-cta:hover { filter: brightness(1.05); }
+.vmk-how { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink); text-decoration: none; font: 600 0.74rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.vmk-how span { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--champ); display: grid; place-items: center; }
+.vmk-how svg { width: 13px; height: 13px; fill: var(--champ-d); }
+.vmk-crest { justify-self: center; width: min(280px, 70%); aspect-ratio: 3 / 4; border: 1px solid var(--line); border-radius: 140px / 180px; display: grid; place-items: center; background: linear-gradient(180deg, #fbf7ef, #f0e7d7); }
+.vmk-crest img { width: 55%; opacity: 0.95; }
+
+/* Panels */
+.vmk-panel { background: #fbf7ef; border: 1px solid var(--line); border-radius: 20px; padding: clamp(1.5rem, 3.5vw, 2.2rem); margin-bottom: 1.3rem; }
+.vmk-panel__h { display: flex; align-items: center; justify-content: center; gap: 0.8rem; font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 600; letter-spacing: 0.02em; color: var(--ink); text-align: center; margin: 0 0 1.4rem; }
+.vmk-panel__h::before, .vmk-panel__h::after { content: "✦"; color: var(--champ); font-size: 0.7rem; }
+
+/* Filters */
+.vmk-filters { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr auto; gap: 0.8rem; align-items: end; }
+.vmk-filters label { display: flex; flex-direction: column; gap: 0.35rem; font: 600 0.62rem/1 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); }
+.vmk-filters select, .vmk-filters input { padding: 0.7rem 0.8rem; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 0.9rem; color: var(--ink); font-family: inherit; }
+.vmk-filters select:focus, .vmk-filters input:focus { outline: none; border-color: var(--champ); box-shadow: 0 0 0 3px rgba(201, 163, 78, 0.15); }
+.vmk-search { background: #241b12; color: #f2e6cd; border: none; border-radius: 10px; padding: 0.75rem 1.3rem; font: 700 0.72rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; height: fit-content; }
+.vmk-search:hover { background: #3a2c1c; }
+
+/* Category tiles */
+.vmk-cats { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.7rem; margin-top: 1.3rem; }
+.vmk-ct { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding: 1.1rem 0.6rem; border: 1px solid var(--line); border-radius: 14px; background: #fff; text-decoration: none; color: var(--ink); transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; }
+.vmk-ct:hover { transform: translateY(-3px); border-color: var(--champ); box-shadow: 0 18px 40px -30px rgba(169, 132, 63, 0.5); }
+.vmk-ct svg { width: 30px; height: 30px; stroke: var(--champ-d); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.vmk-ct span { font-size: 0.78rem; line-height: 1.3; }
+.vmk-viewall { display: block; width: fit-content; margin: 1.3rem auto 0; color: var(--champ-d); border: 1px solid var(--champ); border-radius: 999px; padding: 0.7rem 1.5rem; font: 600 0.68rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; }
+.vmk-viewall:hover { background: rgba(201, 163, 78, 0.1); }
+.vmk-note { text-align: center; color: var(--soft); font-size: 0.86rem; font-style: italic; margin: 1.2rem 0 0; }
+
+/* For families / vendors */
+.vmk-two { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5rem; align-items: center; }
+.vmk-col__h { display: flex; align-items: flex-start; gap: 0.8rem; margin-bottom: 0.9rem; }
+.vmk-col__ic { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: rgba(201, 163, 78, 0.08); display: grid; place-items: center; flex: none; }
+.vmk-col__ic svg { width: 22px; height: 22px; stroke: var(--champ-d); fill: none; stroke-width: 1.4; }
+.vmk-col__t { font-family: var(--serif); font-size: 1.4rem; font-weight: 600; color: var(--ink); }
+.vmk-col__s { color: var(--soft); font-size: 0.88rem; line-height: 1.5; margin-top: 0.15rem; }
+.vmk-list { list-style: none; margin: 0 0 1.1rem; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.vmk-list li { display: flex; align-items: center; gap: 0.6rem; color: var(--ink); font-size: 0.9rem; }
+.vmk-list svg { width: 15px; height: 15px; stroke: var(--champ-d); fill: none; stroke-width: 2; flex: none; }
+.vmk-col__cta { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--champ-d); border: 1px solid var(--champ); border-radius: 999px; padding: 0.7rem 1.4rem; font: 600 0.66rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; }
+.vmk-col__cta:hover { background: rgba(201, 163, 78, 0.1); }
+.vmk-mid { align-self: stretch; display: grid; place-items: center; }
+.vmk-mid__mm { width: 74px; height: 74px; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; }
+.vmk-mid__mm img { width: 56%; }
+
+/* Notice */
+.vmk-notice { display: grid; grid-template-columns: auto 1fr auto; gap: 1.5rem; align-items: center; }
+.vmk-notice__shield { width: 66px; height: 66px; stroke: var(--champ-d); fill: none; stroke-width: 1.3; }
+.vmk-notice__t { font: 700 0.72rem/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--champ-d); margin-bottom: 0.5rem; }
+.vmk-notice__x { color: var(--soft); font-size: 0.85rem; line-height: 1.6; margin: 0; }
+.vmk-notice details { margin-top: 0.7rem; }
+.vmk-notice summary { list-style: none; cursor: pointer; color: var(--champ-d); font: 600 0.66rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--champ); border-radius: 999px; padding: 0.55rem 1.1rem; }
+.vmk-notice summary::-webkit-details-marker { display: none; }
+.vmk-notice details[open] summary { margin-bottom: 0.7rem; }
+.vmk-notice__full { color: var(--soft); font-size: 0.82rem; line-height: 1.65; margin: 0; }
+.vmk-notice__mm { width: 90px; opacity: 0.85; justify-self: center; }
+
+/* Closing band */
+.vmk-band { display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center; background: linear-gradient(180deg, #fbf7ef, #f0e7d7); border: 1px solid var(--line); border-radius: 18px; padding: clamp(1.5rem, 4vw, 2.3rem); margin-bottom: clamp(2.5rem, 5vw, 3.5rem); }
+.vmk-band__t { font-family: var(--serif); font-size: clamp(1.6rem, 3.2vw, 2.1rem); font-weight: 600; color: var(--ink); margin: 0; }
+.vmk-band__s { color: var(--champ-d); font-style: italic; margin: 0.3rem 0 0; }
+
+@media (max-width: 1000px) {
+  .vmk-hero { grid-template-columns: 1fr; }
+  .vmk-crest { display: none; }
+  .vmk-filters { grid-template-columns: 1fr 1fr; }
+  .vmk-cats { grid-template-columns: repeat(4, 1fr); }
+  .vmk-two { grid-template-columns: 1fr; }
+  .vmk-mid { display: none; }
+  .vmk-notice { grid-template-columns: 1fr; text-align: center; }
+  .vmk-notice__shield { margin: 0 auto; }
+  .vmk-band { grid-template-columns: 1fr; text-align: center; }
+}
+@media (max-width: 560px) { .vmk-filters { grid-template-columns: 1fr; } .vmk-cats { grid-template-columns: repeat(2, 1fr); } }
