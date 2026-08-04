@@ -1,0 +1,97 @@
+/* ── The Life Estate — an ARRIVAL, not an application ────────────
+   Cinematic luxury: full-bleed estate photography, elegant serif,
+   immense whitespace, warm ivory & champagne. The member should feel
+   they've arrived somewhere extraordinary — never that they opened
+   software. (Approved visual direction.)                                */
+
+:root {
+  --est-ivory: #f7f1e7;
+  --est-ivory-2: #efe6d6;
+  --est-champagne: #c9a34e;
+  --est-champagne-deep: #a9843f;
+  --est-ink: #3c342b;
+  --est-ink-soft: #8a7d6a;
+  --est-line: rgba(169, 132, 63, 0.22);
+  --serif: var(--font-display, "Cormorant Garamond", Georgia, "Times New Roman", serif);
+  --sans: var(--font-body, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+
+.estate-shell { background: var(--est-ivory); color: var(--est-ink); font-family: var(--sans); min-height: 100vh; }
+
+/* Whisper top bar — floats over the hero, minimal */
+.estate-top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.5rem clamp(1.25rem, 4vw, 3rem);
+}
+.estate-top__brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.estate-top__brand img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.4)); }
+.estate-top__name { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; letter-spacing: 0.14em; color: #fff; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45); }
+.estate-top__right { display: flex; align-items: center; gap: 0.9rem; }
+.estate-top__me { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-weight: 700; color: #4a3a17; text-decoration: none; background: radial-gradient(circle at 30% 30%, #e3cf9c, #c9a34e); box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5); }
+
+/* ── The living arrival hero ─────────────────────────────────────
+   No video (too heavy): motion is layered CSS — a slow camera drift
+   (Ken Burns), moving sunlight, chandelier shimmer, gentle curtain
+   sway, and a soft floor reflection. Honors reduced-motion.          */
+.est-hero { position: relative; height: 100vh; min-height: 640px; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; }
+.est-hero__bg { position: absolute; inset: -6%; background: url("/brand/estate-home.png") center / cover no-repeat; animation: est-kb 40s ease-in-out infinite alternate; }
+.est-hero__grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30, 20, 8, 0.30), rgba(30, 20, 8, 0) 26%, rgba(30, 20, 8, 0.10) 58%, rgba(35, 24, 10, 0.60)); }
+.est-hero__sun { position: absolute; inset: 0; background: linear-gradient(118deg, rgba(255, 241, 206, 0) 32%, rgba(255, 241, 206, 0.26) 49%, rgba(255, 241, 206, 0) 66%); background-size: 260% 260%; mix-blend-mode: screen; animation: est-sun 17s ease-in-out infinite; }
+.est-hero__shimmer { position: absolute; top: -8%; left: 50%; width: 60vw; height: 58vh; transform: translateX(-50%); background: radial-gradient(ellipse at center, rgba(255, 240, 200, 0.4), rgba(255, 240, 200, 0) 60%); mix-blend-mode: screen; animation: est-sh 6.5s ease-in-out infinite; }
+.est-hero__reflect { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: linear-gradient(0deg, rgba(255, 240, 210, 0.2), rgba(255, 240, 210, 0)); mix-blend-mode: screen; animation: est-rf 9s ease-in-out infinite; }
+.est-curtain { position: absolute; top: 0; bottom: 0; width: 13vw; filter: blur(2px); mix-blend-mode: screen; }
+.est-curtain--l { left: 0; background: linear-gradient(90deg, rgba(255, 246, 224, 0.15), transparent); animation: est-sway 9s ease-in-out infinite alternate; }
+.est-curtain--r { right: 0; background: linear-gradient(270deg, rgba(255, 246, 224, 0.15), transparent); animation: est-sway 10.5s ease-in-out infinite alternate-reverse; }
+.est-hero__inner { position: relative; z-index: 4; max-width: 880px; padding: 0 clamp(1.25rem, 5vw, 4rem); animation: est-rise 1.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.est-hero__title { font-family: var(--serif); font-weight: 600; color: #fff; line-height: 1.02; font-size: clamp(2.8rem, 7vw, 5.4rem); text-shadow: 0 2px 36px rgba(20, 12, 4, 0.55); margin: 0; }
+.est-hero__sub { font-family: var(--serif); font-style: italic; color: rgba(255, 251, 244, 0.95); font-size: clamp(1.2rem, 3vw, 2rem); margin-top: 1rem; text-shadow: 0 2px 22px rgba(20, 12, 4, 0.5); }
+.est-hero__cue { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 4; color: rgba(255, 251, 244, 0.82); font: 500 0.7rem/1 var(--sans); letter-spacing: 0.28em; text-transform: uppercase; display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
+.est-hero__cue svg { width: 16px; height: 16px; stroke: rgba(255, 251, 244, 0.85); fill: none; stroke-width: 1.5; animation: est-bob 2.2s ease-in-out infinite; }
+
+@keyframes est-kb { from { transform: scale(1); } to { transform: scale(1.11) translate(1.6%, -1.4%); } }
+@keyframes est-sun { 0% { background-position: 12% 8%; opacity: 0.5; } 50% { background-position: 70% 55%; opacity: 0.85; } 100% { background-position: 12% 8%; opacity: 0.5; } }
+@keyframes est-sh { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.72; } }
+@keyframes est-rf { 0%, 100% { opacity: 0.35; transform: translateX(-3%); } 50% { opacity: 0.7; transform: translateX(3%); } }
+@keyframes est-sway { from { transform: skewX(0) translateX(0); } to { transform: skewX(2deg) translateX(1.4vw); } }
+@keyframes est-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes est-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .est-hero__bg, .est-hero__sun, .est-hero__shimmer, .est-hero__reflect, .est-curtain, .est-hero__cue svg, .est-hero__inner { animation: none; }
+}
+
+/* ── The lobby — refined destination doors ──────────────────────── */
+.lobby { max-width: 1040px; margin: 0 auto; padding: clamp(4rem, 9vw, 7rem) clamp(1.25rem, 5vw, 2rem) clamp(3rem, 7vw, 5rem); text-align: center; position: relative; }
+.lobby__eyebrow { font: 600 0.74rem/1 var(--sans); letter-spacing: 0.34em; text-transform: uppercase; color: var(--est-champagne-deep); }
+.lobby__line { font-family: var(--serif); font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 600; color: var(--est-ink); margin: 0.8rem 0 0.3rem; line-height: 1.1; }
+.lobby__sub { font-family: var(--serif); font-style: italic; color: var(--est-ink-soft); font-size: clamp(1.1rem, 2.6vw, 1.4rem); }
+.lobby__rule { width: 64px; height: 1px; background: linear-gradient(90deg, transparent, var(--est-champagne), transparent); margin: 1.6rem auto clamp(2rem, 4vw, 2.8rem); }
+.dests { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: clamp(0.8rem, 2vw, 1.15rem); }
+.dest { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.35rem; text-decoration: none; padding: 2rem 1.4rem; border: 1px solid var(--est-line); border-radius: 18px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.5)); box-shadow: 0 18px 44px -34px rgba(60, 45, 25, 0.5); transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s, box-shadow 0.28s; }
+.dest:hover { transform: translateY(-5px); border-color: var(--est-champagne); box-shadow: 0 26px 54px -30px rgba(169, 132, 63, 0.55); }
+.dest__ic { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; border: 1px solid var(--est-line); background: rgba(201, 163, 78, 0.06); margin-bottom: 0.5rem; }
+.dico { stroke: var(--est-champagne-deep); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.dest__t { font-family: var(--serif); font-size: 1.35rem; font-weight: 600; color: var(--est-ink); line-height: 1.15; }
+.dest__s { font: 600 0.64rem/1.3 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--est-champagne-deep); }
+.lobby__foot { text-align: center; color: var(--est-ink-soft); font-size: 0.82rem; letter-spacing: 0.06em; padding: 0 1.25rem 3rem; }
+
+/* ── Interior editorial pages (e.g. Learn) — ivory, no hero photo ── */
+.estate-page { max-width: 820px; margin: 0 auto; padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 2rem) 4rem; }
+.estate-crumb { font-size: 0.85rem; color: var(--est-ink-soft); margin-bottom: 1.25rem; }
+.estate-crumb__link { color: var(--est-champagne-deep); text-decoration: none; }
+.estate-crumb__link:hover { text-decoration: underline; }
+.estate-page__title { font-family: var(--serif); font-size: clamp(2rem, 5vw, 3rem); font-weight: 600; color: var(--est-ink); margin: 0 0 0.5rem; line-height: 1.05; }
+.estate-page__body { color: var(--est-ink-soft); font-size: 1.03rem; line-height: 1.65; margin: 0 0 2rem; max-width: 62ch; }
+.estate-learn { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.estate-topic { background: #fff; border: 1px solid var(--est-line); border-radius: 16px; padding: 1.2rem 1.3rem; box-shadow: 0 16px 38px -30px rgba(60, 45, 25, 0.5); }
+.estate-topic__title { font-family: var(--serif); font-size: 1.3rem; font-weight: 600; color: var(--est-ink); margin: 0 0 0.4rem; }
+.estate-topic__summary { color: var(--est-ink-soft); font-size: 0.93rem; line-height: 1.6; margin: 0 0 0.7rem; }
+.estate-topic__note { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--est-ink-soft); border: 1px solid var(--est-line); border-radius: 999px; padding: 0.12rem 0.5rem; }
+.estate-learn__disclaimer { margin-top: 1.4rem; color: var(--est-ink-soft); font-size: 0.86rem; line-height: 1.6; max-width: 70ch; font-style: italic; }
+.estate-foot { margin-top: 2.2rem; }
+.estate-foot__link { color: var(--est-champagne-deep); text-decoration: none; font-size: 0.9rem; }
+.estate-foot__link:hover { text-decoration: underline; }
+
+@media (max-width: 560px) {
+  .estate-top__out { display: none; }
+}

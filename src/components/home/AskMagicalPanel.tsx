@@ -90,7 +90,7 @@ export default function AskMagicalPanel({
           <span className="askm__avatar" aria-hidden="true">✨</span>
           <span className="askm__names">
             <span className="askm__name">Ask {conciergeName}</span>
-            <span className="askm__powered">Powered by Magical</span>
+            {conciergeName !== "Magical" && <span className="askm__powered">Powered by Magical</span>}
           </span>
         </div>
         <button type="button" className="askm__collapse" onClick={toggleCollapsed}

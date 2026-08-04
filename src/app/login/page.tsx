@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import AuthShell from "@/components/auth/AuthShell";
 import PasswordField from "@/components/auth/PasswordField";
 import { currentAccount } from "@/lib/auth-session";
 import { safeRedirect } from "@/lib/auth-support";
@@ -35,11 +34,22 @@ export default async function LoginPage({
   const error = sp.error && ERRORS[sp.error] ? ERRORS[sp.error] : null;
 
   return (
-    <AuthShell>
-      <div className="auth-card">
-        <span className="auth-eyebrow">Welcome back</span>
-        <h1>Sign in</h1>
-        <p className="auth-lede">Your memories, your family, your Moments — all in one place.</p>
+    <div className="signin">
+      <div className="signin__bg" aria-hidden="true" />
+      <div className="signin__grad" aria-hidden="true" />
+      <div className="signin__sun" aria-hidden="true" />
+      <div className="signin__shimmer" aria-hidden="true" />
+
+      <Link href="/" className="signin__brand" aria-label="Magical Moments by Reign — home">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo-champagne.png" alt="" width={38} height={38} />
+        <span>MAGICAL MOMENTS</span>
+      </Link>
+
+      <div className="signin__card">
+        <span className="signin__eyebrow">Welcome back</span>
+        <h1 className="signin__title">Sign in to your Magical Space</h1>
+        <p className="signin__lede">Your memories, your family, your Moments — all in one place.</p>
 
         {sp.registered && (
           <div className="auth-note auth-note--ok">
@@ -88,10 +98,10 @@ export default async function LoginPage({
           </form>
         )}
 
-        <p className="auth-alt">
+        <p className="signin__foot">
           New to Magical Moments? <Link href={`/signup?next=${encodeURIComponent(next)}`} className="auth-link">Create your account</Link>
         </p>
       </div>
-    </AuthShell>
+    </div>
   );
 }

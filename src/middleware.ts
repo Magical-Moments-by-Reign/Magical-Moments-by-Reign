@@ -17,7 +17,7 @@ const SESSION_COOKIE = "mmr_session";
 // Vendor dashboard joins the protected set (real authz is in requireVendor).
 // NOTE: /admin is intentionally NOT here — it still supports the legacy
 // mmr_admin password cookie during transition; requireAdmin handles both.
-const PROTECTED_PREFIXES = ["/home", "/account", "/notifications", "/dashboard", "/create", "/vendors/dashboard"];
+const PROTECTED_PREFIXES = ["/home", "/estate", "/account", "/notifications", "/dashboard", "/create", "/vendors/dashboard"];
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -34,5 +34,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home", "/account/:path*", "/notifications/:path*", "/dashboard/:path*", "/create", "/vendors/dashboard/:path*"],
+  matcher: ["/home", "/estate/:path*", "/account/:path*", "/notifications/:path*", "/dashboard/:path*", "/create", "/vendors/dashboard/:path*"],
 };
