@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ScrollCue from "@/components/site/ScrollCue";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import "./about-story.css";
@@ -23,6 +24,7 @@ export default async function AboutPage() {
         <span className="abs-eyebrow">Our Story</span>
         <h1 className="abs-title">About Magical Moments by Reign</h1>
         <div className="abs-rule" aria-hidden="true" />
+        <ScrollCue />
 
         <p className="abs-p">Magical Moments by Reign was created from one simple belief: life&apos;s biggest moments deserve one place to be planned, celebrated, and preserved.</p>
         <p className="abs-p">Our platform brings together life&apos;s most meaningful journeys—from weddings, babies, homes, vacations, graduations, businesses, and beyond—into one organized experience.</p>

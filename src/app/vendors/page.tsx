@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ScrollCue from "@/components/site/ScrollCue";
 import type { ReactElement } from "react";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
@@ -42,6 +43,7 @@ export default async function VendorsPage() {
               <Link href="/vendors/apply" className="vmk-cta">{BECOME_A_VENDOR.cta} <span aria-hidden="true">+</span></Link>
               <a href="#how-it-works" className="vmk-how"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span> How it works</a>
             </div>
+            <ScrollCue />
           </div>
           <div className="vmk-crest" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}

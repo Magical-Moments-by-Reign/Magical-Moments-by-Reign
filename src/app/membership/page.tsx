@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import MembershipBuilder from "@/components/site/MembershipBuilder";
+import ScrollCue from "@/components/site/ScrollCue";
 import { LIFETIME_COLLECTIONS, formatUSD } from "@/lib/pricing-engine";
 import "./membership-builder.css";
 
@@ -24,6 +25,7 @@ export default async function MembershipPage() {
         <span className="mb2-eyebrow">By Invitation</span>
         <h1 className="mb2-h1">Design how your <i>story is kept.</i></h1>
         <p className="mb2-invite">Your personal invitation to preserve the most important moments of your life — beautifully, and for as long as your heart desires.</p>
+        <ScrollCue />
       </header>
 
       <div className="mb2-wrap">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ScrollCue from "@/components/site/ScrollCue";
 import type { ReactElement } from "react";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
@@ -65,6 +66,7 @@ export default async function GetStartedPage() {
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 L13.5 9 L19 10 L13.5 11 L12 17 L10.5 11 L5 10 L10.5 9 Z" /></svg>
             No commitment. Explore at your own pace.
           </span>
+          <ScrollCue />
         </div>
         <div className="gs-hero__r" aria-hidden="true" />
       </section>

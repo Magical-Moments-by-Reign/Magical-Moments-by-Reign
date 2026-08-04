@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ScrollCue from "@/components/site/ScrollCue";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import { CONTACT_REASONS } from "@/lib/inquiries";
@@ -55,6 +56,7 @@ export default async function ContactPage({
             <h1 className="ctk-h1">Let&apos;s Create Something Magical <i>Together</i></h1>
             <p className="ctk-hero__s">Whether you have a question, need guidance, or want to discuss your project, our team is here to help make your vision a reality.</p>
             <div className="ctk-rule" aria-hidden="true" />
+            <ScrollCue />
           </div>
           <div className="ctk-crest" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}

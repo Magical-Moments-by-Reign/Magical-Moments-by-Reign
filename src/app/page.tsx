@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ScrollCue from "@/components/site/ScrollCue";
 import { currentAccount } from "@/lib/auth-session";
 import "./landing.css";
 
@@ -57,6 +58,7 @@ export default async function LandingPage() {
           ) : (
             <Link href="/login" className="lp-hcta">Sign in to begin your journey</Link>
           )}
+        <ScrollCue />
         </div>
       </section>
 
