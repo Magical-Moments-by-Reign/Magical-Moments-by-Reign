@@ -2,7 +2,7 @@
   "name": "Magical Moments by Reign",
   "short_name": "Magical Moments",
   "description": "Capture. Celebrate. Cherish Forever. — one home for your family's Life Journeys, Family Vault, and every important moment.",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -15,8 +15,8 @@
     { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Today Dashboard", "url": "/dashboard" },
+    { "name": "Your Magical Space", "url": "/home" },
     { "name": "Family Vault", "url": "/dashboard/vault" },
-    { "name": "Purchases", "url": "/dashboard/purchases" }
+    { "name": "Get Started", "url": "/get-started" }
   ]
 }

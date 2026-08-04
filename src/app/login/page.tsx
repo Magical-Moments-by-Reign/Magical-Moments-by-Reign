@@ -101,12 +101,10 @@ export default async function LoginPage({
         <p className="signin__foot">
           New to Magical Moments? <Link href={`/signup?next=${encodeURIComponent(next)}`} className="auth-link">Create your account</Link>
         </p>
+        <p className="signin__foot">
+          <Link href="/" className="auth-link">← Back to the homepage</Link>
+        </p>
       </div>
-
-      <span className="signin__cue" aria-hidden="true">
-        <span>Scroll</span>
-        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-      </span>
     </div>
   );
 }

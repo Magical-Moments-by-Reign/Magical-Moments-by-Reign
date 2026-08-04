@@ -37,10 +37,6 @@ function SignupScene({ tall, children }: { tall?: boolean; children: React.React
         <span>MAGICAL MOMENTS</span>
       </Link>
       {children}
-      <span className="signin__cue" aria-hidden="true">
-        <span>Scroll</span>
-        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-      </span>
     </div>
   );
 }

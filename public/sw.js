@@ -3,7 +3,7 @@
 // speeds up static assets and provides a graceful offline fallback for
 // navigations. Bump CACHE_VERSION to invalidate old caches on deploy.
 
-const CACHE_VERSION = "mmr-v1";
+const CACHE_VERSION = "mmr-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline";
 
