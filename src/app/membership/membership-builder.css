@@ -72,6 +72,37 @@
 .mb2-wg__p { font-family: var(--serif); font-size: 1.35rem; font-weight: 600; color: var(--gold-deep); white-space: nowrap; text-align: right; }
 .mb2-wg__p small { display: block; font-family: var(--sans); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--taupe); }
 
+/* Journey Protection add-on */
+.mb2-jp { margin-top: 0.9rem; border: 1px dashed var(--line); border-radius: 14px; background: rgba(201, 163, 78, 0.05); padding: 0.9rem 1.1rem; }
+.mb2-jp__row { display: flex; align-items: center; gap: 0.9rem; cursor: pointer; }
+.mb2-jp__row input { width: 18px; height: 18px; accent-color: var(--gold); flex: none; }
+.mb2-jp__b { flex: 1; }
+.mb2-jp__n { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.mb2-jp__info { background: none; border: none; color: var(--gold-deep); font: 600 0.72rem/1 var(--sans); cursor: pointer; padding: 0.1rem 0.3rem; text-decoration: underline; }
+.mb2-jp__s { color: var(--taupe); font-size: 0.82rem; }
+.mb2-jp__p { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; color: var(--gold-deep); white-space: nowrap; text-align: right; }
+.mb2-jp__p small { display: block; font-family: var(--sans); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--taupe); }
+.mb2-jp__panel { margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--line); }
+.mb2-jp__panel h4 { font-family: var(--serif); font-size: 1.15rem; color: var(--ink); margin: 0 0 0.5rem; }
+.mb2-jp__panel p { color: var(--taupe); font-size: 0.86rem; line-height: 1.6; margin: 0 0 0.6rem; }
+.mb2-jp__panel strong { color: var(--ink); }
+
+/* Lifetime Smart Reminder / celebration */
+.mb2-remind { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 1rem; border: 1px solid var(--gold); border-radius: 18px; background: linear-gradient(180deg, #fdf3dd, #f9ead0); padding: 1.3rem 1.5rem; box-shadow: 0 24px 50px -40px rgba(169, 132, 63, 0.6); animation: mb2-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.mb2-remind--celebrate { border-color: var(--gold); background: linear-gradient(180deg, #fdf0cf, #f7e6c4); }
+.mb2-remind__spark { font-size: 1.6rem; line-height: 1; animation: mb2-twinkle 2.4s ease-in-out infinite; }
+.mb2-remind--celebrate .mb2-remind__spark { animation: mb2-pop 0.7s ease-out both, mb2-twinkle 2.4s 0.7s ease-in-out infinite; }
+.mb2-remind__h { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; color: var(--ink); margin: 0 0 0.3rem; }
+.mb2-remind__p { color: var(--ink-2); font-size: 0.92rem; line-height: 1.6; margin: 0; }
+.mb2-remind__actions { display: flex; align-items: center; gap: 1.2rem; margin-top: 0.9rem; flex-wrap: wrap; }
+.mb2-remind__yes { background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border: none; border-radius: 999px; padding: 0.7rem 1.4rem; font: 600 0.72rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.mb2-remind__yes:hover { filter: brightness(1.05); }
+.mb2-remind__no { color: var(--taupe); font-size: 0.85rem; }
+@keyframes mb2-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes mb2-twinkle { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.15); opacity: 1; } }
+@keyframes mb2-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .mb2-remind, .mb2-remind__spark { animation: none; } }
+
 /* Preview (sticky) */
 .mb2-preview { border: 1px solid var(--line); border-radius: 18px; background: var(--warm-white); padding: 1.4rem 1.5rem; position: sticky; top: 90px; box-shadow: 0 30px 60px -44px rgba(120, 90, 40, 0.5); }
 .mb2-preview__h { font: 600 0.72rem/1 var(--sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-deep); text-align: center; margin-bottom: 1rem; }

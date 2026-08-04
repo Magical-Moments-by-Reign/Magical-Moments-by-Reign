@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import MembershipBuilder from "@/components/site/MembershipBuilder";
-import { LIFETIME_TIERS } from "@/lib/membership-builder";
-import { formatPrice } from "@/lib/plans";
+import { LIFETIME_COLLECTIONS, formatUSD } from "@/lib/pricing-engine";
 import "./membership-builder.css";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +35,12 @@ export default async function MembershipPage() {
           <h2 className="mb2-tiers__h">The Lifetime <i>Collections</i></h2>
           <p className="mb2-tiers__s">Kept forever — choose the breadth that fits your family.</p>
           <div className="mb2-tiergrid">
-            {LIFETIME_TIERS.map((t) => (
-              <article key={t.maxOccasions} className="mb2-tier">
-                <div className="mb2-tier__n">{t.custom ? "The Estate" : t.maxOccasions === 5 ? "The Keepsake" : "The Legacy"}</div>
+            {LIFETIME_COLLECTIONS.map((c) => (
+              <article key={c.id} className="mb2-tier">
+                <div className="mb2-tier__n">{c.name}</div>
                 <div className="mb2-tier__rule" aria-hidden="true" />
-                <div className="mb2-tier__p">{formatPrice(t.price)}</div>
-                <div className="mb2-tier__s">{t.label} · one-time · for life</div>
+                <div className="mb2-tier__p">{formatUSD(c.price)}</div>
+                <div className="mb2-tier__s">{c.blurb} · one-time · for life</div>
               </article>
             ))}
           </div>
