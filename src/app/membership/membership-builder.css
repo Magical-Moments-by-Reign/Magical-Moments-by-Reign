@@ -140,3 +140,76 @@
   .mb2-preview { position: static; }
   .mb2-tiergrid { grid-template-columns: 1fr; }
 }
+
+/* ── Free Forever gate — occasions locked, elegant upsell ──────── */
+.mb2-card--locked { position: relative; }
+.mb2-occ--locked { opacity: 0.55; }
+.mb2-chip.locked { cursor: pointer; border-style: dashed; color: var(--taupe); background: rgba(201, 163, 78, 0.04); }
+.mb2-chip.locked:hover { border-color: var(--gold); background: rgba(201, 163, 78, 0.09); opacity: 1; }
+.mb2-chip.locked .mb2-chip__tick { background: transparent; font-size: 0.72rem; }
+
+.mb2-locknote { margin-top: 1.1rem; text-align: center; border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem 1.1rem; background: linear-gradient(180deg, #fffdf8, #f7efdf); }
+.mb2-locknote__t { font-family: var(--serif); font-size: 1.15rem; color: var(--ink); margin: 0 0 0.3rem; line-height: 1.25; }
+.mb2-locknote__s { color: var(--taupe); font-size: 0.9rem; margin: 0 0 0.9rem; }
+.mb2-locknote__btn { border: 0; cursor: pointer; background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border-radius: 999px; padding: 0.7rem 1.5rem; font: 700 0.72rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; box-shadow: 0 14px 30px -18px rgba(169, 132, 63, 0.9); }
+.mb2-locknote__btn:hover { filter: brightness(1.05); }
+
+/* Free preview — what's actually included */
+.mb2-preview__incl { list-style: none; margin: 0 0 0.4rem; padding: 0; display: grid; gap: 0.4rem; }
+.mb2-preview__incl li { position: relative; padding-left: 1.3rem; color: var(--ink-2); font-size: 0.85rem; line-height: 1.4; }
+.mb2-preview__incl li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--gold-deep); font-weight: 700; }
+
+/* Upgrade modal */
+.mb2-upsell { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 1.2rem; background: rgba(30, 20, 8, 0.55); backdrop-filter: blur(6px); animation: mb2-fade 0.25s ease both; }
+@keyframes mb2-fade { from { opacity: 0; } to { opacity: 1; } }
+.mb2-upsell__card { position: relative; width: 100%; max-width: 440px; text-align: center; background: linear-gradient(180deg, #fffdf8, #f6efe0); border: 1px solid var(--line); border-radius: 22px; padding: 2.2rem 1.8rem 1.9rem; box-shadow: 0 50px 100px -40px rgba(30, 18, 4, 0.7); animation: mb2-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes mb2-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.mb2-upsell__x { position: absolute; top: 0.7rem; right: 0.9rem; border: 0; background: transparent; color: var(--taupe); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.mb2-upsell__x:hover { color: var(--ink); }
+.mb2-upsell__spark { font-size: 1.6rem; }
+.mb2-upsell__eyebrow { display: block; font: 600 0.66rem/1.4 var(--sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-deep); margin-top: 0.4rem; }
+.mb2-upsell__t { font-family: var(--serif); font-size: 1.5rem; line-height: 1.2; color: var(--ink); margin: 0.4rem 0 0.5rem; }
+.mb2-upsell__p { color: var(--taupe); font-size: 0.95rem; margin: 0 0 1.3rem; }
+.mb2-upsell__plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1.4rem; }
+.mb2-upsell__plan { border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem 0.5rem; background: var(--warm-white); }
+.mb2-upsell__plan--feature { border-color: var(--gold); box-shadow: 0 16px 30px -22px rgba(169, 132, 63, 0.8); }
+.mb2-upsell__pk { display: block; font: 600 0.6rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 0.35rem; }
+.mb2-upsell__pv { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+.mb2-upsell__pv small { font-size: 0.72rem; color: var(--taupe); }
+.mb2-upsell__actions { display: flex; flex-direction: column; gap: 0.6rem; }
+.mb2-upsell__pick { border: 0; cursor: pointer; background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border-radius: 12px; padding: 0.95rem; font: 700 0.74rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; box-shadow: 0 16px 36px -18px rgba(169, 132, 63, 0.9); }
+.mb2-upsell__pick:hover { filter: brightness(1.05); }
+.mb2-upsell__later { border: 0; background: transparent; color: var(--taupe); font: 600 0.8rem/1 var(--sans); cursor: pointer; padding: 0.4rem; }
+.mb2-upsell__later:hover { color: var(--ink); }
+
+/* Gentle notice shown when a Free member is sent here to unlock creation */
+.mb2-locked { max-width: 620px; margin: 1.1rem auto 0; padding: 0.9rem 1.2rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(201, 163, 78, 0.09); color: var(--ink-2); font-size: 0.9rem; line-height: 1.55; }
+
+/* ── Life Experience cards (top-level chapters) + milestones ───── */
+.mb2-exps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+.mb2-exp { border: 1px solid var(--line); border-radius: 16px; background: var(--warm-white); overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+.mb2-exp.on { border-color: var(--gold); box-shadow: 0 14px 30px -22px rgba(169, 132, 63, 0.8); }
+.mb2-exp.disabled { opacity: 0.5; }
+.mb2-exp__head { width: 100%; display: flex; align-items: center; gap: 0.7rem; padding: 0.9rem 1rem; background: transparent; border: 0; cursor: pointer; text-align: left; }
+.mb2-exp.disabled .mb2-exp__head { cursor: not-allowed; }
+.mb2-exp__ic { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
+.mb2-exp__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mb2-exp__n { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; color: var(--ink); line-height: 1.15; }
+.mb2-exp__s { color: var(--taupe); font-size: 0.78rem; line-height: 1.35; }
+.mb2-exp__tick { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; color: var(--gold-deep); font-size: 0.9rem; font-weight: 700; }
+.mb2-exp.on .mb2-exp__tick { background: var(--gold); border-color: var(--gold); color: #4a3a17; }
+.mb2-exp__mil { padding: 0 1rem 0.9rem; border-top: 1px dashed var(--line); }
+.mb2-exp__milt { display: block; font: 600 0.66rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-deep); margin: 0.8rem 0 0.55rem; }
+.mb2-exp__milt small { color: var(--taupe); letter-spacing: 0.06em; text-transform: none; font-weight: 500; }
+.mb2-exp__milrow { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.mb2-ms { border: 1px solid var(--line); border-radius: 999px; background: var(--cream); color: var(--ink-2); padding: 0.35rem 0.75rem; font-size: 0.78rem; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.mb2-ms:hover { border-color: var(--gold); }
+.mb2-ms.on { border-color: var(--gold); background: linear-gradient(180deg, #f7ecd2, #f0e0bf); color: #4a3a17; font-weight: 600; }
+
+/* Downgrade explanation (paid → Free Forever) */
+.mb2-downgrade { margin-bottom: 1rem; padding: 0.85rem 1.1rem; border: 1px solid rgba(169, 132, 63, 0.35); border-radius: 12px; background: rgba(201, 163, 78, 0.1); color: var(--ink-2); font-size: 0.86rem; line-height: 1.5; }
+
+/* Free Step-2 upgrade invitation (spark added) */
+.mb2-locknote__spark { display: block; font-size: 1.5rem; margin-bottom: 0.3rem; }
+
+@media (max-width: 720px) { .mb2-exps { grid-template-columns: 1fr; } }

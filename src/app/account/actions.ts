@@ -9,7 +9,9 @@ import { changePassword } from "@/lib/auth-service";
 
 export async function logoutAction(): Promise<void> {
   await endCurrentSession();
-  redirect("/login?loggedout=1");
+  // Sign-out returns to the public homepage (a clear signed-out public state),
+  // never the login page — so members never land in a protected-route loop.
+  redirect("/");
 }
 
 export async function logoutOthersAction(): Promise<void> {

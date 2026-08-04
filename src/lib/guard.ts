@@ -10,6 +10,7 @@
 import { redirect } from "next/navigation";
 import { currentAccount, type CurrentAccount } from "@/lib/auth-session";
 import { isStaffRole, type PlatformRole } from "@/lib/roles";
+import { canCreateOccasions } from "@/lib/membership-access";
 
 /** Require a signed-in account, else redirect to login preserving the destination. */
 export async function requireAccount(next?: string): Promise<CurrentAccount> {
@@ -30,4 +31,19 @@ export async function requireRole(allowed: PlatformRole[], next?: string): Promi
   const account = await requireAccount(next);
   if (isStaffRole(account.role) || allowed.includes(account.role)) return account;
   redirect("/account?denied=1");
+}
+
+/**
+ * Require a MEMBERSHIP that can create occasions / Life Estates. Free Forever is
+ * a basic introduction and cannot — so a Free member is redirected to the
+ * memberships page with the upgrade context, never silently allowed. This is the
+ * backend half of the rule enforced in the Membership Builder UI; both call the
+ * same canCreateOccasions() so they can never disagree.
+ */
+export async function requireOccasionAccess(next?: string): Promise<CurrentAccount> {
+  const account = await requireAccount(next);
+  if (!canCreateOccasions(account.membershipTier)) {
+    redirect("/membership?locked=occasions");
+  }
+  return account;
 }

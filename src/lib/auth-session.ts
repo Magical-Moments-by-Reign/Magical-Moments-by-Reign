@@ -16,6 +16,7 @@ import {
   newSessionToken, hashSessionToken, sessionExpiry, sessionValid, SESSION_TTL_DAYS,
 } from "@/lib/auth";
 import type { PlatformRole } from "@/lib/roles";
+import { normalizeTier, type MembershipTier } from "@/lib/membership-access";
 
 export const SESSION_COOKIE = "mmr_session";
 
@@ -68,6 +69,8 @@ export interface CurrentAccount {
   role: PlatformRole;
   status: string;
   guardianAccountId: string | null;
+  /** Entitlements gate — see src/lib/membership-access.ts. Defaults to "free". */
+  membershipTier: MembershipTier;
   sessionId: string;
   sessionTokenHash: string;
 }
@@ -90,7 +93,7 @@ export async function currentAccount(): Promise<CurrentAccount | null> {
       account: {
         select: {
           id: true, customerId: true, firstName: true, lastName: true,
-          platformRole: true, status: true, guardianAccountId: true,
+          platformRole: true, status: true, guardianAccountId: true, membershipTier: true,
         },
       },
     },
@@ -111,6 +114,7 @@ export async function currentAccount(): Promise<CurrentAccount | null> {
     role: session.account.platformRole as PlatformRole,
     status: session.account.status,
     guardianAccountId: session.account.guardianAccountId,
+    membershipTier: normalizeTier(session.account.membershipTier),
     sessionId: session.id,
     sessionTokenHash: tokenHash,
   };

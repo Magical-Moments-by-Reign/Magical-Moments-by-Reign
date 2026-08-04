@@ -1028,6 +1028,14 @@ model Account {
   platformRole      String  @default("family_owner") // PlatformRole
   guardianAccountId String? // set for minor accounts (parent/guardian)
 
+  // Membership tier — the entitlements gate (see src/lib/membership-access.ts).
+  // "free" (Free Forever) is a basic introduction: it CANNOT select or create
+  // occasions / Life Estates. A paid Membership (monthly | annual | 5yr | 10yr |
+  // legacy | reign | magical) unlocks creation and premium tools. Defaults to
+  // "free"; a completed paid checkout is what promotes an account. Enforced
+  // server-side in guard.ts — never by hiding a button.
+  membershipTier    String  @default("free")
+
   // Dashboard identity bridge (transition — see src/lib/dashboard-identity.ts).
   // Account is the canonical customer identity; this links to the legacy User
   // row that existing dashboard records are keyed on, so nothing breaks while
@@ -1077,6 +1085,9 @@ model Account {
   // Every account gets its own personal concierge — a named companion the
   // customer builds a relationship with (see model Concierge / src/lib/concierge.ts).
   concierge     Concierge?
+  // Legacy Vault — a private, Lifetime-exclusive place to preserve memories that
+  // aren't ready to be shared (see src/lib/legacy-vault.ts).
+  legacyVaultItems LegacyVaultItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1084,6 +1095,40 @@ model Account {
   @@index([nameNormalized])
   @@index([status])
   @@index([legacyUserId])
+}
+
+// ── Legacy Vault (Lifetime-exclusive) ───────────────────────────
+// A private, secure place for memories that aren't ready to be shared: letters
+// to children, future messages, recipes, voice notes, time capsules. An item is
+// either kept private forever, scheduled for a future date, released after a
+// milestone, or shared with selected family. Domain rules + release logic live
+// in src/lib/legacy-vault.ts (pure + unit-tested).
+model LegacyVaultItem {
+  id        String  @id @default(cuid())
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  kind    String // LegacyVaultKind (letter, video, audio, recipe, story, journal, timeCapsule, memorial, other)
+  title   String
+  body    String? // written content (letters, stories, journals, recipes)
+  mediaKey String? // storage key for an uploaded photo/video/audio (nullable)
+
+  // Release rule: how/when this item becomes available.
+  visibility     String   @default("private") // LegacyVaultVisibility (private, scheduled, milestone, shared)
+  releaseAt      DateTime? // for "scheduled" — the date it may be opened
+  releaseMilestone String? // for "milestone" — e.g. "18th birthday", "graduation"
+  recipients     String   @default("[]") // JSON array of family recipient descriptors (for "shared")
+
+  // Lifecycle
+  sealedAt   DateTime? // when the member sealed it (locks edits, optional)
+  releasedAt DateTime? // when it actually became available
+  archived   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId, archived])
+  @@index([visibility, releaseAt])
 }
 
 // The normalized identity snapshot used for duplicate detection. Kept

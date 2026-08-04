@@ -15,8 +15,13 @@ export const metadata: Metadata = {
 
 // The official Membership Builder: pricing and membership in one warm, elegant
 // place. Occasions + term drive a live price from the real pricing engine.
-export default async function MembershipPage() {
+export default async function MembershipPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ locked?: string }>;
+}) {
   const signedIn = Boolean(await currentAccount());
+  const locked = (await searchParams).locked === "occasions";
   return (
     <div className="mb2">
       <PublicNav active="get-started" signedIn={signedIn} />
@@ -25,6 +30,12 @@ export default async function MembershipPage() {
         <span className="mb2-eyebrow">By Invitation</span>
         <h1 className="mb2-h1">Design how your <i>story is kept.</i></h1>
         <p className="mb2-invite">Your personal invitation to preserve the most important moments of your life — beautifully, and for as long as your heart desires.</p>
+        {locked && (
+          <p className="mb2-locked">
+            Creating an occasion is included with a Magical Moments Membership. Choose one below to
+            begin creating unforgettable experiences — your Free Forever account stays yours either way.
+          </p>
+        )}
         <ScrollCue />
       </header>
 
