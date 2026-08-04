@@ -139,6 +139,10 @@
 .signin__brand img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.45)); }
 .signin__brand span { font-family: var(--font-display, "Cormorant Garamond", serif); font-size: 1.02rem; font-weight: 600; letter-spacing: 0.16em; color: #fff; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5); }
 
+/* Tall variant (e.g. sign-up) — top-align so a long card stays scrollable. */
+.signin--tall { align-items: flex-start; }
+.signin__card--wide { max-width: 620px; }
+
 .signin__card {
   position: relative; z-index: 3; width: 100%; max-width: 430px;
   background: rgba(255, 253, 250, 0.92);
