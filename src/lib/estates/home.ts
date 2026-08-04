@@ -31,6 +31,21 @@ export const HOME_ESTATE: EstateConfig = {
     { id: "invest", label: "Invest in real estate", description: "Rentals, Airbnb, flipping, portfolios.", group: "Investing" },
   ],
 
+  // Lobby destinations — the elegant "front doors" shown on arrival (the approved
+  // Home Estate lobby). Emotional, plain-language entries; distinct from the
+  // granular `goals` data model. Each links to what is genuinely live today.
+  destinations: [
+    { id: "buy-first", title: "Buy My First Home", tagline: "Begin your journey", icon: "buy" },
+    { id: "build", title: "Build My Dream Home", tagline: "From land to move-in", icon: "build" },
+    { id: "find", title: "Find a Home", tagline: "Explore with confidence", icon: "find" },
+    { id: "sell", title: "Sell My Home", tagline: "Prepare for what's next", icon: "sell" },
+    { id: "vacation", title: "Vacation Home", tagline: "Escape beautifully", icon: "vacation" },
+    { id: "renovate", title: "Renovation", tagline: "Reimagine your space", icon: "renovate" },
+    { id: "invest", title: "Investment Property", tagline: "Build lasting wealth", icon: "invest" },
+    { id: "moving", title: "Moving", tagline: "A seamless transition", icon: "moving" },
+    { id: "maintain", title: "Home Maintenance", tagline: "Care for your home", icon: "maintain" },
+  ],
+
   // Stage Assessment — where the member is (framework §3.4). First = default.
   stages: [
     { id: "exploring", label: "Just exploring" },

@@ -44,6 +44,16 @@ test("home exposes real learning topics with neutral summaries", () => {
   }
 });
 
+test("home lobby exposes elegant destination doors with icons", () => {
+  const home = getEstate("home")!;
+  assert.ok(home.destinations.length >= 6, "expected a lobby of destinations");
+  for (const d of home.destinations) {
+    assert.ok(d.title.length > 0, "destination has a title");
+    assert.ok(d.tagline.length > 0, "destination has a tagline");
+    assert.ok(d.icon.length > 0, "destination names a champagne line-icon");
+  }
+});
+
 test("allEstates includes home", () => {
   assert.ok(allEstates().some((e) => e.key === "home"));
 });

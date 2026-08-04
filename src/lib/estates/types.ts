@@ -73,6 +73,20 @@ export interface CrossEstateLink {
 }
 
 /**
+ * A lobby destination — the elegant "front doors" a member sees on arrival at
+ * an Estate (not the granular data goals). Each is a refined button with a
+ * champagne line-icon; `icon` names an SVG in the EstateIcon set.
+ */
+export interface Destination {
+  id: string;
+  title: string;
+  /** A short, warm sub-line (e.g. "Begin your journey"). */
+  tagline: string;
+  /** Named icon in the champagne-gold line-icon set. */
+  icon: string;
+}
+
+/**
  * The full configuration for one Life Estate. Everything here is data/content;
  * the shared framework renders it. Adding an Estate is authoring one of these,
  * not building a new application.
@@ -88,6 +102,8 @@ export interface EstateConfig {
   welcomeBody: string;
   /** True for emotionally sensitive estates (restrained tone; no celebration flourish). */
   sensitive?: boolean;
+  /** The elegant lobby "front doors" shown on arrival at the Estate. */
+  destinations: Destination[];
   goals: EstateGoal[];
   stages: EstateStage[];
   modules: EstateModule[];
