@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getEstate } from "@/lib/estates/registry";
-import AskMagicalPanel from "@/components/home/AskMagicalPanel";
+import { logoutAction } from "../../account/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,18 @@ export async function generateMetadata({
   return { title: config ? config.name : "Estate", robots: { index: false } };
 }
 
-export default async function EstateOverview({
+// Poetic one-liners for each journey group — the "menu at a grand estate".
+const GROUP: Record<string, { verb: string; desc: string }> = {
+  Buying: { verb: "Buy", desc: "Find the place that's yours." },
+  Building: { verb: "Build", desc: "Create it from the ground up." },
+  Finding: { verb: "Find", desc: "Discover where you belong." },
+  Renting: { verb: "Rent", desc: "A home for right now." },
+  Selling: { verb: "Sell", desc: "Turn the page, beautifully." },
+  Owning: { verb: "Own", desc: "Care for what you've built." },
+  Investing: { verb: "Invest", desc: "Build something lasting." },
+};
+
+export default async function EstateArrival({
   params,
 }: {
   params: Promise<{ estate: string }>;
@@ -27,99 +38,67 @@ export default async function EstateOverview({
   if (!config) notFound();
 
   const account = await requireAccount(`/estate/${estate}`);
+  const initial = (account.firstName?.[0] ?? "M").toUpperCase();
 
-  // Group goals for display (Goal Discovery — framework §3.3).
-  const groups = config.goals.reduce<Record<string, typeof config.goals>>((acc, g) => {
-    (acc[g.group] ??= []).push(g);
-    return acc;
-  }, {});
+  // Unique journey groups, in config order.
+  const groups: string[] = [];
+  for (const g of config.goals) if (!groups.includes(g.group)) groups.push(g.group);
 
   return (
-    <div className="estate">
-      {/* Lead with the MEMBER'S Magical Space — the platform speaks in the
-          Magical Moments brand here, never a personal concierge name. */}
-      <header className="estate-hero">
-        <span className="estate-hero__icon" aria-hidden="true">✨</span>
-        <div>
-          <h1 className="estate-hero__title">Welcome to Your Magical Space, {account.firstName}</h1>
-          <p className="estate-hero__body">What beautiful chapter of life are we creating together today?</p>
-        </div>
-      </header>
-
-      {/* Introduce the Home Estate (a wing of the Magical Space). */}
-      <section className="estate-section" aria-label="Home">
-        <h2 className="estate-intro__title"><span aria-hidden="true">{config.icon}</span> {config.name}</h2>
-        <p className="estate-intro__line">{config.intro}</p>
-        <p className="estate-intro__sub">{config.welcomeBody}</p>
-      </section>
-
-      {/* The housing journeys — Buy · Build · Find · Rent · Sell · Own · Invest. */}
-      <section className="estate-section" aria-label="Where would you like to begin">
-        <h2 className="estate-section__title">Where would you like to begin?</h2>
-        <p className="estate-section__sub">Choose where you feel you are — explore freely, nothing is committed.</p>
-        {Object.entries(groups).map(([group, goals]) => (
-          <div key={group} className="estate-goalgroup">
-            <h3 className="estate-goalgroup__label">{group}</h3>
-            <div className="estate-goals">
-              {goals.map((g) => (
-                <Link key={g.id} href={`/estate/${config.key}/learn`} className="estate-goal">
-                  <span className="estate-goal__label">{g.label}</span>
-                  <span className="estate-goal__desc">{g.description}</span>
-                </Link>
-              ))}
-            </div>
+    <>
+      {/* The arrival — full-bleed estate, elegant welcome */}
+      <section className="arr-hero">
+        <div className="estate-top">
+          <Link href="/home" className="estate-top__brand" aria-label="Magical Moments — your Magical Space">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-champagne.png" alt="" width={40} height={40} />
+            <span className="estate-top__name">MAGICAL MOMENTS</span>
+          </Link>
+          <div className="estate-top__right">
+            <Link href="/account" className="estate-top__me" aria-label="Account &amp; settings">{initial}</Link>
+            <form action={logoutAction}>
+              <button type="submit" className="estate-top__out">Sign out</button>
+            </form>
           </div>
-        ))}
-      </section>
-
-      {/* Module rail — honest live vs. coming-soon. */}
-      <section className="estate-section" aria-label="Everything for your home">
-        <h2 className="estate-section__title">Everything for your home, in one place</h2>
-        <div className="estate-modules">
-          {config.modules.map((m) => {
-            const inner = (
-              <>
-                <span className="estate-module__icon" aria-hidden="true">{m.icon}</span>
-                <span className="estate-module__label">
-                  {m.label}
-                  {m.status === "soon" && <span className="estate-module__soon">Soon</span>}
-                </span>
-                <span className="estate-module__desc">{m.description}</span>
-              </>
-            );
-            return m.status === "live" ? (
-              <Link key={m.key} href={`/estate/${config.key}/${m.key}`} className="estate-module estate-module--live">{inner}</Link>
-            ) : (
-              <div key={m.key} className="estate-module estate-module--soon" aria-disabled="true">{inner}</div>
-            );
-          })}
         </div>
-      </section>
 
-      {/* Guidance — Magical brand only (the member's personally-named concierge
-          lives elsewhere in the platform, not on this Estate overview). */}
-      <section className="panel estate-guide" aria-label="Ask Magical">
-        <AskMagicalPanel conciergeName="Magical" nudgeForName={false} />
-      </section>
-
-      {/* Cross-Estate continuity. */}
-      <section className="estate-section" aria-label="Where this may lead">
-        <h2 className="estate-section__title">Life connects</h2>
-        <p className="estate-section__sub">When you&apos;re ready, your home connects naturally into the rest of your life.</p>
-        <div className="estate-cross">
-          {config.crossEstate.map((c) => (
-            <span key={c.estate} className="estate-cross__item">
-              <span className="estate-cross__name">{c.estate}</span>
-              <span className="estate-cross__reason">{c.reason}</span>
-              <span className="estate-cross__soon">Coming soon</span>
-            </span>
-          ))}
+        <div className="arr-hero__inner">
+          <span className="arr-hero__spark" aria-hidden="true">✨</span>
+          <h1 className="arr-hero__title">Welcome to Your Magical Space, {account.firstName}</h1>
+          <p className="arr-hero__sub">What beautiful chapter of life are we creating together today?</p>
         </div>
+
+        <div className="arr-hero__cue" aria-hidden="true"><span>⌄</span>Enter your Home</div>
       </section>
 
-      <p className="estate-foot">
-        <Link href="/home" className="estate-foot__link">← Back to your Magical Space</Link>
-      </p>
-    </div>
+      {/* The Home wing — editorial */}
+      <section className="arr-wing">
+        <h2 className="arr-wing__title"><span aria-hidden="true">{config.icon}</span>&nbsp; {config.name}</h2>
+        <div className="arr-rule" aria-hidden="true"></div>
+        <p className="arr-wing__line">{config.intro}</p>
+        <p className="arr-wing__sub">{config.welcomeBody}</p>
+      </section>
+
+      {/* The directory of journeys — no cards, an estate menu */}
+      <nav className="arr-dir" aria-label="Where would you like to begin?">
+        {groups.map((group) => {
+          const g = GROUP[group] ?? { verb: group, desc: "" };
+          return (
+            <Link key={group} href={`/estate/${config.key}/learn`} className="arr-row">
+              <span className="arr-word">{g.verb}</span>
+              <span className="arr-desc">{g.desc}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* A single quiet line of guidance — Magical brand only */}
+      <section className="arr-guide">
+        <Link href={`/estate/${config.key}/learn`} className="arr-guide__line">Magical is here whenever you&rsquo;re ready.</Link>
+        <span className="arr-guide__brand">Powered by Magical</span>
+      </section>
+
+      <p className="arr-foot"><Link href="/home">Your Magical Space</Link> · Magical Moments by Reign</p>
+    </>
   );
 }
