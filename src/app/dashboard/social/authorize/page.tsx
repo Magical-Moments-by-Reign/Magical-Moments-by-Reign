@@ -44,7 +44,7 @@ export default async function AuthorizePage({
               <li>See your basic profile / page name</li>
               <li>Publish or upload content you explicitly approve</li>
             </ul>
-            <p style={{ fontSize: "0.76rem", color: "#9a93a2" }}>
+            <p style={{ fontSize: "0.76rem", color: "#a1917a" }}>
               Scopes: {p.scopes.join(", ")}
             </p>
 

@@ -81,7 +81,7 @@ export default async function GuardianPage({
         <form action={guardianDecisionAction}>
           <input type="hidden" name="token" value={token} />
 
-          <h2 style={{ fontSize: "1.05rem", margin: "1rem 0 0.5rem", color: "#3a3446" }}>What {rec.minor.firstName} can do</h2>
+          <h2 style={{ fontSize: "1.05rem", margin: "1rem 0 0.5rem", color: "#3f3424" }}>What {rec.minor.firstName} can do</h2>
           <div className="perm-grid">
             {GUARDIAN_CONTROLLED_PERMISSIONS.map((p) => (
               <label className="perm-item" key={p.key}>

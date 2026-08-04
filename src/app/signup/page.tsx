@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import AuthShell from "@/components/auth/AuthShell";
 import PasswordField from "@/components/auth/PasswordField";
 import { currentAccount } from "@/lib/auth-session";
 import { safeRedirect, MIN_PASSWORD_LENGTH } from "@/lib/auth-support";
@@ -23,6 +22,29 @@ const ERRORS: Record<string, string> = {
   unknown: "Something went wrong. Please try again.",
 };
 
+// The living-estate scene shared by sign-up's states — mirrors the sign-in
+// page so account creation feels like arriving somewhere extraordinary.
+function SignupScene({ tall, children }: { tall?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`signin${tall ? " signin--tall" : ""}`}>
+      <div className="signin__bg" aria-hidden="true" />
+      <div className="signin__grad" aria-hidden="true" />
+      <div className="signin__sun" aria-hidden="true" />
+      <div className="signin__shimmer" aria-hidden="true" />
+      <Link href="/" className="signin__brand" aria-label="Magical Moments by Reign — home">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo-champagne.png" alt="" width={38} height={38} />
+        <span>MAGICAL MOMENTS</span>
+      </Link>
+      {children}
+      <span className="signin__cue" aria-hidden="true">
+        <span>Scroll</span>
+        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+      </span>
+    </div>
+  );
+}
+
 export default async function SignupPage({
   searchParams,
 }: {
@@ -36,8 +58,8 @@ export default async function SignupPage({
   if (sp.done === "adult" || sp.done === "minor") {
     const mailFailed = sp.done === "adult" && sp.mail === "failed";
     return (
-      <AuthShell>
-        <div className="auth-card auth-result">
+      <SignupScene>
+        <div className="signin__card auth-result">
           <div className="auth-result__icon">✦</div>
           <h1>{sp.done === "minor" ? "Almost there!" : "Welcome to the family"}</h1>
           {sp.done === "minor" ? (
@@ -64,18 +86,18 @@ export default async function SignupPage({
             Go to sign in
           </Link>
         </div>
-      </AuthShell>
+      </SignupScene>
     );
   }
 
   const error = sp.error && ERRORS[sp.error] ? ERRORS[sp.error] : null;
 
   return (
-    <AuthShell>
-      <div className="auth-card auth-card--wide">
-        <span className="auth-eyebrow">Create your account</span>
-        <h1>Join Magical Moments</h1>
-        <p className="auth-lede">One account for your whole family. Capture, celebrate, and cherish forever.</p>
+    <SignupScene tall>
+      <div className="signin__card signin__card--wide">
+        <span className="signin__eyebrow">Create your account</span>
+        <h1 className="signin__title">Create your Magical Space</h1>
+        <p className="signin__lede">One account for your whole family. Capture, celebrate, and cherish forever.</p>
 
         {sp.recover && (
           <div className="auth-note auth-note--info">
@@ -109,7 +131,7 @@ export default async function SignupPage({
           </div>
 
           <label className="auth-field"><span>Street address</span><input name="line1" required autoComplete="address-line1" /></label>
-          <label className="auth-field"><span>Apartment / unit <span style={{ color: "#a79", fontWeight: 400 }}>(optional)</span></span><input name="line2" autoComplete="address-line2" /></label>
+          <label className="auth-field"><span>Apartment / unit <span style={{ color: "#8a7a63", fontWeight: 400 }}>(optional)</span></span><input name="line2" autoComplete="address-line2" /></label>
           <div className="auth-row">
             <label className="auth-field"><span>City</span><input name="city" required autoComplete="address-level2" /></label>
             <label className="auth-field"><span>State / region</span><input name="state" required autoComplete="address-level1" /></label>
@@ -126,7 +148,7 @@ export default async function SignupPage({
             account can be used — and they'll always control what it can see and do.
           </div>
           <label className="auth-field">
-            <span>Parent / guardian email <span style={{ color: "#a79", fontWeight: 400 }}>(required for teens & children)</span></span>
+            <span>Parent / guardian email <span style={{ color: "#8a7a63", fontWeight: 400 }}>(required for teens & children)</span></span>
             <input name="guardianEmail" type="email" autoComplete="off" />
           </label>
 
@@ -138,10 +160,10 @@ export default async function SignupPage({
           <button type="submit" className="auth-btn">Create my account</button>
         </form>
 
-        <p className="auth-alt">
+        <p className="signin__foot">
           Already have an account? <Link href={`/login?next=${encodeURIComponent(next)}`} className="auth-link">Sign in</Link>
         </p>
       </div>
-    </AuthShell>
+    </SignupScene>
   );
 }

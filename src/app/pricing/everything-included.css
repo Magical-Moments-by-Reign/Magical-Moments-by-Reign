@@ -27,7 +27,7 @@
 .mm-included__title {
   font-family: var(--font-display, "Cormorant Garamond", serif); font-weight: 600;
   font-size: clamp(1.9rem, 4vw, 3rem); line-height: 1.1; margin: 0.5rem 0 0.8rem;
-  color: var(--ink, #2a2130);
+  color: var(--ink, #3f3424);
 }
 .mm-included__subtitle { color: var(--muted, #6b6472); line-height: 1.7; font-size: 1.02rem; margin: 0 auto; max-width: 44rem; }
 .mm-included__promise {
@@ -49,7 +49,7 @@
 .mm-included__group { margin-top: clamp(2rem, 4vw, 3rem); }
 .mm-included__group-title {
   font-family: var(--font-display, "Cormorant Garamond", serif); font-weight: 600;
-  font-size: clamp(1.25rem, 2.4vw, 1.7rem); text-align: center; color: var(--plum-800, #241f2e);
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem); text-align: center; color: var(--plum-800, #2a2018);
   margin: 0 0 1.4rem; position: relative;
 }
 .mm-included__group-title::after {
@@ -90,7 +90,7 @@
   background: radial-gradient(circle at 30% 25%, #f4e2b8, #c6a15a 65%, #a9812f);
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 4px 10px -4px rgba(169, 129, 47, 0.6);
 }
-.mm-card__label { font-size: 0.98rem; line-height: 1.35; color: var(--ink, #2a2130); font-weight: 500; }
+.mm-card__label { font-size: 0.98rem; line-height: 1.35; color: var(--ink, #3f3424); font-weight: 500; }
 
 @media (max-width: 860px) { .mm-included__grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .mm-included__grid { grid-template-columns: 1fr; } }

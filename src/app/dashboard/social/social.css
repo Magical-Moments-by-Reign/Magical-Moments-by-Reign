@@ -31,29 +31,29 @@
 .ss-conn__top { display: flex; align-items: center; gap: 0.7rem; }
 .ss-conn__badge { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 1.1rem; flex: none; }
 .ss-conn__name { font-weight: 600; color: #211d29; }
-.ss-conn__profile { font-size: 0.84rem; color: #6a6370; }
+.ss-conn__profile { font-size: 0.84rem; color: #8a7a63; }
 .ss-status { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.76rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; width: fit-content; }
 .ss-status--connected { background: #e7f4ec; color: #2f7d4f; }
 .ss-status--expired { background: #fbeee0; color: #a5641a; }
-.ss-status--disconnected { background: #f0eef2; color: #7a7280; }
-.ss-status--none { background: #f0eef2; color: #7a7280; }
-.ss-conn__meta { font-size: 0.78rem; color: #9a93a2; }
-.ss-conn__note { font-size: 0.76rem; color: #7a7280; line-height: 1.4; }
+.ss-status--disconnected { background: #f0eef2; color: #8a7a63; }
+.ss-status--none { background: #f0eef2; color: #8a7a63; }
+.ss-conn__meta { font-size: 0.78rem; color: #a1917a; }
+.ss-conn__note { font-size: 0.76rem; color: #8a7a63; line-height: 1.4; }
 .ss-conn__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; }
 .ss-conn__actions form { display: inline; }
-.ss-btn { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 0.5rem 0.9rem; border-radius: 9px; border: 1px solid var(--gray-200); background: #fff; color: #4a4551; cursor: pointer; transition: border-color 0.25s, background 0.25s; }
+.ss-btn { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 0.5rem 0.9rem; border-radius: 9px; border: 1px solid var(--gray-200); background: #fff; color: #55452e; cursor: pointer; transition: border-color 0.25s, background 0.25s; }
 .ss-btn:hover { border-color: var(--lavender); }
 .ss-btn--primary { background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; border: none; }
 .ss-btn--danger { color: #a5411a; }
 .ss-btn--ghost { background: transparent; }
 
 /* Share entry card */
-.ss-share-cta { background: linear-gradient(150deg, #2b2732, #3a3348); color: var(--cream-100); border-radius: 18px; padding: clamp(1.6rem, 4vw, 2.4rem); display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.ss-share-cta { background: linear-gradient(150deg, #362a1c, #3a3348); color: var(--cream-100); border-radius: 18px; padding: clamp(1.6rem, 4vw, 2.4rem); display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
 .ss-share-cta h3 { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 0.3rem; }
 .ss-share-cta p { margin: 0; color: rgba(248,244,236,0.8); max-width: 40rem; font-size: 0.92rem; }
 
 /* ── Dashboard entry tile (on /dashboard) ── */
-.studio-tile { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; background: linear-gradient(150deg, #2b2732, #3a3348); color: var(--cream-100); border-radius: 18px; padding: 1.6rem 1.8rem; margin-bottom: 2rem; }
+.studio-tile { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; background: linear-gradient(150deg, #362a1c, #3a3348); color: var(--cream-100); border-radius: 18px; padding: 1.6rem 1.8rem; margin-bottom: 2rem; }
 .studio-tile__icon { font-size: 1.6rem; }
 .studio-tile h3 { font-family: var(--font-display); font-size: 1.5rem; margin: 0 0 0.2rem; }
 .studio-tile p { margin: 0; color: rgba(248,244,236,0.78); font-size: 0.9rem; max-width: 42rem; }
@@ -69,7 +69,7 @@
 .ss-conn__badge { box-shadow: 0 10px 22px -12px rgba(0,0,0,0.5); transition: transform 0.3s; }
 .ss-conn:hover .ss-conn__badge { transform: scale(1.06) rotate(-3deg); }
 .ss-conn__badge svg { display: block; }
-.ss-status--soon { background: #eef0f5; color: #7a7280; }
+.ss-status--soon { background: #eef0f5; color: #8a7a63; }
 .ss-conn--soon { opacity: 0.9; }
 .ss-conn--soon .ss-btn[disabled] { opacity: 0.6; cursor: not-allowed; }
 .ss-status--connected { box-shadow: inset 0 0 0 1px rgba(47,125,79,0.15); }

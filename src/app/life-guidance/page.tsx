@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import {
   LIFE_GUIDANCE, GRADE_TIMELINE, GRAD_TOPIC_GROUPS, topicsInGroup,
   GUIDE_ARTICLES, officialResource, OFFICIAL_RESOURCES, recommendForGrade, US_STATES,
@@ -15,11 +15,12 @@ export const metadata: Metadata = {
 
 const FEDERAL = ["fafsa", "studentaid_scholarships", "collegeboard", "bigfuture", "act", "ed_gov"];
 
-export default function LifeGuidancePage() {
+export default async function LifeGuidancePage() {
+  const signedIn = Boolean(await currentAccount());
   const sample = recommendForGrade("10");
   return (
     <div className="lg">
-      <SiteNav />
+      <PublicNav active="get-started" signedIn={signedIn} />
       <main className="lg-main">
         <header className="lg-hero">
           <div className="lg-inner">
@@ -106,7 +107,7 @@ export default function LifeGuidancePage() {
           </section>
         </div>
       </main>
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

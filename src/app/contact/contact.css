@@ -19,7 +19,7 @@
 .ct-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 1.6rem; align-items: start; }
 
 /* Ask Magical */
-.ct-ask { background: linear-gradient(160deg, #2b2732, #3a3348); color: var(--cream-100); border-radius: 20px; padding: 1.6rem; position: sticky; top: 90px; box-shadow: 0 26px 54px -40px rgba(43,39,50,0.6); }
+.ct-ask { background: linear-gradient(160deg, #362a1c, #3a3348); color: var(--cream-100); border-radius: 20px; padding: 1.6rem; position: sticky; top: 90px; box-shadow: 0 26px 54px -40px rgba(43,39,50,0.6); }
 .ct-ask__head { display: flex; gap: 0.8rem; align-items: center; margin-bottom: 1.2rem; }
 .ct-ask__spark { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; font-size: 1.2rem; flex: none; }
 .ct-ask__title { font-family: var(--font-display); font-size: 1.4rem; margin: 0; }
@@ -39,11 +39,11 @@
 .ct-form { display: grid; gap: 1rem; }
 .ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .ct-field { display: grid; gap: 0.4rem; }
-.ct-field span { font-size: 0.8rem; font-weight: 600; color: #4a4551; }
+.ct-field span { font-size: 0.8rem; font-weight: 600; color: #55452e; }
 .ct-field input, .ct-field select, .ct-field textarea { width: 100%; padding: 0.75rem 0.9rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
 .ct-field input:focus, .ct-field select:focus, .ct-field textarea:focus { outline: none; border-color: var(--lavender); }
 .ct-field textarea { resize: vertical; }
-.ct-consent { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; color: #4a4551; }
+.ct-consent { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; color: #55452e; }
 .ct-consent input { width: 1.15rem; height: 1.15rem; margin-top: 0.1rem; accent-color: var(--gold-deep); flex: none; }
 .ct-error { background: #fbe9e9; color: #8a2f2f; padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.9rem; }
 
@@ -54,7 +54,7 @@
 .ct-confirm p { color: #5f5866; margin: 0 auto 0.6rem; max-width: 34rem; }
 .ct-confirm__number { font-size: 1.05rem; color: #211d29; }
 .ct-confirm__number strong { font-family: var(--font-display); color: var(--gold-deep); letter-spacing: 0.05em; }
-.ct-confirm__hint { font-size: 0.82rem; color: #9a93a2; }
+.ct-confirm__hint { font-size: 0.82rem; color: #a1917a; }
 .ct-confirm__actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-top: 1.4rem; }
 
 @media (max-width: 820px) {
@@ -73,7 +73,7 @@
   background:
     radial-gradient(70% 120% at 10% 0%, rgba(169,140,208,0.28), transparent 60%),
     radial-gradient(60% 100% at 95% 100%, rgba(198,161,90,0.3), transparent 55%),
-    linear-gradient(150deg, #241f2e, #17131d);
+    linear-gradient(150deg, #2a2018, #17131d);
 }
 .ct-service--concierge h2 { color: #fff; }
 .ct-service--concierge p { color: rgba(248,244,236,0.85); }

@@ -55,7 +55,7 @@ export default async function VendorOverview() {
 
       <h2>What Needs Your Attention</h2>
       {attention.length === 0 ? (
-        <p style={{ color: "#8a8394" }}>You're all caught up — nothing needs your attention right now. ✦</p>
+        <p style={{ color: "#a1917a" }}>You're all caught up — nothing needs your attention right now. ✦</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {attention.map((a) => (
@@ -72,11 +72,11 @@ export default async function VendorOverview() {
         {cards.map((c) => (
           <div key={c.id} style={{ border: "1px solid #ece5d8", borderRadius: 14, padding: "0.9rem 1rem", background: c.gated ? "#faf7f0" : "#fffdfa" }}>
             <div className="acct__k">{c.label}{c.gated && <span className="chip chip--muted" style={{ marginLeft: 6, fontSize: "0.6rem" }}>soon</span>}</div>
-            <div style={{ fontSize: "1.4rem", fontFamily: "var(--font-display, serif)", color: "#241f2e", marginTop: 4 }}>{c.value}</div>
+            <div style={{ fontSize: "1.4rem", fontFamily: "var(--font-display, serif)", color: "#2a2018", marginTop: 4 }}>{c.value}</div>
           </div>
         ))}
       </div>
-      <p style={{ fontSize: "0.8rem", color: "#8a8394", marginTop: "0.8rem" }}>
+      <p style={{ fontSize: "0.8rem", color: "#a1917a", marginTop: "0.8rem" }}>
         Booking, message, and payout figures activate with Phase 2 (bookings &amp; messaging) and the payment provider.
       </p>
 

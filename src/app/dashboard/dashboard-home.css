@@ -1,0 +1,112 @@
+/* ── The Dashboard — the member console ──────────────────────────
+   The working "inside": a champagne sidebar, an at-a-glance bar, the
+   Home journeys, and real per-account panels with honest empty states.
+   Scoped under .dh so it never collides with the studio sub-routes'
+   dashboard.css.                                                        */
+.dh {
+  --ink: #3c342b; --soft: #8a7d6a; --champ: #c9a34e; --champ-d: #a9843f;
+  --ivory: #f6f0e5; --line: rgba(169, 132, 63, 0.2);
+  --serif: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  --sans: var(--font-body, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-family: var(--sans); color: var(--ink); background: var(--ivory);
+  display: grid; grid-template-columns: 250px 1fr; min-height: 100vh;
+}
+
+/* Sidebar */
+.dh-side { background: linear-gradient(180deg, #231b12, #191309); color: #e9e1d3; padding: 1.6rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.dh-logo { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.3rem 0 1.3rem; text-decoration: none; }
+.dh-logo img { width: 60px; height: 60px; object-fit: contain; }
+.dh-logo .n { font-family: var(--serif); font-size: 1.05rem; letter-spacing: 0.14em; color: #e6c98a; margin-top: 0.3rem; line-height: 1.1; }
+.dh-logo .b { font: 600 0.52rem/1 var(--sans); letter-spacing: 0.3em; color: #a99777; margin-top: 0.25rem; }
+.dh-nav { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.8rem; border-radius: 10px; color: #cdc3b2; text-decoration: none; font-size: 0.86rem; transition: background 0.2s; }
+.dh-nav:hover { background: rgba(201, 163, 78, 0.1); }
+.dh-nav--on { background: linear-gradient(90deg, rgba(201, 163, 78, 0.9), rgba(169, 132, 63, 0.7)); color: #241a0e; font-weight: 600; }
+.dh-ni { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.dh-scard { margin-top: auto; border-radius: 14px; background: linear-gradient(180deg, rgba(60, 45, 25, 0.7), rgba(30, 22, 12, 0.9)); padding: 1rem; text-align: center; }
+.dh-scard__t { font-family: var(--serif); font-size: 1.15rem; color: #f2e6cd; line-height: 1.15; margin-bottom: 0.4rem; }
+.dh-scard__p { font-size: 0.72rem; color: #b6a888; line-height: 1.5; margin-bottom: 0.7rem; }
+.dh-scard__b { display: inline-block; font: 600 0.58rem/1 var(--sans); letter-spacing: 0.14em; color: #e6c98a; border: 1px solid rgba(230, 201, 138, 0.5); border-radius: 999px; padding: 0.5rem 0.9rem; text-decoration: none; }
+
+/* Main */
+.dh-main { padding: 1.6rem clamp(1.25rem, 2.5vw, 2.4rem); min-width: 0; }
+.dh-tbar { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; margin-bottom: 1.2rem; }
+.dh-tb { position: relative; display: inline-flex; text-decoration: none; }
+.dh-tb svg { width: 22px; height: 22px; stroke: var(--ink); fill: none; stroke-width: 1.5; }
+.dh-tb__dot { position: absolute; top: -5px; right: -6px; background: var(--champ); color: #241a0e; font: 800 0.58rem/1 var(--sans); min-width: 15px; height: 15px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; padding: 0 3px; }
+.dh-av { width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #e3cf9c, #c9a34e); display: grid; place-items: center; font-family: var(--serif); font-weight: 700; color: #4a3a17; text-decoration: none; }
+.dh-out { background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 999px; padding: 0.4rem 0.85rem; cursor: pointer; font-size: 0.8rem; }
+.dh-out:hover { border-color: var(--champ); background: rgba(201, 163, 78, 0.1); }
+
+.dh-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; align-items: center; margin-bottom: 1.3rem; }
+.dh-hero__eye { font-family: var(--serif); color: var(--champ-d); font-style: italic; font-size: 1rem; }
+.dh-hero__t { font-family: var(--serif); font-size: clamp(2rem, 3.6vw, 3rem); font-weight: 600; line-height: 1.05; color: var(--ink); margin: 0; }
+.dh-hero__t i { display: block; font-style: italic; color: var(--champ-d); }
+.dh-hero__s { color: var(--soft); margin-top: 0.5rem; }
+.dh-hero__img { height: 190px; border-radius: 16px; background: url("/brand/estate-home.png") center / cover; box-shadow: 0 20px 50px -34px rgba(60, 45, 25, 0.6); }
+
+.dh-bar { display: flex; align-items: center; background: #fbf7ef; border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.4rem; margin-bottom: 1.6rem; }
+.dh-st { display: flex; align-items: center; gap: 0.7rem; flex: 1; text-decoration: none; color: inherit; border-radius: 10px; padding: 0.2rem 0.3rem; }
+.dh-st:hover { background: rgba(201, 163, 78, 0.07); }
+.dh-sti { width: 30px; height: 30px; stroke: var(--champ-d); fill: none; stroke-width: 1.4; flex: none; }
+.dh-st__k { display: block; font: 600 0.58rem/1.3 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); }
+.dh-st__n { font-family: var(--serif); font-size: 1.9rem; font-weight: 600; color: var(--ink); line-height: 1; }
+.dh-st__v { display: block; font-size: 0.68rem; color: var(--champ-d); }
+.dh-st__d { width: 1px; align-self: stretch; background: var(--line); margin: 0 1rem; }
+
+.dh-sec-h { display: flex; align-items: center; justify-content: space-between; margin: 0 0 1rem; }
+.dh-sec-h h2 { font-family: var(--serif); font-size: 1.6rem; font-weight: 600; color: var(--ink); margin: 0; }
+.dh-sec-h a { color: var(--champ-d); text-decoration: none; font-size: 0.82rem; }
+.dh-jgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.8rem; }
+.dh-jt { position: relative; border-radius: 16px; overflow: hidden; min-height: 230px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; padding: 1.3rem 1rem; color: #fff; text-decoration: none; background: url("/brand/estate-home.png") center / cover; }
+.dh-jt__ov { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 14, 6, 0.5), rgba(18, 12, 5, 0.94)); }
+.dh-jt > * { position: relative; z-index: 2; }
+.dh-jt__ic { width: 56px; height: 56px; border-radius: 50%; background: rgba(247, 240, 224, 0.92); display: grid; place-items: center; margin-bottom: auto; }
+.dh-ji, .dh-jt__ic svg { width: 26px; height: 26px; stroke: var(--champ-d); fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.dh-jt__t { font-family: var(--serif); font-size: 1.35rem; font-weight: 600; margin-top: 0.8rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8); }
+.dh-jt__s { font-size: 0.78rem; opacity: 0.92; line-height: 1.4; margin-top: 0.2rem; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8); }
+.dh-jt__b { margin-top: 0.8rem; font: 600 0.6rem/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 999px; padding: 0.5rem 1.1rem; }
+
+.dh-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem; }
+.dh-panel { background: #fbf7ef; border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.3rem; }
+.dh-panel .ph { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem; }
+.dh-panel .ph h3 { font-family: var(--serif); font-size: 1.25rem; font-weight: 600; margin: 0; }
+.dh-panel .ph a { color: var(--champ-d); font-size: 0.78rem; text-decoration: none; }
+.dh-ev { display: flex; align-items: center; gap: 0.9rem; padding: 0.55rem 0; border-top: 1px solid var(--line); }
+.dh-ev:first-of-type { border-top: none; }
+.dh-ev__d { display: flex; flex-direction: column; align-items: center; font-family: var(--serif); font-size: 1.2rem; color: var(--ink); width: 38px; }
+.dh-ev__d b { font: 700 0.58rem/1 var(--sans); letter-spacing: 0.1em; color: var(--champ-d); }
+.dh-ev__b { flex: 1; min-width: 0; }
+.dh-ev__t { display: block; font-weight: 600; font-size: 0.9rem; }
+.dh-ev__ti { font-size: 0.76rem; color: var(--soft); }
+.dh-ms { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0; border-top: 1px solid var(--line); }
+.dh-ms:first-of-type { border-top: none; }
+.dh-ms__av { width: 34px; height: 34px; border-radius: 50%; background: rgba(201, 163, 78, 0.16); color: var(--champ-d); display: grid; place-items: center; flex: none; }
+.dh-ms__av svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+.dh-ms__b { flex: 1; min-width: 0; }
+.dh-ms__n { display: block; font-weight: 600; font-size: 0.85rem; }
+.dh-ms__t { font-size: 0.76rem; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.dh-ms__ti { font-size: 0.7rem; color: var(--soft); white-space: nowrap; }
+.dh-empty { color: var(--soft); font-style: italic; font-size: 0.9rem; padding: 0.4rem 0 0.2rem; }
+.dh-soon { font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 0.12rem 0.5rem; }
+
+.dh-promo { border-radius: 16px; overflow: hidden; position: relative; display: flex; align-items: center; padding: 1.6rem; color: #fff; background: linear-gradient(90deg, rgba(30, 22, 12, 0.78), rgba(30, 22, 12, 0.35)), url("/brand/estate-home.png") center / cover; }
+.dh-promo h3 { font-family: var(--serif); font-size: 1.7rem; line-height: 1.1; margin: 0; }
+.dh-promo p { font-size: 0.85rem; opacity: 0.9; margin: 0.5rem 0 1rem; max-width: 34ch; }
+.dh-promo a { display: inline-block; font: 600 0.62rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; background: rgba(247, 240, 224, 0.95); color: #2a2118; border-radius: 8px; padding: 0.7rem 1.2rem; text-decoration: none; }
+
+.dh-qwrap { background: #fbf7ef; border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+.dh-qwrap h3 { font-family: var(--serif); font-size: 1.15rem; margin: 0 0 0.8rem; }
+.dh-qrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.7rem; }
+.dh-qa { display: flex; align-items: center; gap: 0.5rem; justify-content: center; border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem; text-decoration: none; color: var(--ink); font-size: 0.8rem; background: #fff; }
+.dh-qa:hover { border-color: var(--champ); }
+.dh-qai { width: 17px; height: 17px; stroke: var(--champ-d); fill: none; stroke-width: 1.4; flex: none; }
+.dh-foot { display: flex; justify-content: space-between; color: var(--soft); font-size: 0.75rem; padding: 0.5rem 0.2rem 1rem; }
+
+@media (max-width: 1000px) {
+  .dh { grid-template-columns: 1fr; }
+  .dh-side { display: none; }
+  .dh-jgrid { grid-template-columns: repeat(2, 1fr); }
+  .dh-cols { grid-template-columns: 1fr; }
+  .dh-hero { grid-template-columns: 1fr; }
+  .dh-qrow { grid-template-columns: repeat(2, 1fr); }
+}

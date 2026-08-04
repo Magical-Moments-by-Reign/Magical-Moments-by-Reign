@@ -36,7 +36,7 @@ export default async function NotificationPrefsPage({ searchParams }: { searchPa
       <form action={savePreferencesAction}>
         <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "0.8rem" }}>
           <thead>
-            <tr style={{ textAlign: "left", fontSize: "0.78rem", color: "#8a8394", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <tr style={{ textAlign: "left", fontSize: "0.78rem", color: "#a1917a", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               <th style={{ padding: "0.5rem 0" }}>Type</th>
               <th style={{ padding: "0.5rem 0", textAlign: "center" }}>In-app</th>
               <th style={{ padding: "0.5rem 0", textAlign: "center" }}>Email</th>
@@ -50,7 +50,7 @@ export default async function NotificationPrefsPage({ searchParams }: { searchPa
               const emailDefault = p.email !== undefined ? p.email === true : t.defaultChannels.includes("email");
               return (
                 <tr key={t.id} style={{ borderTop: "1px solid #f0e9db" }}>
-                  <td style={{ padding: "0.7rem 0", fontWeight: 600, color: "#3a3446" }}>{t.label}</td>
+                  <td style={{ padding: "0.7rem 0", fontWeight: 600, color: "#3f3424" }}>{t.label}</td>
                   <td style={{ textAlign: "center" }}><input type="checkbox" checked readOnly disabled aria-label="In-app always on" style={{ accentColor: "#c6a15a" }} /></td>
                   <td style={{ textAlign: "center" }}>
                     {minor || !emailReady ? (
@@ -67,7 +67,7 @@ export default async function NotificationPrefsPage({ searchParams }: { searchPa
           </tbody>
         </table>
 
-        <p style={{ fontSize: "0.8rem", color: "#8a8394", margin: "0.9rem 0 1rem" }}>
+        <p style={{ fontSize: "0.8rem", color: "#a1917a", margin: "0.9rem 0 1rem" }}>
           {emailReady
             ? "Email delivery is active. SMS and push are coming soon — they're shown here but not yet active."
             : "SMS and push are coming soon. Email delivery activates once our email provider is connected. Until then, everything still arrives in-app."}

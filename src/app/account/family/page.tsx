@@ -46,7 +46,7 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
       {/* ── Children & Teens ── */}
       <h2 id="children">Children & Teens</h2>
       {children.length === 0 ? (
-        <p style={{ color: "#8a8394" }}>No young family members yet. When a teen or child signs up with your email as their guardian, they'll appear here for your approval.</p>
+        <p style={{ color: "#a1917a" }}>No young family members yet. When a teen or child signs up with your email as their guardian, they'll appear here for your approval.</p>
       ) : (
         children.map((c) => {
           const approval = c.guardianApprovals[0]?.status ?? "pending";
@@ -61,7 +61,7 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
 
       {/* ── Permissions ── */}
       <h2 id="permissions">Permissions</h2>
-      <p style={{ color: "#8a8394" }}>
+      <p style={{ color: "#a1917a" }}>
         You control exactly what each young family member can see and do — set during approval and adjustable anytime.
         We never track location or monitor private activity.
       </p>
@@ -79,21 +79,21 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
             <label className="auth-field"><span>Their email</span><input name="email" type="email" required placeholder="loved-one@email.com" /></label>
           </div>
           <button type="submit" className="auth-btn" style={{ maxWidth: 260 }}>Send invitation</button>
-          <p style={{ fontSize: "0.8rem", color: "#8a8394", marginTop: "0.5rem" }}>
+          <p style={{ fontSize: "0.8rem", color: "#a1917a", marginTop: "0.5rem" }}>
             Inviting a teen or child sends a guardian-approval request as part of joining.
           </p>
         </form>
       ) : (
-        <p style={{ color: "#8a8394" }}>Only a family owner, parent, or guardian can send invitations.</p>
+        <p style={{ color: "#a1917a" }}>Only a family owner, parent, or guardian can send invitations.</p>
       )}
 
       {invitations.length === 0 ? (
-        <p style={{ color: "#8a8394" }}>No invitations sent yet.</p>
+        <p style={{ color: "#a1917a" }}>No invitations sent yet.</p>
       ) : (
         invitations.map((inv) => (
           <div className="acct__row" key={inv.id}>
             <span className="acct__v">{inv.targetMasked} <span className="chip chip--muted">{roleDef(inv.role as PlatformRole).label}</span></span>
-            <span className="acct__v">{statusChip(inv.status)} <span style={{ fontSize: "0.78rem", color: "#9a93a2", marginLeft: 6 }}>exp {inv.expiresAt.toLocaleDateString()}</span></span>
+            <span className="acct__v">{statusChip(inv.status)} <span style={{ fontSize: "0.78rem", color: "#a1917a", marginLeft: 6 }}>exp {inv.expiresAt.toLocaleDateString()}</span></span>
           </div>
         ))
       )}

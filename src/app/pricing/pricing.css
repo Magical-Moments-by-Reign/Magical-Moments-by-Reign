@@ -27,7 +27,7 @@
 .pp-hero h1 { font-family: var(--font-display); font-size: clamp(2.3rem, 6vw, 4rem); line-height: 1.08; color: #211d29; margin: 0.8rem auto 0.2rem; max-width: 18ch; }
 .pp-hero h1 em { font-style: italic; color: var(--lavender); }
 .pp-hero__lede { font-size: clamp(1.05rem, 2.2vw, 1.25rem); color: #5f5866; max-width: 40rem; margin: 1rem auto 0; }
-.pp-hero__note { display: inline-block; margin-top: 1.4rem; font-size: 0.85rem; color: #7a7280; background: #fff; border: 1px solid rgba(169,140,208,0.3); padding: 0.5rem 1.1rem; border-radius: 999px; }
+.pp-hero__note { display: inline-block; margin-top: 1.4rem; font-size: 0.85rem; color: #8a7a63; background: #fff; border: 1px solid rgba(169,140,208,0.3); padding: 0.5rem 1.1rem; border-radius: 999px; }
 
 /* ── Plan cards ── */
 .pp-plans { padding: 1rem 0 clamp(3rem, 6vw, 5rem); }
@@ -70,24 +70,24 @@
 .pp-card__term { font-size: 0.85rem; color: var(--gold-deep); font-weight: 600; letter-spacing: 0.02em; }
 .pp-card__price { display: flex; align-items: baseline; gap: 0.35rem; margin: 1rem 0 0.2rem; }
 .pp-card__price b { font-family: var(--font-display); font-size: 2.6rem; color: #211d29; line-height: 1; font-weight: 600; }
-.pp-card__price span { font-size: 0.82rem; color: #7a7280; }
-.pp-card__tagline { font-size: 0.92rem; color: #6a6370; font-style: italic; margin: 0.6rem 0 1.1rem; min-height: 2.6em; }
+.pp-card__price span { font-size: 0.82rem; color: #8a7a63; }
+.pp-card__tagline { font-size: 0.92rem; color: #8a7a63; font-style: italic; margin: 0.6rem 0 1.1rem; min-height: 2.6em; }
 .pp-card__cta { width: 100%; justify-content: center; margin-bottom: 1.2rem; }
 .pp-card--featured .pp-card__cta { box-shadow: 0 14px 30px -12px rgba(169,140,208,0.8); }
 
 .pp-bestfor { margin: 0 0 1rem; }
-.pp-bestfor__label, .pp-features__label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.16em; color: #9a93a2; font-weight: 700; margin: 0 0 0.5rem; }
+.pp-bestfor__label, .pp-features__label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.16em; color: #a1917a; font-weight: 700; margin: 0 0 0.5rem; }
 .pp-bestfor__list { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; padding: 0; margin: 0; }
-.pp-bestfor__list li { font-size: 0.76rem; background: var(--cream-200); color: #6a6370; padding: 0.25rem 0.6rem; border-radius: 999px; }
+.pp-bestfor__list li { font-size: 0.76rem; background: var(--cream-200); color: #8a7a63; padding: 0.25rem 0.6rem; border-radius: 999px; }
 
-.pp-card__inherits { font-size: 0.82rem; color: #6a6370; font-weight: 600; margin: 0.4rem 0 0.7rem; }
+.pp-card__inherits { font-size: 0.82rem; color: #8a7a63; font-weight: 600; margin: 0.4rem 0 0.7rem; }
 .pp-features { list-style: none; padding: 0; margin: 0 0 0.5rem; display: grid; gap: 0.5rem; }
-.pp-features li { position: relative; padding-left: 1.5rem; font-size: 0.86rem; color: #4a4551; line-height: 1.45; }
+.pp-features li { position: relative; padding-left: 1.5rem; font-size: 0.86rem; color: #55452e; line-height: 1.45; }
 .pp-features li::before {
   content: "✦"; position: absolute; left: 0; top: 0.05rem; color: var(--gold); font-size: 0.8rem;
 }
-.pp-card__address { margin-top: auto; padding-top: 1rem; border-top: 1px dashed var(--gray-200); font-size: 0.78rem; color: #7a7280; }
-.pp-card__address strong { display: block; color: #4a4551; font-weight: 600; margin-bottom: 0.15rem; }
+.pp-card__address { margin-top: auto; padding-top: 1rem; border-top: 1px dashed var(--gray-200); font-size: 0.78rem; color: #8a7a63; }
+.pp-card__address strong { display: block; color: #55452e; font-weight: 600; margin-bottom: 0.15rem; }
 .pp-card__address code { color: var(--lavender); font-size: 0.82rem; word-break: break-all; }
 
 /* ── Generic section shells ── */
@@ -109,8 +109,8 @@
 .pp-table th, .pp-table td { padding: 0.9rem 1rem; text-align: center; font-size: 0.88rem; border-bottom: 1px solid var(--gray-100); }
 .pp-table thead th { background: var(--charcoal-800); color: var(--cream-100); font-family: var(--font-display); }
 .pp-table thead th .pp-th-term { display: block; font-family: var(--font-body); font-size: 0.72rem; color: var(--gold-soft); letter-spacing: 0.04em; margin-top: 0.15rem; }
-.pp-table thead th.pp-th--featured { background: linear-gradient(160deg, #3a3348, #2b2732); box-shadow: inset 0 -3px 0 var(--lavender); }
-.pp-table tbody th { text-align: left; font-weight: 600; color: #4a4551; background: var(--cream-100); position: sticky; left: 0; }
+.pp-table thead th.pp-th--featured { background: linear-gradient(160deg, #3a3348, #362a1c); box-shadow: inset 0 -3px 0 var(--lavender); }
+.pp-table tbody th { text-align: left; font-weight: 600; color: #55452e; background: var(--cream-100); position: sticky; left: 0; }
 .pp-table tbody tr:nth-child(even) td, .pp-table tbody tr:nth-child(even) th { background: #faf8f3; }
 .pp-table td.pp-cell--featured { background: rgba(169,140,208,0.08); font-weight: 600; color: #3a3348; }
 .pp-table .pp-yes { color: var(--gold-deep); font-weight: 700; }
@@ -122,10 +122,10 @@
 .pp-ccard__head { padding: 1rem 1.2rem; background: var(--charcoal-800); color: var(--cream-100); display: flex; justify-content: space-between; align-items: baseline; }
 .pp-ccard__head b { font-family: var(--font-display); font-size: 1.3rem; }
 .pp-ccard__head span { font-size: 0.8rem; color: var(--gold-soft); }
-.pp-ccard--featured .pp-ccard__head { background: linear-gradient(160deg, #3a3348, #2b2732); box-shadow: inset 0 -3px 0 var(--lavender); }
+.pp-ccard--featured .pp-ccard__head { background: linear-gradient(160deg, #3a3348, #362a1c); box-shadow: inset 0 -3px 0 var(--lavender); }
 .pp-ccard__row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.65rem 1.2rem; border-bottom: 1px solid var(--gray-100); font-size: 0.86rem; }
 .pp-ccard__row:last-child { border-bottom: none; }
-.pp-ccard__row span:first-child { color: #7a7280; }
+.pp-ccard__row span:first-child { color: #8a7a63; }
 .pp-ccard__row span:last-child { color: #3a3348; font-weight: 600; text-align: right; }
 .pp-compare__foot { text-align: center; color: rgba(248,244,236,0.75); font-size: 0.82rem; margin-top: 1.4rem; }
 
@@ -218,7 +218,7 @@
   box-shadow: 0 34px 64px -34px rgba(169,140,208,0.6);
 }
 .pp-card--diamond .pp-card__tier { background: rgba(169,140,208,0.18); color: #7a5aa8; }
-.pp-card--lifetime { background: linear-gradient(180deg, #24222a, #17151b); color: var(--cream-100); }
+.pp-card--lifetime { background: linear-gradient(180deg, #24222a, #201811); color: var(--cream-100); }
 .pp-card--lifetime .pp-card__name { color: #fff; }
 .pp-card--lifetime .pp-card__price b { color: #fff; }
 .pp-card--lifetime .pp-card__tagline { color: rgba(248,244,236,0.75); }
@@ -234,7 +234,7 @@
 /* Savings note */
 .pp-savings { margin: 0 0 1rem; font-size: 0.82rem; font-weight: 600; color: #2f7d4f; background: #e7f4ec; border-radius: 8px; padding: 0.5rem 0.7rem; }
 .pp-card--lifetime .pp-savings { background: rgba(255,255,255,0.08); color: var(--gold-soft); }
-.pp-pricekind { font-size: 0.72rem; color: #9a93a2; text-transform: uppercase; letter-spacing: 0.12em; margin: 0.1rem 0 0; }
+.pp-pricekind { font-size: 0.72rem; color: #a1917a; text-transform: uppercase; letter-spacing: 0.12em; margin: 0.1rem 0 0; }
 .pp-card--lifetime .pp-pricekind { color: rgba(248,244,236,0.6); }
 
 /* FAQ */
@@ -254,7 +254,7 @@
 .pp-quiz__opt:hover { border-color: var(--lavender); transform: translateY(-1px); }
 .pp-quiz__result { text-align: center; }
 .pp-quiz__result h3 { font-family: var(--font-display); font-size: 1.8rem; color: #211d29; margin: 0 0 0.3rem; }
-.pp-quiz__progress { font-size: 0.78rem; color: #9a93a2; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.8rem; }
+.pp-quiz__progress { font-size: 0.78rem; color: #a1917a; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.8rem; }
 
 /* ── Premium polish: staggered card entrance + glass sheen ── */
 @media (prefers-reduced-motion: no-preference) {
@@ -283,7 +283,7 @@
   background:
     radial-gradient(70% 120% at 12% 0%, rgba(169,140,208,0.28), transparent 60%),
     radial-gradient(60% 100% at 92% 100%, rgba(198,161,90,0.3), transparent 55%),
-    linear-gradient(150deg, #241f2e, #17131d);
+    linear-gradient(150deg, #2a2018, #17131d);
   border: 1px solid rgba(198,161,90,0.3);
   box-shadow: 0 40px 80px -50px rgba(0,0,0,0.8);
 }
@@ -298,7 +298,7 @@
 .pp-concierge__price b { font-family: var(--font-display); font-size: 2.6rem; color: var(--gold-soft); line-height: 1; }
 .pp-concierge__price span { font-size: 0.82rem; color: rgba(248,244,236,0.6); letter-spacing: 0.04em; }
 .pp-pricing-head { text-align: center; max-width: 46rem; margin: 0 auto clamp(2rem, 4vw, 3rem); }
-.pp-pricing-head h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 3.6vw, 2.6rem); line-height: 1.12; margin: 0 0 0.7rem; color: var(--ink, #2a2130); }
+.pp-pricing-head h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 3.6vw, 2.6rem); line-height: 1.12; margin: 0 0 0.7rem; color: var(--ink, #3f3424); }
 .pp-pricing-head p { color: var(--muted, #6b6472); line-height: 1.7; font-size: 1.02rem; margin: 0; }
 
 .pp-concierge__cta { }

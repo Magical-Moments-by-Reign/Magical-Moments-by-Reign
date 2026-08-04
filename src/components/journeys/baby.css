@@ -1,7 +1,7 @@
 /* ================================================================
    The Baby Journey — full guided experience
    ================================================================ */
-.baby { color: var(--ink, #2a2130); font-family: var(--font-body); }
+.baby { color: var(--ink, #3f3424); font-family: var(--font-body); }
 
 /* Section bands — alternating warm backgrounds, generous rhythm */
 .baby-band { padding: clamp(3.5rem, 7vw, 6rem) 1.25rem; }
@@ -11,7 +11,7 @@
 .baby-band--gray { background: #f5f5f3; }
 .baby-band--blush { background: #fbeef0; }
 .baby-band--lavender { background: #f4f0fa; }
-.baby-band--charcoal { background: linear-gradient(160deg, #241f2e, #17131d); }
+.baby-band--charcoal { background: linear-gradient(160deg, #2a2018, #17131d); }
 
 .baby-wrap { max-width: 1100px; margin: 0 auto; }
 .baby-wrap--narrow { max-width: 760px; }
@@ -20,7 +20,7 @@
 /* Chapter labels + headings */
 .baby-chapter { display: block; text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.72rem; font-weight: 700; color: var(--gold-deep, #a9843f); margin-bottom: 0.5rem; }
 .baby-chapter--light { color: var(--gold-soft, #d9bd82); }
-.baby-h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 3.6vw, 2.6rem); color: var(--ink, #2a2130); margin: 0 0 1rem; line-height: 1.12; }
+.baby-h2 { font-family: var(--font-display); font-size: clamp(1.7rem, 3.6vw, 2.6rem); color: var(--ink, #3f3424); margin: 0 0 1rem; line-height: 1.12; }
 .baby-h2--light { color: #fff; }
 .baby-sechead { text-align: center; max-width: 60ch; margin: 0 auto clamp(2rem, 4vw, 3rem); }
 .baby-sechead--light .baby-h2 { color: #fff; }
@@ -64,7 +64,7 @@
 .baby-path::before { content: ""; position: absolute; left: 15px; top: 1rem; bottom: 1rem; width: 2px; background: linear-gradient(var(--gold-soft, #d9bd82), var(--gold, #c6a15a)); }
 .baby-path__step { display: flex; align-items: center; gap: 0.85rem; position: relative; }
 .baby-path__icon { flex: 0 0 auto; width: 2.1rem; height: 2.1rem; border-radius: 999px; background: #fff; border: 1.5px solid var(--gold, #c6a15a); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; margin-left: -1.5rem; z-index: 1; }
-.baby-path__label { font-size: 1rem; color: var(--ink, #2a2130); font-weight: 500; }
+.baby-path__label { font-size: 1rem; color: var(--ink, #3f3424); font-weight: 500; }
 
 /* Feature cards */
 .baby-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
@@ -72,9 +72,9 @@
 @media (max-width: 520px) { .baby-features { grid-template-columns: 1fr; } }
 .baby-feature { background: #fbf8f3; border: 1px solid #e7dcc6; border-radius: 16px; padding: 1.5rem; transition: transform 0.3s ease, box-shadow 0.3s ease; }
 .baby-feature:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -28px rgba(198,161,90,0.6); }
-.baby-feature__icon { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 14px; background: linear-gradient(135deg, #6b4a8f, #c6a15a); color: #fff; margin-bottom: 0.9rem; }
+.baby-feature__icon { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 14px; background: linear-gradient(135deg, #8a6a3a, #c6a15a); color: #fff; margin-bottom: 0.9rem; }
 .baby-feature h3 { font-family: var(--font-display); font-size: 1.25rem; color: var(--ink); margin: 0 0 0.35rem; }
-.baby-feature p { color: var(--muted, #6f6577); font-size: 0.92rem; line-height: 1.55; margin: 0; }
+.baby-feature p { color: var(--muted, #8a7a63); font-size: 0.92rem; line-height: 1.55; margin: 0; }
 
 /* Life-stage timeline */
 .baby-timeline { display: flex; flex-direction: column; gap: clamp(1.5rem, 3vw, 2.5rem); }
@@ -133,8 +133,8 @@
 .baby-market__card:hover { transform: translateY(-3px); }
 .baby-market__icon { font-size: 1.6rem; }
 .baby-market__card h3 { font-size: 1rem; color: var(--ink); margin: 0.5rem 0 0.25rem; }
-.baby-market__card p { font-size: 0.82rem; color: var(--muted, #6f6577); line-height: 1.45; margin: 0; }
-.baby-note { text-align: center; color: var(--muted, #6f6577); font-style: italic; margin: 1.5rem 0 0; }
+.baby-market__card p { font-size: 0.82rem; color: var(--muted, #8a7a63); line-height: 1.45; margin: 0; }
+.baby-note { text-align: center; color: var(--muted, #8a7a63); font-style: italic; margin: 1.5rem 0 0; }
 
 /* Pricing */
 .baby-pricing { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
@@ -144,10 +144,10 @@
 .baby-price--featured { border-color: var(--gold, #c6a15a); box-shadow: 0 24px 50px -28px rgba(198,161,90,0.7); }
 .baby-price__badge { position: absolute; top: -0.7rem; left: 50%; transform: translateX(-50%); background: var(--gold, #c6a15a); color: #fff; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.25rem 0.8rem; border-radius: 999px; white-space: nowrap; }
 .baby-price h3 { font-family: var(--font-display); font-size: 1.3rem; color: var(--ink); margin: 0.4rem 0 0.1rem; }
-.baby-price__term { font-size: 0.82rem; color: var(--muted, #6f6577); }
+.baby-price__term { font-size: 0.82rem; color: var(--muted, #8a7a63); }
 .baby-price__amt { font-family: var(--font-display); font-size: 2rem; color: var(--gold-deep, #a9843f); margin: 0.4rem 0; }
 .baby-price__save { font-size: 0.78rem; color: #5a3f86; background: rgba(169,140,208,0.14); border-radius: 8px; padding: 0.3rem 0.5rem; margin-bottom: 0.6rem; }
-.baby-price__domain { font-size: 0.78rem; color: var(--muted, #6f6577); margin-bottom: 0.6rem; }
+.baby-price__domain { font-size: 0.78rem; color: var(--muted, #8a7a63); margin-bottom: 0.6rem; }
 .baby-price ul { list-style: none; margin: 0 0 1.1rem; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: #4a4350; }
 .baby-price ul li { position: relative; padding-left: 1.2rem; }
 .baby-price ul li::before { content: "✓"; position: absolute; left: 0; color: var(--gold-deep, #a9843f); font-weight: 700; }

@@ -43,10 +43,10 @@
 /* Name fields */
 .cr-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.1rem; align-items: start; background: #fff; border: 1px solid var(--gray-200); border-radius: 18px; padding: 1.6rem; box-shadow: 0 24px 50px -42px rgba(43,39,50,0.5); }
 .cr-field { display: grid; gap: 0.4rem; }
-.cr-field span { font-size: 0.82rem; font-weight: 600; color: #4a4551; }
+.cr-field span { font-size: 0.82rem; font-weight: 600; color: #55452e; }
 .cr-field input { padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); }
 .cr-field input:focus { outline: none; border-color: var(--lavender); }
-.cr-field small { font-size: 0.78rem; color: #9a93a2; }
+.cr-field small { font-size: 0.78rem; color: #a1917a; }
 .cr-submit { justify-self: start; }
 
 /* Occasion cards backed by a real photo (e.g. Wedding, Baby Journey) */
@@ -62,9 +62,9 @@
 .cr-occ__card--photo > .cr-occ__desc { text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
 
 /* Gift & registry question (step 3) */
-.cr-legend__opt { font-size: 0.8rem; color: #9a93a2; font-weight: 400; }
+.cr-legend__opt { font-size: 0.8rem; color: #a1917a; font-weight: 400; }
 .cr-giftq { color: #5f5866; font-size: 0.92rem; margin: 0 0 0.9rem; max-width: 44rem; }
 .cr-gifts { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-.cr-gift { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: 1px solid var(--gray-200); border-radius: 999px; cursor: pointer; font-size: 0.9rem; color: #4a4551; transition: border-color 0.2s, background 0.2s; }
+.cr-gift { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: 1px solid var(--gray-200); border-radius: 999px; cursor: pointer; font-size: 0.9rem; color: #55452e; transition: border-color 0.2s, background 0.2s; }
 .cr-gift:has(input:checked) { border-color: var(--gold-deep); background: rgba(198,161,90,0.1); color: #211d29; font-weight: 600; }
 .cr-gift input { accent-color: var(--gold-deep); }

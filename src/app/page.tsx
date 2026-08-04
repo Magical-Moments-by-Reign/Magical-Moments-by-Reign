@@ -1,147 +1,155 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
-import OccasionIcon from "@/components/OccasionIcon";
-import { EXPERIENCE_TYPES } from "@/lib/experience-types";
-import { PLANS, formatPrice } from "@/lib/plans";
-import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
-import FeaturedExperiences from "@/components/home/FeaturedExperiences";
-import { STORY_PHOTOS } from "@/lib/story-photos";
+import ScrollCue from "@/components/site/ScrollCue";
+import { currentAccount } from "@/lib/auth-session";
+import "./landing.css";
 
-const HERO_SLIDES: HeroSlide[] = [
-  { id: "newhome", src: "/hero/hero.mp4", poster: "/hero/hero-poster.jpg", label: "New Home Journey" },
-];
+export const dynamic = "force-dynamic";
 
-export default function LandingPage() {
+// The public front door. A luxury arrival, not a brochure: living estate hero,
+// an honest feature story, a quiet quote, a warm invitation. Auth-aware — a
+// signed-in member is invited straight into their Magical Space. Footer links
+// point only to pages that genuinely exist (no dead or invented links).
+export default async function LandingPage() {
+  const account = await currentAccount();
+  const signedIn = Boolean(account);
+
   return (
-    <>
-      <SiteNav active="home" />
+    <div className="lp">
+      {/* Living estate hero */}
+      <section className="lp-hero">
+        <div className="lp-hero__bg" aria-hidden="true" />
+        <div className="lp-hero__grad" aria-hidden="true" />
+        <div className="lp-hero__sun" aria-hidden="true" />
 
-      {/* Hero — editorial, cinematic slideshow */}
-      <header className="hero">
-        <HeroSlideshow slides={HERO_SLIDES} />
-        <div className="container hero-inner">
-          <span className="eyebrow">Magical Moments by Reign</span>
-          <h1 className="hero__title">
-            <span>Every Moment</span>
-            <span>Deserves to Be</span>
-            <span className="accent">Unforgettable.</span>
-          </h1>
-          <p className="lede">
-            One beautifully engineered platform that turns life&apos;s biggest
-            moments into custom-designed, interactive keepsakes — each with its
-            own address, its own story, and a look no other page will ever share.
-          </p>
-          <div className="hero-actions">
-            <Link href="/create" className="btn-gold">Start your magic ✦</Link>
-            <Link href="#stories" className="btn-ghost">Choose your story</Link>
+        <nav className="lp-nav">
+          <Link href="/" className="lp-nav__l" aria-label="Magical Moments by Reign">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-champagne.png" alt="" width={44} height={44} />
+            <span className="lp-nav__n"><b>MAGICAL MOMENTS</b><span>BY REIGN</span></span>
+          </Link>
+          <div className="lp-nav__m">
+            <Link href="/">Home</Link>
+            <Link href="/get-started">Get Started</Link>
+            <Link href="/about">About</Link>
+            <Link href="/contact">Contact</Link>
           </div>
-        </div>
-      </header>
+          <div className="lp-nav__r">
+            {signedIn ? (
+              <Link href="/home" className="lp-btn-g">Enter your Space</Link>
+            ) : (
+              <>
+                <Link href="/login" className="lp-btn-o">Sign In</Link>
+                <Link href="/get-started" className="lp-btn-g">Get Started</Link>
+              </>
+            )}
+          </div>
+        </nav>
 
-      {/* Choose Your Story */}
-      <section id="stories">
-        <div className="container">
-          <div className="section-head--left">
-            <span className="eyebrow">Choose your story</span>
-            <h2>Every occasion, uniquely designed</h2>
-            <p className="muted">
-              Pick the moment you want to preserve. Ask Magical designs a
-              one-of-a-kind experience around it — no two ever look alike.
-            </p>
-          </div>
-          <div className="story-grid">
-            {EXPERIENCE_TYPES.map((t) => {
-              const photo = STORY_PHOTOS[t.id];
-              return (
-                <Link
-                  key={t.id}
-                  href={`/create?type=${t.id}`}
-                  className={`occ-card${photo ? " occ-card--photo" : ""}`}
-                  style={{ "--c1": t.gradient[0], "--c2": t.gradient[1] } as CSSProperties}
-                >
-                  {photo && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img className="occ-card__photo" src={photo} alt="" aria-hidden="true" loading="lazy" />
-                  )}
-                  <span className="occ-card__icon"><OccasionIcon name={t.icon} /></span>
-                  <span className="occ-card__go" aria-hidden="true">→</span>
-                  <span className="occ-card__body">
-                    <span className="occ-card__title">{t.label}</span>
-                    <span className="occ-card__desc">{t.description}</span>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+        <div className="lp-hero__in">
+          <svg className="lp-spark" viewBox="0 0 44 24" aria-hidden="true">
+            <path d="M22 2l1.6 6.4L30 10l-6.4 1.6L22 18l-1.6-6.4L14 10l6.4-1.6z" />
+            <path d="M33 5l.8 2.6L36 8l-2.2.4L33 11l-.8-2.6L30 8l2.2-.4z" opacity=".8" />
+          </svg>
+          <h1 className="lp-h1">Welcome to Your <i>Magical Space</i></h1>
+          <div className="lp-hdiv" aria-hidden="true" />
+          <p className="lp-hsub">What beautiful chapter of life<br />are we creating together today?</p>
+          {signedIn ? (
+            <Link href="/home" className="lp-hcta">Enter your Magical Space</Link>
+          ) : (
+            <Link href="/login" className="lp-hcta">Sign in to begin your journey</Link>
+          )}
+        <ScrollCue />
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how" style={{ background: "var(--ivory)" }}>
-        <div className="container">
-          <div className="section-head--left">
-            <span className="eyebrow">The experience</span>
-            <h2>Like hiring a luxury design agency</h2>
-            <p className="muted">No templates. No blank-canvas anxiety. Just a guided journey from moment to masterpiece.</p>
+      {/* The honest feature story */}
+      <section className="lp-sec">
+        <h2 className="lp-sec__t">Everything you need. <i>All in one place.</i></h2>
+        <div className="lp-sec__d" aria-hidden="true" />
+        <div className="lp-feats">
+          <div className="lp-feat">
+            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 L12 5 L20 12 M6 11V20H18V11" /></svg></span>
+            <span className="lp-feat__t">Your Journeys</span>
+            <span className="lp-feat__s">Buy, build, renovate, invest and more.</span>
           </div>
-          <div className="grid">
-            <article className="card"><div className="icon">✦</div><h3>Choose your story</h3><p>Start from an occasion — never a blank page.</p></article>
-            <article className="card"><div className="icon">✧</div><h3>Ask Magical designs it</h3><p>Colors, fonts, layout, and story order — composed uniquely for you.</p></article>
-            <article className="card"><div className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.4 1.41"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.4-1.41"/></svg></div><h3>Gets its own address</h3><p>Instantly published to its own link, like magicalmomentsbyreign.com/smithwedding.</p></article>
-            <article className="card"><div className="icon">♥</div><h3>Grows over time</h3><p>Add photos, chapters, and guests. A moment becomes a living keepsake.</p></article>
+          <span className="lp-feat__div" aria-hidden="true" />
+          <div className="lp-feat">
+            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /><path d="M12 12.3l.85 1.75 1.95.28-1.4 1.37.33 1.94L12 16.9l-1.73.72.33-1.94-1.4-1.37 1.95-.28z" /></svg></span>
+            <span className="lp-feat__t">Special Moments</span>
+            <span className="lp-feat__s">Events, celebrations and memories.</span>
           </div>
-        </div>
-      </section>
-
-      {/* Featured experiences — Netflix/Airbnb-style browse */}
-      <FeaturedExperiences />
-
-      {/* Pricing preview */}
-      <section id="pricing-preview">
-        <div className="container">
-          <div className="section-head--left">
-            <span className="eyebrow">Memory preservation</span>
-            <h2>Choose how long your memories live on</h2>
-            <p className="muted">One-time pricing. No surprises. Upgrade anytime.</p>
+          <span className="lp-feat__div" aria-hidden="true" />
+          <div className="lp-feat">
+            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M6.5 17a5.5 5.5 0 0 1 11 0M12 6.5V4.6M10.2 4.6h3.6" /></svg></span>
+            <span className="lp-feat__t">Lifestyle Concierge</span>
+            <span className="lp-feat__s">We handle the details so you enjoy the life.</span>
           </div>
-          <div className="priceprev">
-            {PLANS.map((p) => (
-              <Link key={p.id} href="/pricing" className={`priceprev__card${p.badge === "Most Popular" ? " priceprev__card--featured" : ""}`}>
-                {p.badge && <span className="priceprev__ribbon">{p.badge}</span>}
-                <span className="priceprev__tier">{p.name.split(" ")[0]}</span>
-                <div className="priceprev__name">{p.name}</div>
-                <div className="priceprev__price">{formatPrice(p.price)} <small>{p.priceKind}</small></div>
-                <p className="priceprev__label">{p.label}</p>
-              </Link>
-            ))}
+          <span className="lp-feat__div" aria-hidden="true" />
+          <div className="lp-feat">
+            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /></svg></span>
+            <span className="lp-feat__t">Everything Organized</span>
+            <span className="lp-feat__s">Documents, messages and important details.</span>
           </div>
-          <p style={{ marginTop: "1.6rem" }}>
-            <Link href="/pricing" className="btn btn-dark">See full plans &amp; comparison</Link>
-          </p>
-        </div>
-      </section>
-
-      {/* Business website CTA */}
-      <section style={{ background: "var(--ivory)" }}>
-        <div className="container">
-          <div className="bizcta">
-            <div>
-              <span className="eyebrow bizcta__eyebrow">Need a business website?</span>
-              <h3>Custom business websites, crafted separately</h3>
-              <p>
-                Business websites are custom, lifetime digital projects created
-                separately from Magical Moments experiences — with their own
-                domain, custom quote, and a direct consultation.
-              </p>
-            </div>
-            <Link href="/business" className="btn-gold">Explore custom business websites</Link>
+          <span className="lp-feat__div" aria-hidden="true" />
+          <div className="lp-feat">
+            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8" /><path d="M5 20a7 7 0 0 1 14 0" /></svg></span>
+            <span className="lp-feat__t">Built for You</span>
+            <span className="lp-feat__s">Personalized experiences designed around you.</span>
           </div>
         </div>
+        <Link href="/get-started" className="lp-explore">Explore all features</Link>
       </section>
 
-      <SiteFooter />
-    </>
+      {/* A quiet moment */}
+      <div className="lp-qband">
+        <div className="lp-qband__wrap">
+          <div className="lp-qband__q" aria-hidden="true">&ldquo;</div>
+          <p className="lp-qband__t">The best things in life aren&rsquo;t things. <i>They&rsquo;re moments we create.</i></p>
+        </div>
+      </div>
+
+      {/* Warm invitation */}
+      <section className="lp-cta">
+        <h2 className="lp-cta__t">Ready to create something magical?</h2>
+        <p className="lp-cta__s">Join now and start your journey.</p>
+        <Link href={signedIn ? "/home" : "/get-started"} className="lp-btn-g" style={{ padding: "1rem 2.2rem", fontSize: "0.76rem" }}>
+          {signedIn ? "Enter your Magical Space" : "Get Started Today"}
+        </Link>
+      </section>
+
+      {/* Footer — real, working links only */}
+      <footer className="lp-foot">
+        <div className="lp-foot__in">
+          <div className="lp-fb">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-champagne.png" alt="" width={52} height={52} />
+            <div className="fn">MAGICAL MOMENTS</div>
+            <div className="ft">BY REIGN</div>
+            <p>Your lifestyle. Your moments.<br />All in one magical place.</p>
+          </div>
+          <div className="lp-fcol">
+            <h4>Company</h4>
+            <Link href="/about">About Us</Link>
+            <Link href="/membership">How It Works</Link>
+            <Link href="/business">For Business</Link>
+            <Link href="/contact">Contact</Link>
+          </div>
+          <div className="lp-fcol">
+            <h4>Explore</h4>
+            <Link href="/journeys">Experiences</Link>
+            <Link href="/inspiration">Inspiration</Link>
+            <Link href="/vendors">Partners</Link>
+            <Link href="/pricing">Membership</Link>
+          </div>
+          <div className="lp-fcol">
+            <h4>Get Started</h4>
+            <Link href="/signup">Create Account</Link>
+            <Link href="/login">Sign In</Link>
+            <Link href="/contact">Support</Link>
+          </div>
+        </div>
+        <div className="lp-fbar">© {new Date().getFullYear()} Magical Moments by Reign. All rights reserved.</div>
+      </footer>
+    </div>
   );
 }

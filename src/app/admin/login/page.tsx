@@ -62,7 +62,7 @@ export default async function AdminLoginPage({
         {/* Legacy shared-password bridge (temporary; retired once an Owner exists) */}
         {legacyConfigured && (
           <details style={{ marginTop: "1.4rem" }}>
-            <summary style={{ cursor: "pointer", color: "#8a8394", fontSize: "0.85rem" }}>Team access (legacy shared password)</summary>
+            <summary style={{ cursor: "pointer", color: "#a1917a", fontSize: "0.85rem" }}>Team access (legacy shared password)</summary>
             <form action={adminLoginAction} style={{ marginTop: "0.8rem" }}>
               <input type="hidden" name="next" value={dest} />
               <PasswordField name="password" label="Shared admin password" autoComplete="current-password" />

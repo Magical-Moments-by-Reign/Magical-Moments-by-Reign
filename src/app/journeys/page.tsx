@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import OccasionIcon from "@/components/OccasionIcon";
 import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 import { STORY_PHOTOS } from "@/lib/story-photos";
@@ -19,10 +19,11 @@ export const metadata: Metadata = {
     "Take a guided tour of every Magical Moments by Reign Journey before you decide — weddings, babies, vacations, new homes, graduations, celebrations of life, and more.",
 };
 
-export default function JourneysIndexPage() {
+export default async function JourneysIndexPage() {
+  const signedIn = Boolean(await currentAccount());
   return (
     <div className="jxi">
-      <SiteNav active="experiences" />
+      <PublicNav active="get-started" signedIn={signedIn} />
       <header className="jxi-hero">
         <div className="container">
           <span className="eyebrow" style={{ color: "var(--gold-soft)" }}>Explore before you decide</span>
@@ -57,7 +58,7 @@ export default function JourneysIndexPage() {
         </div>
       </main>
 
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

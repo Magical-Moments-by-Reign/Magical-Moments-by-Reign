@@ -11,7 +11,7 @@
   background:
     radial-gradient(55% 80% at 12% 0%, rgba(169,140,208,0.24), transparent 60%),
     radial-gradient(50% 70% at 92% 8%, rgba(198,161,90,0.22), transparent 55%),
-    linear-gradient(160deg, #221d2b, #17141d);
+    linear-gradient(160deg, #2a2016, #201811);
   color: var(--cream-100);
   overflow: hidden;
 }
@@ -53,12 +53,12 @@
 .biz-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .biz-row--3 { grid-template-columns: 1fr 1fr 1fr; }
 .biz-field { display: grid; gap: 0.4rem; }
-.biz-field span { font-size: 0.8rem; font-weight: 600; color: #4a4551; }
+.biz-field span { font-size: 0.8rem; font-weight: 600; color: #55452e; }
 .biz-field input, .biz-field select, .biz-field textarea { width: 100%; padding: 0.75rem 0.9rem; border-radius: 10px; border: 1px solid var(--gray-200); font: inherit; background: var(--cream-100); color: #2a2630; }
 .biz-field input:focus, .biz-field select:focus, .biz-field textarea:focus { outline: none; border-color: var(--lavender); }
 .biz-field textarea { resize: vertical; }
 .biz-submit { justify-self: start; margin-top: 0.3rem; }
-.biz-form__fine { font-size: 0.76rem; color: #9a93a2; margin: 0; }
+.biz-form__fine { font-size: 0.76rem; color: #a1917a; margin: 0; }
 .biz-error { background: #fbe9e9; color: #8a2f2f; padding: 0.8rem 1rem; border-radius: 10px; font-size: 0.9rem; }
 
 /* Confirmation */
