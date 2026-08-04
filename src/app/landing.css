@@ -99,15 +99,17 @@
 .lp-estates__head { max-width: 640px; margin: 0 auto clamp(2.5rem, 4vw, 3.2rem); }
 .lp-estates__lede { color: var(--soft); font-size: 0.98rem; line-height: 1.65; margin: 1rem 0 0; }
 .lp-est-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-.lp-est { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.4rem; padding: 1.8rem 1.1rem; border: 1px solid var(--line); border-radius: 18px; background: #fffdf9; text-decoration: none; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.lp-est { position: relative; display: block; overflow: hidden; text-align: left; min-height: 220px; border-radius: 18px; text-decoration: none; background: linear-gradient(155deg, #5c4a2d, #2c2013); background-size: cover; background-position: center; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.lp-est::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(40, 26, 8, 0.12) 0%, rgba(34, 22, 8, 0.18) 42%, rgba(22, 14, 5, 0.84) 100%); }
 .lp-est--open { cursor: pointer; }
-.lp-est--open:hover { transform: translateY(-4px); box-shadow: 0 26px 50px -30px rgba(120, 90, 30, 0.55); border-color: var(--champ); }
-.lp-est[aria-disabled="true"] { opacity: 0.82; }
-.lp-est__ic { font-size: 2rem; line-height: 1; }
-.lp-est__badge { font: 600 0.56rem/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--soft); background: rgba(138, 125, 106, 0.12); border-radius: 999px; padding: 0.3rem 0.65rem; }
-.lp-est__badge--open { color: #3a2c12; background: linear-gradient(180deg, #e6cd8c, #cfaa55); }
-.lp-est__name { font-family: var(--serif); font-size: 1.3rem; font-weight: 600; color: var(--ink); margin-top: 0.2rem; }
-.lp-est__tag { color: var(--soft); font-size: 0.84rem; line-height: 1.45; }
+.lp-est--open:hover { transform: translateY(-4px); box-shadow: 0 30px 56px -30px rgba(60, 40, 12, 0.7); }
+.lp-est[aria-disabled="true"] { opacity: 0.94; }
+.lp-est__ic { position: absolute; z-index: 2; top: 0.85rem; left: 0.85rem; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 1.15rem; background: linear-gradient(180deg, rgba(230, 205, 140, 0.92), rgba(201, 163, 78, 0.92)); box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.5); }
+.lp-est__badge { position: absolute; z-index: 2; top: 0.95rem; right: 0.95rem; font: 600 0.56rem/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: #f4ecdd; background: rgba(30, 20, 8, 0.5); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 999px; padding: 0.35rem 0.7rem; backdrop-filter: blur(3px); }
+.lp-est__badge--open { color: #3a2c12; background: linear-gradient(180deg, #e6cd8c, #cfaa55); border-color: transparent; }
+.lp-est__meta { position: absolute; z-index: 2; left: 1rem; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.lp-est__name { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; color: #fff; line-height: 1.05; text-shadow: 0 1px 12px rgba(20, 12, 4, 0.6); }
+.lp-est__tag { color: rgba(255, 248, 235, 0.9); font-size: 0.85rem; line-height: 1.4; text-shadow: 0 1px 8px rgba(20, 12, 4, 0.6); }
 
 /* How it works — dark intimate band */
 .lp-how { background: linear-gradient(180deg, #241b12, #2c2013); color: #e9dfcd; text-align: center; padding: clamp(4rem, 8vw, 6rem) clamp(1.5rem, 4vw, 2rem); }

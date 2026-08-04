@@ -24,13 +24,14 @@ export default async function LandingPage() {
   // as available. Home is the flagship that's open today; the rest of the
   // vision is presented honestly as "in creation."
   const liveEstates = allEstates();
+  const estatePhoto: Record<string, string> = { home: "/story/newhome.jpg" };
   const comingEstates = [
-    { icon: "💍", name: "Weddings", tagline: "Two stories becoming one." },
-    { icon: "🍼", name: "New Baby", tagline: "The first chapter of a new life." },
-    { icon: "🎉", name: "Celebrations", tagline: "Every milestone, beautifully kept." },
-    { icon: "✈️", name: "Travel", tagline: "Journeys worth remembering." },
-    { icon: "👔", name: "Business", tagline: "Build your legacy by design." },
-    { icon: "🕊️", name: "Legacy", tagline: "Love, preserved for generations." },
+    { icon: "💍", name: "Weddings", tagline: "Two stories becoming one.", photo: "/story/wedding.jpg" },
+    { icon: "🍼", name: "New Baby", tagline: "The first chapter of a new life.", photo: "/story/baby.jpg" },
+    { icon: "🎉", name: "Celebrations", tagline: "Every milestone, beautifully kept.", photo: "/story/birthday.jpg" },
+    { icon: "✈️", name: "Travel", tagline: "Journeys worth remembering.", photo: "/story/vacation.jpg" },
+    { icon: "👔", name: "Business", tagline: "Build your legacy by design.", photo: "" },
+    { icon: "🕊️", name: "Legacy", tagline: "Love, preserved for generations.", photo: "" },
   ];
 
   const monthlyFrom = PRICING_CONFIG.firstOccasion.monthly;
@@ -120,19 +121,33 @@ export default async function LandingPage() {
         </div>
         <div className="lp-est-grid">
           {liveEstates.map((e) => (
-            <Link key={e.key} href={signedIn ? `/estate/${e.key}` : "/get-started"} className="lp-est lp-est--open">
+            <Link
+              key={e.key}
+              href={signedIn ? `/estate/${e.key}` : "/get-started"}
+              className={`lp-est lp-est--open${estatePhoto[e.key] ? " lp-est--photo" : ""}`}
+              style={estatePhoto[e.key] ? { backgroundImage: `url(${estatePhoto[e.key]})` } : undefined}
+            >
               <span className="lp-est__ic" aria-hidden="true">{e.icon}</span>
               <span className="lp-est__badge lp-est__badge--open">Now open</span>
-              <span className="lp-est__name">{e.name}</span>
-              <span className="lp-est__tag">{e.tagline}</span>
+              <span className="lp-est__meta">
+                <span className="lp-est__name">{e.name}</span>
+                <span className="lp-est__tag">{e.tagline}</span>
+              </span>
             </Link>
           ))}
           {comingEstates.map((e) => (
-            <div key={e.name} className="lp-est" aria-disabled="true">
+            <div
+              key={e.name}
+              className={`lp-est${e.photo ? " lp-est--photo" : ""}`}
+              aria-disabled="true"
+              style={e.photo ? { backgroundImage: `url(${e.photo})` } : undefined}
+            >
               <span className="lp-est__ic" aria-hidden="true">{e.icon}</span>
               <span className="lp-est__badge">In creation</span>
-              <span className="lp-est__name">{e.name}</span>
-              <span className="lp-est__tag">{e.tagline}</span>
+              <span className="lp-est__meta">
+                <span className="lp-est__name">{e.name}</span>
+                <span className="lp-est__tag">{e.tagline}</span>
+              </span>
             </div>
           ))}
         </div>
