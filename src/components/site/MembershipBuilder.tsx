@@ -27,6 +27,10 @@ export default function MembershipBuilder() {
   const [term, setTerm] = useState<Selection>("lifetime");
   const [jp, setJp] = useState(false);
   const [jpInfo, setJpInfo] = useState(false);
+  const [remindDismissed, setRemindDismissed] = useState(false);
+
+  // Future chapters a family might reserve their remaining Lifetime Collections for.
+  const FUTURE_IDEAS = ["Grandchildren", "Retirement", "Family Reunion", "New Business", "New Pet", "Memorial Tribute", "Future Wedding", "Future Anniversary"];
 
   const count = occ.length;
   const priceCount = Math.max(1, count);
@@ -46,7 +50,7 @@ export default function MembershipBuilder() {
   // Lifetime "fill your collection" reminder (finite tiers only).
   const capReached = collection && Number.isFinite(collection.maxOccasions) && count >= collection.maxOccasions;
   const remaining = collection && Number.isFinite(collection.maxOccasions) ? collection.maxOccasions - count : 0;
-  const showReminder = Boolean(isLifetime && collection && Number.isFinite(collection.maxOccasions) && count > 0 && remaining > 0 && remaining <= 3);
+  const showReminder = Boolean(isLifetime && collection && Number.isFinite(collection.maxOccasions) && count > 0 && remaining > 0 && remaining <= 3 && !remindDismissed);
 
   const addRemaining = () => {
     if (!collection) return;
@@ -157,8 +161,8 @@ export default function MembershipBuilder() {
           )}
         </div>
         <div className="mb2-preview__row">
-          <span className="mb2-preview__k">Occasions</span>
-          <span className="mb2-preview__v">{count}</span>
+          <span className="mb2-preview__k">{isLifetime ? "Lifetime Collections" : "Occasions"}</span>
+          <span className="mb2-preview__v">{isLifetime && collection && Number.isFinite(collection.maxOccasions) ? `${count} of ${collection.maxOccasions}` : count}</span>
         </div>
         <div className="mb2-preview__row">
           <span className="mb2-preview__k">Membership</span>
@@ -211,19 +215,22 @@ export default function MembershipBuilder() {
             <>
               <span className="mb2-remind__spark" aria-hidden="true">✨</span>
               <div>
-                <h3 className="mb2-remind__h">Congratulations — your Collection is complete.</h3>
-                <p className="mb2-remind__p">Every occasion you selected is yours forever, and any unused occasions can be assigned whenever you&apos;re ready. Your unused occasions never expire.</p>
+                <h3 className="mb2-remind__h">Your Legacy Collection is complete.</h3>
+                <p className="mb2-remind__p">All {collection?.maxOccasions} of your Lifetime Collections are reserved and yours forever. Any you haven&apos;t assigned yet are simply waiting — for a wedding not yet planned, a grandchild not yet born, a chapter not yet written. They never expire.</p>
               </div>
             </>
           ) : (
             <>
               <span className="mb2-remind__spark" aria-hidden="true">✨</span>
               <div>
-                <h3 className="mb2-remind__h">You&apos;re almost there.</h3>
-                <p className="mb2-remind__p">You&apos;ve selected {count} Lifetime {count === 1 ? "occasion" : "occasions"}. Your {collection?.name} includes up to {collection?.maxOccasions} — add {remaining} more at no extra cost. Unused occasions never expire, so you don&apos;t have to choose them today.</p>
+                <h3 className="mb2-remind__h">Complete Your Legacy Collection</h3>
+                <p className="mb2-remind__p">You&apos;ve created {count} of your {collection?.maxOccasions} Lifetime Collections. You&apos;ve already unlocked the {collection?.maxOccasions}-Collection Lifetime Membership — {remaining} {remaining === 1 ? "collection is" : "collections are"} still waiting for future chapters of your family&apos;s story. You don&apos;t have to decide today. Reserve {remaining === 1 ? "it" : "them"} now and use {remaining === 1 ? "it" : "them"} whenever life creates another magical moment.</p>
+                <div className="mb2-remind__ideas">
+                  {FUTURE_IDEAS.map((i) => <span key={i} className="mb2-remind__idea">{i}</span>)}
+                </div>
                 <div className="mb2-remind__actions">
-                  <button type="button" className="mb2-remind__yes" onClick={addRemaining}>Add {remaining} more</button>
-                  <span className="mb2-remind__no">Keep my current selection</span>
+                  <button type="button" className="mb2-remind__yes" onClick={addRemaining}>Reserve My Remaining Collections</button>
+                  <button type="button" className="mb2-remind__no" onClick={() => setRemindDismissed(true)}>Maybe Later</button>
                 </div>
               </div>
             </>

@@ -94,10 +94,13 @@
 .mb2-remind--celebrate .mb2-remind__spark { animation: mb2-pop 0.7s ease-out both, mb2-twinkle 2.4s 0.7s ease-in-out infinite; }
 .mb2-remind__h { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; color: var(--ink); margin: 0 0 0.3rem; }
 .mb2-remind__p { color: var(--ink-2); font-size: 0.92rem; line-height: 1.6; margin: 0; }
-.mb2-remind__actions { display: flex; align-items: center; gap: 1.2rem; margin-top: 0.9rem; flex-wrap: wrap; }
-.mb2-remind__yes { background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border: none; border-radius: 999px; padding: 0.7rem 1.4rem; font: 600 0.72rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.mb2-remind__ideas { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.9rem; }
+.mb2-remind__idea { font-family: var(--serif); font-style: italic; font-size: 0.9rem; color: var(--gold-deep); background: rgba(255, 255, 255, 0.55); border: 1px solid var(--line); border-radius: 999px; padding: 0.25rem 0.75rem; }
+.mb2-remind__actions { display: flex; align-items: center; gap: 1.2rem; margin-top: 1.1rem; flex-wrap: wrap; }
+.mb2-remind__yes { background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border: none; border-radius: 999px; padding: 0.75rem 1.5rem; font: 600 0.72rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 .mb2-remind__yes:hover { filter: brightness(1.05); }
-.mb2-remind__no { color: var(--taupe); font-size: 0.85rem; }
+.mb2-remind__no { background: none; border: none; color: var(--taupe); font-size: 0.9rem; cursor: pointer; text-decoration: underline; padding: 0.4rem; }
+.mb2-remind__no:hover { color: var(--ink); }
 @keyframes mb2-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes mb2-twinkle { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.15); opacity: 1; } }
 @keyframes mb2-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
