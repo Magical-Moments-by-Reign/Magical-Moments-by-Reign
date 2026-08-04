@@ -60,7 +60,7 @@ export default async function GetStartedPage() {
         <div className="gs-hero__l">
           <span className="gs-hero__eye">Get Started</span>
           <h1 className="gs-hero__t">Begin Your <i>Magical</i> Journey</h1>
-          <p className="gs-hero__s">Discover everything Magical Moments has to offer and build a space that celebrates your life, your memories, and your dreams.</p>
+          <p className="gs-hero__s">Whether you&rsquo;re buying your first home, building from the ground up, renovating, purchasing a home that&rsquo;s already built, or simply renting &mdash; we&rsquo;re here for you, every step of the way.</p>
           <a href="#explore" className="gs-hero__cta">Explore All Features <span aria-hidden="true">→</span></a>
           <span className="gs-hero__note">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 L13.5 9 L19 10 L13.5 11 L12 17 L10.5 11 L5 10 L10.5 9 Z" /></svg>
@@ -68,7 +68,13 @@ export default async function GetStartedPage() {
           </span>
           <ScrollCue />
         </div>
-        <div className="gs-hero__r" aria-hidden="true" />
+        <div className="gs-hero__r" aria-hidden="true">
+          {/* Home journey video. Drop the file at public/hero/home.mp4 to play it;
+              until then the poster (estate photo) shows, so the layout is graceful. */}
+          <video className="gs-hero__vid" autoPlay muted loop playsInline preload="metadata" poster="/brand/estate-home.png">
+            <source src="/hero/home.mp4" type="video/mp4" />
+          </video>
+        </div>
       </section>
 
       <section className="gs-sec" id="explore">
