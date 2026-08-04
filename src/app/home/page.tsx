@@ -2,35 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
-import {
-  getConcierge, conciergeDisplayName, needsWelcome, hasNamedConcierge, shouldNudgeForName,
-} from "@/lib/concierge";
-import AskMagicalPanel from "@/components/home/AskMagicalPanel";
+import { unreadCount } from "@/lib/notify";
+import { getConcierge, needsWelcome } from "@/lib/concierge";
 import ConciergeWelcome from "@/components/home/ConciergeWelcome";
+import { logoutAction } from "../account/actions";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Home", robots: { index: false } };
-
-// Curated inspiration is editorial (not user data), so it's honest to show it
-// as a real, prepared suggestion rather than a "coming soon".
-const INSPIRATION = {
-  icon: "🕯",
-  title: "Timeless Elegance",
-  desc: "Curated ideas to elevate your next magical moment.",
-};
-
-function relativeTime(d: Date): string {
-  const diff = Date.now() - d.getTime();
-  const mins = Math.round(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
-  const days = Math.round(hrs / 24);
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days} days ago`;
-  return d.toLocaleDateString();
-}
+export const metadata: Metadata = { title: "Your Magical Space", robots: { index: false } };
 
 export default async function HomePage({
   searchParams,
@@ -46,160 +24,140 @@ export default async function HomePage({
     return <ConciergeWelcome firstName={account.firstName} error={sp.error} />;
   }
 
-  const conciergeName = conciergeDisplayName(concierge);
-  const named = hasNamedConcierge(concierge);
-  const nudge = shouldNudgeForName(concierge);
-
-  // Everything below is REAL, per-account data (LibraryEntry is account-keyed;
-  // People Connected counts invitations this account has sent). Values are 0
-  // for a new member — honest, never fabricated. Tasks & Storage are shown as
-  // honest "coming soon" because no truthful per-account source exists yet.
-  const [upcoming, journeys, memories, peopleAgg, upcomingList, notifs] = await Promise.all([
+  // REAL, per-account data. Every count is account-keyed and is 0 for a new
+  // member — honest, never fabricated sample numbers.
+  const [upcoming, journeys, memories, peopleAgg, unread] = await Promise.all([
     prisma.libraryEntry.count({ where: { accountId: account.id, archived: false, kind: "UPCOMING_EVENT" } }),
     prisma.libraryEntry.count({ where: { accountId: account.id, archived: false, kind: "EXPERIENCE" } }),
     prisma.libraryEntry.count({ where: { accountId: account.id, archived: false, kind: { in: ["PHOTO", "VIDEO", "GALLERY"] } } }),
     prisma.account.findUnique({ where: { id: account.id }, select: { _count: { select: { invitationsSent: true } } } }),
-    prisma.libraryEntry.findMany({
-      where: { accountId: account.id, archived: false },
-      orderBy: [{ occurredAt: "desc" }, { updatedAt: "desc" }],
-      take: 3,
-      select: { id: true, title: true, subtitle: true, occurredAt: true },
-    }),
-    prisma.notification.findMany({
-      where: { accountId: account.id },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      select: { id: true, title: true, createdAt: true },
-    }),
+    unreadCount(account.id),
   ]);
-  const peopleConnected = peopleAgg?._count.invitationsSent ?? 0;
+  const people = peopleAgg?._count.invitationsSent ?? 0;
+  const initial = (account.firstName?.[0] ?? "M").toUpperCase();
 
   const stats = [
-    { icon: "🗓", num: upcoming, label: "Upcoming Moments", href: "/dashboard" },
-    { icon: "🧭", num: journeys, label: "Active Journeys", href: "/journeys" },
-    { icon: "💎", num: memories, label: "Memories Captured", href: "/dashboard/media" },
-    { icon: "🤍", num: peopleConnected, label: "People Connected", href: "/account/family" },
+    { key: "upcoming", num: upcoming, unit: "Upcoming", sub: "Events", href: "/dashboard" },
+    { key: "journeys", num: journeys, unit: "Active", sub: "Journeys", href: "/journeys" },
+    { key: "memories", num: memories, unit: "Memories", sub: "Captured", href: "/dashboard/media" },
+    { key: "people", num: people, unit: "People", sub: "Connected", href: "/account/family" },
   ];
 
   return (
-    <div className="home-space">
-      {/* Welcome hero */}
-      <header className="home-hero">
-        <div>
-          <span className="home-hero__crown" aria-hidden="true">♛</span>
-          <h1 className="home-hero__title">Welcome Home, {account.firstName}</h1>
-          <p className="home-hero__sub">Every moment has a purpose. Let&apos;s create more magic together.</p>
-        </div>
-        <Link href="/journeys" className="home-hero__cta"><span aria-hidden="true">＋</span> Create New Moment</Link>
-      </header>
+    <>
+      {/* The living arrival hero */}
+      <section className="msp-hero">
+        <div className="msp-hero__bg" aria-hidden="true" />
+        <div className="msp-hero__grad" aria-hidden="true" />
+        <div className="msp-hero__sun" aria-hidden="true" />
+        <div className="msp-hero__shimmer" aria-hidden="true" />
 
-      {/* Stat cards + concierge */}
-      <section className="home-stats" aria-label="Your life at a glance">
-        {stats.map((s) => (
-          <Link key={s.label} href={s.href} className="panel statcard">
-            <span className="statcard__ic" aria-hidden="true">{s.icon}</span>
-            <span className="statcard__num">{s.num}</span>
-            <span className="statcard__label">{s.label}</span>
-            <span className="statcard__link">View all →</span>
-          </Link>
-        ))}
-
-        <div className="panel concierge-card" id="concierge">
-          <div className="concierge-card__head">
-            <span className="concierge-card__bell" aria-hidden="true">🔔</span>
-            <span>
-              <span className="concierge-card__name" style={{ display: "block" }}>Your Concierge</span>
-              <span className="concierge-card__powered">Powered by Magical</span>
+        <header className="msp-hdr">
+          <Link href="/home" className="msp-brand" aria-label="Magical Moments by Reign">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-champagne.png" alt="" width={44} height={44} />
+            <span className="msp-brand__t">
+              <span className="msp-brand__n">MAGICAL MOMENTS</span>
+              <span className="msp-brand__b">BY REIGN</span>
             </span>
+          </Link>
+          <div className="msp-hdr__r">
+            <Link href="/notifications" className="msp-hicon" aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" /><path d="M10 20a2 2 0 0 0 4 0" /></svg>
+              {unread > 0 && <span className="msp-hicon__dot">{unread > 9 ? "9+" : unread}</span>}
+            </Link>
+            <Link href="/account" className="msp-avatar" aria-label="Account &amp; settings">{initial}</Link>
+            <form action={logoutAction}><button type="submit" className="msp-out">Sign out</button></form>
           </div>
-          <AskMagicalPanel conciergeName={conciergeName} nudgeForName={nudge} />
+        </header>
+
+        <div className="msp-hero__in">
+          <svg className="msp-spark" viewBox="0 0 40 22" aria-hidden="true"><path d="M20 2 L22 9 L29 11 L22 13 L20 20 L18 13 L11 11 L18 9 Z" /></svg>
+          <h1 className="msp-h1">Welcome to Your <i>Magical Space</i></h1>
+          <div className="msp-div" aria-hidden="true"><span>✦</span></div>
+          <p className="msp-sub">What beautiful chapter of life<br />are we creating together today?</p>
         </div>
       </section>
 
-      {/* Upcoming Moments · Inspiration · Tasks */}
-      <section className="home-cols">
-        <div className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">Your Upcoming Moments</h2>
-            <Link href="/dashboard" className="panel__link">View all</Link>
+      {/* Summary — everything at a glance, real numbers, into the dashboard */}
+      <div className="msp-wrap">
+        <div className="msp-summary">
+          <div>
+            <h2 className="msp-sm__t">Everything you need. <i>All in one place.</i></h2>
+            <Link className="msp-sm__btn" href="/dashboard">
+              View my dashboard
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </Link>
           </div>
-          {upcomingList.length ? (
-            upcomingList.map((m) => (
-              <div key={m.id} className="moment">
-                <span className="moment__thumb" aria-hidden="true">✨</span>
-                <div className="moment__body">
-                  <div className="moment__row">
-                    <span className="moment__title">{m.title}</span>
-                  </div>
-                  <div className="moment__meta">
-                    {m.occurredAt ? m.occurredAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : (m.subtitle ?? "In your Library")}
-                  </div>
-                </div>
+          <div className="msp-stats">
+            {stats.map((s, i) => (
+              <div key={s.key} className="msp-stat-cell">
+                {i > 0 && <span className="msp-stat__div" aria-hidden="true" />}
+                <Link href={s.href} className="msp-stat">
+                  <StatIcon name={s.key} />
+                  <span className="msp-stat__k">{s.unit}</span>
+                  <span className="msp-stat__n">{s.num}</span>
+                  <span className="msp-stat__s">{s.sub}</span>
+                </Link>
               </div>
-            ))
-          ) : (
-            <p className="home-empty">Your story starts with a single moment. Let&apos;s begin one together.</p>
-          )}
-        </div>
-
-        <div className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">Inspiration For You</h2>
+            ))}
           </div>
-          <div className="inspo__img" aria-hidden="true">{INSPIRATION.icon}</div>
-          <h3 className="inspo__title">{INSPIRATION.title}</h3>
-          <p className="inspo__desc">{INSPIRATION.desc}</p>
-          <Link href="/inspiration" className="panel__link" style={{ display: "inline-block", marginTop: "0.7rem" }}>Explore inspiration →</Link>
         </div>
+      </div>
 
-        <div className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">Tasks &amp; Reminders</h2>
+      {/* A quiet moment */}
+      <div className="msp-qband">
+        <div className="msp-qband__l">
+          <span className="msp-qband__q" aria-hidden="true">&ldquo;</span>
+          <p className="msp-qband__t">The best things in life aren&rsquo;t things. <i>They&rsquo;re moments we create.</i></p>
+        </div>
+        <div className="msp-qband__r" aria-hidden="true" />
+      </div>
+
+      <footer className="msp-foot">
+        <div className="msp-foot__in">
+          <div className="msp-foot__brand">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-champagne.png" alt="" width={52} height={52} />
+            <div className="msp-fn">MAGICAL MOMENTS</div>
+            <div className="msp-fb">BY REIGN</div>
           </div>
-          <p className="home-soon">
-            <span className="home-soon__tag">Coming soon</span>
-          </p>
-          <p className="home-empty">{conciergeName} will keep your checklists and reminders here — one less thing to hold in your head.</p>
-        </div>
-      </section>
-
-      {/* Recent Activity · Storage */}
-      <section className="home-cols home-cols--two">
-        <div className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">Recent Activity</h2>
-            <Link href="/notifications" className="panel__link">View all</Link>
+          <div className="msp-fcol">
+            <h4>Your Space</h4>
+            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/estate/home">Home Estate</Link>
+            <Link href="/journeys">Journeys</Link>
+            <Link href="/account">Account &amp; Settings</Link>
           </div>
-          {notifs.length ? (
-            <ul className="activity">
-              {notifs.map((n) => (
-                <li key={n.id}>
-                  <span className="activity__ic" aria-hidden="true">✦</span>
-                  <div className="activity__body">
-                    <div className="activity__text">{n.title}</div>
-                    <div className="activity__meta">{relativeTime(n.createdAt)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="home-empty">Everything you do together will gather here, gently.</p>
-          )}
-        </div>
-
-        <div className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">Storage</h2>
+          <div className="msp-fcol">
+            <h4>Explore</h4>
+            <Link href="/inspiration">Inspiration</Link>
+            <Link href="/pricing">Membership</Link>
+            <Link href="/about">Our Story</Link>
+            <Link href="/contact">Contact</Link>
           </div>
-          <p className="home-soon"><span className="home-soon__tag">Coming soon</span></p>
-          <p className="home-empty">Your Magical Moments Library keeps everything safe — detailed storage insights are on the way.</p>
+          <div className="msp-fcol">
+            <h4>Support</h4>
+            <Link href="/notifications">Notifications</Link>
+            <Link href="/contact">Help</Link>
+            <Link href="/account">Privacy &amp; Security</Link>
+          </div>
         </div>
-      </section>
+        <div className="msp-fbar">© {new Date().getFullYear()} Magical Moments by Reign. All rights reserved.</div>
+      </footer>
+    </>
+  );
+}
 
-      <p className="home-foot">
-        Account &amp; settings &mdash; profile, family, security, billing &mdash; live under{" "}
-        <Link href="/account" className="home-foot__link">Account Settings</Link>.
-      </p>
-    </div>
+// Champagne line icons for the summary stats (no emojis on the luxury surfaces).
+function StatIcon({ name }: { name: string }) {
+  const paths: Record<string, React.ReactElement> = {
+    upcoming: (<><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></>),
+    journeys: (<path d="M4 12 L12 5 L20 12 M6 11 V20 H18 V11" />),
+    memories: (<><path d="M12 4 L14.2 9.4 L20 10 L15.6 13.8 L17 20 L12 16.6 L7 20 L8.4 13.8 L4 10 L9.8 9.4 Z" /></>),
+    people: (<><circle cx="12" cy="8" r="4" /><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" /></>),
+  };
+  return (
+    <svg className="msp-sti" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>
   );
 }
