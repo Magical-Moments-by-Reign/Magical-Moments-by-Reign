@@ -1,47 +1,55 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
-import MembershipBuilder from "@/components/pricing/MembershipBuilder";
-import MembershipStart from "@/components/pricing/MembershipStart";
-import "./membership.css";
+import MembershipBuilder from "@/components/site/MembershipBuilder";
+import { LIFETIME_TIERS } from "@/lib/membership-builder";
+import { formatPrice } from "@/lib/plans";
+import "./membership-builder.css";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Build Your Membership",
+  title: "Membership — Magical Moments by Reign",
   description:
-    "Build the membership your family needs — choose your Occasions and your term, and watch the value add up. Flexible, transparent pricing from Magical Moments by Reign.",
+    "Your personal invitation to preserve life's most important moments. Choose your occasions and your term — the price updates as you build.",
 };
 
+// The official Membership Builder: pricing and membership in one warm, elegant
+// place. Occasions + term drive a live price from the real pricing engine.
 export default async function MembershipPage() {
   const signedIn = Boolean(await currentAccount());
   return (
-    <>
+    <div className="mb2">
       <PublicNav active="get-started" signedIn={signedIn} />
-      <main className="mb-page">
-        <header className="mb-hero">
-          <p className="mb-hero__eyebrow">Pricing, your way</p>
-          <h1 className="mb-hero__title">Build the membership your family needs</h1>
-          <p className="mb-hero__lead">
-            No fixed packages. Choose the Occasions you want and the term that fits your
-            life — the price adjusts as you build, and you only ever grow from here.
-            Every membership includes <strong>Free Forever</strong>, and you can upgrade
-            anytime without losing a dollar you've invested.
-          </p>
-        </header>
 
-        <MembershipStart />
+      <header className="mb2-hero">
+        <span className="mb2-eyebrow">By Invitation</span>
+        <h1 className="mb2-h1">Design how your <i>story is kept.</i></h1>
+        <p className="mb2-invite">Your personal invitation to preserve the most important moments of your life — beautifully, and for as long as your heart desires.</p>
+      </header>
 
+      <div className="mb2-wrap">
         <MembershipBuilder />
+      </div>
 
-        <section className="mb-closing">
-          <p>
-            Prefer a guided recommendation, or exploring the classic plans and add-ons?{" "}
-            <Link href="/pricing">See plans &amp; add-ons</Link>. Questions about building
-            your membership? <Link href="/contact">Talk with us</Link>.
-          </p>
+      <div className="mb2-wrap">
+        <section className="mb2-tiers">
+          <h2 className="mb2-tiers__h">The Lifetime <i>Collections</i></h2>
+          <p className="mb2-tiers__s">Kept forever — choose the breadth that fits your family.</p>
+          <div className="mb2-tiergrid">
+            {LIFETIME_TIERS.map((t) => (
+              <article key={t.maxOccasions} className="mb2-tier">
+                <div className="mb2-tier__n">{t.custom ? "The Estate" : t.maxOccasions === 5 ? "The Keepsake" : "The Legacy"}</div>
+                <div className="mb2-tier__rule" aria-hidden="true" />
+                <div className="mb2-tier__p">{formatPrice(t.price)}</div>
+                <div className="mb2-tier__s">{t.label} · one-time · for life</div>
+              </article>
+            ))}
+          </div>
+          <p className="mb2-note">Every membership holds the full experience — you are choosing only how many occasions to include and how long the story is preserved. Prefer we create it all for you? The White Glove Lifetime is our team, at your service.</p>
         </section>
-      </main>
+      </div>
+
       <PublicFooter year={new Date().getFullYear()} />
-    </>
+    </div>
   );
 }

@@ -20,9 +20,9 @@ interface Card { title: string; desc: string; href: string; icon: ReactElement }
 const CARDS: Card[] = [
   { title: "Inspiration", desc: "Daily motivation, affirmations, and beautiful content to keep you inspired and aligned.", href: "/inspiration",
     icon: <><path d="M12 3 L13.6 9.4 L20 11 L13.6 12.6 L12 19 L10.4 12.6 L4 11 L10.4 9.4 Z" /><path d="M18.5 4 L19 6 L21 6.5 L19 7 L18.5 9 L18 7 L16 6.5 L18 6 Z" /></> },
-  { title: "Memberships & Pricing", desc: "Find the perfect plan for you or your family. Flexible options for every chapter of life.", href: "/pricing",
+  { title: "Memberships & Pricing", desc: "Find the perfect plan for you or your family. Flexible options for every chapter of life.", href: "/membership",
     icon: <><path d="M4 8 L7.5 11 L12 5 L16.5 11 L20 8 L18.5 18 H5.5 Z" /></> },
-  { title: "Build Your Membership", desc: "Customize your experience and choose the features that fit your lifestyle.", href: "/build-membership",
+  { title: "Build Your Membership", desc: "Customize your experience and choose the features that fit your lifestyle.", href: "/membership",
     icon: <><circle cx="12" cy="8" r="3.2" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /><path d="M18 4l.7 1.8L20.5 6.5 18.7 7.2 18 9l-.7-1.8L15.5 6.5 17.3 5.8Z" /></> },
   { title: "Business Edition", desc: "Powerful tools and resources designed for entrepreneurs, professionals, and teams.", href: "/business",
     icon: <><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" /></> },
