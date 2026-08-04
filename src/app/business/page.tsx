@@ -21,12 +21,30 @@ const STEPS = [
 ];
 
 const INCLUDES = [
-  { icon: "✦", t: "Bespoke design", d: "Never a template. A look created for your brand alone." },
-  { icon: "🌐", t: "Your own domain", d: "A custom domain and professional email-ready setup." },
-  { icon: "📱", t: "Flawless on every device", d: "Cinematic on desktop, effortless on mobile." },
-  { icon: "🤝", t: "Personal consultation", d: "A real conversation — we build it with you, not at you." },
-  { icon: "🔍", t: "Built to be found", d: "Search-friendly foundations so customers can find you." },
-  { icon: "♾", t: "A lasting home online", d: "A polished, lifetime digital home for your business." },
+  {
+    icon: (<><path d="M12 3l1.9 5.4L19.4 10l-5.5 1.6L12 17l-1.9-5.4L4.6 10l5.5-1.6z" /><path d="M18.4 4.4l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" /></>),
+    t: "Made uniquely for you", d: "Every Magical Moment is personalized around your story, style, photos, and celebration.",
+  },
+  {
+    icon: (<><circle cx="6" cy="12" r="2.4" /><circle cx="17" cy="6" r="2.4" /><circle cx="17" cy="18" r="2.4" /><path d="M8.2 10.9l6.5-3.6M8.2 13.1l6.5 3.6" /></>),
+    t: "Your own shareable page", d: "Receive one beautiful link to share with family and friends anywhere.",
+  },
+  {
+    icon: (<><rect x="2.5" y="5" width="12" height="8.5" rx="1.3" /><path d="M6 17h5.5" /><rect x="16" y="8.5" width="5.5" height="9.5" rx="1.3" /></>),
+    t: "Beautiful on every device", d: "Your moment will look polished and seamless on phones, tablets, and computers.",
+  },
+  {
+    icon: (<><path d="M5 19l8.4-8.4" /><path d="M17 4l.7 1.9 1.9.7-1.9.7L17 9.2l-.7-1.9L14.4 6.6l1.9-.7z" /><path d="M6.6 5l.45 1.3 1.3.45-1.3.45L6.6 8.5l-.45-1.3L4.85 6.75l1.3-.45z" /></>),
+    t: "Easy personal setup", d: "We guide you through each step so creating your page feels simple, joyful, and stress-free.",
+  },
+  {
+    icon: (<><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="M4 17.5l5-4 3.5 2.6M12.5 15l3.5-2.6 4 3.1" /></>),
+    t: "Photos, videos, and memories", d: "Bring your story to life with favorite pictures, videos, messages, milestones, and special details.",
+  },
+  {
+    icon: (<path d="M12 20.5s-6.7-4.3-6.7-9.2A3.6 3.6 0 0 1 12 8a3.6 3.6 0 0 1 6.7 3.3c0 4.9-6.7 9.2-6.7 9.2z" />),
+    t: "A lasting digital keepsake", d: "Your Magical Moment becomes a beautiful online home you can revisit for years to come.",
+  },
 ];
 
 export default async function BusinessPage({
@@ -97,14 +115,16 @@ export default async function BusinessPage({
       <section id="includes" className="biz-section">
         <div className="container">
           <div className="section-head--left">
-            <span className="eyebrow">The craft</span>
-            <h2>Everything a beautiful business site needs</h2>
-            <p className="muted">Designed like a luxury agency project — because that&apos;s exactly what it is.</p>
+            <span className="eyebrow">The Magic</span>
+            <h2>Everything your special moment needs</h2>
+            <p className="muted">Beautifully designed to help you celebrate, share, and preserve life&apos;s most meaningful memories.</p>
           </div>
           <div className="biz-inc-grid">
             {INCLUDES.map((it) => (
               <article className="biz-inc" key={it.t}>
-                <span className="biz-inc__icon" aria-hidden="true">{it.icon}</span>
+                <span className="biz-inc__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">{it.icon}</svg>
+                </span>
                 <h3>{it.t}</h3>
                 <p>{it.d}</p>
               </article>
