@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 interface NavItem { label: string; href?: string; icon: string; match?: string; soon?: boolean; }
 
 const NAV: NavItem[] = [
-  { label: "Home", href: "/home", icon: "🏛", match: "/home" },
+  { label: "Home", href: "/estate/home", icon: "🏡", match: "/estate/home" },
   { label: "My Moments", href: "/dashboard", icon: "✨", match: "/dashboard" },
   { label: "My Journeys", href: "/journeys", icon: "🧭", match: "/journeys" },
   { label: "Events", icon: "🎉", soon: true },

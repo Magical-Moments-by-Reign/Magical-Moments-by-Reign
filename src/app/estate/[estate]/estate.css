@@ -1,0 +1,93 @@
+/* ── Life Estate — a wing of the Magical Space ───────────────────
+   Inherits the luxury tokens from home.css (ivory, champagne, Cormorant).
+   Same shell, same warmth — entering an Estate feels like another elegant
+   room of the same home.                                                   */
+
+.estate {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem) 4rem;
+}
+
+/* Crumb */
+.estate-crumb { font-size: 0.85rem; color: var(--estate-ink-soft); margin-bottom: 1rem; }
+.estate-crumb__link { color: var(--champagne-deep); text-decoration: none; }
+.estate-crumb__link:hover { text-decoration: underline; }
+
+/* Hero */
+.estate-hero {
+  display: flex; align-items: flex-start; gap: 1.1rem;
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+.estate-hero--compact { margin-bottom: 1.25rem; }
+.estate-hero__icon {
+  font-size: 2.4rem; line-height: 1; flex: none;
+  filter: drop-shadow(0 6px 14px rgba(169, 132, 63, 0.35));
+}
+.estate-hero__title {
+  font-family: var(--font-display); font-weight: 600; color: var(--estate-ink);
+  font-size: clamp(1.9rem, 5vw, 2.9rem); line-height: 1.04; margin: 0.1rem 0 0;
+}
+.estate-hero__body { color: var(--estate-ink-soft); font-size: 1.03rem; line-height: 1.6; margin: 0.5rem 0 0; max-width: 60ch; }
+
+/* Concierge panel wrapper */
+.estate-concierge { margin-bottom: clamp(1.5rem, 4vw, 2.25rem); }
+
+/* Sections */
+.estate-section { margin-bottom: clamp(1.75rem, 4vw, 2.5rem); }
+.estate-section__title {
+  font-family: var(--font-display); font-weight: 600; color: var(--plum-900, #1e1226);
+  color: var(--estate-ink); font-size: clamp(1.4rem, 3.2vw, 1.9rem); margin: 0 0 0.35rem;
+}
+.estate-section__sub { color: var(--estate-ink-soft); font-size: 0.98rem; margin: 0 0 1.1rem; max-width: 60ch; }
+
+/* Goal discovery */
+.estate-goalgroup { margin-bottom: 1.1rem; }
+.estate-goalgroup__label {
+  font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--champagne-deep); margin: 0 0 0.5rem; font-weight: 700;
+}
+.estate-goals { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.7rem; }
+.estate-goal {
+  display: flex; flex-direction: column; gap: 0.15rem; text-decoration: none;
+  background: rgba(255, 255, 255, 0.72); backdrop-filter: saturate(140%) blur(8px);
+  border: 1px solid var(--sand-line); border-radius: 14px; padding: 0.85rem 1rem;
+  transition: transform .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.estate-goal:hover { transform: translateY(-2px); border-color: rgba(201, 163, 78, 0.5); box-shadow: 0 16px 34px -24px rgba(74, 58, 23, 0.55); }
+.estate-goal__label { font-weight: 600; color: var(--estate-ink); font-size: 1rem; }
+.estate-goal__desc { color: var(--estate-ink-soft); font-size: 0.85rem; }
+
+/* Module rail */
+.estate-modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.7rem; }
+.estate-module {
+  display: flex; flex-direction: column; gap: 0.3rem; text-decoration: none;
+  background: rgba(255, 255, 255, 0.72); border: 1px solid var(--sand-line);
+  border-radius: 14px; padding: 1rem; color: var(--estate-ink);
+  transition: transform .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.estate-module--live:hover { transform: translateY(-2px); border-color: rgba(201, 163, 78, 0.55); box-shadow: 0 16px 34px -24px rgba(74, 58, 23, 0.55); }
+.estate-module--soon { background: rgba(255, 255, 255, 0.5); border-style: dashed; }
+.estate-module__icon { font-size: 1.5rem; }
+.estate-module__label { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--estate-ink); display: flex; align-items: center; gap: 0.5rem; }
+.estate-module__soon { font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--estate-ink-soft); border: 1px solid var(--sand-line); border-radius: 999px; padding: 0.1rem 0.45rem; }
+.estate-module__desc { color: var(--estate-ink-soft); font-size: 0.88rem; line-height: 1.45; }
+
+/* Cross-estate */
+.estate-cross { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.7rem; }
+.estate-cross__item { display: flex; flex-direction: column; gap: 0.15rem; background: rgba(201, 163, 78, 0.07); border: 1px solid var(--sand-line); border-radius: 14px; padding: 0.85rem 1rem; }
+.estate-cross__name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--estate-ink); text-transform: capitalize; }
+.estate-cross__reason { color: var(--estate-ink-soft); font-size: 0.85rem; }
+.estate-cross__soon { margin-top: 0.35rem; font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--estate-ink-soft); }
+
+/* Learn */
+.estate-learn { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.8rem; }
+.estate-topic { background: rgba(255, 255, 255, 0.72); border: 1px solid var(--sand-line); border-radius: 16px; padding: 1.1rem 1.2rem; box-shadow: 0 14px 34px -28px rgba(74, 58, 23, 0.5); }
+.estate-topic__title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--estate-ink); margin: 0 0 0.35rem; }
+.estate-topic__summary { color: var(--estate-ink-soft); font-size: 0.92rem; line-height: 1.55; margin: 0 0 0.6rem; }
+.estate-topic__note { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--estate-ink-soft); border: 1px solid var(--sand-line); border-radius: 999px; padding: 0.12rem 0.5rem; }
+.estate-learn__disclaimer { margin-top: 1.2rem; color: var(--estate-ink-soft); font-size: 0.86rem; line-height: 1.55; max-width: 70ch; font-style: italic; }
+
+.estate-foot { margin-top: 2rem; }
+.estate-foot__link { color: var(--champagne-deep); text-decoration: none; font-size: 0.9rem; }
+.estate-foot__link:hover { text-decoration: underline; }
