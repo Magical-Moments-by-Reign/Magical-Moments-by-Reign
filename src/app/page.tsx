@@ -76,7 +76,6 @@ export default async function LandingPage() {
             <path d="M22 2l1.6 6.4L30 10l-6.4 1.6L22 18l-1.6-6.4L14 10l6.4-1.6z" />
             <path d="M33 5l.8 2.6L36 8l-2.2.4L33 11l-.8-2.6L30 8l2.2-.4z" opacity=".8" />
           </svg>
-          <span className="lp-heyebrow">The world&rsquo;s first Luxury Life Operating System</span>
           <h1 className="lp-h1">Life is more magical when it&rsquo;s <i>designed with intention.</i></h1>
           <div className="lp-hdiv" aria-hidden="true" />
           <p className="lp-hsub">
@@ -100,7 +99,7 @@ export default async function LandingPage() {
 
       {/* ── The vision ── */}
       <section className="lp-vision">
-        <span className="lp-eyebrow">Our vision</span>
+        <span className="lp-eyebrow">The world&rsquo;s first Luxury Life Operating System</span>
         <h2 className="lp-vision__t">One home for your family&rsquo;s <i>entire life.</i></h2>
         <p className="lp-vision__p">
           We are not an app. Magical Moments by Reign is a luxury lifestyle brand &mdash; a single,
