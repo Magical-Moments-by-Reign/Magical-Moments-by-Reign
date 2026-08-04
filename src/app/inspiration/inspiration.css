@@ -9,7 +9,7 @@
   background:
     radial-gradient(55% 80% at 12% 0%, rgba(169,140,208,0.22), transparent 60%),
     radial-gradient(50% 70% at 92% 8%, rgba(198,161,90,0.22), transparent 55%),
-    linear-gradient(160deg, #221d2b, #17141d);
+    linear-gradient(160deg, #2a2016, #201811);
   color: var(--cream-100);
 }
 .insp-hero__eyebrow { color: var(--gold-soft); }
@@ -62,7 +62,7 @@
 .insp-photo:hover figcaption { opacity: 1; }
 
 /* CTA */
-.insp-cta { margin-top: clamp(3rem, 6vw, 5rem); text-align: center; background: linear-gradient(160deg, #221d2b, #17141d); color: var(--cream-100); border-radius: 24px; padding: clamp(2.4rem, 5vw, 4rem); }
+.insp-cta { margin-top: clamp(3rem, 6vw, 5rem); text-align: center; background: linear-gradient(160deg, #2a2016, #201811); color: var(--cream-100); border-radius: 24px; padding: clamp(2.4rem, 5vw, 4rem); }
 .insp-cta h2 { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); margin: 0 0 0.5rem; }
 .insp-cta p { color: rgba(248,244,236,0.82); margin: 0 auto 1.4rem; max-width: 36rem; }
 .insp-cta__actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }

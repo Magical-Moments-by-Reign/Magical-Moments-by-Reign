@@ -3,7 +3,7 @@
    ================================================================ */
 .mp { background: var(--cream-100); color: #2a2630; min-height: 100vh; font-family: var(--font-body); }
 .mp .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
-.mp-header { padding: clamp(2rem, 5vw, 3.4rem) 0 clamp(1.6rem, 3vw, 2.4rem); background: linear-gradient(160deg, var(--charcoal-900, #17141d), var(--charcoal-800, #221d2b)); color: var(--cream-100); }
+.mp-header { padding: clamp(2rem, 5vw, 3.4rem) 0 clamp(1.6rem, 3vw, 2.4rem); background: linear-gradient(160deg, var(--charcoal-900, #201811), var(--charcoal-800, #2a2016)); color: var(--cream-100); }
 .mp-back { display: block; margin-bottom: 0.9rem; color: rgba(248,244,236,0.7); font-size: 0.84rem; text-decoration: none; }
 .mp-back:hover { color: var(--gold-soft); }
 .mp-header h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 4.5vw, 2.8rem); margin: 0.5rem 0 0.4rem; }
@@ -43,7 +43,7 @@
 .mu-q__vid { color: var(--gold-soft); font-size: 1rem; }
 .mu-q__info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1; }
 .mu-q__name { font-size: 0.9rem; color: #211d29; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mu-q__meta { font-size: 0.78rem; color: #9a93a2; }
+.mu-q__meta { font-size: 0.78rem; color: #a1917a; }
 .mu-q__bar { height: 6px; background: var(--gray-200); border-radius: 999px; overflow: hidden; margin-top: 0.25rem; }
 .mu-q__bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-soft), var(--gold-deep)); transition: width 0.2s; }
 .mu-q__ok { font-size: 0.82rem; color: #3f6f52; font-weight: 600; }
@@ -54,7 +54,7 @@
 
 /* Media grid */
 .mu-section-title { font-family: var(--font-display); font-size: 1.3rem; color: #211d29; margin: 2rem 0 1rem; }
-.mu-section-title span { color: #9a93a2; font-size: 1rem; }
+.mu-section-title span { color: #a1917a; font-size: 1rem; }
 .mu-empty { color: #7c7583; font-size: 0.95rem; }
 .mu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.8rem; }
 .mu-tile { position: relative; margin: 0; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #1c1822; box-shadow: 0 16px 34px -34px rgba(43,39,50,0.5); }

@@ -131,7 +131,7 @@ export default async function SignupPage({
           </div>
 
           <label className="auth-field"><span>Street address</span><input name="line1" required autoComplete="address-line1" /></label>
-          <label className="auth-field"><span>Apartment / unit <span style={{ color: "#a79", fontWeight: 400 }}>(optional)</span></span><input name="line2" autoComplete="address-line2" /></label>
+          <label className="auth-field"><span>Apartment / unit <span style={{ color: "#8a7a63", fontWeight: 400 }}>(optional)</span></span><input name="line2" autoComplete="address-line2" /></label>
           <div className="auth-row">
             <label className="auth-field"><span>City</span><input name="city" required autoComplete="address-level2" /></label>
             <label className="auth-field"><span>State / region</span><input name="state" required autoComplete="address-level1" /></label>
@@ -148,7 +148,7 @@ export default async function SignupPage({
             account can be used — and they'll always control what it can see and do.
           </div>
           <label className="auth-field">
-            <span>Parent / guardian email <span style={{ color: "#a79", fontWeight: 400 }}>(required for teens & children)</span></span>
+            <span>Parent / guardian email <span style={{ color: "#8a7a63", fontWeight: 400 }}>(required for teens & children)</span></span>
             <input name="guardianEmail" type="email" autoComplete="off" />
           </label>
 

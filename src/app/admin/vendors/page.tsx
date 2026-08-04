@@ -43,11 +43,11 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
           {!canManage && <div className="auth-note auth-note--info">You have read-only access to vendors.</div>}
 
           <h2>Applications awaiting review ({applications.length})</h2>
-          {applications.length === 0 ? <p style={{ color: "#8a8394" }}>No new applications.</p> : applications.map((a) => (
+          {applications.length === 0 ? <p style={{ color: "#a1917a" }}>No new applications.</p> : applications.map((a) => (
             <div key={a.id} className="acct__row" style={{ alignItems: "flex-start" }}>
               <span className="acct__v">
                 {a.businessName} <span className="chip chip--muted">{a.number}</span>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "#857e91", fontWeight: 400 }}>{a.ownerName} · {a.city}, {a.state} · {a.email}</span>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "#8a7a63", fontWeight: 400 }}>{a.ownerName} · {a.city}, {a.state} · {a.email}</span>
               </span>
               {canManage && (
                 <span className="ntf-actions" style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
@@ -64,7 +64,7 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
             <div key={v.id} className="acct__row" style={{ alignItems: "flex-start" }}>
               <span className="acct__v">
                 {v.businessName}
-                <span style={{ display: "block", fontSize: "0.78rem", color: "#857e91", fontWeight: 400 }}>
+                <span style={{ display: "block", fontSize: "0.78rem", color: "#8a7a63", fontWeight: 400 }}>
                   <span className={`chip ${v.status === "APPROVED" ? "chip--ok" : v.status === "SUSPENDED" || v.status === "REMOVED" ? "chip--warn" : "chip--muted"}`}>{v.status.toLowerCase()}</span>{" "}
                   membership {v.membershipStatus.toLowerCase()} · badge {v.badge} · strikes {v._count.strikes} · neg {v.verifiedNegatives}
                   {v.pendingProfile && <span className="chip chip--warn" style={{ marginLeft: 6 }}>profile change pending</span>}

@@ -40,12 +40,12 @@ export default async function VendorCompliancePage() {
 
       <h2>Documents</h2>
       {creds.length === 0 ? (
-        <p style={{ color: "#8a8394" }}>No documents on file yet. Our team will let you know exactly what's required for your category.</p>
+        <p style={{ color: "#a1917a" }}>No documents on file yet. Our team will let you know exactly what's required for your category.</p>
       ) : (
         creds.map((c) => (
           <div className="acct__row" key={c.kind}>
-            <span className="acct__v">{LABELS[c.kind] ?? c.kind}{c.required && <span style={{ color: "#a79", fontWeight: 400, fontSize: "0.8rem" }}> · required</span>}</span>
-            <span className="acct__v">{statusChip(c)}{c.expiresAt && <span style={{ fontSize: "0.78rem", color: "#9a93a2", marginLeft: 6 }}>exp {c.expiresAt.toLocaleDateString()}</span>}</span>
+            <span className="acct__v">{LABELS[c.kind] ?? c.kind}{c.required && <span style={{ color: "#8a7a63", fontWeight: 400, fontSize: "0.8rem" }}> · required</span>}</span>
+            <span className="acct__v">{statusChip(c)}{c.expiresAt && <span style={{ fontSize: "0.78rem", color: "#a1917a", marginLeft: 6 }}>exp {c.expiresAt.toLocaleDateString()}</span>}</span>
           </div>
         ))
       )}

@@ -3,7 +3,7 @@
   position: fixed; right: clamp(1rem, 3vw, 1.75rem); bottom: clamp(1rem, 3vw, 1.75rem);
   z-index: 900; display: inline-flex; align-items: center; gap: 0.55rem;
   padding: 0.8rem 1.3rem; border: none; border-radius: 999px; cursor: pointer;
-  background: linear-gradient(135deg, #6b4a8f, #c6a15a); color: #fff;
+  background: linear-gradient(135deg, #8a6a3a, #c6a15a); color: #fff;
   font: inherit; font-weight: 600; font-size: 0.95rem;
   box-shadow: 0 16px 34px -14px rgba(107,74,143,0.7);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -22,7 +22,7 @@
 .am-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.9rem 1.1rem; color: #fff;
-  background: linear-gradient(135deg, #4b3b78, #6b4a8f);
+  background: linear-gradient(135deg, #4b3b78, #8a6a3a);
 }
 .am-head__title { font-family: var(--font-display); font-size: 1.2rem; display: flex; align-items: center; gap: 0.45rem; }
 .am-head__title span { color: var(--gold-soft, #d9bd82); }
@@ -33,12 +33,12 @@
 .am-msg { display: flex; }
 .am-msg--user { justify-content: flex-end; }
 .am-bubble { max-width: 85%; padding: 0.65rem 0.9rem; border-radius: 14px; font-size: 0.92rem; line-height: 1.5; }
-.am-msg--assistant .am-bubble { background: #fff; border: 1px solid rgba(42,33,48,0.1); color: var(--ink, #2a2130); border-bottom-left-radius: 4px; }
-.am-msg--user .am-bubble { background: linear-gradient(135deg, #6b4a8f, #8a6bb0); color: #fff; border-bottom-right-radius: 4px; }
+.am-msg--assistant .am-bubble { background: #fff; border: 1px solid rgba(42,33,48,0.1); color: var(--ink, #3f3424); border-bottom-left-radius: 4px; }
+.am-msg--user .am-bubble { background: linear-gradient(135deg, #8a6a3a, #8a6bb0); color: #fff; border-bottom-right-radius: 4px; }
 .am-bubble strong { font-weight: 700; }
 
 .am-typing { display: inline-flex; gap: 4px; }
-.am-typing span { width: 7px; height: 7px; border-radius: 999px; background: var(--muted, #6f6577); opacity: 0.5; animation: am-blink 1.2s infinite both; }
+.am-typing span { width: 7px; height: 7px; border-radius: 999px; background: var(--muted, #8a7a63); opacity: 0.5; animation: am-blink 1.2s infinite both; }
 .am-typing span:nth-child(2) { animation-delay: 0.2s; }
 .am-typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes am-blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
@@ -46,7 +46,7 @@
 .am-input { display: flex; align-items: flex-end; gap: 0.5rem; padding: 0.7rem; border-top: 1px solid rgba(42,33,48,0.1); background: #fff; }
 .am-input textarea {
   flex: 1; resize: none; max-height: 120px; padding: 0.6rem 0.75rem; font: inherit; font-size: 0.92rem;
-  border: 1.5px solid rgba(42,33,48,0.16); border-radius: 12px; color: var(--ink, #2a2130); background: #fff;
+  border: 1.5px solid rgba(42,33,48,0.16); border-radius: 12px; color: var(--ink, #3f3424); background: #fff;
 }
 .am-input textarea:focus { outline: none; border-color: var(--gold, #c6a15a); }
 .am-send {
@@ -56,6 +56,6 @@
 .am-send:hover:not(:disabled) { background: var(--gold-deep, #a9843f); }
 .am-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.am-fine { margin: 0; padding: 0.5rem 1rem 0.8rem; font-size: 0.68rem; color: var(--muted, #6f6577); text-align: center; background: #fff; line-height: 1.4; }
+.am-fine { margin: 0; padding: 0.5rem 1rem 0.8rem; font-size: 0.68rem; color: var(--muted, #8a7a63); text-align: center; background: #fff; line-height: 1.4; }
 
 @media print { .am-fab, .am-panel { display: none !important; } }

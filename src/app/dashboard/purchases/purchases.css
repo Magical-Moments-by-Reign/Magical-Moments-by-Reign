@@ -1,10 +1,10 @@
 /* ================================================================
    Purchase Concierge
    ================================================================ */
-.pc { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); min-height: 100vh; font-family: var(--font-body); }
+.pc { background: var(--cream, #fbf8f3); color: var(--ink, #3f3424); min-height: 100vh; font-family: var(--font-body); }
 .pc .container { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
 
-.pc-header { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(2rem, 4vw, 2.5rem); background: radial-gradient(60% 90% at 15% 0%, rgba(198,161,90,0.28), transparent 60%), radial-gradient(50% 80% at 92% 8%, rgba(169,140,208,0.24), transparent 55%), linear-gradient(160deg, #241f2e, #17131d); color: var(--cream, #fbf8f3); }
+.pc-header { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(2rem, 4vw, 2.5rem); background: radial-gradient(60% 90% at 15% 0%, rgba(198,161,90,0.28), transparent 60%), radial-gradient(50% 80% at 92% 8%, rgba(169,140,208,0.24), transparent 55%), linear-gradient(160deg, #2a2018, #17131d); color: var(--cream, #fbf8f3); }
 .pc-back { color: rgba(248,244,236,0.75); font-size: 0.85rem; text-decoration: none; }
 .pc-back:hover { color: var(--gold-soft, #d9bd82); }
 .pc-header h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); margin: 0.4rem 0 0.5rem; }

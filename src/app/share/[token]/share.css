@@ -9,7 +9,7 @@
   background:
     radial-gradient(55% 80% at 12% 0%, rgba(169,140,208,0.22), transparent 60%),
     radial-gradient(50% 70% at 92% 8%, rgba(198,161,90,0.22), transparent 55%),
-    linear-gradient(160deg, #221d2b, #17141d);
+    linear-gradient(160deg, #2a2016, #201811);
   color: var(--cream-100); text-align: center;
 }
 .shv-brand { font-family: var(--font-display); letter-spacing: 0.14em; font-size: 1.1rem; margin-bottom: 1.4rem; }
@@ -32,13 +32,13 @@
 .shv-card__type { position: absolute; top: 0.7rem; left: 0.7rem; font-size: 0.72rem; font-weight: 700; color: #241f12; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); padding: 0.25rem 0.6rem; border-radius: 999px; }
 .shv-card__body { padding: 1.3rem 1.4rem; display: flex; flex-direction: column; justify-content: center; }
 .shv-card__body h2 { font-family: var(--font-display); font-size: 1.5rem; color: #211d29; margin: 0 0 0.3rem; }
-.shv-card__sub { color: #6a6370; font-size: 0.92rem; margin: 0 0 0.7rem; }
+.shv-card__sub { color: #8a7a63; font-size: 0.92rem; margin: 0 0 0.7rem; }
 .shv-card__cta { font-size: 0.86rem; font-weight: 600; color: var(--gold-deep); }
-.shv-locked { text-align: center; color: #9a93a2; font-size: 0.85rem; margin-top: 2.5rem; }
+.shv-locked { text-align: center; color: #a1917a; font-size: 0.85rem; margin-top: 2.5rem; }
 
 /* Gate (expired / max views / password) */
 .shv--gate { display: grid; place-items: center; padding: 2rem; }
-.shv-gate { max-width: 30rem; text-align: center; background: linear-gradient(160deg, #221d2b, #17141d); color: var(--cream-100); border: 1px solid rgba(198,161,90,0.25); border-radius: 22px; padding: clamp(2rem, 5vw, 3.2rem); }
+.shv-gate { max-width: 30rem; text-align: center; background: linear-gradient(160deg, #2a2016, #201811); color: var(--cream-100); border: 1px solid rgba(198,161,90,0.25); border-radius: 22px; padding: clamp(2rem, 5vw, 3.2rem); }
 .shv-gate__mark { width: 54px; height: 54px; margin: 0 auto 0.8rem; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--gold-soft), var(--gold-deep)); color: #241f12; font-size: 1.4rem; }
 .shv-gate__brand { font-family: var(--font-display); letter-spacing: 0.14em; margin-bottom: 1.4rem; }
 .shv-gate__brand span { color: var(--gold-soft); text-transform: uppercase; letter-spacing: 0.4em; font-size: 0.62rem; }

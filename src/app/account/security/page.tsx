@@ -48,7 +48,7 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
         <div className="acct__row" key={s.id}>
           <span className="acct__v">
             {s.device} {s.current && <span className="chip chip--ok">this device</span>}
-            <span style={{ display: "block", fontSize: "0.78rem", color: "#9a93a2", fontWeight: 400 }}>
+            <span style={{ display: "block", fontSize: "0.78rem", color: "#a1917a", fontWeight: 400 }}>
               Signed in {s.createdAt.toLocaleString()} · expires {s.expiresAt.toLocaleDateString()}
             </span>
           </span>
@@ -76,11 +76,11 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
         <span className="acct__v">Apple</span>
         <span className="acct__v"><span className={`chip ${data?.appleSub ? "chip--ok" : "chip--muted"}`}>{data?.appleSub ? "connected" : "not connected"}</span></span>
       </div>
-      <p style={{ fontSize: "0.82rem", color: "#8a8394" }}>Social sign-in stores only the provider's account identifier — never your password or tokens.</p>
+      <p style={{ fontSize: "0.82rem", color: "#a1917a" }}>Social sign-in stores only the provider's account identifier — never your password or tokens.</p>
 
       {/* ── Privacy ── */}
       <h2 id="privacy">Privacy</h2>
-      <p style={{ color: "#6b6474" }}>
+      <p style={{ color: "#8a7a63" }}>
         Your memories are yours. We <b>never</b> track your location, listen in, or monitor private activity.
         Passwords and security tokens are stored only as one-way hashes, and we never sell your data.
       </p>

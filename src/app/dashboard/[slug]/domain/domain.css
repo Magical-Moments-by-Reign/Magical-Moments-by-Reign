@@ -19,7 +19,7 @@
 .dm-banner p { margin: 0; color: #8a6a24; font-size: 0.94rem; line-height: 1.5; }
 
 .dm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.3rem 0 0; }
-.dm-grid dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9a93a2; }
+.dm-grid dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #a1917a; }
 .dm-grid dd { margin: 0.2rem 0 0; font-weight: 600; color: #211d29; font-size: 0.95rem; }
 
 .dm-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; margin-top: 1.5rem; }

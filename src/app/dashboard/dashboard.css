@@ -20,9 +20,9 @@
 .storycard__stats { display: flex; gap: 1.2rem; margin: 0.3rem 0; padding: 0.6rem 0; border-top: 1px solid var(--cream-200); border-bottom: 1px solid var(--cream-200); }
 .storycard__stat { display: flex; flex-direction: column; }
 .storycard__stat b { font-family: var(--font-display); font-size: 1.1rem; color: var(--plum-800); }
-.storycard__stat span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: #9a93a2; }
+.storycard__stat span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: #a1917a; }
 .storycard__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; }
-.storycard__btn { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 0.5rem 0.9rem; border-radius: 9px; border: 1px solid var(--gray-200); background: #fff; color: #4a4551; cursor: pointer; text-decoration: none; transition: border-color 0.25s, background 0.25s; }
+.storycard__btn { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 0.5rem 0.9rem; border-radius: 9px; border: 1px solid var(--gray-200); background: #fff; color: #55452e; cursor: pointer; text-decoration: none; transition: border-color 0.25s, background 0.25s; }
 .storycard__btn:hover { border-color: var(--lavender); }
 .storycard__btn--primary { background: var(--plum-800); color: var(--ivory); border-color: transparent; }
 .storycard__btn--primary:hover { background: var(--plum-700); }
@@ -53,6 +53,6 @@
 
 /* Start a Journey — central enlarged CTA (replaces the family timeline) */
 .studio-start { text-align: center; padding: clamp(2.5rem, 7vw, 5rem) 1rem clamp(2rem, 5vw, 3.5rem); }
-.studio-start__title { font-family: var(--font-display); font-size: clamp(2.2rem, 6vw, 3.6rem); color: var(--ink, #2a2130); margin: 0 0 0.6rem; }
-.studio-start__sub { color: var(--muted, #6f6577); font-size: clamp(1rem, 2.2vw, 1.15rem); max-width: 40rem; margin: 0 auto 2rem; line-height: 1.6; }
+.studio-start__title { font-family: var(--font-display); font-size: clamp(2.2rem, 6vw, 3.6rem); color: var(--ink, #3f3424); margin: 0 0 0.6rem; }
+.studio-start__sub { color: var(--muted, #8a7a63); font-size: clamp(1rem, 2.2vw, 1.15rem); max-width: 40rem; margin: 0 auto 2rem; line-height: 1.6; }
 .studio-start__btn { font-size: clamp(1.05rem, 2.4vw, 1.3rem); padding: 1.1rem 2.8rem; border-radius: 999px; }

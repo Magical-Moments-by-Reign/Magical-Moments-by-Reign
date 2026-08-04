@@ -1,7 +1,7 @@
 /* ================================================================
    Build a Home — New Home Journey
    ================================================================ */
-.bhp { background: var(--cream, #fbf8f3); color: var(--ink, #2a2130); min-height: 100vh; font-family: var(--font-body); }
+.bhp { background: var(--cream, #fbf8f3); color: var(--ink, #3f3424); min-height: 100vh; font-family: var(--font-body); }
 .bhp .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
 .bhp-hero {
   padding: clamp(3rem, 7vw, 5rem) 0 clamp(2.5rem, 5vw, 3.5rem); text-align: center;

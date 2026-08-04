@@ -67,10 +67,10 @@ export default async function AdminHome() {
           )}
 
           <h2>At a glance</h2>
-          {cards.length === 0 ? <p style={{ color: "#8a8394" }}>No dashboards available for your role.</p> : (
+          {cards.length === 0 ? <p style={{ color: "#a1917a" }}>No dashboards available for your role.</p> : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "0.8rem", marginTop: "0.6rem" }}>
               {cards.map((c) => (
-                <Link key={c.label} href={c.href} style={{ textDecoration: "none", border: "1px solid #ece5d8", borderRadius: 14, padding: "0.9rem 1rem", background: "#fffdfa", color: "#241f2e" }}>
+                <Link key={c.label} href={c.href} style={{ textDecoration: "none", border: "1px solid #ece5d8", borderRadius: 14, padding: "0.9rem 1rem", background: "#fffdfa", color: "#2a2018" }}>
                   <div className="acct__k">{c.label}</div>
                   <div style={{ fontSize: "1.7rem", fontFamily: "var(--font-display, serif)", marginTop: 4 }}>{c.value}</div>
                 </Link>
