@@ -27,10 +27,9 @@ export default async function LandingPage() {
             <span className="lp-nav__n"><b>MAGICAL MOMENTS</b><span>BY REIGN</span></span>
           </Link>
           <div className="lp-nav__m">
+            <Link href="/">Home</Link>
+            <Link href="/get-started">Get Started</Link>
             <Link href="/about">About</Link>
-            <Link href="/journeys">Experiences</Link>
-            <Link href="/inspiration">Inspiration</Link>
-            <Link href="/membership">Membership</Link>
             <Link href="/contact">Contact</Link>
           </div>
           <div className="lp-nav__r">
@@ -39,7 +38,7 @@ export default async function LandingPage() {
             ) : (
               <>
                 <Link href="/login" className="lp-btn-o">Sign In</Link>
-                <Link href="/signup" className="lp-btn-g">Get Started</Link>
+                <Link href="/get-started" className="lp-btn-g">Get Started</Link>
               </>
             )}
           </div>
@@ -96,7 +95,7 @@ export default async function LandingPage() {
             <span className="lp-feat__s">Personalized experiences designed around you.</span>
           </div>
         </div>
-        <Link href="/membership" className="lp-explore">Explore all features</Link>
+        <Link href="/get-started" className="lp-explore">Explore all features</Link>
       </section>
 
       {/* A quiet moment */}
@@ -111,7 +110,7 @@ export default async function LandingPage() {
       <section className="lp-cta">
         <h2 className="lp-cta__t">Ready to create something magical?</h2>
         <p className="lp-cta__s">Join now and start your journey.</p>
-        <Link href={signedIn ? "/home" : "/signup"} className="lp-btn-g" style={{ padding: "1rem 2.2rem", fontSize: "0.76rem" }}>
+        <Link href={signedIn ? "/home" : "/get-started"} className="lp-btn-g" style={{ padding: "1rem 2.2rem", fontSize: "0.76rem" }}>
           {signedIn ? "Enter your Magical Space" : "Get Started Today"}
         </Link>
       </section>
