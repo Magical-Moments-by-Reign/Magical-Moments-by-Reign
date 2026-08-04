@@ -9,6 +9,9 @@ import { PLANS, formatPrice } from "@/lib/plans";
 // driven by the REAL approved PLANS config (no invented prices). Tax is not
 // fabricated: it's stated as calculated at checkout.
 
+// Real, approved price for the white-glove Custom Concierge experience.
+const CONCIERGE_PRICE = 5000;
+
 const OCCASIONS: { id: string; label: string; icon: ReactElement }[] = [
   { id: "wedding", label: "Wedding", icon: <><circle cx="9" cy="14" r="4" /><circle cx="15" cy="14" r="4" /><path d="M9 8l1.5-3M15 8l-1.5-3" /></> },
   { id: "birthday", label: "Birthday", icon: <><path d="M4 21h16v-7H4z" /><path d="M4 14c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2" /><path d="M12 6v4" /></> },
@@ -25,8 +28,16 @@ const OCCASIONS: { id: string; label: string; icon: ReactElement }[] = [
 export default function MembershipBuilder() {
   const [occasion, setOccasion] = useState<string>("wedding");
   const [planId, setPlanId] = useState<string>("diamond");
-  const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0];
   const occ = OCCASIONS.find((o) => o.id === occasion);
+
+  // The white-glove, done-for-you alternative. $5,000 is the real, approved
+  // price (see Custom Concierge experience). It is a consultative service, so
+  // it is requested via the concierge form rather than self-serve checkout.
+  const isConcierge = planId === "concierge";
+  const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0];
+  const sel = isConcierge
+    ? { name: "Custom Concierge Experience", termShort: "Done-for-you", price: CONCIERGE_PRICE }
+    : { name: plan.name, termShort: plan.termShort, price: plan.price };
 
   return (
     <div className="bm">
@@ -71,6 +82,16 @@ export default function MembershipBuilder() {
               </button>
             ))}
           </div>
+
+          {/* White-glove alternative — done for you */}
+          <button type="button" className={`bm-concierge${isConcierge ? " on" : ""}`} onClick={() => setPlanId("concierge")} aria-pressed={isConcierge}>
+            <span className="bm-concierge__mark" aria-hidden="true" />
+            <span className="bm-concierge__b">
+              <span className="bm-concierge__n">Custom Concierge Experience <span className="bm-concierge__tag">White-Glove</span></span>
+              <span className="bm-concierge__d">Prefer we do it all for you? Our team designs, builds, and produces your entire experience — start to finish.</span>
+            </span>
+            <span className="bm-concierge__p">{formatPrice(CONCIERGE_PRICE)}<small>starting at</small></span>
+          </button>
         </div>
 
         <aside className="bm-preview">
@@ -80,23 +101,32 @@ export default function MembershipBuilder() {
             <span className="bm-preview__v">{occ?.label ?? "—"}</span>
           </div>
           <div className="bm-preview__row">
-            <span className="bm-preview__k">Membership</span>
-            <span className="bm-preview__v">{plan.name}</span>
+            <span className="bm-preview__k">{isConcierge ? "Service" : "Membership"}</span>
+            <span className="bm-preview__v">{sel.name}</span>
           </div>
           <div className="bm-preview__row">
-            <span className="bm-preview__k">Term</span>
-            <span className="bm-preview__v">{plan.termShort}</span>
+            <span className="bm-preview__k">{isConcierge ? "Type" : "Term"}</span>
+            <span className="bm-preview__v">{sel.termShort}</span>
           </div>
           <div className="bm-preview__row">
             <span className="bm-preview__k">Price</span>
-            <span className="bm-preview__v">{formatPrice(plan.price)}</span>
+            <span className="bm-preview__v">{formatPrice(sel.price)}{isConcierge ? " starting" : ""}</span>
           </div>
           <div className="bm-preview__total">
-            <span className="bm-preview__k">Today&apos;s total</span>
-            <b>{formatPrice(plan.price)}</b>
+            <span className="bm-preview__k">{isConcierge ? "Starting at" : "Today’s total"}</span>
+            <b>{formatPrice(sel.price)}</b>
           </div>
-          <p className="bm-preview__note">One-time payment for the {plan.termShort.toLowerCase()} term. Any applicable taxes are calculated at checkout. Upgrade anytime without losing a dollar.</p>
-          <a href={`/checkout?plan=${plan.id}`} className="bm-preview__cta">Continue to Checkout →</a>
+          {isConcierge ? (
+            <>
+              <p className="bm-preview__note">A white-glove, done-for-you service — our team designs, builds, and produces your entire experience. Final pricing is confirmed with you during a private consultation; nothing is charged until you approve.</p>
+              <a href="/contact?reason=concierge#send" className="bm-preview__cta">Request Concierge Experience →</a>
+            </>
+          ) : (
+            <>
+              <p className="bm-preview__note">One-time payment for the {plan.termShort.toLowerCase()} term. Any applicable taxes are calculated at checkout. Upgrade anytime without losing a dollar.</p>
+              <a href={`/checkout?plan=${plan.id}`} className="bm-preview__cta">Continue to Checkout →</a>
+            </>
+          )}
         </aside>
       </div>
 
