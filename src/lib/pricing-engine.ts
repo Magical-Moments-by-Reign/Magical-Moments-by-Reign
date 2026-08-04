@@ -66,6 +66,29 @@ export function collectionFor(occasionCount: number): LifetimeCollection {
   );
 }
 
+// ── Membership entitlement — the ENGINE controls what a selection can hold ──
+// The membership determines access, not the UI. The Builder reads these so the
+// occasion selector can never offer more than the chosen membership is entitled
+// to. Free Forever reserves nothing (it is a basic introduction). Lifetime
+// reserves up to the Reign cap (10 Life Estates); the all-inclusive Magical
+// collection is chosen from the Lifetime Collections, not built one-by-one.
+// Every other paid term reserves as many occasions as the member wishes
+// (priced per occasion by quote()).
+export const LIFETIME_ESTATE_LIMIT: number =
+  LIFETIME_COLLECTIONS.find((c) => c.id === "reign")?.maxOccasions ?? 10;
+
+/** The maximum Life Estates a builder membership selection may reserve. */
+export function estateLimitFor(selection: "free" | TermId): number {
+  if (selection === "free") return 0;
+  if (selection === "lifetime") return LIFETIME_ESTATE_LIMIT;
+  return Infinity; // monthly / annual / multi-year: pay per occasion, no cap
+}
+
+/** Whether a selection may reserve any Life Estates at all (false for Free Forever). */
+export function canReserveEstates(selection: "free" | TermId): boolean {
+  return estateLimitFor(selection) > 0;
+}
+
 // ── PRICE KNOBS — the one place to change prices ────────────────
 // OFFICIAL, active pricing. Tuned so the Pricing Protection Rule reads
 // coherently in preview (long multi-occasion term builds cost more than the

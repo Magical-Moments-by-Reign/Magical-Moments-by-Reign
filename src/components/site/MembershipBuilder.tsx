@@ -2,133 +2,134 @@
 
 import { useState } from "react";
 import {
-  TERMS, quote, collectionFor, JOURNEY_PROTECTION, formatUSD, getTerm, type TermId,
+  quote, collectionFor, JOURNEY_PROTECTION, formatUSD, getTerm,
+  estateLimitFor, canReserveEstates, type TermId,
 } from "@/lib/pricing-engine";
-import { OCCASIONS } from "@/lib/membership-builder";
+import { EXPERIENCES, getExperience } from "@/lib/membership-builder";
 import { FREE_FOREVER_INCLUDES, UPGRADE_COPY } from "@/lib/membership-access";
 
-// The official Membership Builder — powered by the canonical pricing engine.
-// Occasions are multi-select; the term drives a live quote (with real
-// multi-occasion savings); Monthly members can add Journey Protection; Lifetime
-// members get a gentle "fill your collection" reminder. No invented prices —
-// every amount comes from lib/pricing-engine.
+// The official Membership Builder — the MEMBERSHIP is chosen first and controls
+// what may be selected (entitlement lives in the pricing engine, never the UI):
+//   • Free Forever      → cannot select Life Estates (selector is replaced by an
+//                         upgrade invitation).
+//   • Monthly/Annual/…  → select as many Life Experiences as desired.
+//   • Lifetime          → reserve up to the Lifetime limit (a live counter).
+// Changing down to Free Forever clears any selections and explains why. Each
+// chosen chapter can be personalized with its milestones (not priced). Every
+// amount comes from lib/pricing-engine.
 type Selection = "free" | TermId;
 
-const BUILD_TERMS: { id: Selection; label: string; sub: string; recurring?: boolean; suffix?: string }[] = [
-  { id: "free", label: "Free Forever", sub: "Our gift to every family — begin at no cost." },
-  { id: "monthly", label: "Monthly", sub: "Pay month to month. Upgrade anytime.", recurring: true, suffix: "/mo" },
+const BUILD_TERMS: { id: Selection; label: string; sub: string }[] = [
+  { id: "free", label: "Free Forever", sub: "A basic introduction — explore, learn, and save your profile." },
+  { id: "monthly", label: "Monthly", sub: "Pay month to month. Upgrade anytime." },
   { id: "1yr", label: "Annual", sub: "One beautiful year." },
   { id: "5yr", label: "5 Years", sub: "Let the story keep growing." },
   { id: "10yr", label: "10 Years", sub: "A decade of milestones." },
   { id: "lifetime", label: "Lifetime", sub: "Kept for generations — the best long-term value." },
 ];
 
+const FUTURE_IDEAS = ["Grandchildren", "Retirement", "Family Reunion", "New Business", "New Pet", "Memorial Tribute", "Future Wedding", "Future Anniversary"];
+
 export default function MembershipBuilder() {
-  const [occ, setOcc] = useState<string[]>(["wedding"]);
   const [term, setTerm] = useState<Selection>("lifetime");
+  const [occ, setOcc] = useState<string[]>(["wedding"]);
+  const [mil, setMil] = useState<Record<string, string[]>>({});
   const [jp, setJp] = useState(false);
   const [jpInfo, setJpInfo] = useState(false);
   const [remindDismissed, setRemindDismissed] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-
-  // Future chapters a family might reserve their remaining Lifetime Collections for.
-  const FUTURE_IDEAS = ["Grandchildren", "Retirement", "Family Reunion", "New Business", "New Pet", "Memorial Tribute", "Future Wedding", "Future Anniversary"];
+  const [downgraded, setDowngraded] = useState(false);
 
   const isFree = term === "free";
-  const count = occ.length;
-  const priceCount = Math.max(1, count);
-  // Occasions are unlocked by Membership. Free Forever cannot select them — a
-  // click opens the elegant upgrade panel instead of toggling.
-  const toggle = (id: string) => {
-    if (isFree) { setShowUpgrade(true); return; }
-    setOcc((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-  const q = isFree ? null : quote(count, term as TermId);
   const isMonthly = term === "monthly";
   const isLifetime = term === "lifetime";
-  const collection = isLifetime ? collectionFor(count) : null;
+  const canSelect = canReserveEstates(term);      // false for Free Forever
+  const limit = estateLimitFor(term);             // 0 (free), 10 (lifetime), Infinity (other paid)
+  const hasLimit = Number.isFinite(limit);
+  const count = occ.length;
+  const priceCount = Math.max(1, count);
+  const atCap = hasLimit && count >= limit;
 
-  // Journey Protection only applies to Monthly.
+  // Membership determines access. Changing membership re-applies entitlement:
+  //   → Free Forever removes every selection and explains why.
+  //   → A capped membership (Lifetime) trims anything beyond its limit.
+  const changeTerm = (next: Selection) => {
+    if (next === "free") {
+      const had = occ.length > 0;
+      setOcc([]); setMil({}); setJp(false);
+      setDowngraded(had);
+      setTerm(next);
+      return;
+    }
+    setDowngraded(false);
+    const cap = estateLimitFor(next);
+    if (Number.isFinite(cap) && occ.length > cap) {
+      const kept = occ.slice(0, cap);
+      setOcc(kept);
+      setMil((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => kept.includes(k))));
+    }
+    setTerm(next);
+  };
+
+  // Occasions are unlocked by Membership. Free cannot select — a click opens the
+  // upgrade panel. A capped membership blocks selecting beyond its limit.
+  const toggle = (id: string) => {
+    if (!canSelect) { setShowUpgrade(true); return; }
+    setOcc((prev) => {
+      if (prev.includes(id)) {
+        setMil((mprev) => { const n = { ...mprev }; delete n[id]; return n; });
+        return prev.filter((x) => x !== id);
+      }
+      if (hasLimit && prev.length >= limit) return prev; // at cap — cannot add more
+      return [...prev, id];
+    });
+  };
+
+  const toggleMilestone = (expId: string, msId: string) => {
+    setMil((prev) => {
+      const cur = prev[expId] ?? [];
+      const next = cur.includes(msId) ? cur.filter((x) => x !== msId) : [...cur, msId];
+      return { ...prev, [expId]: next };
+    });
+  };
+
+  const q = isFree ? null : quote(count, term as TermId);
+  const collection = isLifetime ? collectionFor(count) : null;
   const jpActive = isMonthly && jp;
   const monthlyTotal = q ? q.total + (jpActive ? JOURNEY_PROTECTION.monthly : 0) : 0;
 
-  // Lifetime "fill your collection" reminder (finite tiers only).
-  const capReached = collection && Number.isFinite(collection.maxOccasions) && count >= collection.maxOccasions;
-  const remaining = collection && Number.isFinite(collection.maxOccasions) ? collection.maxOccasions - count : 0;
-  const showReminder = Boolean(isLifetime && collection && Number.isFinite(collection.maxOccasions) && count > 0 && remaining > 0 && remaining <= 3 && !remindDismissed);
+  // Lifetime "complete your collection" reminder — counts toward the Lifetime limit.
+  const remaining = isLifetime && hasLimit ? limit - count : 0;
+  const capReached = isLifetime && hasLimit && count >= limit;
+  const showReminder = Boolean(isLifetime && count > 0 && remaining > 0 && remaining <= 3 && !remindDismissed);
 
   const addRemaining = () => {
-    if (!collection) return;
-    const need = collection.maxOccasions - count;
-    const pool = OCCASIONS.filter((o) => !occ.includes(o.id)).slice(0, Math.max(0, need));
-    setOcc((prev) => [...prev, ...pool.map((o) => o.id)]);
+    const need = limit - count;
+    const pool = EXPERIENCES.filter((e) => !occ.includes(e.id)).slice(0, Math.max(0, need));
+    setOcc((prev) => [...prev, ...pool.map((e) => e.id)]);
   };
 
-  // Honest CTA.
   const occParam = encodeURIComponent(occ.join(","));
   let cta = { label: "Continue to Checkout", href: `/checkout?term=${term}&occasions=${occParam}${jpActive ? "&protection=1" : ""}` };
   if (isFree) cta = { label: "Start Free", href: "/signup" };
 
-  // Per-term price for the term list (uses the current count so it updates live).
   const termPrice = (id: Selection) => {
     if (id === "free") return { text: "Free", small: "forever" };
     const tq = quote(priceCount, id as TermId);
     const suffix = getTerm(id as TermId).suffix ?? "one-time";
-    return { text: formatUSD(tq.total), small: suffix.replace("/", "per ") === "per mo" ? "per month" : "one-time" };
+    return { text: formatUSD(tq.total), small: suffix === "/mo" ? "per month" : "one-time" };
   };
 
   return (
     <div className="mb2-grid">
       <div>
-        {/* Step 1 — occasions */}
-        <div className={`mb2-card${isFree ? " mb2-card--locked" : ""}`}>
+        {/* Step 1 — membership FIRST (it controls what can be selected) */}
+        <div className="mb2-card">
           <div className="mb2-step">
             <span className="mb2-step__n">1</span>
             <div>
-              <span className="mb2-step__t">Choose your occasions</span>
-              <p className="mb2-step__s">
-                {isFree
-                  ? "Occasions are unlocked with a Membership. Free Forever is a basic introduction to Magical Moments."
-                  : "Add or remove as many as you love — the price adjusts as you build."}
-              </p>
-            </div>
-          </div>
-          <div className={`mb2-occ${isFree ? " mb2-occ--locked" : ""}`}>
-            {OCCASIONS.map((o) => {
-              const on = !isFree && occ.includes(o.id);
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  className={`mb2-chip${on ? " on" : ""}${isFree ? " locked" : ""}`}
-                  onClick={() => toggle(o.id)}
-                  aria-pressed={on}
-                  aria-disabled={isFree}
-                  title={isFree ? "Included with a Membership — upgrade to select" : undefined}
-                >
-                  <span className="mb2-chip__tick" aria-hidden="true">{isFree ? "🔒" : "✓"}</span>{o.label}
-                </button>
-              );
-            })}
-          </div>
-          {isFree ? (
-            <div className="mb2-locknote">
-              <p className="mb2-locknote__t">{UPGRADE_COPY.title}</p>
-              <p className="mb2-locknote__s">{UPGRADE_COPY.body}</p>
-              <button type="button" className="mb2-locknote__btn" onClick={() => setShowUpgrade(true)}>View Memberships</button>
-            </div>
-          ) : (
-            <p className="mb2-occ__count">{count === 0 ? "No occasions chosen yet." : `${count} occasion${count === 1 ? "" : "s"} selected.`}</p>
-          )}
-        </div>
-
-        {/* Step 2 — term */}
-        <div className="mb2-card">
-          <div className="mb2-step">
-            <span className="mb2-step__n">2</span>
-            <div>
               <span className="mb2-step__t">Choose your membership</span>
-              <p className="mb2-step__s">How would you like your moments preserved? You&apos;ll confirm the details at checkout.</p>
+              <p className="mb2-step__s">Your membership decides what you can create. You&apos;ll confirm the details at checkout.</p>
             </div>
           </div>
           <div className="mb2-terms">
@@ -137,7 +138,7 @@ export default function MembershipBuilder() {
               const p = termPrice(t.id);
               const sub = t.id === "lifetime" ? collectionFor(priceCount).blurb : t.sub;
               return (
-                <button key={t.id} type="button" className={`mb2-term${on ? " on" : ""}`} onClick={() => setTerm(t.id)} aria-pressed={on}>
+                <button key={t.id} type="button" className={`mb2-term${on ? " on" : ""}`} onClick={() => changeTerm(t.id)} aria-pressed={on}>
                   <span className="mb2-term__mark" aria-hidden="true" />
                   <span className="mb2-term__b">
                     <span className="mb2-term__n">{t.label}</span>
@@ -173,6 +174,79 @@ export default function MembershipBuilder() {
             </div>
           )}
         </div>
+
+        {/* Step 2 — Life Experiences, gated by the chosen membership */}
+        <div className={`mb2-card${isFree ? " mb2-card--locked" : ""}`}>
+          <div className="mb2-step">
+            <span className="mb2-step__n">2</span>
+            <div>
+              <span className="mb2-step__t">{isFree ? "Life Experiences" : "Which chapter of life are we creating?"}</span>
+              <p className="mb2-step__s">
+                {isFree
+                  ? "Life Experiences are unlocked with a Membership. Free Forever is a basic introduction to Magical Moments."
+                  : "Choose the chapters that matter, then personalize the milestones within each one."}
+              </p>
+            </div>
+          </div>
+
+          {downgraded && (
+            <div className="mb2-downgrade" role="status">
+              You switched to <strong>Free Forever</strong>, so your selected Life Experiences were removed — Free Forever doesn&apos;t include Life Estates. Choose a Membership above to select them again.
+            </div>
+          )}
+
+          {isFree ? (
+            <div className="mb2-locknote">
+              <span className="mb2-locknote__spark" aria-hidden="true">✨</span>
+              <p className="mb2-locknote__t">Upgrade to begin creating your first Life Estate.</p>
+              <p className="mb2-locknote__s">Free Forever lets you explore, learn, and save your profile. A Membership unlocks the Life Experiences.</p>
+              <button type="button" className="mb2-locknote__btn" onClick={() => setShowUpgrade(true)}>View Memberships</button>
+            </div>
+          ) : (
+            <>
+              <div className="mb2-exps">
+                {EXPERIENCES.map((e) => {
+                  const on = occ.includes(e.id);
+                  const disabled = !on && atCap;
+                  const chosen = mil[e.id] ?? [];
+                  return (
+                    <div key={e.id} className={`mb2-exp${on ? " on" : ""}${disabled ? " disabled" : ""}`}>
+                      <button type="button" className="mb2-exp__head" onClick={() => toggle(e.id)} aria-pressed={on} disabled={disabled}>
+                        <span className="mb2-exp__ic" aria-hidden="true">{e.icon}</span>
+                        <span className="mb2-exp__txt">
+                          <span className="mb2-exp__n">{e.label}</span>
+                          <span className="mb2-exp__s">{e.blurb}</span>
+                        </span>
+                        <span className="mb2-exp__tick" aria-hidden="true">{on ? "✓" : "+"}</span>
+                      </button>
+                      {on && e.milestones.length > 0 && (
+                        <div className="mb2-exp__mil">
+                          <span className="mb2-exp__milt">Personalize your milestones <small>optional</small></span>
+                          <div className="mb2-exp__milrow">
+                            {e.milestones.map((ms) => {
+                              const msOn = chosen.includes(ms.id);
+                              return (
+                                <button key={ms.id} type="button" className={`mb2-ms${msOn ? " on" : ""}`} onClick={() => toggleMilestone(e.id, ms.id)} aria-pressed={msOn}>
+                                  {ms.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mb2-occ__count">
+                {isLifetime
+                  ? `${count} of ${limit} Lifetime Life Estates reserved.`
+                  : count === 0 ? "No Life Experiences chosen yet." : `${count} Life Experience${count === 1 ? "" : "s"} selected.`}
+                {atCap && isLifetime ? " You've reached the Lifetime limit." : ""}
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Live preview */}
@@ -185,16 +259,16 @@ export default function MembershipBuilder() {
         ) : (
           <div className="mb2-preview__occ">
             {count === 0 ? (
-              <span className="mb2-preview__empty">Choose an occasion to begin…</span>
+              <span className="mb2-preview__empty">Choose a chapter to begin…</span>
             ) : (
-              occ.map((id) => <span key={id} className="mb2-preview__pill">{OCCASIONS.find((o) => o.id === id)?.label}</span>)
+              occ.map((id) => <span key={id} className="mb2-preview__pill">{getExperience(id)?.label}</span>)
             )}
           </div>
         )}
         {!isFree && (
           <div className="mb2-preview__row">
-            <span className="mb2-preview__k">{isLifetime ? "Lifetime Collections" : "Occasions"}</span>
-            <span className="mb2-preview__v">{isLifetime && collection && Number.isFinite(collection.maxOccasions) ? `${count} of ${collection.maxOccasions}` : count}</span>
+            <span className="mb2-preview__k">{isLifetime ? "Lifetime Life Estates" : "Life Experiences"}</span>
+            <span className="mb2-preview__v">{isLifetime ? `${count} of ${limit}` : count}</span>
           </div>
         )}
         <div className="mb2-preview__row">
@@ -229,49 +303,44 @@ export default function MembershipBuilder() {
         </div>
         <p className="mb2-preview__note">
           {isFree
-            ? "Our gift to every family. Begin organizing and preserving today — upgrade whenever you wish."
+            ? "Our gift to every family. Explore, learn, and save your profile — upgrade whenever you're ready to create."
             : isLifetime
               ? `${collection?.blurb} Kept forever. You never lose a dollar when you upgrade — prior payments are credited.`
               : `${q && q.savings > 0 ? "Each additional occasion is added at a lower rate. " : ""}You never lose a dollar when you upgrade — prior payments are credited toward the new plan. You choose your exact term at checkout.`}
         </p>
         {count === 0 && !isFree ? (
-          <span className="mb2-cta" style={{ opacity: 0.5, pointerEvents: "none" }}>Choose an occasion</span>
+          <span className="mb2-cta" style={{ opacity: 0.5, pointerEvents: "none" }}>Choose a chapter</span>
         ) : (
           <a href={cta.href} className="mb2-cta">{cta.label} →</a>
         )}
       </aside>
 
-      {/* Lifetime Smart Reminder / celebration — spans the grid */}
+      {/* Lifetime reminder / celebration — spans the grid */}
       {isLifetime && (showReminder || capReached) && (
         <div className={`mb2-remind${capReached ? " mb2-remind--celebrate" : ""}`}>
+          <span className="mb2-remind__spark" aria-hidden="true">✨</span>
           {capReached ? (
-            <>
-              <span className="mb2-remind__spark" aria-hidden="true">✨</span>
-              <div>
-                <h3 className="mb2-remind__h">Your Legacy Collection is complete.</h3>
-                <p className="mb2-remind__p">All {collection?.maxOccasions} of your Lifetime Collections are reserved and yours forever. Any you haven&apos;t assigned yet are simply waiting — for a wedding not yet planned, a grandchild not yet born, a chapter not yet written. They never expire.</p>
-              </div>
-            </>
+            <div>
+              <h3 className="mb2-remind__h">Your Legacy Collection is complete.</h3>
+              <p className="mb2-remind__p">All {limit} of your Lifetime Life Estates are reserved and yours forever. Any you haven&apos;t assigned yet are simply waiting — for a wedding not yet planned, a grandchild not yet born, a chapter not yet written. They never expire.</p>
+            </div>
           ) : (
-            <>
-              <span className="mb2-remind__spark" aria-hidden="true">✨</span>
-              <div>
-                <h3 className="mb2-remind__h">Complete Your Legacy Collection</h3>
-                <p className="mb2-remind__p">You&apos;ve created {count} of your {collection?.maxOccasions} Lifetime Collections. You&apos;ve already unlocked the {collection?.maxOccasions}-Collection Lifetime Membership — {remaining} {remaining === 1 ? "collection is" : "collections are"} still waiting for future chapters of your family&apos;s story. You don&apos;t have to decide today. Reserve {remaining === 1 ? "it" : "them"} now and use {remaining === 1 ? "it" : "them"} whenever life creates another magical moment.</p>
-                <div className="mb2-remind__ideas">
-                  {FUTURE_IDEAS.map((i) => <span key={i} className="mb2-remind__idea">{i}</span>)}
-                </div>
-                <div className="mb2-remind__actions">
-                  <button type="button" className="mb2-remind__yes" onClick={addRemaining}>Reserve My Remaining Collections</button>
-                  <button type="button" className="mb2-remind__no" onClick={() => setRemindDismissed(true)}>Maybe Later</button>
-                </div>
+            <div>
+              <h3 className="mb2-remind__h">Complete Your Legacy Collection</h3>
+              <p className="mb2-remind__p">You&apos;ve reserved {count} of your {limit} Lifetime Life Estates. {remaining} {remaining === 1 ? "is" : "are"} still waiting for future chapters of your family&apos;s story. You don&apos;t have to decide today — reserve {remaining === 1 ? "it" : "them"} now and use {remaining === 1 ? "it" : "them"} whenever life creates another magical moment.</p>
+              <div className="mb2-remind__ideas">
+                {FUTURE_IDEAS.map((i) => <span key={i} className="mb2-remind__idea">{i}</span>)}
               </div>
-            </>
+              <div className="mb2-remind__actions">
+                <button type="button" className="mb2-remind__yes" onClick={addRemaining}>Reserve My Remaining Estates</button>
+                <button type="button" className="mb2-remind__no" onClick={() => setRemindDismissed(true)}>Maybe Later</button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* Free Forever upgrade panel — shown when a Free member reaches a paid gate */}
+      {/* Free Forever upgrade panel */}
       {showUpgrade && (
         <div className="mb2-upsell" role="dialog" aria-modal="true" aria-labelledby="mb2-upsell-t" onClick={() => setShowUpgrade(false)}>
           <div className="mb2-upsell__card" onClick={(e) => e.stopPropagation()}>
@@ -295,7 +364,7 @@ export default function MembershipBuilder() {
               </div>
             </div>
             <div className="mb2-upsell__actions">
-              <button type="button" className="mb2-upsell__pick" onClick={() => { setTerm("monthly"); setShowUpgrade(false); }}>Choose a Membership</button>
+              <button type="button" className="mb2-upsell__pick" onClick={() => { changeTerm("monthly"); setShowUpgrade(false); }}>Choose a Membership</button>
               <button type="button" className="mb2-upsell__later" onClick={() => setShowUpgrade(false)}>Maybe later</button>
             </div>
           </div>
