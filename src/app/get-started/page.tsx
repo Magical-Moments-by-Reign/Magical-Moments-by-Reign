@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import "./get-started.css";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +28,11 @@ const CARDS: Card[] = [
     icon: <><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" /></> },
   { title: "Vendor Network", desc: "Connect with trusted vendors and partners to bring your vision to life.", href: "/vendors",
     icon: <><path d="M3 12l3-3 4 3 2-1 3 3-2 2-3-2" /><path d="M14 8l3-2 4 4-2 2" /></> },
-  { title: "Experiences", desc: "Celebrate every occasion with curated ideas, planning tools, and unforgettable moments.", href: "/journeys",
+  { title: "Experiences", desc: "Celebrate every occasion with curated ideas, planning tools, and unforgettable moments.", href: "/experiences",
     icon: <><path d="M12 21V11" /><path d="M12 11c-3-4-7-3-8.5-1M12 11c3-4 7-3 8.5-1" /></> },
-  { title: "Success Stories", desc: "Real stories from members who are living their best and creating magical moments.", href: "/inspiration",
+  { title: "Success Stories", desc: "Real stories from members who are living their best and creating magical moments.", href: "/success-stories",
     icon: <path d="M12 20s-7-4.3-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.7-7 9-7 9z" /> },
-  { title: "FAQs", desc: "Get answers to common questions and learn how Magical Moments works.", href: "/contact",
+  { title: "FAQs", desc: "Get answers to common questions and learn how Magical Moments works.", href: "/faqs",
     icon: <><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 1.8-2 3.2" /><circle cx="12" cy="17" r="0.6" fill="currentColor" /></> },
   { title: "Why Choose Us", desc: "Discover what makes Magical Moments different from everything else.", href: "/about",
     icon: <path d="M12 3 L14.5 9 L21 9.5 L16 13.8 L17.5 20 L12 16.6 L6.5 20 L8 13.8 L3 9.5 L9.5 9 Z" /> },
@@ -52,29 +53,7 @@ export default async function GetStartedPage() {
 
   return (
     <div className="gs">
-      <nav className="gs-nav">
-        <Link href="/" className="gs-nav__l" aria-label="Magical Moments by Reign — home">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-champagne.png" alt="" width={44} height={44} />
-          <span className="gs-nav__n"><b>MAGICAL MOMENTS</b><span>BY REIGN</span></span>
-        </Link>
-        <div className="gs-nav__m">
-          <Link href="/">Home</Link>
-          <Link href="/get-started" className="on">Get Started</Link>
-          <Link href="/about">About</Link>
-          <Link href="/contact">Contact</Link>
-        </div>
-        <div className="gs-nav__r">
-          {signedIn ? (
-            <Link href="/home" className="gs-g">Enter your Space</Link>
-          ) : (
-            <>
-              <Link href="/login" className="gs-o">Sign In</Link>
-              <Link href="/signup" className="gs-g">Join Now</Link>
-            </>
-          )}
-        </div>
-      </nav>
+      <PublicNav active="get-started" signedIn={signedIn} />
 
       <section className="gs-hero">
         <div className="gs-hero__l">
@@ -125,38 +104,7 @@ export default async function GetStartedPage() {
         ))}
       </div>
 
-      <footer className="gs-foot">
-        <div className="gs-foot__in">
-          <div className="gs-fb">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-champagne.png" alt="" width={52} height={52} />
-            <div className="fn">MAGICAL MOMENTS</div>
-            <div className="ft">BY REIGN</div>
-            <p>Life is made of magical moments.<br />We help you capture them all.</p>
-          </div>
-          <div className="gs-fcol">
-            <h4>Company</h4>
-            <Link href="/about">About Us</Link>
-            <Link href="/membership">How It Works</Link>
-            <Link href="/business">For Business</Link>
-            <Link href="/contact">Contact</Link>
-          </div>
-          <div className="gs-fcol">
-            <h4>Explore</h4>
-            <Link href="/journeys">Experiences</Link>
-            <Link href="/inspiration">Inspiration</Link>
-            <Link href="/vendors">Vendor Network</Link>
-            <Link href="/pricing">Memberships</Link>
-          </div>
-          <div className="gs-fcol">
-            <h4>Get Started</h4>
-            <Link href="/signup">Create Your Space</Link>
-            <Link href="/login">Sign In</Link>
-            <Link href="/contact">Support</Link>
-          </div>
-        </div>
-        <div className="gs-fbar">© {new Date().getFullYear()} Magical Moments by Reign. All rights reserved.</div>
-      </footer>
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }
