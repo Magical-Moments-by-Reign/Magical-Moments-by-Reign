@@ -69,6 +69,14 @@ export const EXPERIENCES: LifeExperience[] = [
   { id: "business", label: "Business", icon: "👔", blurb: "Build your legacy by design.", milestones: [] },
   { id: "legacy", label: "Legacy", icon: "📜", blurb: "Love, preserved for generations.", milestones: [] },
   { id: "relationship", label: "Relationship", icon: "💞", blurb: "The story of you two.", photo: "/story/proposal.jpg", milestones: [] },
+  { id: "sweet16", label: "Sweet 16", icon: "🎉", blurb: "Sixteen, celebrated in style.", photo: "/story/sweet16.jpg", milestones: [] },
+  { id: "first-birthday", label: "First Birthday", icon: "🎂", blurb: "The very first celebration.", photo: "/story/firstbirthday.jpg", milestones: [] },
+  { id: "quinceanera", label: "Quinceañera", icon: "👑", blurb: "A cherished coming of age.", photo: "/story/quinceanera.jpg", milestones: [] },
+  { id: "sports", label: "Sports Journey", icon: "🏆", blurb: "Every season, every victory.", photo: "/story/sports.jpg", milestones: [] },
+  { id: "bridal-shower", label: "Bridal Shower", icon: "💐", blurb: "Showered with love before the day.", photo: "/story/bridalshower.jpg", milestones: [] },
+  { id: "prom", label: "Prom", icon: "🌟", blurb: "A night to remember.", photo: "/story/prom.jpg", milestones: [] },
+  { id: "baby-shower", label: "Baby Shower", icon: "🍼", blurb: "Welcoming the little one.", photo: "/story/babyshower.jpg", milestones: [] },
+  { id: "gender-reveal", label: "Gender Reveal", icon: "🎈", blurb: "The happiest surprise.", photo: "/story/genderreveal.jpg", milestones: [] },
   { id: "custom", label: "Custom Life Moment", icon: "✨", blurb: "A chapter all your own.", milestones: [] },
 ];
 

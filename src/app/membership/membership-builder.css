@@ -272,7 +272,7 @@
 .mbx-downgrade { margin-bottom: 1rem; padding: 0.85rem 1.1rem; border: 1px solid rgba(169,132,63,0.35); border-radius: 12px; background: rgba(201,163,78,0.1); color: #55452e; font-size: 0.86rem; line-height: 1.5; }
 
 /* Occasion tiles */
-.mbx-occ { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; }
+.mbx-occ { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.7rem; }
 .mbx-occ--locked { opacity: 0.9; }
 .mbx-tile { position: relative; aspect-ratio: 1 / 1; border: 0; border-radius: 16px; overflow: hidden; cursor: pointer; padding: 0; background: linear-gradient(155deg,#6a573a,#2c2013); background-size: cover; background-position: center; transition: transform 0.2s, box-shadow 0.2s; }
 .mbx-tile::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30,20,8,0.05) 40%, rgba(24,15,5,0.72) 100%); }
@@ -281,7 +281,7 @@
 .mbx-tile.disabled { opacity: 0.5; cursor: not-allowed; }
 .mbx-tile__ic { position: absolute; top: 0.5rem; left: 0.5rem; z-index: 2; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,253,248,0.92); display: grid; place-items: center; font-size: 0.9rem; box-shadow: 0 3px 8px -3px rgba(0,0,0,0.5); }
 .mbx-tile__check { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(180deg,#e6cd8c,#cfaa55); color: #3a2c12; display: grid; place-items: center; font-weight: 700; font-size: 0.85rem; }
-.mbx-tile__label { position: absolute; z-index: 2; left: 0.6rem; right: 0.6rem; bottom: 0.6rem; color: #fff; font-family: var(--serif); font-size: 1.05rem; font-weight: 600; line-height: 1.05; text-shadow: 0 1px 8px rgba(20,12,4,0.7); }
+.mbx-tile__label { position: absolute; z-index: 2; left: 0.55rem; right: 0.55rem; bottom: 0.5rem; color: #fff; font-family: var(--serif); font-size: 0.92rem; font-weight: 600; line-height: 1.05; text-shadow: 0 1px 8px rgba(20,12,4,0.7); }
 
 .mbx-viewall { display: block; margin: 1.3rem auto 0; background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 0.7rem 1.6rem; color: var(--gold-d); font: 600 0.72rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 .mbx-viewall:hover { background: rgba(201,163,78,0.08); }
@@ -358,13 +358,13 @@
 .mbx-tag { text-align: center; font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--gold-d); margin: 2rem 0 0.5rem; }
 
 @media (max-width: 900px) {
-  .mbx-occ { grid-template-columns: repeat(3, 1fr); }
+  .mbx-occ { grid-template-columns: repeat(4, 1fr); }
   .mbx-row { grid-template-columns: 1fr; }
   .mbx-preview { position: static; }
   .mbx-trust { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 520px) {
-  .mbx-occ { grid-template-columns: repeat(2, 1fr); }
+  .mbx-occ { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* ═══ Membership page shell + hero ═══ */

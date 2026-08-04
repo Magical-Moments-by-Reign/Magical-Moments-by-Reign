@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EXPERIENCES, OCCASIONS, getExperience } from "./membership-builder.ts";
 
-test("catalog has 15 top-level Life Experiences with unique ids, labels, icons", () => {
-  assert.equal(EXPERIENCES.length, 15);
+test("catalog has 23 top-level Life Experiences with unique ids, labels, icons", () => {
+  assert.equal(EXPERIENCES.length, 23);
   for (const e of EXPERIENCES) {
     assert.ok(e.id.length > 0 && e.label.length > 0 && e.icon.length > 0);
     assert.ok(Array.isArray(e.milestones));
