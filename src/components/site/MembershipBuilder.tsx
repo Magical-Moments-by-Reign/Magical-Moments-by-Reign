@@ -195,9 +195,7 @@ export default function MembershipBuilder() {
             ? "Our gift to every family. Begin organizing and preserving today — upgrade whenever you wish."
             : isLifetime
               ? `${collection?.blurb} Kept forever. You never lose a dollar when you upgrade — prior payments are credited.`
-              : q?.placeholderAmounts
-                ? "You choose the exact term at checkout, and prior payments are always credited toward an upgrade. Final amounts are confirmed before you pay."
-                : "You never lose a dollar when you upgrade — prior payments are credited toward the new plan."}
+              : `${q && q.savings > 0 ? "Each additional occasion is added at a lower rate. " : ""}You never lose a dollar when you upgrade — prior payments are credited toward the new plan. You choose your exact term at checkout.`}
         </p>
         {count === 0 && !isFree ? (
           <span className="mb2-cta" style={{ opacity: 0.5, pointerEvents: "none" }}>Choose an occasion</span>

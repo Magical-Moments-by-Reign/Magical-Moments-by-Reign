@@ -7,11 +7,15 @@
 // of Lifetime Memberships, and — on upgrade — credits prior purchases so
 // customers only ever pay the difference.
 //
-// ⚠ AMOUNTS: Only the three Lifetime Collections carry Founder-FIXED
-// dollar amounts. Every per-occasion / per-term amount in PRICING_CONFIG
-// is a PLACEHOLDER the Founder will finalize later — never present these
-// as final prices in customer UI without the "amounts being finalized"
-// framing.
+// ★ SINGLE SOURCE OF PRICING ★
+// Every dollar amount the platform charges lives in this file — in
+// PRICING_CONFIG (per-occasion / per-term / add-ons) and
+// LIFETIME_COLLECTIONS (the three Lifetime tiers). To change any price in
+// the future, edit ONLY those two blocks: the Membership Builder,
+// checkout, trial, and every price shown across the site read from here.
+// Never hardcode a price anywhere else in the app.
+//
+// All amounts below are OFFICIAL (set `PRICING_CONFIG.official = true`).
 
 export type TermId = "monthly" | "1yr" | "5yr" | "10yr" | "lifetime";
 
@@ -62,19 +66,20 @@ export function collectionFor(occasionCount: number): LifetimeCollection {
   );
 }
 
-// ── Placeholder price knobs (Founder to finalize) ───────────────
-// These are the ONLY numbers that are not final. Tuned so the Pricing
-// Protection Rule reads coherently in preview (long multi-occasion term
-// builds cost more than the comparable Lifetime Collection, so Lifetime
-// always wins as the long-term value).
+// ── PRICE KNOBS — the one place to change prices ────────────────
+// OFFICIAL, active pricing. Tuned so the Pricing Protection Rule reads
+// coherently in preview (long multi-occasion term builds cost more than the
+// comparable Lifetime Collection, so Lifetime always wins as the long-term
+// value). To change prices later, edit these values (and LIFETIME_COLLECTIONS)
+// — nothing else in the app needs to change.
 export const PRICING_CONFIG = {
   currency: "USD" as const,
-  placeholder: true, // amounts (except Lifetime Collections) are not final
+  official: true, // amounts here are the official, active prices
   // Price of the FIRST occasion at each non-lifetime term (monthly = per month):
   firstOccasion: { monthly: 19, "1yr": 149, "5yr": 499, "10yr": 899 } as Record<Exclude<TermId, "lifetime">, number>,
   // Price of EACH ADDITIONAL occasion (bundle value — cheaper than the first):
   additionalOccasion: { monthly: 12, "1yr": 99, "5yr": 349, "10yr": 649 } as Record<Exclude<TermId, "lifetime">, number>,
-  // Journey Protection™ optional add-on (Founder-fixed):
+  // Journey Protection™ optional add-on:
   journeyProtection: { monthly: 2.99, annual: 29.99 },
 };
 
@@ -200,7 +205,7 @@ export function quote(occasionCount: number, term: TermId): Quote {
     recurring: t.recurring,
     suffix: t.suffix,
     currency: "USD",
-    placeholderAmounts: true,
+    placeholderAmounts: !PRICING_CONFIG.official,
   };
 }
 
