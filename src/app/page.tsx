@@ -20,18 +20,19 @@ export default async function LandingPage() {
   const account = await currentAccount();
   const signedIn = Boolean(account);
 
-  // Real, live Life Estates come from the registry — no invented worlds shown
-  // as available. Home is the flagship that's open today; the rest of the
-  // vision is presented honestly as "in creation."
-  const liveEstates = allEstates();
-  const estatePhoto: Record<string, string> = { home: "/story/newhome.jpg" };
-  const comingEstates = [
-    { icon: "💍", name: "Weddings", tagline: "Two stories becoming one.", photo: "/story/wedding.jpg" },
-    { icon: "🍼", name: "New Baby", tagline: "The first chapter of a new life.", photo: "/story/baby.jpg" },
-    { icon: "🎉", name: "Celebrations", tagline: "Every milestone, beautifully kept.", photo: "/story/birthday.jpg" },
-    { icon: "✈️", name: "Travel", tagline: "Journeys worth remembering.", photo: "/story/vacation.jpg" },
-    { icon: "👔", name: "Business", tagline: "Build your legacy by design.", photo: "" },
-    { icon: "🕊️", name: "Legacy", tagline: "Love, preserved for generations.", photo: "" },
+  // The Life Estates — eight worlds, each a chapter of life. Homes is the
+  // flagship that's open today (it links to the live Home estate); the rest are
+  // honestly marked "In creation." Every card carries a lifestyle photograph.
+  const homeKey = allEstates()[0]?.key ?? "home";
+  const ESTATES: { name: string; tagline: string; photo: string; open: boolean; href?: string }[] = [
+    { name: "Homes", tagline: "Buying, building, decorating, moving, and every chapter in between.", photo: "/story/newhome.jpg", open: true, href: signedIn ? `/estate/${homeKey}` : "/get-started" },
+    { name: "Relationships", tagline: "Love stories, anniversaries, engagements, and meaningful connections.", photo: "/story/proposal.jpg", open: false },
+    { name: "Weddings", tagline: "From “yes” to “I do” and every beautiful moment surrounding it.", photo: "/story/wedding.jpg", open: false },
+    { name: "New Baby", tagline: "Pregnancy, gender reveals, showers, arrivals, and first-year memories.", photo: "/story/baby.jpg", open: false },
+    { name: "Celebrations", tagline: "Birthdays, graduations, retirements, reunions, and special milestones.", photo: "/story/birthday.jpg", open: false },
+    { name: "Travel", tagline: "Vacations, honeymoons, family trips, and journeys worth remembering.", photo: "/story/vacation.jpg", open: false },
+    { name: "Business", tagline: "Launches, achievements, brand stories, and entrepreneurial milestones.", photo: "/brand/estate-home.png", open: false },
+    { name: "Legacy", tagline: "Family history, memorials, traditions, and stories preserved for generations.", photo: "/story/memorial.jpg", open: false },
   ];
 
   const monthlyFrom = PRICING_CONFIG.firstOccasion.monthly;
@@ -116,40 +117,30 @@ export default async function LandingPage() {
           <h2 className="lp-sec__t">Worlds within <i>your world.</i></h2>
           <p className="lp-estates__lede">
             Each Life Estate is a beautifully designed world for one part of life. Enter the ones that
-            matter to you. Begin with Home &mdash; open today &mdash; as more estates are lovingly crafted.
+            matter to you. Begin with Homes &mdash; open today &mdash; as more estates are lovingly crafted.
           </p>
         </div>
         <div className="lp-est-grid">
-          {liveEstates.map((e) => (
-            <Link
-              key={e.key}
-              href={signedIn ? `/estate/${e.key}` : "/get-started"}
-              className={`lp-est lp-est--open${estatePhoto[e.key] ? " lp-est--photo" : ""}`}
-              style={estatePhoto[e.key] ? { backgroundImage: `url(${estatePhoto[e.key]})` } : undefined}
-            >
-              <span className="lp-est__ic" aria-hidden="true">{e.icon}</span>
-              <span className="lp-est__badge lp-est__badge--open">Now open</span>
-              <span className="lp-est__meta">
-                <span className="lp-est__name">{e.name}</span>
-                <span className="lp-est__tag">{e.tagline}</span>
-              </span>
-            </Link>
-          ))}
-          {comingEstates.map((e) => (
-            <div
-              key={e.name}
-              className={`lp-est${e.photo ? " lp-est--photo" : ""}`}
-              aria-disabled="true"
-              style={e.photo ? { backgroundImage: `url(${e.photo})` } : undefined}
-            >
-              <span className="lp-est__ic" aria-hidden="true">{e.icon}</span>
-              <span className="lp-est__badge">In creation</span>
-              <span className="lp-est__meta">
-                <span className="lp-est__name">{e.name}</span>
-                <span className="lp-est__tag">{e.tagline}</span>
-              </span>
-            </div>
-          ))}
+          {ESTATES.map((e) => {
+            const inner = (
+              <>
+                <span className={`lp-est__badge${e.open ? " lp-est__badge--open" : ""}`}>{e.open ? "Now open" : "In creation"}</span>
+                <span className="lp-est__meta">
+                  <span className="lp-est__name">{e.name}</span>
+                  <span className="lp-est__tag">{e.tagline}</span>
+                </span>
+              </>
+            );
+            return e.open && e.href ? (
+              <Link key={e.name} href={e.href} className="lp-est lp-est--open lp-est--photo" style={{ backgroundImage: `url(${e.photo})` }}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={e.name} className="lp-est lp-est--photo" aria-disabled="true" style={{ backgroundImage: `url(${e.photo})` }}>
+                {inner}
+              </div>
+            );
+          })}
         </div>
       </section>
 

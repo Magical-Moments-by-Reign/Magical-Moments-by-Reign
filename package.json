@@ -16,6 +16,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
+    "db:rls": "psql \"$DATABASE_URL\" -f supabase/migrations/20260804000000_enable_rls_public_schema.sql",
     "setup": "prisma db push && npm run db:seed"
   },
   "prisma": {

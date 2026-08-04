@@ -78,7 +78,6 @@ export default async function ExperiencesPage() {
             <Link key={e.title} href={signedIn ? "/journeys" : "/get-started"} className="gs-xc">
               <div className={`gs-xc__top${XPHOTO[e.title] ? " gs-xc__top--photo" : ""}`} style={XPHOTO[e.title] ? { backgroundImage: `url(${XPHOTO[e.title]})` } : undefined}>
                 <span className="gs-xc__badge">{e.badge}</span>
-                <span className="gs-xc__ic"><svg viewBox="0 0 24 24" aria-hidden="true">{e.icon}</svg></span>
               </div>
               <div className="gs-xc__body">
                 <h3 className="gs-xc__t">{e.title}</h3>
