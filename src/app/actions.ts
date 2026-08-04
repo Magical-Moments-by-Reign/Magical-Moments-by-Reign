@@ -9,8 +9,19 @@ import { createExperience, regenerateDesign } from "@/lib/experiences";
 import { upsertGiftData } from "@/lib/gifts";
 import { getCurrentFamily } from "@/lib/family";
 import { getCurrentUserId } from "@/lib/session";
+import { currentAccount } from "@/lib/auth-session";
+import { canCreateOccasions } from "@/lib/membership-access";
 
 export async function createExperienceAction(formData: FormData): Promise<void> {
+  // Backend authorization: creating an occasion requires a paid Membership.
+  // Enforced here (not just in the UI) so a direct POST from a Free Forever
+  // account cannot begin building a paid occasion. Same rule as the Builder.
+  const account = await currentAccount();
+  if (!account) redirect("/login?next=%2Fcreate");
+  if (!canCreateOccasions(account.membershipTier)) {
+    redirect("/membership?locked=occasions");
+  }
+
   const type = String(formData.get("type") || "").trim();
   const title = String(formData.get("title") || "").trim();
   const subtitle = String(formData.get("subtitle") || "").trim();

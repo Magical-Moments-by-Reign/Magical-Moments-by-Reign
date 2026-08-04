@@ -1028,6 +1028,14 @@ model Account {
   platformRole      String  @default("family_owner") // PlatformRole
   guardianAccountId String? // set for minor accounts (parent/guardian)
 
+  // Membership tier — the entitlements gate (see src/lib/membership-access.ts).
+  // "free" (Free Forever) is a basic introduction: it CANNOT select or create
+  // occasions / Life Estates. A paid Membership (monthly | annual | 5yr | 10yr |
+  // legacy | reign | magical) unlocks creation and premium tools. Defaults to
+  // "free"; a completed paid checkout is what promotes an account. Enforced
+  // server-side in guard.ts — never by hiding a button.
+  membershipTier    String  @default("free")
+
   // Dashboard identity bridge (transition — see src/lib/dashboard-identity.ts).
   // Account is the canonical customer identity; this links to the legacy User
   // row that existing dashboard records are keyed on, so nothing breaks while

@@ -5,6 +5,7 @@ import {
   TERMS, quote, collectionFor, JOURNEY_PROTECTION, formatUSD, getTerm, type TermId,
 } from "@/lib/pricing-engine";
 import { OCCASIONS } from "@/lib/membership-builder";
+import { FREE_FOREVER_INCLUDES, UPGRADE_COPY } from "@/lib/membership-access";
 
 // The official Membership Builder — powered by the canonical pricing engine.
 // Occasions are multi-select; the term drives a live quote (with real
@@ -28,16 +29,20 @@ export default function MembershipBuilder() {
   const [jp, setJp] = useState(false);
   const [jpInfo, setJpInfo] = useState(false);
   const [remindDismissed, setRemindDismissed] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   // Future chapters a family might reserve their remaining Lifetime Collections for.
   const FUTURE_IDEAS = ["Grandchildren", "Retirement", "Family Reunion", "New Business", "New Pet", "Memorial Tribute", "Future Wedding", "Future Anniversary"];
 
+  const isFree = term === "free";
   const count = occ.length;
   const priceCount = Math.max(1, count);
-  const toggle = (id: string) =>
+  // Occasions are unlocked by Membership. Free Forever cannot select them — a
+  // click opens the elegant upgrade panel instead of toggling.
+  const toggle = (id: string) => {
+    if (isFree) { setShowUpgrade(true); return; }
     setOcc((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const isFree = term === "free";
+  };
   const q = isFree ? null : quote(count, term as TermId);
   const isMonthly = term === "monthly";
   const isLifetime = term === "lifetime";
@@ -76,25 +81,45 @@ export default function MembershipBuilder() {
     <div className="mb2-grid">
       <div>
         {/* Step 1 — occasions */}
-        <div className="mb2-card">
+        <div className={`mb2-card${isFree ? " mb2-card--locked" : ""}`}>
           <div className="mb2-step">
             <span className="mb2-step__n">1</span>
             <div>
               <span className="mb2-step__t">Choose your occasions</span>
-              <p className="mb2-step__s">Add or remove as many as you love — the price adjusts as you build.</p>
+              <p className="mb2-step__s">
+                {isFree
+                  ? "Occasions are unlocked with a Membership. Free Forever is a basic introduction to Magical Moments."
+                  : "Add or remove as many as you love — the price adjusts as you build."}
+              </p>
             </div>
           </div>
-          <div className="mb2-occ">
+          <div className={`mb2-occ${isFree ? " mb2-occ--locked" : ""}`}>
             {OCCASIONS.map((o) => {
-              const on = occ.includes(o.id);
+              const on = !isFree && occ.includes(o.id);
               return (
-                <button key={o.id} type="button" className={`mb2-chip${on ? " on" : ""}`} onClick={() => toggle(o.id)} aria-pressed={on}>
-                  <span className="mb2-chip__tick" aria-hidden="true">✓</span>{o.label}
+                <button
+                  key={o.id}
+                  type="button"
+                  className={`mb2-chip${on ? " on" : ""}${isFree ? " locked" : ""}`}
+                  onClick={() => toggle(o.id)}
+                  aria-pressed={on}
+                  aria-disabled={isFree}
+                  title={isFree ? "Included with a Membership — upgrade to select" : undefined}
+                >
+                  <span className="mb2-chip__tick" aria-hidden="true">{isFree ? "🔒" : "✓"}</span>{o.label}
                 </button>
               );
             })}
           </div>
-          <p className="mb2-occ__count">{count === 0 ? "No occasions chosen yet." : `${count} occasion${count === 1 ? "" : "s"} selected.`}</p>
+          {isFree ? (
+            <div className="mb2-locknote">
+              <p className="mb2-locknote__t">{UPGRADE_COPY.title}</p>
+              <p className="mb2-locknote__s">{UPGRADE_COPY.body}</p>
+              <button type="button" className="mb2-locknote__btn" onClick={() => setShowUpgrade(true)}>View Memberships</button>
+            </div>
+          ) : (
+            <p className="mb2-occ__count">{count === 0 ? "No occasions chosen yet." : `${count} occasion${count === 1 ? "" : "s"} selected.`}</p>
+          )}
         </div>
 
         {/* Step 2 — term */}
@@ -153,17 +178,25 @@ export default function MembershipBuilder() {
       {/* Live preview */}
       <aside className="mb2-preview">
         <div className="mb2-preview__h">Your Membership</div>
-        <div className="mb2-preview__occ">
-          {count === 0 ? (
-            <span className="mb2-preview__empty">Choose an occasion to begin…</span>
-          ) : (
-            occ.map((id) => <span key={id} className="mb2-preview__pill">{OCCASIONS.find((o) => o.id === id)?.label}</span>)
-          )}
-        </div>
-        <div className="mb2-preview__row">
-          <span className="mb2-preview__k">{isLifetime ? "Lifetime Collections" : "Occasions"}</span>
-          <span className="mb2-preview__v">{isLifetime && collection && Number.isFinite(collection.maxOccasions) ? `${count} of ${collection.maxOccasions}` : count}</span>
-        </div>
+        {isFree ? (
+          <ul className="mb2-preview__incl">
+            {FREE_FOREVER_INCLUDES.map((i) => <li key={i}>{i}</li>)}
+          </ul>
+        ) : (
+          <div className="mb2-preview__occ">
+            {count === 0 ? (
+              <span className="mb2-preview__empty">Choose an occasion to begin…</span>
+            ) : (
+              occ.map((id) => <span key={id} className="mb2-preview__pill">{OCCASIONS.find((o) => o.id === id)?.label}</span>)
+            )}
+          </div>
+        )}
+        {!isFree && (
+          <div className="mb2-preview__row">
+            <span className="mb2-preview__k">{isLifetime ? "Lifetime Collections" : "Occasions"}</span>
+            <span className="mb2-preview__v">{isLifetime && collection && Number.isFinite(collection.maxOccasions) ? `${count} of ${collection.maxOccasions}` : count}</span>
+          </div>
+        )}
         <div className="mb2-preview__row">
           <span className="mb2-preview__k">Membership</span>
           <span className="mb2-preview__v">{BUILD_TERMS.find((t) => t.id === term)?.label}</span>
@@ -235,6 +268,37 @@ export default function MembershipBuilder() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Free Forever upgrade panel — shown when a Free member reaches a paid gate */}
+      {showUpgrade && (
+        <div className="mb2-upsell" role="dialog" aria-modal="true" aria-labelledby="mb2-upsell-t" onClick={() => setShowUpgrade(false)}>
+          <div className="mb2-upsell__card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="mb2-upsell__x" onClick={() => setShowUpgrade(false)} aria-label="Close">×</button>
+            <span className="mb2-upsell__spark" aria-hidden="true">✨</span>
+            <span className="mb2-upsell__eyebrow">{UPGRADE_COPY.eyebrow}</span>
+            <h3 className="mb2-upsell__t" id="mb2-upsell-t">{UPGRADE_COPY.title}</h3>
+            <p className="mb2-upsell__p">{UPGRADE_COPY.body}</p>
+            <div className="mb2-upsell__plans">
+              <div className="mb2-upsell__plan">
+                <span className="mb2-upsell__pk">Monthly</span>
+                <span className="mb2-upsell__pv">from {formatUSD(quote(1, "monthly").total)}<small>/mo</small></span>
+              </div>
+              <div className="mb2-upsell__plan">
+                <span className="mb2-upsell__pk">Annual</span>
+                <span className="mb2-upsell__pv">from {formatUSD(quote(1, "1yr").total)}</span>
+              </div>
+              <div className="mb2-upsell__plan mb2-upsell__plan--feature">
+                <span className="mb2-upsell__pk">Lifetime</span>
+                <span className="mb2-upsell__pv">from {formatUSD(collectionFor(1).price)}</span>
+              </div>
+            </div>
+            <div className="mb2-upsell__actions">
+              <button type="button" className="mb2-upsell__pick" onClick={() => { setTerm("monthly"); setShowUpgrade(false); }}>Choose a Membership</button>
+              <button type="button" className="mb2-upsell__later" onClick={() => setShowUpgrade(false)}>Maybe later</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

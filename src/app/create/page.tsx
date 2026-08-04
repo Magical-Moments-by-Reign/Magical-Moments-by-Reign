@@ -5,7 +5,7 @@ import OccasionIcon from "@/components/OccasionIcon";
 import { createExperienceAction } from "@/app/actions";
 import { EXPERIENCE_TYPES, getExperienceType } from "@/lib/experience-types";
 import { STORY_PHOTOS } from "@/lib/story-photos";
-import { requireAccount } from "@/lib/guard";
+import { requireOccasionAccess } from "@/lib/guard";
 import "./create.css";
 
 export const metadata = { title: "Create an experience" };
@@ -17,8 +17,9 @@ export default async function CreatePage({
 }: {
   searchParams: Promise<{ error?: string; type?: string }>;
 }) {
-  // Creating an experience requires a real account (no demo identity).
-  await requireAccount("/create");
+  // Creating an experience requires a real account AND a paid Membership.
+  // Free Forever is a basic introduction — it cannot begin building occasions.
+  await requireOccasionAccess("/create");
   const signedIn = true;
   const { error, type } = await searchParams;
   const selected = type && getExperienceType(type) ? type : EXPERIENCE_TYPES[0].id;

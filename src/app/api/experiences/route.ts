@@ -6,6 +6,8 @@
 import { NextResponse } from "next/server";
 import { createExperience, listExperiences } from "@/lib/experiences";
 import { getExperienceType } from "@/lib/experience-types";
+import { currentAccount } from "@/lib/auth-session";
+import { canCreateOccasions, UPGRADE_COPY } from "@/lib/membership-access";
 
 export async function GET() {
   const experiences = await listExperiences();
@@ -22,6 +24,20 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // Backend authorization: creating an occasion requires a signed-in account
+  // with a paid Membership. Free Forever (and unauthenticated callers) cannot
+  // create — the same rule the Builder UI and the create action enforce.
+  const account = await currentAccount();
+  if (!account) {
+    return NextResponse.json({ error: "Please sign in to create an experience." }, { status: 401 });
+  }
+  if (!canCreateOccasions(account.membershipTier)) {
+    return NextResponse.json(
+      { error: UPGRADE_COPY.title, upgrade: { message: UPGRADE_COPY.body, href: UPGRADE_COPY.href } },
+      { status: 403 },
+    );
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();

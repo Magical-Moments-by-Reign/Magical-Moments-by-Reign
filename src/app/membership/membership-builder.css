@@ -140,3 +140,47 @@
   .mb2-preview { position: static; }
   .mb2-tiergrid { grid-template-columns: 1fr; }
 }
+
+/* ── Free Forever gate — occasions locked, elegant upsell ──────── */
+.mb2-card--locked { position: relative; }
+.mb2-occ--locked { opacity: 0.55; }
+.mb2-chip.locked { cursor: pointer; border-style: dashed; color: var(--taupe); background: rgba(201, 163, 78, 0.04); }
+.mb2-chip.locked:hover { border-color: var(--gold); background: rgba(201, 163, 78, 0.09); opacity: 1; }
+.mb2-chip.locked .mb2-chip__tick { background: transparent; font-size: 0.72rem; }
+
+.mb2-locknote { margin-top: 1.1rem; text-align: center; border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem 1.1rem; background: linear-gradient(180deg, #fffdf8, #f7efdf); }
+.mb2-locknote__t { font-family: var(--serif); font-size: 1.15rem; color: var(--ink); margin: 0 0 0.3rem; line-height: 1.25; }
+.mb2-locknote__s { color: var(--taupe); font-size: 0.9rem; margin: 0 0 0.9rem; }
+.mb2-locknote__btn { border: 0; cursor: pointer; background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border-radius: 999px; padding: 0.7rem 1.5rem; font: 700 0.72rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; box-shadow: 0 14px 30px -18px rgba(169, 132, 63, 0.9); }
+.mb2-locknote__btn:hover { filter: brightness(1.05); }
+
+/* Free preview — what's actually included */
+.mb2-preview__incl { list-style: none; margin: 0 0 0.4rem; padding: 0; display: grid; gap: 0.4rem; }
+.mb2-preview__incl li { position: relative; padding-left: 1.3rem; color: var(--ink-2); font-size: 0.85rem; line-height: 1.4; }
+.mb2-preview__incl li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--gold-deep); font-weight: 700; }
+
+/* Upgrade modal */
+.mb2-upsell { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 1.2rem; background: rgba(30, 20, 8, 0.55); backdrop-filter: blur(6px); animation: mb2-fade 0.25s ease both; }
+@keyframes mb2-fade { from { opacity: 0; } to { opacity: 1; } }
+.mb2-upsell__card { position: relative; width: 100%; max-width: 440px; text-align: center; background: linear-gradient(180deg, #fffdf8, #f6efe0); border: 1px solid var(--line); border-radius: 22px; padding: 2.2rem 1.8rem 1.9rem; box-shadow: 0 50px 100px -40px rgba(30, 18, 4, 0.7); animation: mb2-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes mb2-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.mb2-upsell__x { position: absolute; top: 0.7rem; right: 0.9rem; border: 0; background: transparent; color: var(--taupe); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.mb2-upsell__x:hover { color: var(--ink); }
+.mb2-upsell__spark { font-size: 1.6rem; }
+.mb2-upsell__eyebrow { display: block; font: 600 0.66rem/1.4 var(--sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-deep); margin-top: 0.4rem; }
+.mb2-upsell__t { font-family: var(--serif); font-size: 1.5rem; line-height: 1.2; color: var(--ink); margin: 0.4rem 0 0.5rem; }
+.mb2-upsell__p { color: var(--taupe); font-size: 0.95rem; margin: 0 0 1.3rem; }
+.mb2-upsell__plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1.4rem; }
+.mb2-upsell__plan { border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem 0.5rem; background: var(--warm-white); }
+.mb2-upsell__plan--feature { border-color: var(--gold); box-shadow: 0 16px 30px -22px rgba(169, 132, 63, 0.8); }
+.mb2-upsell__pk { display: block; font: 600 0.6rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 0.35rem; }
+.mb2-upsell__pv { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+.mb2-upsell__pv small { font-size: 0.72rem; color: var(--taupe); }
+.mb2-upsell__actions { display: flex; flex-direction: column; gap: 0.6rem; }
+.mb2-upsell__pick { border: 0; cursor: pointer; background: linear-gradient(180deg, #e2c583, #c9a34e); color: #3a2c12; border-radius: 12px; padding: 0.95rem; font: 700 0.74rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; box-shadow: 0 16px 36px -18px rgba(169, 132, 63, 0.9); }
+.mb2-upsell__pick:hover { filter: brightness(1.05); }
+.mb2-upsell__later { border: 0; background: transparent; color: var(--taupe); font: 600 0.8rem/1 var(--sans); cursor: pointer; padding: 0.4rem; }
+.mb2-upsell__later:hover { color: var(--ink); }
+
+/* Gentle notice shown when a Free member is sent here to unlock creation */
+.mb2-locked { max-width: 620px; margin: 1.1rem auto 0; padding: 0.9rem 1.2rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(201, 163, 78, 0.09); color: var(--ink-2); font-size: 0.9rem; line-height: 1.55; }
