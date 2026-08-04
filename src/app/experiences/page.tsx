@@ -49,6 +49,18 @@ const EXPERIENCES: Exp[] = [
   { title: "The Legacy Experience", badge: "Legacy Planning", desc: "Preserve your story, values, and memories for generations to come.", icon: <><path d="M12 21V11" /><path d="M12 11c-3-4-7-3-8.5-1M12 11c3-4 7-3 8.5-1" /></>, chips: [["concierge", "AI Concierge"], ["timeline", "Timeline"], ["website", "Sample Website"], ["vault", "Document Vault"], ["familytree", "Family Tree"], ["memories", "Memories"]] },
 ];
 
+// Real occasion photography behind each card header. Experiences without an
+// entry keep the warm gradient (no fabricated imagery).
+const XPHOTO: Record<string, string> = {
+  "The Wedding Experience": "/story/wedding.jpg",
+  "The Birthday Experience": "/story/birthday.jpg",
+  "The Baby Journey": "/story/baby.jpg",
+  "The Graduation Experience": "/story/graduation.jpg",
+  "The Travel Experience": "/story/vacation.jpg",
+  "The New Home Experience": "/story/newhome.jpg",
+  "The Relationship Experience": "/story/proposal.jpg",
+};
+
 export default async function ExperiencesPage() {
   const signedIn = Boolean(await currentAccount());
   return (
@@ -64,7 +76,7 @@ export default async function ExperiencesPage() {
         <div className="gs-exp__grid">
           {EXPERIENCES.map((e) => (
             <Link key={e.title} href={signedIn ? "/journeys" : "/get-started"} className="gs-xc">
-              <div className="gs-xc__top">
+              <div className={`gs-xc__top${XPHOTO[e.title] ? " gs-xc__top--photo" : ""}`} style={XPHOTO[e.title] ? { backgroundImage: `url(${XPHOTO[e.title]})` } : undefined}>
                 <span className="gs-xc__badge">{e.badge}</span>
                 <span className="gs-xc__ic"><svg viewBox="0 0 24 24" aria-hidden="true">{e.icon}</svg></span>
               </div>

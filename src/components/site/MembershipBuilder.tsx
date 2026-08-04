@@ -209,11 +209,20 @@ export default function MembershipBuilder() {
                   const on = occ.includes(e.id);
                   const disabled = !on && atCap;
                   const chosen = mil[e.id] ?? [];
+                  const wide = e.id === "legacy" || e.id === "relationship" || e.id === "custom";
+                  const light = e.id === "custom";
                   return (
-                    <div key={e.id} className={`mb2-exp${on ? " on" : ""}${disabled ? " disabled" : ""}`}>
-                      <button type="button" className="mb2-exp__head" onClick={() => toggle(e.id)} aria-pressed={on} disabled={disabled}>
+                    <div key={e.id} className={`mb2-exp${on ? " on" : ""}${disabled ? " disabled" : ""}${wide ? " mb2-exp--wide" : ""}${light ? " mb2-exp--light" : ""}`}>
+                      <button
+                        type="button"
+                        className="mb2-exp__card"
+                        onClick={() => toggle(e.id)}
+                        aria-pressed={on}
+                        disabled={disabled}
+                        style={e.photo ? { backgroundImage: `url(${e.photo})` } : undefined}
+                      >
                         <span className="mb2-exp__ic" aria-hidden="true">{e.icon}</span>
-                        <span className="mb2-exp__txt">
+                        <span className="mb2-exp__meta">
                           <span className="mb2-exp__n">{e.label}</span>
                           <span className="mb2-exp__s">{e.blurb}</span>
                         </span>
@@ -238,12 +247,20 @@ export default function MembershipBuilder() {
                   );
                 })}
               </div>
-              <p className="mb2-occ__count">
-                {isLifetime
-                  ? `${count} of ${limit} Lifetime Life Estates reserved.`
-                  : count === 0 ? "No Life Experiences chosen yet." : `${count} Life Experience${count === 1 ? "" : "s"} selected.`}
-                {atCap && isLifetime ? " You've reached the Lifetime limit." : ""}
-              </p>
+              <div className="mb2-occ__bar">
+                <span className="mb2-occ__crown" aria-hidden="true">♛</span>
+                <em className="mb2-occ__state">
+                  {count === 0
+                    ? "No Life Experiences chosen yet."
+                    : isLifetime
+                      ? `${count} of ${limit} Lifetime Life Estates reserved.`
+                      : `${count} Life Experience${count === 1 ? "" : "s"} selected.`}
+                </em>
+                <span className="mb2-occ__sep" aria-hidden="true" />
+                <span className="mb2-occ__hint">
+                  {isLifetime ? (atCap ? "You've reached the Lifetime limit." : `Reserve up to ${limit}.`) : "You can add as many as you'd like."}
+                </span>
+              </div>
             </>
           )}
         </div>
