@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import OccasionIcon from "@/components/OccasionIcon";
 import { createExperienceAction } from "@/app/actions";
 import { EXPERIENCE_TYPES, getExperienceType } from "@/lib/experience-types";
@@ -19,12 +19,13 @@ export default async function CreatePage({
 }) {
   // Creating an experience requires a real account (no demo identity).
   await requireAccount("/create");
+  const signedIn = true;
   const { error, type } = await searchParams;
   const selected = type && getExperienceType(type) ? type : EXPERIENCE_TYPES[0].id;
 
   return (
     <div className="cr">
-      <SiteNav active="experiences" />
+      <PublicNav signedIn={signedIn} />
 
       <header className="cr-header">
         <div className="container">
@@ -108,7 +109,7 @@ export default async function CreatePage({
         </form>
       </main>
 
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

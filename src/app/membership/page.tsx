@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import MembershipBuilder from "@/components/pricing/MembershipBuilder";
 import MembershipStart from "@/components/pricing/MembershipStart";
 import "./membership.css";
@@ -12,10 +12,11 @@ export const metadata: Metadata = {
     "Build the membership your family needs — choose your Occasions and your term, and watch the value add up. Flexible, transparent pricing from Magical Moments by Reign.",
 };
 
-export default function MembershipPage() {
+export default async function MembershipPage() {
+  const signedIn = Boolean(await currentAccount());
   return (
     <>
-      <SiteNav />
+      <PublicNav active="get-started" signedIn={signedIn} />
       <main className="mb-page">
         <header className="mb-hero">
           <p className="mb-hero__eyebrow">Pricing, your way</p>
@@ -40,7 +41,7 @@ export default function MembershipPage() {
           </p>
         </section>
       </main>
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </>
   );
 }

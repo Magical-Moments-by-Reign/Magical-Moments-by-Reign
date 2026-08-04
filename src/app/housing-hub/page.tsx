@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import OccasionIcon from "@/components/OccasionIcon";
 import { HOUSING_PATHWAYS, HOUSING_TOOLS } from "@/lib/housing-hub";
 import "./housing-hub.css";
@@ -12,10 +12,11 @@ export const metadata: Metadata = {
     "Housing Hub from Magical Moments by Reign — search for land, buy, build, renovate, sell, lease, or manage property, all guided in one trusted place from beginning to end.",
 };
 
-export default function HousingHubPage() {
+export default async function HousingHubPage() {
+  const signedIn = Boolean(await currentAccount());
   return (
     <div className="hh">
-      <SiteNav />
+      <PublicNav active="get-started" signedIn={signedIn} />
       <header className="hh-hero">
         <div className="container">
           <span className="eyebrow hh-hero__eyebrow">Housing Hub</span>
@@ -66,7 +67,7 @@ export default function HousingHubPage() {
         </section>
       </main>
 
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

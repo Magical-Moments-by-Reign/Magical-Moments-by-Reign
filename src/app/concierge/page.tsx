@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import { CONCIERGE, formatPrice } from "@/lib/plans";
 import "./concierge.css";
 
@@ -11,10 +11,11 @@ export const metadata: Metadata = {
     "Our most exclusive offering — a one-of-a-kind digital experience designed personally with the founder of Magical Moments by Reign. A $5,000 one-time investment, accepted on a limited basis.",
 };
 
-export default function ConciergePage() {
+export default async function ConciergePage() {
+  const signedIn = Boolean(await currentAccount());
   return (
     <div className="cg">
-      <SiteNav active="pricing" />
+      <PublicNav active="get-started" signedIn={signedIn} />
       <main className="cg-main">
         {/* Hero */}
         <header className="cg-hero">
@@ -87,7 +88,7 @@ export default function ConciergePage() {
           </section>
         </div>
       </main>
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

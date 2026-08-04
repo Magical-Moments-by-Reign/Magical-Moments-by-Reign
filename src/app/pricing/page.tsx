@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import PlanQuiz from "@/components/pricing/PlanQuiz";
 import AddPlanButton from "@/components/pricing/AddPlanButton";
 import AddOnsShop from "@/components/pricing/AddOnsShop";
@@ -42,10 +42,13 @@ const FAQ = [
   { q: "Do you offer business websites?", a: "Business websites are custom, lifetime projects handled separately from Magical Moments experiences, with their own domain and a custom quote. Reach out via the Contact page to discuss." },
 ];
 
-export default function PricingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PricingPage() {
+  const signedIn = Boolean(await currentAccount());
   return (
     <div className="pp">
-      <SiteNav active="pricing" />
+      <PublicNav active="get-started" signedIn={signedIn} />
 
       <header className="pp-hero">
         <div className="container">
@@ -282,7 +285,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

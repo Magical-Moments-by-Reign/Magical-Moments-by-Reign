@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import { submitCustomWebsiteAction } from "./actions";
 import { PROJECT_TYPES, BUDGET_RANGES, TIMELINES } from "@/lib/custom-website";
 import "./business.css";
@@ -35,11 +35,12 @@ export default async function BusinessPage({
   searchParams: Promise<{ sent?: string; error?: string }>;
 }) {
   const { sent, error } = await searchParams;
+  const signedIn = Boolean(await currentAccount());
 
   if (sent) {
     return (
       <div className="biz">
-        <SiteNav active="business" />
+        <PublicNav active="get-started" signedIn={signedIn} />
         <main className="container biz-main">
           <div className="biz-confirm">
             <div className="biz-confirm__badge" aria-hidden="true">✦</div>
@@ -60,14 +61,14 @@ export default async function BusinessPage({
             </div>
           </div>
         </main>
-        <SiteFooter />
+        <PublicFooter year={new Date().getFullYear()} />
       </div>
     );
   }
 
   return (
     <div className="biz">
-      <SiteNav active="business" />
+      <PublicNav active="get-started" signedIn={signedIn} />
 
       {/* Hero */}
       <header className="biz-hero">
@@ -202,7 +203,7 @@ export default async function BusinessPage({
         </div>
       </section>
 
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }

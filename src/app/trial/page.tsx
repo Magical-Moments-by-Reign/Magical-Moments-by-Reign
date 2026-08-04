@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SiteNav from "@/components/site/SiteNav";
-import SiteFooter from "@/components/site/SiteFooter";
+import { currentAccount } from "@/lib/auth-session";
+import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
 import { PRICING_CONFIG } from "@/lib/pricing-engine";
 import {
   TRIAL_NAME, TRIAL_TAGLINE, DEFAULT_TRIAL_DAYS,
@@ -21,7 +21,8 @@ export const metadata: Metadata = {
 const EXAMPLE_PLAN = "Monthly Membership";
 const EXAMPLE_MONTHLY_CENTS = PRICING_CONFIG.firstOccasion.monthly * 100;
 
-export default function TrialPage() {
+export default async function TrialPage() {
+  const signedIn = Boolean(await currentAccount());
   // Rendered server-side; concrete example dates for the disclosures.
   const dates = computeTrialDates(new Date().toISOString(), DEFAULT_TRIAL_DAYS);
   const disc = {
@@ -34,7 +35,7 @@ export default function TrialPage() {
 
   return (
     <div className="tr">
-      <SiteNav active="pricing" />
+      <PublicNav active="get-started" signedIn={signedIn} />
       <main className="tr-main">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="tr-watermark" src="/brand/logo.png" alt="" aria-hidden="true" />
@@ -138,7 +139,7 @@ export default function TrialPage() {
           </section>
         </div>
       </main>
-      <SiteFooter />
+      <PublicFooter year={new Date().getFullYear()} />
     </div>
   );
 }
