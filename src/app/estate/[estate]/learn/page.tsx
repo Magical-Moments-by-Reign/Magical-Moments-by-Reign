@@ -63,7 +63,7 @@ export default async function EstateLearn({
       </section>
 
       <p className="estate-foot">
-        <Link href={`/estate/${config.key}`} className="estate-foot__link">← Back to your Home journey</Link>
+        <Link href={`/estate/${config.key}`} className="estate-foot__link">← Back to Home</Link>
       </p>
     </div>
   );

@@ -82,7 +82,9 @@ export interface EstateConfig {
   name: string; // customer-facing nav label, e.g. "Home"
   icon: string; // emoji, e.g. "🏡"
   tagline: string;
-  welcomeTitle: string;
+  /** Short line introducing the Estate, under its "🏡 Home" heading. */
+  intro: string;
+  /** Supporting description of how this Estate helps (advisor voice). */
   welcomeBody: string;
   /** True for emotionally sensitive estates (restrained tone; no celebration flourish). */
   sensitive?: boolean;

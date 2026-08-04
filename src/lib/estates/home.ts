@@ -12,11 +12,11 @@ export const HOME_ESTATE: EstateConfig = {
   name: "Home",
   icon: "🏡",
   tagline: "Every home decision, from dream to completion.",
-  welcomeTitle: "Welcome to your Home journey",
+  intro: "Every place you live, build, buy, rent, improve, invest in, or call home begins here.",
   welcomeBody:
-    "Not a real estate website — your own advisor, educator, planner, and concierge for " +
-    "every housing decision. We'll educate first, compare honestly, connect trusted " +
-    "professionals, and stay beside you until the journey is complete.",
+    "Not a real estate website — your own advisor, educator, and planner for every home " +
+    "decision. We'll educate first, compare honestly, connect trusted professionals, and " +
+    "stay beside you every step of the way.",
 
   // Goal Discovery — the housing journeys, grouped (framework §3 / Blueprint §4.1).
   goals: [

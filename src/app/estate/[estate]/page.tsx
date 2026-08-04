@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { getConcierge, conciergeDisplayName, shouldNudgeForName } from "@/lib/concierge";
 import { getEstate } from "@/lib/estates/registry";
 import AskMagicalPanel from "@/components/home/AskMagicalPanel";
 
@@ -28,9 +27,6 @@ export default async function EstateOverview({
   if (!config) notFound();
 
   const account = await requireAccount(`/estate/${estate}`);
-  const concierge = await getConcierge(account.id);
-  const conciergeName = conciergeDisplayName(concierge);
-  const nudge = shouldNudgeForName(concierge);
 
   // Group goals for display (Goal Discovery — framework §3.3).
   const groups = config.goals.reduce<Record<string, typeof config.goals>>((acc, g) => {
@@ -40,24 +36,27 @@ export default async function EstateOverview({
 
   return (
     <div className="estate">
-      {/* Welcome hero */}
+      {/* Lead with the MEMBER'S Magical Space — the platform speaks in the
+          Magical Moments brand here, never a personal concierge name. */}
       <header className="estate-hero">
-        <span className="estate-hero__icon" aria-hidden="true">{config.icon}</span>
+        <span className="estate-hero__icon" aria-hidden="true">✨</span>
         <div>
-          <h1 className="estate-hero__title">{config.welcomeTitle}, {account.firstName}</h1>
-          <p className="estate-hero__body">{config.welcomeBody}</p>
+          <h1 className="estate-hero__title">Welcome to Your Magical Space, {account.firstName}</h1>
+          <p className="estate-hero__body">What beautiful chapter of life are we creating together today?</p>
         </div>
       </header>
 
-      {/* Concierge entry point */}
-      <section className="panel estate-concierge" id="concierge" aria-label={`Ask ${conciergeName}`}>
-        <AskMagicalPanel conciergeName={conciergeName} nudgeForName={nudge} />
+      {/* Introduce the Home Estate (a wing of the Magical Space). */}
+      <section className="estate-section" aria-label="Home">
+        <h2 className="estate-intro__title"><span aria-hidden="true">{config.icon}</span> {config.name}</h2>
+        <p className="estate-intro__line">{config.intro}</p>
+        <p className="estate-intro__sub">{config.welcomeBody}</p>
       </section>
 
-      {/* Goal Discovery */}
-      <section className="estate-section" aria-label="What brings you here">
-        <h2 className="estate-section__title">What brings you to Home today?</h2>
-        <p className="estate-section__sub">Choose where you are — {conciergeName} will guide the rest. You can explore freely; nothing is committed.</p>
+      {/* The housing journeys — Buy · Build · Find · Rent · Sell · Own · Invest. */}
+      <section className="estate-section" aria-label="Where would you like to begin">
+        <h2 className="estate-section__title">Where would you like to begin?</h2>
+        <p className="estate-section__sub">Choose where you feel you are — explore freely, nothing is committed.</p>
         {Object.entries(groups).map(([group, goals]) => (
           <div key={group} className="estate-goalgroup">
             <h3 className="estate-goalgroup__label">{group}</h3>
@@ -73,8 +72,8 @@ export default async function EstateOverview({
         ))}
       </section>
 
-      {/* Module rail — honest live vs. coming-soon */}
-      <section className="estate-section" aria-label="Your Home journey tools">
+      {/* Module rail — honest live vs. coming-soon. */}
+      <section className="estate-section" aria-label="Everything for your home">
         <h2 className="estate-section__title">Everything for your home, in one place</h2>
         <div className="estate-modules">
           {config.modules.map((m) => {
@@ -97,10 +96,16 @@ export default async function EstateOverview({
         </div>
       </section>
 
-      {/* Cross-Estate continuity */}
+      {/* Guidance — Magical brand only (the member's personally-named concierge
+          lives elsewhere in the platform, not on this Estate overview). */}
+      <section className="panel estate-guide" aria-label="Ask Magical">
+        <AskMagicalPanel conciergeName="Magical" nudgeForName={false} />
+      </section>
+
+      {/* Cross-Estate continuity. */}
       <section className="estate-section" aria-label="Where this may lead">
         <h2 className="estate-section__title">Life connects</h2>
-        <p className="estate-section__sub">When you&apos;re ready, your Home journey flows naturally into the rest of your life.</p>
+        <p className="estate-section__sub">When you&apos;re ready, your home connects naturally into the rest of your life.</p>
         <div className="estate-cross">
           {config.crossEstate.map((c) => (
             <span key={c.estate} className="estate-cross__item">
