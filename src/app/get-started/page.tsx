@@ -69,9 +69,10 @@ export default async function GetStartedPage() {
           <ScrollCue />
         </div>
         <div className="gs-hero__r" aria-hidden="true">
-          {/* Home journey video. Drop the file at public/hero/home.mp4 to play it;
-              until then the poster (estate photo) shows, so the layout is graceful. */}
-          <video className="gs-hero__vid" autoPlay muted loop playsInline preload="metadata" poster="/brand/estate-home.png">
+          {/* Home journey video — "Our New Home, built from the ground up".
+              Poster is a frame from the video, so the still shown before/while it
+              loads matches the footage. Muted + loop + autoplay for a live hero. */}
+          <video className="gs-hero__vid" autoPlay muted loop playsInline preload="metadata" poster="/hero/home-poster.jpg">
             <source src="/hero/home.mp4" type="video/mp4" />
           </video>
         </div>

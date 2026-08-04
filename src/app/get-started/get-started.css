@@ -39,7 +39,7 @@
 .gs-hero__cta:hover { filter: brightness(1.05); }
 .gs-hero__note { display: flex; align-items: center; gap: 0.5rem; color: var(--soft); font-size: 0.85rem; margin-top: 1.1rem; }
 .gs-hero__note svg { width: 14px; height: 14px; stroke: var(--champ-d); fill: none; stroke-width: 1.5; }
-.gs-hero__r { position: relative; overflow: hidden; background: #efe5d3 url("/brand/estate-home.png") center / cover no-repeat; }
+.gs-hero__r { position: relative; overflow: hidden; background: #efe5d3 url("/hero/home-poster.jpg") center / cover no-repeat; }
 .gs-hero__vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* Cards section */
