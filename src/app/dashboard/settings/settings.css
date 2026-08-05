@@ -28,3 +28,13 @@
 .as-pref input[type=checkbox] { accent-color: #c9a24b; width: 18px; height: 18px; }
 .as-pref input[type=range] { accent-color: #c9a24b; flex: 1; max-width: 200px; }
 .as-pref select { padding: .4rem .5rem; border: 1px solid #e2d3b3; border-radius: 8px; background: #fffdf9; color: #3a2c1d; font: inherit; font-size: .84rem; }
+
+/* Assistant Voice section */
+.vs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .9rem; margin: .4rem 0 1rem; }
+.vs-field { display: flex; flex-direction: column; gap: .35rem; }
+.vs-field > span { font-size: .8rem; font-weight: 600; color: #2a1d12; }
+.vs-field select { padding: .5rem .6rem; border: 1.5px solid #e2d3b3; border-radius: 10px; background: #fffdf9; color: #3a2c1d; font: inherit; }
+.vs-field input[type=range] { accent-color: #c9a24b; }
+.vs-seg { display: inline-flex; border: 1px solid #e2d3b3; border-radius: 10px; overflow: hidden; width: fit-content; }
+.vs-seg button { padding: .5rem 1.1rem; border: none; background: #fffdf9; color: #6b5744; cursor: pointer; font: inherit; font-size: .9rem; }
+.vs-seg button.is-on { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; font-weight: 700; }

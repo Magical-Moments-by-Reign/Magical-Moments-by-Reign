@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { membershipDisplay } from "@/lib/membership-access";
 import { logoutAction } from "../../account/actions";
 import AssistantSettings from "./AssistantSettings";
+import VoiceSettings from "./VoiceSettings";
 import "./settings.css";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function SettingsPage({
     where: { id: account.id },
     select: {
       staffRoles: true,
+      voicePrefs: true,
       emails: { where: { isPrimary: true }, select: { email: true, verified: true }, take: 1 },
       phones: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
     },
@@ -59,6 +61,8 @@ export default async function SettingsPage({
       </div>
 
       <AssistantSettings currentName={account.assistantName} firstName={account.firstName} flag={sp.assistant} />
+
+      <VoiceSettings assistantName={account.assistantName} firstName={account.firstName} profileVoicePrefs={detail?.voicePrefs || "{}"} />
 
       <section className="sec">
         <div className="sec__h"><h2 className="sec__t">Manage</h2></div>

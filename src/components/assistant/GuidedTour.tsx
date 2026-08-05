@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPrefs, savePrefs } from "@/lib/assistant-prefs";
+import { speak as speakNatural, cancel as cancelSpeech } from "@/lib/voice/speech";
 import { completeTourAction } from "./tour-actions";
 import "./guided-tour.css";
 
@@ -56,16 +57,8 @@ export default function GuidedTour({ autoOffer, assistantName, firstName }: { au
   }, []);
 
   const speak = useCallback((text: string) => {
-    if (!voiceOn || typeof window === "undefined" || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      const p = loadPrefs(); u.rate = p.speed; u.pitch = 1.02;
-      const vs = window.speechSynthesis.getVoices();
-      const v = (p.voiceURI && vs.find((x) => x.voiceURI === p.voiceURI)) || vs.find((x) => /female|Samantha|Victoria|Zira|Aria|Jenny/i.test(x.name) && /en/i.test(x.lang));
-      if (v) u.voice = v;
-      window.speechSynthesis.speak(u);
-    } catch {}
+    if (!voiceOn) return;
+    speakNatural(text); // shared natural, style-shaped delivery
   }, [voiceOn]);
 
   const locate = useCallback((idx: number) => {
@@ -89,7 +82,7 @@ export default function GuidedTour({ autoOffer, assistantName, firstName }: { au
 
   function start() { setPhase("running"); setTimeout(() => goto(0), 50); }
   async function finish(kind: "done" | "skip") {
-    try { window.speechSynthesis?.cancel(); } catch {}
+    cancelSpeech();
     setPhase("idle");
     try { await completeTourAction(); } catch {}
   }
@@ -148,7 +141,7 @@ export default function GuidedTour({ autoOffer, assistantName, firstName }: { au
             ? <button className="gt-btn gt-btn--sm gt-btn--gold" onClick={() => goto(i + 1)}>Next</button>
             : <button className="gt-btn gt-btn--sm gt-btn--gold" onClick={() => finish("done")}>Finish</button>}
           <button className="gt-btn gt-btn--sm" onClick={() => speak(s.title + ". " + s.body)} title="Replay audio">↻ Audio</button>
-          <button className="gt-btn gt-btn--sm" onClick={() => { const n = !voiceOn; setVoiceOn(n); savePrefs({ voiceOn: n }); if (!n) window.speechSynthesis?.cancel(); }}>
+          <button className="gt-btn gt-btn--sm" onClick={() => { const n = !voiceOn; setVoiceOn(n); savePrefs({ voiceOn: n }); if (!n) cancelSpeech(); }}>
             {voiceOn ? "Voice off" : "Voice on"}
           </button>
         </div>

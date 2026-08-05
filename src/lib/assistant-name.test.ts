@@ -32,11 +32,13 @@ test("normalize falls back to default on bad input", () => {
 
 test("greeting introduces the assistant by name", () => {
   const back = assistantGreeting({ assistantName: "Journey", firstName: "Tabitha" });
-  assert.ok(back.includes("Welcome back, Tabitha"));
+  assert.ok(back.includes("Hello, Tabitha."));
   assert.ok(back.includes("I'm Journey, your Magical Assistant"));
+  assert.ok(back.includes("tap my glowing button"));
 
   const first = assistantGreeting({ assistantName: "Luna", firstTime: true });
-  assert.ok(first.startsWith("Welcome to your Magical Space. I'm Luna, your Magical Assistant."));
+  assert.ok(first.includes("I'm Luna, your Magical Assistant"));
+  assert.ok(first.includes("create memories"));
 
   // Missing first name → first-time style even when not flagged
   const nofirst = assistantGreeting({ assistantName: "Nova", firstName: "" });

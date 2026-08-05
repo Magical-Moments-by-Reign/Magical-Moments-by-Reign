@@ -60,8 +60,9 @@ export function nameCheckMessage(reason: Exclude<NameCheck, { ok: true }>["reaso
 export function assistantGreeting(opts: { assistantName: string; firstName?: string | null; firstTime?: boolean }): string {
   const name = normalizeAssistantName(opts.assistantName);
   const first = (opts.firstName ?? "").trim();
+  const hello = first ? `Hello, ${first}.` : "Hello, and welcome to your Magical Space.";
   if (opts.firstTime || !first) {
-    return `Welcome to your Magical Space. I'm ${name}, your Magical Assistant. I'm here to help you create, organize, and preserve your most meaningful moments.`;
+    return `${hello} I'm ${name}, your Magical Assistant. I'm here to help you create memories, organize your events, answer questions, and guide you through Magical Moments. Whenever you need me, just tap my glowing button and I'll be right here.`;
   }
-  return `Welcome back, ${first}. I'm ${name}, your Magical Assistant. What would you like to create, plan, or remember today?`;
+  return `${hello} I'm ${name}, your Magical Assistant. I'm here to help you create, plan, and remember life's most meaningful moments. Whenever you need me, just tap my glowing button and I'll be right here.`;
 }

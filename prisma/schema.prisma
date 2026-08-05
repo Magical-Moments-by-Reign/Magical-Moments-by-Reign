@@ -1066,6 +1066,10 @@ model Account {
   // guide). Per-profile; defaults to "Journey". Validated + profanity-filtered
   // in src/lib/assistant-name.ts. Additive + defaulted — safe `prisma db push`.
   assistantName     String  @default("Journey")
+  // Portable voice preferences (gender, style, speed, pitch, volume) as JSON —
+  // device-agnostic so the assistant sounds the same across the member's devices.
+  // The actual browser voice is resolved per-device from these. Additive + safe.
+  voicePrefs        String  @default("{}")
   // First-time guided Magical Space tour: set when the member finishes or
   // intentionally skips it, so it never auto-offers again (they can replay it
   // from Settings). Additive + nullable — safe `prisma db push`.

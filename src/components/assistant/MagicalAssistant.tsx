@@ -16,6 +16,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { assistantGreeting } from "@/lib/assistant-name";
 import { looksLikeConciergeRequest } from "@/lib/concierge-intent";
 import { loadPrefs } from "@/lib/assistant-prefs";
+import { speak as speakNatural, cancel as cancelSpeech } from "@/lib/voice/speech";
 import "./magical-assistant.css";
 
 interface Msg { role: "user" | "assistant"; content: string; }
@@ -117,21 +118,8 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   useEffect(() => { if (on && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs, on, busy]);
 
   const speak = useCallback((text: string) => {
-    const p = loadPrefs();
-    if (!p.voiceOn || typeof window === "undefined" || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text.replace(/\*\*/g, ""));
-      u.rate = p.speed; u.pitch = 1.02;
-      const vs = window.speechSynthesis.getVoices();
-      const v = (p.voiceURI && vs.find((x) => x.voiceURI === p.voiceURI))
-        || vs.find((x) => /female|Samantha|Victoria|Serena|Zira|Aria|Jenny/i.test(x.name) && /en/i.test(x.lang))
-        || vs.find((x) => /en-US|en-GB/i.test(x.lang));
-      if (v) u.voice = v;
-      u.onstart = () => setSpeaking(true);
-      u.onend = () => setSpeaking(false);
-      window.speechSynthesis.speak(u);
-    } catch { /* ignore */ }
+    // Natural, style-shaped, sentence-chunked delivery (see lib/voice/speech).
+    speakNatural(text, { onStart: () => setSpeaking(true), onEnd: () => setSpeaking(false) });
   }, []);
 
   function chime() {
@@ -156,11 +144,7 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
     const firstThisSession = sessionStorage.getItem(GREET_KEY) !== "1";
     if (firstThisSession) {
       sessionStorage.setItem(GREET_KEY, "1");
-      const base = assistantGreeting({ assistantName, firstName, firstTime: msgs.length === 0 });
-      const greet = base.replace(
-        "your Magical Assistant.",
-        "your Magical Assistant. You'll see a blinking button on your screen — tap it anytime to turn me on or off.",
-      );
+      const greet = assistantGreeting({ assistantName, firstName, firstTime: msgs.length === 0 });
       setMsgs((m) => [...m, { role: "assistant", content: greet }]);
       if (!auto) chime();
       setTimeout(() => speak(greet), prefs.current.soundOn && !auto ? 1500 : 200);
@@ -170,7 +154,7 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   function turnOff() {
     setOn(false);
     stopListening();
-    try { window.speechSynthesis?.cancel(); } catch {}
+    cancelSpeech();
     setSpeaking(false);
   }
 
@@ -188,7 +172,7 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   }
   function startListening() {
     const r = ensureRecog(); if (!r) return;
-    try { window.speechSynthesis?.cancel(); } catch {}  // interrupt speech when member talks
+    cancelSpeech();  // interrupt speech when member talks
     setSpeaking(false); setInput("");
     try { r.start(); setListening(true); } catch {}
   }
