@@ -1,33 +1,17 @@
 "use client";
 
 // ── Member dashboard shell ──────────────────────────────────────
-// One shared chrome for every /dashboard/* page: fixed sidebar on desktop,
-// slide-in drawer on mobile, a top bar, and the active menu item highlighted
-// from the real URL (usePathname). Every link points to a real route — no
-// placeholder hrefs. The Concierge is mounted alongside (see dashboard/layout).
+// One shared chrome for every /dashboard/* page: chocolate sidebar on desktop,
+// slide-in drawer on mobile, a top bar with search + notifications + avatar, and
+// the active menu item highlighted from the real URL. Every link points to a
+// real route (unbuilt categories go to an honest /dashboard/explore Coming-Soon
+// page — never a dead href). The Concierge card opens the in-app assistant.
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import { SIDE_NAV, OWNER_NAV, Icon } from "./nav-config";
 import "./dashboard-ui.css";
-
-interface NavItem { id: string; label: string; href: string; icon: ReactNode }
-
-const NAV: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></> },
-  { id: "home", label: "Home Estate", href: "/dashboard/home", icon: <path d="M4 12 L12 5 L20 12 M6 11V20H18V11" /> },
-  { id: "journeys", label: "My Journeys", href: "/dashboard/journeys", icon: <path d="M12 3 3 8l9 5 9-5z M3 13l9 5 9-5" /> },
-  { id: "create", label: "Create a Moment", href: "/dashboard/create", icon: <><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></> },
-  { id: "concierge-services", label: "Concierge Services", href: "/dashboard/concierge", icon: <><path d="M4 20a8 8 0 0 1 16 0z" /><circle cx="12" cy="7" r="3.2" /></> },
-  { id: "family-vault", label: "Family Vault", href: "/dashboard/family-vault", icon: <path d="M3 7h6l2 2h10v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /> },
-  { id: "social-studio", label: "Social Studio", href: "/dashboard/social-studio", icon: <><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 11 L15.8 7 M8.2 13 L15.8 17" /></> },
-  { id: "purchases", label: "Purchases", href: "/dashboard/purchases", icon: <><path d="M3 8h11v9H3z" /><path d="M14 11h4l3 3v3h-3" /><circle cx="7" cy="18" r="1.6" /><circle cx="17.5" cy="18" r="1.6" /></> },
-  { id: "sharing", label: "Sharing", href: "/dashboard/sharing", icon: <><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 11 L15.8 7 M8.2 13 L15.8 17" /></> },
-  { id: "messages", label: "Messages", href: "/dashboard/messages", icon: <><rect x="3" y="6" width="18" height="12" rx="1.5" /><path d="M3.5 7 12 13 20.5 7" /></> },
-  { id: "settings", label: "Account & Settings", href: "/dashboard/settings", icon: <><circle cx="12" cy="12" r="3.3" /><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M7.2 7.2 5.7 5.7M18.3 18.3 16.8 16.8M7.2 16.8 5.7 18.3M18.3 5.7 16.8 7.2" /></> },
-];
-
-const OWNER_ITEM: NavItem = { id: "owner-demo", label: "Owner Demo Studio", href: "/dashboard/owner-demo", icon: <path d="M12 3 L14.5 9 L21 9.5 L16 13.8 L17.5 20 L12 16.6 L6.5 20 L8 13.8 L3 9.5 L9.5 9 Z" /> };
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -38,20 +22,27 @@ export default function DashboardChrome({
   initial, unread, isOwner, children,
 }: { initial: string; unread: number; isOwner: boolean; children: ReactNode }) {
   const pathname = usePathname() || "/dashboard";
+  const router = useRouter();
   const [drawer, setDrawer] = useState(false);
-  const items = isOwner ? [...NAV, OWNER_ITEM] : NAV;
-  const current = items.find((i) => isActive(pathname, i.href));
+  const [q, setQ] = useState("");
+  const items = isOwner ? [...SIDE_NAV, OWNER_NAV] : SIDE_NAV;
 
   function openConcierge() {
     setDrawer(false);
     window.dispatchEvent(new CustomEvent("mmr:open-concierge"));
   }
 
+  function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const term = q.trim();
+    router.push(`/dashboard/explore/search${term ? `?q=${encodeURIComponent(term)}` : ""}`);
+  }
+
   const sidebar = (
     <>
-      <Link href="/home" className="dsh-brand" onClick={() => setDrawer(false)}>
+      <Link href="/dashboard" className="dsh-brand" onClick={() => setDrawer(false)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/logo-champagne.png" alt="" width={34} height={34} />
+        <img src="/brand/logo-champagne.png" alt="" width={40} height={40} />
         <span className="dsh-brand__t"><b>MAGICAL MOMENTS</b><i>BY REIGN</i></span>
       </Link>
       <nav className="dsh-nav">
@@ -64,15 +55,15 @@ export default function DashboardChrome({
             aria-current={isActive(pathname, it.href) ? "page" : undefined}
             onClick={() => setDrawer(false)}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">{it.icon}</svg>
+            <Icon name={it.icon} />
             <span>{it.label}</span>
           </Link>
         ))}
       </nav>
       <div className="dsh-scard" data-tour="concierge">
         <div className="dsh-scard__t">Concierge<br /><i>at your service</i></div>
-        <div className="dsh-scard__p">Plan, organize, and bring your moments to life.</div>
-        <button type="button" className="dsh-scard__b" onClick={openConcierge}>OPEN CONCIERGE</button>
+        <div className="dsh-scard__p">Need help with anything? We&rsquo;re here for you.</div>
+        <button type="button" className="dsh-scard__b" onClick={openConcierge}>CONTACT CONCIERGE</button>
       </div>
     </>
   );
@@ -91,13 +82,27 @@ export default function DashboardChrome({
           <button type="button" className="dsh-burger" onClick={() => setDrawer(true)} aria-label="Open menu">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
           </button>
-          <span className="dsh-top__title">{current?.label ?? "Dashboard"}</span>
+
+          <form className="dsh-search" onSubmit={onSearch} role="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search anything…"
+              aria-label="Search"
+            />
+          </form>
+
           <div className="dsh-top__r">
             <Link href="/dashboard/messages" className="dsh-top__ic" aria-label={`Messages${unread ? ` (${unread} unread)` : ""}`}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" /><path d="M10 20a2 2 0 0 0 4 0" /></svg>
               {unread > 0 && <span className="dsh-top__dot">{unread > 9 ? "9+" : unread}</span>}
             </Link>
-            <Link href="/dashboard/settings" className="dsh-av" aria-label="Account &amp; settings">{initial}</Link>
+            <Link href="/dashboard/settings" className="dsh-avwrap" aria-label="Account &amp; settings">
+              <span className="dsh-av">{initial}</span>
+              <svg className="dsh-av__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </Link>
           </div>
         </header>
 
