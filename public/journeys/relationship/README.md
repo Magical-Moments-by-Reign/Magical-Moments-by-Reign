@@ -17,6 +17,7 @@ Drop the files here with these EXACT names (case-sensitive):
 | `rehearsal-dinner.jpg` | Rehearsal Dinner |
 | `our-story.jpg`  | Our Story          |
 | `relationship-milestones.jpg` | Relationship Milestones |
+| `relationship-memories.jpg` | Relationship Memories |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the
