@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 const P: Record<string, ReactNode> = {
   dashboard: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></>,
   home: <path d="M4 12 12 5 20 12 M6 11V19H18V11" />,
+  relationship: <><circle cx="9" cy="12" r="5" /><circle cx="15" cy="12" r="5" /></>,
   build: <><path d="M4 20h16" /><path d="M6 20v-7l6-4 6 4v7" /><path d="M9 20v-4h6v4" /></>,
   palm: <><path d="M12 21V10" /><path d="M12 10c-3-3-7-2-8 0 3-1 5 0 8 0Z" /><path d="M12 10c3-3 7-2 8 0-3-1-5 0-8 0Z" /><circle cx="12" cy="7" r="2" /></>,
   key: <><circle cx="8" cy="8" r="4" /><path d="M11 11 20 20M17 17l2-2M15 15l2-2" /></>,
@@ -34,16 +35,14 @@ export function Icon({ name }: { name: string }) {
 
 export interface NavEntry { id: string; label: string; href: string; icon: string }
 
-// Sidebar menu — mirrors the approved dashboard design.
+// Sidebar menu. Housing is a SINGLE entry — the whole home world (Buy, Build,
+// Rent, Renovate, Vacation, Invest, Move, Maintain, Concierge) lives INSIDE the
+// Housing page as tiles, not as separate sidebar links. Everything else here is
+// an app-level utility, not a housing sub-area.
 export const SIDE_NAV: NavEntry[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { id: "journeys", label: "Home Journeys", href: "/dashboard/journeys/home", icon: "home" },
-  { id: "vacation-homes", label: "Vacation Homes", href: "/dashboard/journeys/home?area=vacation-homes", icon: "palm" },
-  { id: "renovation", label: "Renovation", href: "/dashboard/journeys/home?area=renovation", icon: "key" },
-  { id: "investment-property", label: "Investment Property", href: "/dashboard/journeys/home?area=investment-property", icon: "invest" },
-  { id: "moving", label: "Moving", href: "/dashboard/journeys/home?area=moving", icon: "moving" },
-  { id: "home-maintenance", label: "Home Maintenance", href: "/dashboard/journeys/home?area=home-maintenance", icon: "maintenance" },
-  { id: "concierge-services", label: "Lifestyle Concierge", href: "/dashboard/concierge", icon: "concierge" },
+  { id: "housing", label: "Housing", href: "/dashboard/journeys/home", icon: "home" },
+  { id: "relationship", label: "Relationship", href: "/dashboard/journeys/relationship", icon: "relationship" },
   { id: "create", label: "Events & Celebrations", href: "/dashboard/create", icon: "events" },
   { id: "media", label: "My Moments", href: "/dashboard/media", icon: "moments" },
   { id: "documents", label: "Documents", href: "/dashboard/explore/documents", icon: "documents" },
