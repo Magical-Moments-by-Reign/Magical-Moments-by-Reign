@@ -2,7 +2,17 @@ import { NextResponse } from "next/server";
 import { currentAccount } from "@/lib/auth-session";
 import { isPaidMember } from "@/lib/membership-access";
 import { getVoice } from "@/lib/voice/catalog";
-import { readOwnerElevenVoices } from "@/lib/voice/owner-config";
+import { readOwnerElevenVoices, resolveElevenId } from "@/lib/voice/owner-config";
+import { prisma } from "@/lib/db";
+
+// Owner / billing-exempt accounts may always test premium, regardless of tier.
+async function ownerPrivilege(accountId: string): Promise<boolean> {
+  try {
+    const a = await prisma.account.findUnique({ where: { id: accountId }, select: { staffRoles: true, billingExempt: true } });
+    if (a?.billingExempt) return true;
+    return (JSON.parse(a?.staffRoles || "[]") as unknown[]).includes("owner");
+  } catch { return false; }
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,7 +73,9 @@ export async function POST(req: Request) {
 
   const hasCloud = Boolean(process.env.ELEVENLABS_API_KEY || process.env.OPENAI_API_KEY);
   if (!hasCloud) return NextResponse.json({ error: "Premium voices aren't connected yet.", comingSoon: true }, { status: 503 });
-  if (!isPaidMember(account.membershipTier)) {
+
+  const privileged = await ownerPrivilege(account.id);
+  if (!isPaidMember(account.membershipTier) && !privileged) {
     return NextResponse.json({ error: "Premium voices are a membership feature.", needsMembership: true }, { status: 403 });
   }
 
@@ -75,10 +87,13 @@ export async function POST(req: Request) {
   const voice = getVoice(String(body.voiceId || ""));
   const gender: "female" | "male" = voice?.gender === "male" ? "male" : "female";
 
-  // Resolve the ElevenLabs voice id: owner's assigned voice (from My Voices) wins,
-  // then the catalog's built-in id, then env default.
-  const owner = await readOwnerElevenVoices().catch(() => ({ journey: "", concierge: "" }));
-  const elevenId = owner[persona] || voice?.providerVoiceId || "";
+  // Resolve the ElevenLabs voice id, in priority order:
+  //  1. an explicit raw voice id — only honoured for the owner (per-voice preview)
+  //  2. the owner's assigned voice for this persona + gender (from My Voices)
+  //  3. the catalog's built-in id
+  const rawPreview = privileged ? String(body.elevenVoiceId || "").trim() : "";
+  const owner = await readOwnerElevenVoices().catch(() => null);
+  const elevenId = rawPreview || (owner ? resolveElevenId(owner, persona, gender) : "") || voice?.providerVoiceId || "";
 
   // ElevenLabs primary → OpenAI fallback.
   const primary = await elevenLabs(text, elevenId);

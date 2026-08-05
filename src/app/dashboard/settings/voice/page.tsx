@@ -34,7 +34,8 @@ export default async function VoicePage() {
   const cloudReady = cloudConfigured();
   const paidMember = isPaidMember(account.membershipTier);
   const ownerConfig = owner ? await readOwnerVoiceConfig().catch(() => null) : null;
-  const ownerEleven = owner ? await readOwnerElevenVoices().catch(() => ({ journey: "", concierge: "" })) : { journey: "", concierge: "" };
+  const emptyEleven = { journeyFemale: "", journeyMale: "", concierge: "", journeyAlt: "", conciergeAlt: "" };
+  const ownerEleven = owner ? await readOwnerElevenVoices().catch(() => emptyEleven) : emptyEleven;
 
   return (
     <>

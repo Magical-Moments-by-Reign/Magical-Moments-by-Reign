@@ -55,11 +55,13 @@ export async function updateVoicePrefsAction(prefs: {
   } catch { /* not migrated yet — device localStorage still carries the choice */ }
 }
 
-/** Owner-only: assign a real ElevenLabs voice id (from My Voices) to a persona. */
-export async function updateOwnerElevenVoiceAction(persona: "journey" | "concierge", voiceId: string): Promise<void> {
+/** Owner-only: assign a real ElevenLabs voice id (from My Voices) to a slot. */
+export async function updateOwnerElevenVoiceAction(slot: string, voiceId: string): Promise<void> {
   await requireOwner(VOICE_PATH);
+  const valid = ["journeyFemale", "journeyMale", "concierge", "journeyAlt", "conciergeAlt"];
+  if (!valid.includes(slot)) return;
   try {
-    await writeOwnerElevenVoice(persona === "concierge" ? "concierge" : "journey", String(voiceId || ""));
+    await writeOwnerElevenVoice(slot as any, String(voiceId || ""));
     revalidatePath(VOICE_PATH);
   } catch { /* SystemConfig unavailable until the database is migrated */ }
 }

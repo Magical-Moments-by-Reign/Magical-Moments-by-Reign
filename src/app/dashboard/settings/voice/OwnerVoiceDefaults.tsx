@@ -1,11 +1,12 @@
 "use client";
 
-// ── Owner voice defaults + ElevenLabs setup (client) ────────────
-// Owner-only. Two parts:
-//  1. House default voices (catalog) + special-collection toggles.
-//  2. REAL ElevenLabs setup: load the account's own voices (proves the key works
-//     and returns valid ids), assign one to Journey / Concierge, preview it with
-//     a real cloud request, and switch the owner's own assistant to Premium.
+// ── Owner ElevenLabs Voice Manager (client) ─────────────────────
+// Owner-only. Loads the REAL voices from the owner's ElevenLabs account, lets the
+// owner preview each one (real cloud audio), and assign them to the Journey
+// female / Journey male / Concierge defaults. Assignments persist server-side
+// (SystemConfig) and wire straight into the live assistants via /api/voice/tts.
+// The actual provider used is always shown — a browser/OpenAI fallback is never
+// dressed up as ElevenLabs.
 
 import { useState } from "react";
 import { voicesFor, type VoicePersona } from "@/lib/voice/catalog";
@@ -13,17 +14,20 @@ import { savePrefs, loadPrefs, portablePrefs } from "@/lib/assistant-prefs";
 import { updateOwnerVoiceDefaultsAction, updateOwnerElevenVoiceAction, updateVoicePrefsAction } from "../actions";
 
 interface Config { defaultJourney: string; defaultConcierge: string; holiday: boolean; seasonal: boolean; collab: boolean; }
+interface Eleven { journeyFemale: string; journeyMale: string; concierge: string; journeyAlt: string; conciergeAlt: string; }
 interface ElevenVoice { voice_id: string; name: string; category?: string; gender?: string; accent?: string; }
 
-export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { config: Config; eleven: { journey: string; concierge: string }; cloudReady: boolean }) {
+const PREVIEW_LINE = "Hello, Tabitha. I'm Journey, your Magical Assistant. I'm here whenever you need me.";
+type Slot = "journeyFemale" | "journeyMale" | "concierge";
+
+export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { config: Config; eleven: Eleven; cloudReady: boolean }) {
   const [cfg, setCfg] = useState<Config>(config);
   const [saved, setSaved] = useState(false);
-
-  // ElevenLabs setup state
   const [voices, setVoices] = useState<ElevenVoice[] | null>(null);
   const [loadState, setLoadState] = useState<{ kind: "idle" | "loading" | "ok" | "err"; msg: string }>({ kind: "idle", msg: "" });
-  const [assign, setAssign] = useState<{ journey: string; concierge: string }>({ journey: eleven.journey, concierge: eleven.concierge });
-  const [preview, setPreview] = useState<string>("");
+  const [assign, setAssign] = useState<Eleven>(eleven);
+  const [result, setResult] = useState<{ kind: "" | "ok" | "browser" | "fail"; msg: string }>({ kind: "", msg: "" });
+  const [previewing, setPreviewing] = useState<string>("");
 
   function save(patch: Partial<Config>) {
     const next = { ...cfg, ...patch }; setCfg(next); setSaved(false);
@@ -36,6 +40,7 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
     const v = (p === "journey" ? journeyOpts : conciergeOpts).find((x) => x.id === id);
     return v ? `${v.personality} — ${v.gender === "male" ? "Male" : "Female"}, ${v.accent}${v.tier === "premium" ? " (Premium)" : ""}` : id;
   };
+  const nameOf = (id: string) => voices?.find((v) => v.voice_id === id)?.name || (id ? `${id.slice(0, 10)}…` : "built-in default");
 
   async function loadVoices() {
     setLoadState({ kind: "loading", msg: "Contacting ElevenLabs…" });
@@ -48,44 +53,75 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
     } catch { setLoadState({ kind: "err", msg: "Could not reach the voice service." }); }
   }
 
-  function assignVoice(persona: "journey" | "concierge", voiceId: string) {
-    setAssign((a) => ({ ...a, [persona]: voiceId }));
-    updateOwnerElevenVoiceAction(persona, voiceId).catch(() => {});
+  function assignSlot(slot: Slot, voiceId: string) {
+    setAssign((a) => ({ ...a, [slot]: voiceId }));
+    updateOwnerElevenVoiceAction(slot, voiceId).catch(() => {});
   }
 
-  // Preview the assigned voice through the REAL cloud route, reporting the provider.
-  async function previewPersona(persona: "journey" | "concierge") {
-    setPreview("Requesting a real cloud voice…");
+  // Preview a specific voice by its raw id (owner privilege on the route).
+  async function previewVoiceId(voiceId: string) {
+    setPreviewing(voiceId); setResult({ kind: "", msg: "" });
     try {
       const res = await fetch("/api/voice/tts", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: "Hello, Tabitha. I'm Journey, your Magical Assistant.", persona, voiceId: persona === "concierge" ? "concierge-hotel-hd" : "journey-warm-hd" }),
+        body: JSON.stringify({ text: PREVIEW_LINE, persona: "journey", elevenVoiceId: voiceId }),
       });
-      if (res.ok) {
-        const provider = res.headers.get("X-Voice-Provider");
-        const vid = res.headers.get("X-Voice-Id");
-        const blob = await res.blob(); const url = URL.createObjectURL(blob); const el = new Audio(url); el.onended = () => URL.revokeObjectURL(url); await el.play().catch(() => {});
-        setPreview(`Playing — provider: ${provider === "elevenlabs" ? "ElevenLabs" : provider === "openai" ? "OpenAI (fallback)" : provider}${vid ? `, voice ${vid}` : ""}.`);
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setPreview(d.detail ? `Failed — ElevenLabs ${d.detail}. ${d.elevenStatus ? `(status ${d.elevenStatus})` : ""}` : (d.error || "Voice service unavailable."));
-      }
-    } catch { setPreview("Could not reach the voice service."); }
+      await reportAndPlay(res, voiceId);
+    } catch { setResult({ kind: "fail", msg: "Could not reach the voice service." }); }
+    finally { setPreviewing(""); }
   }
 
-  // Switch the OWNER's own assistant to Premium so the live Journey button uses
-  // the assigned ElevenLabs voice immediately (owner is billing-exempt/eligible).
+  // The formal "Test ElevenLabs Voice" — full report (provider/name/id/model/status/bytes).
+  async function testElevenLabs() {
+    setPreviewing("test"); setResult({ kind: "", msg: "Requesting a real ElevenLabs voice…" });
+    try {
+      const res = await fetch("/api/voice/tts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: PREVIEW_LINE, persona: "journey", voiceId: "journey-warm-hd" }),
+      });
+      await reportAndPlay(res, assign.journeyFemale);
+    } catch { setResult({ kind: "fail", msg: "Could not reach the voice service." }); }
+    finally { setPreviewing(""); }
+  }
+
+  async function reportAndPlay(res: Response, expectedId: string) {
+    if (res.ok) {
+      const provider = res.headers.get("X-Voice-Provider") || "cloud";
+      const model = res.headers.get("X-Voice-Model") || "";
+      const vid = res.headers.get("X-Voice-Id") || expectedId;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob); const el = new Audio(url); el.onended = () => URL.revokeObjectURL(url); await el.play().catch(() => {});
+      const pname = provider === "elevenlabs" ? "ElevenLabs" : provider === "openai" ? "OpenAI (fallback)" : "Browser (fallback)";
+      setResult({
+        kind: provider === "elevenlabs" ? "ok" : "browser",
+        msg: `provider: ${pname} · voice: ${nameOf(vid)} · id: ${vid} · model: ${model || "—"} · status: 200 · audio: ${blob.size} bytes received.`,
+      });
+      return;
+    }
+    const d = await res.json().catch(() => ({}));
+    if (d.fallbackToBrowser) setResult({ kind: "browser", msg: `Cloud FAILED → browser fallback. ElevenLabs: ${d.detail || "no success"}${d.elevenStatus ? ` (status ${d.elevenStatus})` : ""}. Not calling this a success.` });
+    else if (res.status === 503) setResult({ kind: "fail", msg: "ELEVENLABS_API_KEY not set on this deployment (503)." });
+    else if (res.status === 403) setResult({ kind: "fail", msg: "Account not eligible for premium (403)." });
+    else setResult({ kind: "fail", msg: d.error || `Request failed (${res.status}).` });
+  }
+
   function useForJourneyNow() {
     const next = savePrefs({ ...loadPrefs(), provider: "premium", journeyVoice: "journey-warm-hd" });
     updateVoicePrefsAction(portablePrefs(next)).catch(() => {});
-    setPreview("Journey is now set to Premium (ElevenLabs) on this device. Turn Journey on to hear it.");
+    setResult({ kind: "ok", msg: "Journey is now set to Premium (ElevenLabs) on this device. Turn Journey on to hear it." });
   }
+
+  const isAssigned = (id: string) => id && (assign.journeyFemale === id || assign.journeyMale === id || assign.concierge === id);
+  const assignedAs = (id: string) => [
+    assign.journeyFemale === id ? "Journey ♀" : "",
+    assign.journeyMale === id ? "Journey ♂" : "",
+    assign.concierge === id ? "Concierge" : "",
+  ].filter(Boolean).join(", ");
 
   return (
     <section className="card vst__card vst__owner">
       <h3 className="vst__h">Owner controls — house voices</h3>
-      <p className="note">These set the default voices new members hear and which special collections are available.</p>
-
+      <p className="note">Defaults new members hear (from the built-in catalog) and special collections.</p>
       <div className="vst-grid2">
         <label className="vs-field"><span>Default Journey voice</span>
           <select value={cfg.defaultJourney} onChange={(e) => save({ defaultJourney: e.target.value })}>
@@ -98,11 +134,10 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
           </select>
         </label>
       </div>
-
       <div className="vst-toggles">
         {([
-          ["holiday", "Holiday voices", "Seasonal holiday voice collection"],
-          ["seasonal", "Seasonal voices", "Rotating seasonal voice collection"],
+          ["holiday", "Holiday voices", "Seasonal holiday collection"],
+          ["seasonal", "Seasonal voices", "Rotating seasonal collection"],
           ["collab", "Collaboration voices", "Special guest / signature voices"],
         ] as [keyof Config, string, string][]).map(([k, t, s]) => (
           <label key={k} className="vst-toggle">
@@ -113,45 +148,47 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
       </div>
       {saved && <p className="note vst__ok">Saved.</p>}
 
-      {/* ── Real ElevenLabs voice setup ── */}
-      <h3 className="vst__h" style={{ marginTop: "1.4rem" }}>ElevenLabs voice setup</h3>
-      <p className="note">
-        {cloudReady ? "Load the voices in your ElevenLabs account, assign one to Journey and Concierge, and preview it. Assigning a real voice id here overrides the built-in default." : "Add ELEVENLABS_API_KEY in Netlify to enable this."}
-      </p>
+      {/* ── ElevenLabs Voice Manager ── */}
+      <h3 className="vst__h" style={{ marginTop: "1.4rem" }}>ElevenLabs Voice Manager</h3>
+      <p className="note">{cloudReady ? "Load your ElevenLabs voices, preview each, and assign them to Journey (female/male) and Concierge. No guessed ids." : "Add ELEVENLABS_API_KEY in Netlify to enable this."}</p>
       <div className="pg-actions">
         <button type="button" className="btn btn--ghost btn--sm" onClick={loadVoices} disabled={loadState.kind === "loading"}>
           {loadState.kind === "loading" ? "Loading…" : "Load my ElevenLabs voices"}
         </button>
+        <button type="button" className="btn btn--gold btn--sm" onClick={testElevenLabs} disabled={!cloudReady || previewing === "test"}>
+          {previewing === "test" ? "Testing…" : "Test ElevenLabs Voice"}
+        </button>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={useForJourneyNow}>Use ElevenLabs for my Journey now</button>
       </div>
       {loadState.kind !== "idle" && loadState.kind !== "loading" && (
         <p className={`vst-status__result vst-status__result--${loadState.kind === "ok" ? "ok" : "fail"}`}>{loadState.msg}</p>
       )}
+      {result.kind && <p className={`vst-status__result vst-status__result--${result.kind === "ok" ? "ok" : result.kind === "browser" ? "browser" : "fail"}`}>{result.msg}</p>}
 
-      {voices && voices.length > 0 && (
-        <div className="vst-grid2" style={{ marginTop: ".8rem" }}>
-          <label className="vs-field"><span>Assign to Journey (Premium Female Default)</span>
-            <select value={assign.journey} onChange={(e) => assignVoice("journey", e.target.value)}>
-              <option value="">— built-in default —</option>
-              {voices.map((v) => <option key={v.voice_id} value={v.voice_id}>{v.name}{v.gender ? ` · ${v.gender}` : ""}{v.accent ? ` · ${v.accent}` : ""} ({v.voice_id.slice(0, 8)}…)</option>)}
-            </select>
-          </label>
-          <label className="vs-field"><span>Assign to Concierge</span>
-            <select value={assign.concierge} onChange={(e) => assignVoice("concierge", e.target.value)}>
-              <option value="">— built-in default —</option>
-              {voices.map((v) => <option key={v.voice_id} value={v.voice_id}>{v.name}{v.gender ? ` · ${v.gender}` : ""}{v.accent ? ` · ${v.accent}` : ""} ({v.voice_id.slice(0, 8)}…)</option>)}
-            </select>
-          </label>
+      {voices && (
+        <div className="vm-list">
+          {voices.map((v) => (
+            <div key={v.voice_id} className={`vm-row${isAssigned(v.voice_id) ? " is-active" : ""}`}>
+              <div className="vm-row__main">
+                <div className="vm-row__name">{v.name} {isAssigned(v.voice_id) && <span className="vm-badge">Active · {assignedAs(v.voice_id)}</span>}</div>
+                <div className="vm-row__meta">{[v.gender, v.accent, v.category].filter(Boolean).join(" · ") || "voice"} · <code>{v.voice_id}</code></div>
+              </div>
+              <div className="vm-row__acts">
+                <button type="button" className="btn btn--sm btn--gold" onClick={() => previewVoiceId(v.voice_id)} disabled={previewing === v.voice_id}>
+                  {previewing === v.voice_id ? "…" : "▶ Preview"}
+                </button>
+                <button type="button" className={`btn btn--sm${assign.journeyFemale === v.voice_id ? " btn--gold" : " btn--ghost"}`} onClick={() => assignSlot("journeyFemale", v.voice_id)}>Journey ♀</button>
+                <button type="button" className={`btn btn--sm${assign.journeyMale === v.voice_id ? " btn--gold" : " btn--ghost"}`} onClick={() => assignSlot("journeyMale", v.voice_id)}>Journey ♂</button>
+                <button type="button" className={`btn btn--sm${assign.concierge === v.voice_id ? " btn--gold" : " btn--ghost"}`} onClick={() => assignSlot("concierge", v.voice_id)}>Concierge</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="pg-actions" style={{ marginTop: ".6rem" }}>
-        <button type="button" className="btn btn--gold btn--sm" onClick={() => previewPersona("journey")} disabled={!cloudReady}>▶ Preview Journey voice</button>
-        <button type="button" className="btn btn--ghost btn--sm" onClick={() => previewPersona("concierge")} disabled={!cloudReady}>▶ Preview Concierge voice</button>
-        <button type="button" className="btn btn--ghost btn--sm" onClick={useForJourneyNow}>Use ElevenLabs for my Journey now</button>
-      </div>
-      {preview && <p className="vst-status__result vst-status__result--ok" style={{ marginTop: ".6rem" }}>{preview}</p>}
-
-      <p className="note" style={{ marginTop: ".6rem" }}>Currently assigned — Journey: <b>{assign.journey || "built-in default"}</b> · Concierge: <b>{assign.concierge || "built-in default"}</b></p>
+      <p className="note" style={{ marginTop: ".7rem" }}>
+        Assigned — Journey ♀: <b>{nameOf(assign.journeyFemale)}</b> · Journey ♂: <b>{nameOf(assign.journeyMale)}</b> · Concierge: <b>{nameOf(assign.concierge)}</b>
+      </p>
     </section>
   );
 }

@@ -47,6 +47,16 @@
 .vst-status__result--browser { background: #f6efdd; color: #7a5a1f; border: 1px solid #e8d6a8; }
 .vst-status__result--fail { background: #f6e3d8; color: #9a4a3a; border: 1px solid #e6c7b8; }
 
+/* ElevenLabs Voice Manager */
+.vm-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .9rem; }
+.vm-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; padding: .7rem .9rem; border: 1px solid #e7dcc9; border-radius: 12px; background: #fffdf9; }
+.vm-row.is-active { border-color: #c9a24b; box-shadow: 0 0 0 2px rgba(201,162,75,.22); }
+.vm-row__name { font-weight: 700; color: #2a1d12; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.vm-row__meta { font-size: .76rem; color: #7a6a52; margin-top: .15rem; }
+.vm-row__meta code { background: #f4ecdd; border-radius: 5px; padding: 0 .3rem; font-size: .72rem; }
+.vm-row__acts { display: flex; gap: .4rem; flex-wrap: wrap; }
+.vm-badge { font-size: .6rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: #2a1d12; background: linear-gradient(135deg, #f0dca4, #d8b25e); border-radius: 999px; padding: .1rem .5rem; }
+
 /* Owner controls */
 .vst__owner { border: 1px dashed #d8b25e; background: #fdf9f0; }
 .vst-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .9rem; margin: .6rem 0 1rem; }
