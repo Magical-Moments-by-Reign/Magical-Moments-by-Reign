@@ -18,6 +18,7 @@ Drop the files here with these EXACT names (case-sensitive):
 | `our-story.jpg`  | Our Story          |
 | `relationship-milestones.jpg` | Relationship Milestones |
 | `relationship-memories.jpg` | Relationship Memories |
+| `romantic-gifts.jpg` | Romantic Gifts     |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the
