@@ -13,8 +13,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CONCIERGE_OPENING } from "@/lib/concierge-intent";
-import { speak as speakConcierge, cancel as cancelSpeech } from "@/lib/voice/speech";
+import { speak as speakConciergeRaw, cancel as cancelSpeech, type UsedProvider } from "@/lib/voice/speech";
 import "./concierge.css";
+
+const PROVIDER_LABEL: Record<UsedProvider, string> = { elevenlabs: "ElevenLabs", openai: "OpenAI", browser: "Browser voice" };
 
 interface Msg { role: "user" | "assistant"; content: string; }
 
@@ -73,6 +75,13 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
   const greetedRef = useRef(false);
   const wasOpenRef = useRef(false);
   const sendRef = useRef<(t: string) => void>(() => {});
+  const [voiceProvider, setVoiceProvider] = useState<UsedProvider | null>(null);
+
+  // Speak in the Concierge voice and report the provider actually used, so a
+  // browser/OpenAI fallback is visible and never masquerades as ElevenLabs.
+  function speakConcierge(text: string, opts?: { persona?: "concierge" | "journey" }) {
+    speakConciergeRaw(text, { persona: opts?.persona ?? "concierge", onProvider: (p) => setVoiceProvider(p) });
+  }
 
   useEffect(() => {
     if (open && !minimized && scrollRef.current) {
@@ -193,7 +202,7 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
               <span className="cc-head__mark" aria-hidden="true">✦</span>
               <span>
                 Magical <i>Concierge</i>
-                <small>Your personal luxury assistant</small>
+                <small>Your personal luxury assistant{voiceProvider ? ` · ${PROVIDER_LABEL[voiceProvider]}` : ""}</small>
               </span>
             </div>
             <div className="cc-head__ctrls">

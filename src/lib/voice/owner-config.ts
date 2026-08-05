@@ -24,28 +24,43 @@ const K = {
 } as const;
 
 // Real ElevenLabs voice ids the owner assigns from their own account (My Voices).
-// These override the catalog's built-in ids at request time, per persona.
-const EK = {
-  journey: "voice.eleven.journey",
+// These override the catalog's built-in ids at request time, per persona/gender.
+export type ElevenSlot = "journeyFemale" | "journeyMale" | "concierge" | "journeyAlt" | "conciergeAlt";
+const EK: Record<ElevenSlot, string> = {
+  journeyFemale: "voice.eleven.journey.female",
+  journeyMale: "voice.eleven.journey.male",
   concierge: "voice.eleven.concierge",
-} as const;
+  journeyAlt: "voice.eleven.journey.alt",
+  conciergeAlt: "voice.eleven.concierge.alt",
+};
+export type OwnerElevenVoices = Record<ElevenSlot, string>;
+const EMPTY_ELEVEN: OwnerElevenVoices = { journeyFemale: "", journeyMale: "", concierge: "", journeyAlt: "", conciergeAlt: "" };
 
 /** The owner-assigned ElevenLabs voice ids (empty string = not set). */
-export async function readOwnerElevenVoices(): Promise<{ journey: string; concierge: string }> {
+export async function readOwnerElevenVoices(): Promise<OwnerElevenVoices> {
   try {
     const rows = await prisma.systemConfig.findMany({ where: { key: { in: Object.values(EK) } } });
-    const map = new Map(rows.map((r) => [r.key, r.value]));
-    return { journey: map.get(EK.journey) || "", concierge: map.get(EK.concierge) || "" };
+    const byKey = new Map(rows.map((r) => [r.key, r.value]));
+    const out = { ...EMPTY_ELEVEN };
+    (Object.keys(EK) as ElevenSlot[]).forEach((slot) => { out[slot] = byKey.get(EK[slot]) || ""; });
+    return out;
   } catch {
-    return { journey: "", concierge: "" };
+    return { ...EMPTY_ELEVEN };
   }
 }
 
-/** Owner-only: assign a real ElevenLabs voice id to a persona. */
-export async function writeOwnerElevenVoice(persona: "journey" | "concierge", voiceId: string): Promise<void> {
-  const key = persona === "concierge" ? EK.concierge : EK.journey;
+/** Owner-only: assign a real ElevenLabs voice id to a slot. */
+export async function writeOwnerElevenVoice(slot: ElevenSlot, voiceId: string): Promise<void> {
+  const key = EK[slot];
+  if (!key) return;
   const clean = String(voiceId || "").trim().slice(0, 64);
   await prisma.systemConfig.upsert({ where: { key }, update: { value: clean }, create: { key, value: clean } });
+}
+
+/** Resolve the ElevenLabs voice id for a persona + gender, or "" if unset. */
+export function resolveElevenId(v: OwnerElevenVoices, persona: "journey" | "concierge", gender: "female" | "male"): string {
+  if (persona === "concierge") return v.concierge || v.conciergeAlt || "";
+  return (gender === "male" ? v.journeyMale : v.journeyFemale) || v.journeyFemale || v.journeyMale || v.journeyAlt || "";
 }
 
 export const OWNER_VOICE_DEFAULT: OwnerVoiceConfig = {
