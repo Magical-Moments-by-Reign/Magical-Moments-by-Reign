@@ -15,6 +15,8 @@ Drop the files here with these EXACT names (case-sensitive):
 | `bachelor-bachelorette.jpg` | Bachelor or Bachelorette |
 | `love-letters.jpg` | Love Letters       |
 | `rehearsal-dinner.jpg` | Rehearsal Dinner |
+| `our-story.jpg`  | Our Story          |
+| `relationship-milestones.jpg` | Relationship Milestones |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the
