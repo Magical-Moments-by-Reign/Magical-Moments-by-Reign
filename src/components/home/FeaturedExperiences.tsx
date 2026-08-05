@@ -32,7 +32,7 @@ function Card({ item }: { item: InspirationItem }) {
       <div className="feat-card__body">
         <h3 className="feat-card__title">{item.title}</h3>
         <p className="feat-card__blurb">{item.blurb}</p>
-        <Link href={`/${item.slug}`} className="feat-card__btn">View Live Experience →</Link>
+        <Link href={`/${item.slug}`} className="feat-card__btn">View Live Journey →</Link>
       </div>
     </article>
   );

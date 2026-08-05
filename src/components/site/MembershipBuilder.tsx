@@ -124,7 +124,6 @@ export default function MembershipBuilder() {
                 aria-pressed={on}
                 style={e.photo ? { backgroundImage: `url(${e.photo})` } : undefined}
               >
-                <span className="mbx-tile__ic" aria-hidden="true">{isFree ? "🔒" : e.icon}</span>
                 {on && <span className="mbx-tile__check" aria-hidden="true">✓</span>}
                 <span className="mbx-tile__label">{e.label}</span>
               </button>

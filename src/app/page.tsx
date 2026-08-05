@@ -1,5 +1,4 @@
 import Link from "next/link";
-import ScrollCue from "@/components/site/ScrollCue";
 import { currentAccount } from "@/lib/auth-session";
 import { EXPERIENCES } from "@/lib/membership-builder";
 import { LIFETIME_COLLECTIONS, PRICING_CONFIG, formatUSD } from "@/lib/pricing-engine";
@@ -62,28 +61,17 @@ export default async function LandingPage() {
         </nav>
 
         <div className="lp-hero__in">
-          <svg className="lp-spark" viewBox="0 0 44 24" aria-hidden="true">
-            <path d="M22 2l1.6 6.4L30 10l-6.4 1.6L22 18l-1.6-6.4L14 10l6.4-1.6z" />
-            <path d="M33 5l.8 2.6L36 8l-2.2.4L33 11l-.8-2.6L30 8l2.2-.4z" opacity=".8" />
-          </svg>
           <h1 className="lp-h1">Life is more magical when it&rsquo;s <i>designed with intention.</i></h1>
-          <div className="lp-hdiv" aria-hidden="true" />
           <p className="lp-hsub">
-            Magical Moments by Reign is a luxury lifestyle membership for families who design,
-            celebrate, and preserve every meaningful chapter of life &mdash; from the homes you build
-            to the moments you&rsquo;ll treasure forever.
+            Create, celebrate, and preserve life&rsquo;s most meaningful moments in one beautiful place.
           </p>
           <div className="lp-hcta-row">
             {signedIn ? (
               <Link href="/home" className="lp-hcta">Enter your Magical Space</Link>
             ) : (
-              <>
-                <Link href="/get-started" className="lp-hcta">Get Started</Link>
-                <Link href="/login" className="lp-hcta lp-hcta--ghost">Sign In</Link>
-              </>
+              <Link href="/get-started" className="lp-hcta">Get Started</Link>
             )}
           </div>
-          <ScrollCue />
         </div>
       </section>
 
@@ -248,7 +236,7 @@ export default async function LandingPage() {
       <section className="lp-cta">
         <h2 className="lp-cta__t">What beautiful chapter of life are we <i>creating together?</i></h2>
         <p className="lp-cta__s">Begin free today. Design the rest at your own pace.</p>
-        <Link href={signedIn ? "/home" : "/get-started"} className="lp-btn-g" style={{ padding: "1rem 2.2rem", fontSize: "0.76rem" }}>
+        <Link href={signedIn ? "/home" : "/membership"} className="lp-btn-g" style={{ padding: "1rem 2.2rem", fontSize: "0.76rem" }}>
           {signedIn ? "Enter your Magical Space" : "Get Started Today"}
         </Link>
       </section>
@@ -272,7 +260,7 @@ export default async function LandingPage() {
           </div>
           <div className="lp-fcol">
             <h4>Explore</h4>
-            <Link href="/journeys">Experiences</Link>
+            <Link href="/journeys">Journeys</Link>
             <Link href="/inspiration">Inspiration</Link>
             <Link href="/vendors">Partners</Link>
             <Link href="/membership">Membership</Link>

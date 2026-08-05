@@ -29,7 +29,7 @@ const CARDS: Card[] = [
     icon: <><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" /></> },
   { title: "Vendor Network", desc: "Connect with trusted vendors and partners to bring your vision to life.", href: "/vendors",
     icon: <><path d="M3 12l3-3 4 3 2-1 3 3-2 2-3-2" /><path d="M14 8l3-2 4 4-2 2" /></> },
-  { title: "Experiences", desc: "Celebrate every occasion with curated ideas, planning tools, and unforgettable moments.", href: "/experiences",
+  { title: "Journeys", desc: "Celebrate every occasion with curated ideas, planning tools, and unforgettable moments.", href: "/experiences",
     icon: <><path d="M12 21V11" /><path d="M12 11c-3-4-7-3-8.5-1M12 11c3-4 7-3 8.5-1" /></> },
   { title: "Success Stories", desc: "Real stories from members who are living their best and creating magical moments.", href: "/success-stories",
     icon: <path d="M12 20s-7-4.3-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.7-7 9-7 9z" /> },
