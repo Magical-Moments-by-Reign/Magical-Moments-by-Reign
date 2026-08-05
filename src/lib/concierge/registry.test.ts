@@ -21,7 +21,7 @@ test("flights is the connected-capable service with a page", () => {
 });
 
 test("services are coming_soon until their provider env is set", () => {
-  // No DUFFEL_API_TOKEN in the test env → flights (and all) are coming_soon.
+  // No DUFFEL_ACCESS_TOKEN in the test env → flights (and all) are coming_soon.
   for (const s of SERVICES) assert.equal(resolveStatus(s), "coming_soon");
   assert.equal(STATUS_LABEL.coming_soon, "Coming Soon");
 });
