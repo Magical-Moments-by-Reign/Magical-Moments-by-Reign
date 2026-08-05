@@ -9,11 +9,16 @@ export type VoiceStyle =
   | "warm" | "elegant" | "friendly" | "professional"  // female
   | "calm" | "executive";                              // male (+ professional/friendly shared)
 
+export type VoiceProviderTier = "free" | "premium";
+
 export interface AssistantPrefs {
   soundOn: boolean;      // signature sound + chime
   voiceOn: boolean;      // spoken responses (TTS)
   captionsOn: boolean;   // show text captions
   autostart: boolean;    // turn the assistant on automatically after entering
+  provider: VoiceProviderTier; // free = browser · premium = cloud (see voice/catalog)
+  journeyVoice: string;  // selected voice id for the Journey persona
+  conciergeVoice: string;// selected voice id for the Concierge persona
   gender: VoiceGender;
   style: VoiceStyle;
   speed: number;         // TTS rate 0.7–1.2
@@ -24,6 +29,7 @@ export interface AssistantPrefs {
 
 export const DEFAULT_PREFS: AssistantPrefs = {
   soundOn: true, voiceOn: true, captionsOn: true, autostart: false,
+  provider: "free", journeyVoice: "journey-warm", conciergeVoice: "concierge-hotel",
   gender: "female", style: "warm", speed: 0.96, pitch: 1.03, volume: 1, voiceURI: "",
 };
 
@@ -57,6 +63,9 @@ export function loadPrefs(): AssistantPrefs {
       voiceOn: p.voiceOn ?? DEFAULT_PREFS.voiceOn,
       captionsOn: p.captionsOn ?? DEFAULT_PREFS.captionsOn,
       autostart: p.autostart ?? DEFAULT_PREFS.autostart,
+      provider: p.provider === "premium" ? "premium" : "free",
+      journeyVoice: typeof p.journeyVoice === "string" && p.journeyVoice ? p.journeyVoice : DEFAULT_PREFS.journeyVoice,
+      conciergeVoice: typeof p.conciergeVoice === "string" && p.conciergeVoice ? p.conciergeVoice : DEFAULT_PREFS.conciergeVoice,
       gender: p.gender === "male" ? "male" : "female",
       style: (STYLE_PRESETS[p.style as VoiceStyle] ? p.style : DEFAULT_PREFS.style),
       speed: clamp(p.speed, 0.7, 1.2, DEFAULT_PREFS.speed),
@@ -79,7 +88,10 @@ export function savePrefs(p: Partial<AssistantPrefs>): AssistantPrefs {
 
 /** The portable subset stored on the member profile (device voice excluded). */
 export function portablePrefs(p: AssistantPrefs) {
-  return { gender: p.gender, style: p.style, speed: p.speed, pitch: p.pitch, volume: p.volume };
+  return {
+    provider: p.provider, journeyVoice: p.journeyVoice, conciergeVoice: p.conciergeVoice,
+    gender: p.gender, style: p.style, speed: p.speed, pitch: p.pitch, volume: p.volume,
+  };
 }
 
 /** Merge profile prefs into local storage (used to hydrate a new device). */

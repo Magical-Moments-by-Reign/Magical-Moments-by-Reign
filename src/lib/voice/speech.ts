@@ -5,16 +5,19 @@
 // sentences for a warm, luxury cadence. One place, used by the assistant, the
 // guided tour, and the Settings voice preview.
 //
-// PREMIUM SEAM: `speak()` routes through provider "browser" today. A cloud
-// provider (ElevenLabs / OpenAI / Azure) can later be added as another provider
-// that streams audio from a server route — callers don't change.
+// PREMIUM SEAM: `speak()` uses the browser voice for the FREE tier. When the
+// member is on the PREMIUM tier it first tries the cloud route (/api/voice/tts,
+// ElevenLabs primary → OpenAI fallback, keys server-side) and plays that audio.
+// If the cloud isn't connected or the member isn't eligible, it falls back to
+// the browser voice so speech never goes silent — callers don't change.
 
 import { loadPrefs, STYLE_PRESETS, type AssistantPrefs, type VoiceGender } from "@/lib/assistant-prefs";
+import { DEFAULT_VOICE, type VoicePersona } from "@/lib/voice/catalog";
 
 export type VoiceProvider = "browser" | "cloud";
 export function activeVoiceProvider(): VoiceProvider {
-  // Flip to "cloud" once a premium TTS route is connected (see the report).
-  return "browser";
+  const prefs = loadPrefs();
+  return prefs.provider === "premium" && !cloudDisabled ? "cloud" : "browser";
 }
 
 // Heuristic gender hints from the OS/browser voice catalog (no reliable gender
@@ -61,16 +64,75 @@ export function toSpokenChunks(text: string): string[] {
 }
 
 let stopFlag = false;
+// Once the cloud says "not connected" / "not eligible" (503/403), stop trying it
+// this session and use the browser voice — avoids hitting a dead route repeatedly.
+let cloudDisabled = false;
+let audioEl: HTMLAudioElement | null = null;
 
-/** Speak text naturally. Returns immediately; use callbacks for state. */
-export function speak(text: string, opts?: { prefs?: AssistantPrefs; onStart?: () => void; onEnd?: () => void }): void {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+/** Speak text naturally. Returns immediately; use callbacks for state.
+ *  persona selects which saved voice id (Journey vs Concierge) the cloud uses. */
+export function speak(
+  text: string,
+  opts?: { prefs?: AssistantPrefs; persona?: VoicePersona; onStart?: () => void; onEnd?: () => void },
+): void {
+  if (typeof window === "undefined") return;
   const prefs = opts?.prefs ?? loadPrefs();
   if (!prefs.voiceOn) return;
+  const clean = text.replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+  if (!clean) return;
+
+  cancel();
+  stopFlag = false;
+
+  // PREMIUM: try the cloud voice first; fall back to browser on any failure.
+  if (prefs.provider === "premium" && !cloudDisabled) {
+    const persona: VoicePersona = opts?.persona ?? "journey";
+    const voiceId = persona === "concierge" ? prefs.conciergeVoice : prefs.journeyVoice;
+    speakCloud(clean, voiceId, prefs, opts).catch(() => {
+      // fall through to the browser voice below
+      speakBrowser(clean, prefs, opts);
+    });
+    return;
+  }
+  speakBrowser(clean, prefs, opts);
+}
+
+/** Cloud (premium) synthesis: fetch MP3 from the server route and play it. */
+async function speakCloud(
+  text: string,
+  voiceId: string,
+  prefs: AssistantPrefs,
+  opts?: { onStart?: () => void; onEnd?: () => void },
+): Promise<void> {
+  const res = await fetch("/api/voice/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, voiceId }),
+  });
+  if (!res.ok) {
+    // 503 = premium not connected, 403 = not a paid member → don't retry this session.
+    if (res.status === 503 || res.status === 403) cloudDisabled = true;
+    throw new Error(`tts ${res.status}`);
+  }
+  const blob = await res.blob();
+  if (stopFlag) return;
+  const url = URL.createObjectURL(blob);
+  const el = new Audio(url);
+  audioEl = el;
+  el.volume = Math.min(1, Math.max(0, prefs.volume));
+  el.onplay = () => opts?.onStart?.();
+  const done = () => { URL.revokeObjectURL(url); if (audioEl === el) audioEl = null; opts?.onEnd?.(); };
+  el.onended = done;
+  el.onerror = () => { URL.revokeObjectURL(url); throw new Error("audio"); };
+  await el.play();
+}
+
+/** Free (browser) synthesis: natural chunked speech synthesis. */
+function speakBrowser(text: string, prefs: AssistantPrefs, opts?: { onStart?: () => void; onEnd?: () => void }): void {
+  if (!window.speechSynthesis) return;
   const chunks = toSpokenChunks(text);
   if (!chunks.length) return;
 
-  cancel();
   stopFlag = false;
   const voice = pickVoice(prefs.gender, prefs.voiceURI);
   const preset = STYLE_PRESETS[prefs.style] ?? STYLE_PRESETS.warm;
@@ -99,4 +161,5 @@ export function speak(text: string, opts?: { prefs?: AssistantPrefs; onStart?: (
 export function cancel(): void {
   stopFlag = true;
   try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+  if (audioEl) { try { audioEl.pause(); audioEl.src = ""; } catch { /* ignore */ } audioEl = null; }
 }

@@ -1,0 +1,43 @@
+/* ── Voice Studio ─────────────────────────────────────────────── */
+.vst { display: flex; flex-direction: column; gap: 1.2rem; }
+.vst__card { padding: 1.2rem 1.3rem; }
+.vst__h { margin: 0 0 .3rem; font-size: 1.05rem; color: #2a1d12; }
+.vst__ok { color: #33632f; font-weight: 600; }
+.vst__foot { margin-top: .8rem; }
+
+/* Tier chooser */
+.vst-tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .8rem; margin: .8rem 0 .2rem; }
+.vst-tier { display: flex; flex-direction: column; gap: .25rem; text-align: left; padding: .9rem 1rem; border: 1.5px solid #e7dcc9; border-radius: 14px; background: #fffdf9; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.vst-tier:hover { border-color: #d8b25e; }
+.vst-tier.is-on { border-color: #a67c2e; box-shadow: 0 0 0 2px rgba(200,162,75,.25); background: linear-gradient(135deg, #fdf6e6, #fbefd3); }
+.vst-tier.is-locked { cursor: not-allowed; opacity: .8; }
+.vst-tier__k { font-weight: 700; color: #2a1d12; }
+.vst-tier__d { font-size: .84rem; color: #6b5744; }
+.vst-tier__s { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: #a67c2e; font-weight: 700; margin-top: .2rem; }
+.vst-tier__s--ok { color: #33632f; }
+
+/* Persona tabs */
+.vst-tabs { display: inline-flex; border: 1px solid #e2d3b3; border-radius: 12px; overflow: hidden; margin-bottom: .6rem; }
+.vst-tabs button { padding: .55rem 1.1rem; border: none; background: #fffdf9; color: #6b5744; cursor: pointer; font: inherit; font-size: .9rem; }
+.vst-tabs button.is-on { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; font-weight: 700; }
+
+/* Voice cards */
+.vst-voices { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .7rem; margin: .7rem 0; }
+.vst-voice { position: relative; display: flex; flex-direction: column; gap: .2rem; text-align: left; padding: .8rem .9rem; border: 1.5px solid #e7dcc9; border-radius: 12px; background: #fffdf9; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.vst-voice:hover { border-color: #d8b25e; }
+.vst-voice.is-on { border-color: #a67c2e; box-shadow: 0 0 0 2px rgba(200,162,75,.25); }
+.vst-voice__name { font-weight: 700; color: #2a1d12; }
+.vst-voice__meta { font-size: .8rem; color: #6b5744; }
+.vst-voice__badge { position: absolute; top: .5rem; right: .5rem; font-size: .64rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: #9a4a3a; background: #f6e3d8; border: 1px solid #e6c7b8; border-radius: 999px; padding: .1rem .45rem; }
+.vst-voice__check { font-size: .76rem; color: #a67c2e; font-weight: 700; margin-top: .1rem; }
+
+.vst-slider { display: flex; flex-direction: column; gap: .35rem; max-width: 320px; margin: .4rem 0 1rem; }
+.vst-slider > span { font-size: .82rem; font-weight: 600; color: #2a1d12; }
+.vst-slider input[type=range] { accent-color: #c9a24b; }
+
+/* Owner controls */
+.vst__owner { border: 1px dashed #d8b25e; background: #fdf9f0; }
+.vst-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .9rem; margin: .6rem 0 1rem; }
+.vst-toggles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .7rem; margin: .4rem 0 .8rem; }
+.vst-toggle { display: flex; align-items: flex-start; gap: .6rem; padding: .7rem .8rem; border: 1px solid #e7dcc9; border-radius: 10px; background: #fffdf9; cursor: pointer; }
+.vst-toggle input[type=checkbox] { accent-color: #c9a24b; width: 18px; height: 18px; margin-top: .1rem; }

@@ -7,10 +7,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireAccount } from "@/lib/guard";
+import { requireAccount, requireOwner } from "@/lib/guard";
 import { checkAssistantName, DEFAULT_ASSISTANT_NAME } from "@/lib/assistant-name";
+import { getVoice, DEFAULT_VOICE } from "@/lib/voice/catalog";
+import { writeOwnerVoiceConfig } from "@/lib/voice/owner-config";
 
 const PATH = "/dashboard/settings";
+const VOICE_PATH = "/dashboard/settings/voice";
 
 export async function updateAssistantNameAction(formData: FormData): Promise<void> {
   const account = await requireAccount(PATH);
@@ -24,13 +27,20 @@ export async function updateAssistantNameAction(formData: FormData): Promise<voi
   redirect(`${PATH}?assistant=saved`);
 }
 
-/** Persist the portable voice preferences (gender/style/speed/pitch/volume) to
- *  the member's profile so the assistant sounds the same across their devices. */
+/** Persist the portable voice preferences to the member's profile so the
+ *  assistant sounds the same across their devices. Includes the tier (free vs
+ *  premium) and the selected Journey/Concierge voice ids. Voice ids are
+ *  validated against the catalog — an unknown id falls back to the default. */
 export async function updateVoicePrefsAction(prefs: {
+  provider?: string; journeyVoice?: string; conciergeVoice?: string;
   gender?: string; style?: string; speed?: number; pitch?: number; volume?: number;
 }): Promise<void> {
   const account = await requireAccount(PATH);
+  const journeyVoice = prefs.journeyVoice && getVoice(prefs.journeyVoice) ? prefs.journeyVoice : DEFAULT_VOICE.journey;
+  const conciergeVoice = prefs.conciergeVoice && getVoice(prefs.conciergeVoice) ? prefs.conciergeVoice : DEFAULT_VOICE.concierge;
   const clean = {
+    provider: prefs.provider === "premium" ? "premium" : "free",
+    journeyVoice, conciergeVoice,
     gender: prefs.gender === "male" ? "male" : "female",
     style: String(prefs.style || "warm").slice(0, 24),
     speed: Math.min(1.2, Math.max(0.7, Number(prefs.speed) || 0.96)),
@@ -39,6 +49,16 @@ export async function updateVoicePrefsAction(prefs: {
   };
   await prisma.account.update({ where: { id: account.id }, data: { voicePrefs: JSON.stringify(clean) } });
   revalidatePath(PATH);
+}
+
+/** Owner-only: set the house default voices and special-collection toggles. */
+export async function updateOwnerVoiceDefaultsAction(patch: {
+  defaultJourney?: string; defaultConcierge?: string;
+  holiday?: boolean; seasonal?: boolean; collab?: boolean;
+}): Promise<void> {
+  await requireOwner(VOICE_PATH);
+  await writeOwnerVoiceConfig(patch);
+  revalidatePath(VOICE_PATH);
 }
 
 export async function resetAssistantNameAction(): Promise<void> {
