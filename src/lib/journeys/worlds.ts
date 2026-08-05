@@ -81,7 +81,7 @@ const RELATIONSHIP: JourneyWorld = {
     { slug: "elopement", label: "Elopement", tagline: "Just the two of you.", image: "/journeys/relationship/elopement.jpg", status: "explore" },
     { slug: "bridal-shower", label: "Bridal Shower", tagline: "Shower her with love.", image: "/story/bridalshower.jpg", status: "explore" },
     { slug: "bachelor-bachelorette", label: "Bachelor or Bachelorette", tagline: "One last adventure.", image: "/journeys/relationship/bachelor-bachelorette.jpg", status: "explore" },
-    { slug: "rehearsal-dinner", label: "Rehearsal Dinner", tagline: "The night before the vows.", status: "explore" },
+    { slug: "rehearsal-dinner", label: "Rehearsal Dinner", tagline: "The night before the vows.", image: "/journeys/relationship/rehearsal-dinner.jpg", status: "explore" },
     { slug: "honeymoon", label: "Honeymoon", tagline: "Begin forever, somewhere beautiful.", image: "/story/vacation.jpg", status: "explore" },
     { slug: "anniversary", label: "Anniversary", tagline: "Celebrate the years.", image: "/story/anniversary.jpg", status: "explore",
       ideas: ["Milestone anniversaries", "Romantic getaways", "At-home celebrations", "Gift by year", "Renewing traditions", "Anniversary photography"] },
