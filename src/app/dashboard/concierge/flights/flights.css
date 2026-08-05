@@ -1,0 +1,25 @@
+.fl { display: flex; flex-direction: column; gap: 1.1rem; max-width: 760px; }
+.fl-test { background: #f3e6c8; color: #8a5e1a; border: 1px solid #e6d3a3; border-radius: 10px; padding: .6rem .9rem; font-size: .85rem; }
+.fl-form { display: flex; flex-direction: column; gap: .8rem; }
+.fl-form h3 { margin: 0; font-size: 1.1rem; color: var(--espresso, #2a1d12); }
+.fl-row { display: flex; gap: .8rem; flex-wrap: wrap; }
+.fl-f { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 140px; }
+.fl-f > span { font-size: .78rem; font-weight: 600; color: #2a1d12; }
+.fl-f input, .fl-f select { padding: .55rem .65rem; border: 1.5px solid #e2d3b3; border-radius: 10px; font: inherit; font-size: .92rem; color: #3a2c1d; background: #fffdf9; }
+.fl-f input:focus, .fl-f select:focus { outline: none; border-color: #c9a24b; }
+
+.fl-error { background: #f6e3d8; color: #9a4a3a; border: 1px solid #e6c7b8; border-radius: 10px; padding: .6rem .9rem; font-size: .88rem; }
+
+.fl-list { display: flex; flex-direction: column; gap: .7rem; }
+.fl-offer { display: flex; justify-content: space-between; gap: 1rem; align-items: center; background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 14px; padding: .9rem 1.1rem; flex-wrap: wrap; }
+.fl-offer__air { font-weight: 700; color: var(--espresso, #2a1d12); margin-bottom: .3rem; }
+.fl-leg { font-size: .86rem; color: #4a3a28; }
+.fl-offer__buy { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
+.fl-price { font-family: var(--font-display, Georgia, serif); font-size: 1.4rem; color: var(--espresso, #2a1d12); }
+
+.fl-pax { border: 1px solid #ece1cd; border-radius: 12px; padding: .8rem; display: flex; flex-direction: column; gap: .6rem; }
+.fl-pax__h { font-weight: 700; font-size: .82rem; color: #a67c2e; }
+
+.fl-done { text-align: center; }
+.fl-done__badge { display: inline-block; background: #f3e6c8; color: #8a5e1a; border: 1px solid #e6d3a3; border-radius: 8px; padding: .2rem .7rem; font-size: .7rem; font-weight: 800; letter-spacing: .08em; }
+.fl-done h3 { margin: .6rem 0 .3rem; color: var(--espresso, #2a1d12); }

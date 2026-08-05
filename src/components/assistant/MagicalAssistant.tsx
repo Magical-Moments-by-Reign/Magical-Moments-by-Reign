@@ -35,6 +35,8 @@ const NAV: { re: RegExp; path: string; say: string }[] = [
   { re: /\b(my )?memories\b|add a memory|my photos/i, path: "/dashboard/media", say: "Opening My Memories — add photos, videos, and keepsakes here." },
   { re: /\bfinish|unfinished|what.*(left|need)/i, path: "/dashboard/journeys?filter=draft", say: "Here are the drafts waiting for you to finish." },
   { re: /\b(my )?journeys\b|show.*journeys/i, path: "/dashboard/journeys", say: "Here are your Journeys." },
+  { re: /search flights|find (a |me )?flight|compare flights/i, path: "/dashboard/concierge/flights", say: "Opening flight search." },
+  { re: /concierge services|hotels?|rental car|book a car|travel services|excursion|reservation/i, path: "/dashboard/concierge", say: "Here are your Concierge services." },
   { re: /create|new journey|birthday page|make a.*(page|journey|moment)/i, path: "/dashboard/create", say: "Let's create something. Choose a Journey to begin." },
   { re: /messages|notifications/i, path: "/dashboard/messages", say: "Here are your messages." },
   { re: /sharing|share link/i, path: "/dashboard/sharing", say: "Here is your sharing center." },
