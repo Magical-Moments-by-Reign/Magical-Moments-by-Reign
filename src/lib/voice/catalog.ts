@@ -59,6 +59,13 @@ export function getVoice(id: string): VoiceOption | undefined { return VOICES.fi
 
 export const DEFAULT_VOICE: Record<VoicePersona, string> = { journey: "journey-warm", concierge: "concierge-hotel" };
 
+/** The best FREE voice for a persona given a gender + browser style — used to
+ *  keep the quick Settings controls in sync with the catalog voice selection. */
+export function freeVoiceForStyle(persona: VoicePersona, gender: "female" | "male", style: string): string {
+  const list = voicesFor(persona, "free").filter((v) => v.gender === gender);
+  return (list.find((v) => v.browserStyle === style) ?? list[0] ?? getVoice(DEFAULT_VOICE[persona]))?.id ?? DEFAULT_VOICE[persona];
+}
+
 /** Keep a selection inside a tier: return `current` if it already belongs to
  *  this persona + tier, otherwise the best default voice for that tier. */
 export function tierVoiceId(persona: VoicePersona, tier: VoiceTier, current: string): string {

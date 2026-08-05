@@ -11,6 +11,7 @@ import {
   STYLE_PRESETS, STYLES_BY_GENDER, type AssistantPrefs, type VoiceGender, type VoiceStyle,
 } from "@/lib/assistant-prefs";
 import { speak, cancel } from "@/lib/voice/speech";
+import { freeVoiceForStyle } from "@/lib/voice/catalog";
 import { updateVoicePrefsAction } from "./actions";
 
 export default function VoiceSettings({ assistantName, firstName, profileVoicePrefs }: { assistantName: string; firstName: string; profileVoicePrefs: string }) {
@@ -30,7 +31,12 @@ export default function VoiceSettings({ assistantName, firstName, profileVoicePr
   function setGender(gender: VoiceGender) {
     const styles = STYLES_BY_GENDER[gender];
     const style = styles.includes(prefs.style) ? prefs.style : styles[0];
-    update({ gender, style });
+    // Keep the Journey persona voice in sync so the live assistant matches.
+    update({ gender, style, journeyVoice: freeVoiceForStyle("journey", gender, style) });
+  }
+
+  function setStyle(style: VoiceStyle) {
+    update({ style, journeyVoice: freeVoiceForStyle("journey", prefs.gender, style) });
   }
 
   function preview() {
@@ -40,7 +46,7 @@ export default function VoiceSettings({ assistantName, firstName, profileVoicePr
   }
 
   function restore() {
-    const next = savePrefs({ gender: DEFAULT_PREFS.gender, style: DEFAULT_PREFS.style, speed: DEFAULT_PREFS.speed, pitch: DEFAULT_PREFS.pitch, volume: DEFAULT_PREFS.volume });
+    const next = savePrefs({ gender: DEFAULT_PREFS.gender, style: DEFAULT_PREFS.style, journeyVoice: DEFAULT_PREFS.journeyVoice, speed: DEFAULT_PREFS.speed, pitch: DEFAULT_PREFS.pitch, volume: DEFAULT_PREFS.volume });
     setPrefs(next);
     updateVoicePrefsAction(portablePrefs(next)).catch(() => {});
   }
@@ -64,7 +70,7 @@ export default function VoiceSettings({ assistantName, firstName, profileVoicePr
           </div>
 
           <label className="vs-field"><span>Style</span>
-            <select value={prefs.style} onChange={(e) => update({ style: e.target.value as VoiceStyle })}>
+            <select value={prefs.style} onChange={(e) => setStyle(e.target.value as VoiceStyle)}>
               {styles.map((s) => <option key={s} value={s}>{STYLE_PRESETS[s].label}</option>)}
             </select>
           </label>

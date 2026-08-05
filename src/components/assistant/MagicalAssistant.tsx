@@ -23,7 +23,6 @@ interface Msg { role: "user" | "assistant"; content: string; }
 const MSG_KEY = "mmr:assistant-msgs";
 const ON_KEY = "mmr:assistant-on";
 const GREET_KEY = "mmr:assistant-greeted";
-const CONCIERGE_SEED = "mmr:concierge-seed";
 
 function fmt(text: string): { __html: string } {
   const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -117,10 +116,14 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   useEffect(() => { try { sessionStorage.setItem(ON_KEY, on ? "1" : "0"); } catch {} }, [on]);
   useEffect(() => { if (on && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs, on, busy]);
 
-  const speak = useCallback((text: string) => {
-    // Natural, style-shaped, sentence-chunked delivery (see lib/voice/speech).
-    speakNatural(text, { onStart: () => setSpeaking(true), onEnd: () => setSpeaking(false) });
+  const speak = useCallback((text: string, onDone?: () => void) => {
+    // Natural, style-shaped, sentence-chunked delivery in the member's saved
+    // JOURNEY voice (see lib/voice/speech). onDone fires after the line finishes.
+    speakNatural(text, { persona: "journey", onStart: () => setSpeaking(true), onEnd: () => { setSpeaking(false); onDone?.(); } });
   }, []);
+
+  // End any Journey audio when the assistant unmounts (e.g. the member signs out).
+  useEffect(() => () => cancelSpeech(), []);
 
   function chime() {
     const p = loadPrefs();
@@ -201,13 +204,17 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
       return;
     }
 
-    // 1) Concierge handoff — never answered here.
+    // 1) Concierge handoff — never answered here. Speak the handoff line in the
+    //    JOURNEY voice, THEN open the Concierge (which greets in its own voice and
+    //    picks up the request), so the two voices don't talk over each other. If
+    //    voice is off, open immediately. The request is passed along in the event
+    //    so the member never repeats it.
     if (looksLikeConciergeRequest(clean)) {
       const line = "I'll bring in your Concierge to help with that.";
       setMsgs((m) => [...m, { role: "assistant", content: line }]);
-      speak(line);
-      try { sessionStorage.setItem(CONCIERGE_SEED, clean); } catch {}
-      window.dispatchEvent(new CustomEvent("mmr:open-concierge", { detail: { seed: clean } }));
+      const openConcierge = () => window.dispatchEvent(new CustomEvent("mmr:open-concierge", { detail: { seed: clean } }));
+      if (loadPrefs().voiceOn) speak(line, openConcierge);
+      else openConcierge();
       return;
     }
     // 2) Navigation actions the assistant can really do now.

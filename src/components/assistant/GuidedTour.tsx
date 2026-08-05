@@ -58,8 +58,11 @@ export default function GuidedTour({ autoOffer, assistantName, firstName }: { au
 
   const speak = useCallback((text: string) => {
     if (!voiceOn) return;
-    speakNatural(text); // shared natural, style-shaped delivery
+    speakNatural(text, { persona: "journey" }); // narrated in the member's saved Journey voice
   }, [voiceOn]);
+
+  // End tour narration if the tour unmounts (route change teardown, sign-out).
+  useEffect(() => () => cancelSpeech(), []);
 
   const locate = useCallback((idx: number) => {
     const step = list.current[idx];
