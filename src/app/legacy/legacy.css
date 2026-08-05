@@ -1,0 +1,51 @@
+/* ── Legacy & Memories ─────────────────────────────────────────
+   Warm luxury: chocolate/cream/champagne gold. */
+.lg { background: #fbf6ee; color: #2c211a; }
+
+.lg-hero { position: relative; min-height: 66vh; display: flex; align-items: center; overflow: hidden; }
+.lg-hero__media {
+  position: absolute; inset: 0;
+  background: #241209 url("/story/legacy.jpg") center/cover no-repeat;
+}
+.lg-hero__scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(24,13,6,.82) 0%, rgba(24,13,6,.6) 45%, rgba(24,13,6,.32) 100%);
+}
+.lg-hero__in { position: relative; z-index: 2; max-width: 640px; padding: 4.5rem 1.5rem; margin: 0 6vw; color: #f6ead0; }
+.lg-hero__eye { font-size: .74rem; letter-spacing: .28em; text-transform: uppercase; color: #d9bd82; font-weight: 700; }
+.lg-hero__t { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.08; margin: .8rem 0 0; }
+.lg-hero__t i { color: #e3c98a; }
+.lg-hero__s { margin: 1.4rem 0 0; max-width: 46ch; line-height: 1.7; color: #ece0cb; font-size: 1.05rem; }
+.lg-hero__cta { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 2rem; }
+
+.lg-btn {
+  display: inline-block; padding: .8rem 1.5rem; border-radius: 10px; font-weight: 600; font-size: .92rem;
+  text-decoration: none; border: 1px solid rgba(217,189,130,.6); color: #f6ead0; background: rgba(255,255,255,.06);
+  transition: transform .14s, box-shadow .14s, filter .14s;
+}
+.lg-btn:hover { transform: translateY(-2px); }
+.lg-btn--gold { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: #a67c2e; }
+.lg-btn--gold:hover { filter: brightness(1.05); box-shadow: 0 10px 26px rgba(42,29,18,.3); }
+
+.lg-pillars {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem;
+  max-width: 1080px; margin: -3.5rem auto 0; padding: 0 1.5rem; position: relative; z-index: 3;
+}
+.lg-pillar {
+  background: #fffdf9; border: 1px solid #e7dcc9; border-radius: 18px; padding: 1.6rem 1.5rem;
+  box-shadow: 0 12px 30px rgba(44,33,26,.08);
+}
+.lg-pillar__mark { color: #c9a24b; font-size: 1.4rem; }
+.lg-pillar h3 { font-family: var(--font-display, Georgia, serif); font-size: 1.35rem; color: #2a1d12; margin: .5rem 0 .4rem; }
+.lg-pillar p { color: #6b5744; line-height: 1.6; margin: 0; }
+
+.lg-band { padding: 4.5rem 1.5rem; }
+.lg-band__in { max-width: 720px; margin: 0 auto; text-align: center; }
+.lg-band__in h2 { font-family: var(--font-display, Georgia, serif); font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: #2a1d12; margin: 0 0 1rem; }
+.lg-band__in p { color: #6b5744; line-height: 1.75; margin: 0 auto 1.8rem; max-width: 56ch; }
+.lg-band__in .lg-btn { color: #2a1d12; }
+
+@media (max-width: 640px) {
+  .lg-hero__in { margin: 0; padding: 3.5rem 1.3rem; }
+  .lg-hero__scrim { background: linear-gradient(180deg, rgba(24,13,6,.55), rgba(24,13,6,.82)); }
+}
