@@ -104,7 +104,7 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
   // assistant's audio (e.g. a Journey greeting on dashboard entry).
   useEffect(() => {
     const isOpen = open && !minimized;
-    if (!isOpen && wasOpenRef.current) cancelSpeech();
+    if (!isOpen && wasOpenRef.current) { cancelSpeech(); setVoiceProvider(null); }
     wasOpenRef.current = isOpen;
   }, [open, minimized]);
 

@@ -85,6 +85,13 @@ export default function VoiceStudio({
   }
 
   useEffect(() => { setPrefs(hydrateFromProfile(profileVoicePrefs)); }, [profileVoicePrefs]);
+  // Clear a finished test result after a while so a stale message can't be
+  // mistaken for the current state.
+  useEffect(() => {
+    if (testState.kind === "idle" || testState.kind === "testing") return;
+    const t = setTimeout(() => setTestState({ kind: "idle", msg: "" }), 30_000);
+    return () => clearTimeout(t);
+  }, [testState]);
 
   function update(patch: Partial<AssistantPrefs>) {
     const next = savePrefs(patch);

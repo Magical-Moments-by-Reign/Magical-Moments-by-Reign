@@ -8,7 +8,7 @@
 // The actual provider used is always shown — a browser/OpenAI fallback is never
 // dressed up as ElevenLabs.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { voicesFor, type VoicePersona } from "@/lib/voice/catalog";
 import { savePrefs, loadPrefs, portablePrefs } from "@/lib/assistant-prefs";
 import { enableCloud } from "@/lib/voice/speech";
@@ -34,6 +34,11 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
     const next = { ...cfg, ...patch }; setCfg(next); setSaved(false);
     updateOwnerVoiceDefaultsAction(patch).then(() => setSaved(true)).catch(() => {});
   }
+
+  // Auto-expire transient status messages so an earlier (possibly failed) test
+  // can't linger and be mistaken for the current state.
+  useEffect(() => { if (!result.kind) return; const t = setTimeout(() => setResult({ kind: "", msg: "" }), 30_000); return () => clearTimeout(t); }, [result]);
+  useEffect(() => { if (!saved) return; const t = setTimeout(() => setSaved(false), 8_000); return () => clearTimeout(t); }, [saved]);
 
   const journeyOpts = [...voicesFor("journey", "free"), ...voicesFor("journey", "premium")];
   const conciergeOpts = [...voicesFor("concierge", "free"), ...voicesFor("concierge", "premium")];
@@ -169,6 +174,7 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
   const TRACE_LINE = "Tabitha, this is a brand-new ElevenLabs voice test for Magical Moments.";
   const [trace, setTrace] = useState<{ k: string; v: string; flag?: "ok" | "warn" | "bad" }[]>([]);
   const [tracing, setTracing] = useState(false);
+  useEffect(() => { if (!trace.length) return; const t = setTimeout(() => setTrace([]), 60_000); return () => clearTimeout(t); }, [trace]);
 
   async function traceEleven() {
     setTracing(true); setTrace([{ k: "Status", v: "Requesting fresh ElevenLabs audio…" }]);

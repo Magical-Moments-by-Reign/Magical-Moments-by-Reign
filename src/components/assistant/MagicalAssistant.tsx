@@ -178,8 +178,9 @@ export default function MagicalAssistant({ assistantName, firstName, sessionKey 
   function turnOff() {
     setOn(false);
     stopListening();
-    cancelSpeech();      // stop current speech immediately
-    setSpeaking(false);  // history is kept; welcome flag is untouched
+    cancelSpeech();          // stop current speech immediately
+    setSpeaking(false);      // history is kept; welcome flag is untouched
+    setVoiceProvider(null);  // clear the provider chip so it never shows a stale value
   }
 
   function toggle() { if (on) turnOff(); else activate(false); }
