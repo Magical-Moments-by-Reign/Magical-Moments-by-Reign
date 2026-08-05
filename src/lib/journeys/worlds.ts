@@ -99,11 +99,11 @@ const RELATIONSHIP: JourneyWorld = {
 
 const HOME: JourneyWorld = {
   slug: "home",
-  label: "Home",
-  eyebrow: "Home Journey",
+  label: "Housing",
+  eyebrow: "Housing",
   tagline: "Every home chapter — buying, building, renting, renovating, and beyond.",
   hero: "/hero/home-poster.jpg",
-  momentNoun: "Home Journey",
+  momentNoun: "Housing area",
   status: "live",
   areas: [
     { slug: "buy-a-home", label: "Buy a Home", tagline: "Find the one that feels like you.", image: "/hero/home-poster.jpg", status: "explore" },

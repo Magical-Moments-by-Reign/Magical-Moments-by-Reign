@@ -34,16 +34,13 @@ export function Icon({ name }: { name: string }) {
 
 export interface NavEntry { id: string; label: string; href: string; icon: string }
 
-// Sidebar menu — mirrors the approved dashboard design.
+// Sidebar menu. Housing is a SINGLE entry — the whole home world (Buy, Build,
+// Rent, Renovate, Vacation, Invest, Move, Maintain, Concierge) lives INSIDE the
+// Housing page as tiles, not as separate sidebar links. Everything else here is
+// an app-level utility, not a housing sub-area.
 export const SIDE_NAV: NavEntry[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { id: "journeys", label: "Home Journeys", href: "/dashboard/journeys/home", icon: "home" },
-  { id: "vacation-homes", label: "Vacation Homes", href: "/dashboard/journeys/home?area=vacation-homes", icon: "palm" },
-  { id: "renovation", label: "Renovation", href: "/dashboard/journeys/home?area=renovation", icon: "key" },
-  { id: "investment-property", label: "Investment Property", href: "/dashboard/journeys/home?area=investment-property", icon: "invest" },
-  { id: "moving", label: "Moving", href: "/dashboard/journeys/home?area=moving", icon: "moving" },
-  { id: "home-maintenance", label: "Home Maintenance", href: "/dashboard/journeys/home?area=home-maintenance", icon: "maintenance" },
-  { id: "concierge-services", label: "Lifestyle Concierge", href: "/dashboard/concierge", icon: "concierge" },
+  { id: "housing", label: "Housing", href: "/dashboard/journeys/home", icon: "home" },
   { id: "create", label: "Events & Celebrations", href: "/dashboard/create", icon: "events" },
   { id: "media", label: "My Moments", href: "/dashboard/media", icon: "moments" },
   { id: "documents", label: "Documents", href: "/dashboard/explore/documents", icon: "documents" },
