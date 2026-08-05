@@ -13,6 +13,7 @@ Drop the files here with these EXACT names (case-sensitive):
 | `engagement.jpg` | Engagement         |
 | `elopement.jpg`  | Elopement          |
 | `bachelor-bachelorette.jpg` | Bachelor or Bachelorette |
+| `love-letters.jpg` | Love Letters       |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the

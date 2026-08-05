@@ -87,7 +87,7 @@ const RELATIONSHIP: JourneyWorld = {
       ideas: ["Milestone anniversaries", "Romantic getaways", "At-home celebrations", "Gift by year", "Renewing traditions", "Anniversary photography"] },
     { slug: "vow-renewal", label: "Vow Renewal", tagline: "Say it again.", status: "explore" },
     { slug: "couples-travel", label: "Couples Travel", tagline: "See the world together.", image: "/story/vacation.jpg", status: "explore" },
-    { slug: "love-letters", label: "Love Letters", tagline: "Words to keep forever.", status: "explore" },
+    { slug: "love-letters", label: "Love Letters", tagline: "Words to keep forever.", image: "/journeys/relationship/love-letters.jpg", status: "explore" },
     { slug: "our-story", label: "Our Story", tagline: "How it all began.", status: "explore" },
     { slug: "relationship-milestones", label: "Relationship Milestones", tagline: "Mark every meaningful moment.", status: "explore" },
     { slug: "relationship-memories", label: "Relationship Memories", tagline: "Keep your moments close.", status: "explore" },
