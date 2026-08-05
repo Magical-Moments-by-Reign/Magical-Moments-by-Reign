@@ -41,6 +41,11 @@ export default async function DashboardPage() {
     }),
   ]);
 
+  // Owner-only surfaces (Owner Demo Studio). staffRoles is server-authoritative.
+  const ownerRow = await prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true } });
+  let isOwner = false;
+  try { isOwner = (JSON.parse(ownerRow?.staffRoles || "[]") as unknown[]).includes("owner"); } catch { isOwner = false; }
+
   const NAV = [
     { label: "Dashboard", href: "/dashboard", on: true, icon: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></> },
     { label: "Home Estate", href: "/estate/home", icon: <path d="M4 12 L12 5 L20 12 M6 11V20H18V11" /> },
@@ -52,6 +57,7 @@ export default async function DashboardPage() {
     { label: "Sharing", href: "/dashboard/shares", icon: <><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 11 L15.8 7 M8.2 13 L15.8 17" /></> },
     { label: "Messages", href: "/notifications", icon: <><rect x="3" y="6" width="18" height="12" rx="1.5" /><path d="M3.5 7 12 13 20.5 7" /></> },
     { label: "Account & Settings", href: "/account", icon: <><circle cx="12" cy="12" r="3.3" /><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M7.2 7.2 5.7 5.7M18.3 18.3 16.8 16.8M7.2 16.8 5.7 18.3M18.3 5.7 16.8 7.2" /></> },
+    ...(isOwner ? [{ label: "Owner Demo Studio", href: "/dashboard/owner-demo", icon: <><path d="M12 3 L14.5 9 L21 9.5 L16 13.8 L17.5 20 L12 16.6 L6.5 20 L8 13.8 L3 9.5 L9.5 9 Z" /></> }] : []),
   ];
 
   const stats = [

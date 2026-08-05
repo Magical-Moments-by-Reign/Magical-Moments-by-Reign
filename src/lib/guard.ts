@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { currentAccount, type CurrentAccount } from "@/lib/auth-session";
 import { isStaffRole, type PlatformRole } from "@/lib/roles";
 import { canCreateOccasions } from "@/lib/membership-access";
+import { prisma } from "@/lib/db";
 
 /** Require a signed-in account, else redirect to login preserving the destination. */
 export async function requireAccount(next?: string): Promise<CurrentAccount> {
@@ -31,6 +32,29 @@ export async function requireRole(allowed: PlatformRole[], next?: string): Promi
   const account = await requireAccount(next);
   if (isStaffRole(account.role) || allowed.includes(account.role)) return account;
   redirect("/account?denied=1");
+}
+
+/**
+ * Require the OWNER (an account whose staffRoles include "owner"). This is the
+ * gate for owner-only surfaces like the Owner Demo Studio. Re-validated against
+ * the database every request — never trusts a hidden route or a browser check.
+ * Redirects non-owners to their account with a denied flag.
+ */
+export async function requireOwner(next?: string): Promise<CurrentAccount> {
+  const account = await requireAccount(next);
+  const row = await prisma.account.findUnique({
+    where: { id: account.id },
+    select: { staffRoles: true },
+  });
+  let roles: string[] = [];
+  try {
+    const parsed = JSON.parse(row?.staffRoles || "[]");
+    if (Array.isArray(parsed)) roles = parsed.filter((x) => typeof x === "string");
+  } catch {
+    roles = [];
+  }
+  if (!roles.includes("owner")) redirect("/account?denied=1");
+  return account;
 }
 
 /**
