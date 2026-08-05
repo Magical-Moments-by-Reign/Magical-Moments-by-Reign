@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
 import { requireAccount, requireOwner } from "@/lib/guard";
 import { checkAssistantName, DEFAULT_ASSISTANT_NAME } from "@/lib/assistant-name";
 import { getVoice, DEFAULT_VOICE } from "@/lib/voice/catalog";
-import { writeOwnerVoiceConfig } from "@/lib/voice/owner-config";
+import { writeOwnerVoiceConfig, writeOwnerElevenVoice } from "@/lib/voice/owner-config";
 
 const PATH = "/dashboard/settings";
 const VOICE_PATH = "/dashboard/settings/voice";
@@ -53,6 +53,15 @@ export async function updateVoicePrefsAction(prefs: {
     await prisma.account.update({ where: { id: account.id }, data: { voicePrefs: JSON.stringify(clean) } });
     revalidatePath(PATH);
   } catch { /* not migrated yet — device localStorage still carries the choice */ }
+}
+
+/** Owner-only: assign a real ElevenLabs voice id (from My Voices) to a persona. */
+export async function updateOwnerElevenVoiceAction(persona: "journey" | "concierge", voiceId: string): Promise<void> {
+  await requireOwner(VOICE_PATH);
+  try {
+    await writeOwnerElevenVoice(persona === "concierge" ? "concierge" : "journey", String(voiceId || ""));
+    revalidatePath(VOICE_PATH);
+  } catch { /* SystemConfig unavailable until the database is migrated */ }
 }
 
 /** Owner-only: set the house default voices and special-collection toggles. */
