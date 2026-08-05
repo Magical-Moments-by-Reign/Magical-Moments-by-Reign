@@ -20,11 +20,18 @@ export default async function SettingsPage({
     where: { id: account.id },
     select: {
       staffRoles: true,
-      voicePrefs: true,
       emails: { where: { isPrimary: true }, select: { email: true, verified: true }, take: 1 },
       phones: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
     },
   }).catch(() => null);
+
+  // `voicePrefs` is a newer, additive column — fetch it in isolation so an
+  // un-migrated production database can't blank out the rest of the page.
+  let voicePrefs = "{}";
+  try {
+    const v = await prisma.account.findUnique({ where: { id: account.id }, select: { voicePrefs: true } });
+    if (v?.voicePrefs) voicePrefs = v.voicePrefs;
+  } catch { voicePrefs = "{}"; }
 
   const email = detail?.emails[0]?.email ?? "—";
   const phone = detail?.phones[0]?.phone ?? "Not added";
@@ -62,7 +69,7 @@ export default async function SettingsPage({
 
       <AssistantSettings currentName={account.assistantName} firstName={account.firstName} flag={sp.assistant} />
 
-      <VoiceSettings assistantName={account.assistantName} firstName={account.firstName} profileVoicePrefs={detail?.voicePrefs || "{}"} />
+      <VoiceSettings assistantName={account.assistantName} firstName={account.firstName} profileVoicePrefs={voicePrefs} />
 
       <section className="sec">
         <div className="sec__h"><h2 className="sec__t">Manage</h2></div>

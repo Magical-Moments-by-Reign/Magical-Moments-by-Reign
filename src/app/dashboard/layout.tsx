@@ -17,9 +17,11 @@ export const dynamic = "force-dynamic";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const account = await requireAccount("/dashboard");
 
+  // Core dashboard data uses columns that have long existed in production.
+  // Each call degrades to a safe default so the dashboard always renders.
   const [unread, row, ownerVoice] = await Promise.all([
     unreadCount(account.id).catch(() => 0),
-    prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true, tourCompletedAt: true, voicePrefs: true } }),
+    prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true, tourCompletedAt: true } }).catch(() => null),
     readOwnerVoiceConfig().catch(() => null),
   ]);
   let isOwner = false;
@@ -28,10 +30,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const initial = (account.firstName?.[0] ?? "M").toUpperCase();
   const autoOffer = !row?.tourCompletedAt;
 
+  // `voicePrefs` is a newer, additive column. If the production database hasn't
+  // been migrated yet, selecting it would throw — so fetch it in isolation and
+  // fall back to defaults. The dashboard (and voices, via localStorage) still work.
+  let memberVoicePrefs = "{}";
+  try {
+    const v = await prisma.account.findUnique({ where: { id: account.id }, select: { voicePrefs: true } });
+    if (v?.voicePrefs) memberVoicePrefs = v.voicePrefs;
+  } catch { memberVoicePrefs = "{}"; }
+
   return (
     <>
       <VoiceBootstrap
-        memberPrefs={row?.voicePrefs || "{}"}
+        memberPrefs={memberVoicePrefs}
         ownerJourney={ownerVoice?.defaultJourney || "journey-warm"}
         ownerConcierge={ownerVoice?.defaultConcierge || "concierge-hotel"}
       />

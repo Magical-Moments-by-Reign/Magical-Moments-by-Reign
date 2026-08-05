@@ -47,8 +47,12 @@ export async function updateVoicePrefsAction(prefs: {
     pitch: Math.min(1.3, Math.max(0.7, Number(prefs.pitch) || 1.03)),
     volume: Math.min(1, Math.max(0, Number(prefs.volume) ?? 1)),
   };
-  await prisma.account.update({ where: { id: account.id }, data: { voicePrefs: JSON.stringify(clean) } });
-  revalidatePath(PATH);
+  // If the `voicePrefs` column isn't in this database yet, saving is a no-op —
+  // voices still work per-device via localStorage. Never surface a 500.
+  try {
+    await prisma.account.update({ where: { id: account.id }, data: { voicePrefs: JSON.stringify(clean) } });
+    revalidatePath(PATH);
+  } catch { /* not migrated yet — device localStorage still carries the choice */ }
 }
 
 /** Owner-only: set the house default voices and special-collection toggles. */
@@ -57,8 +61,11 @@ export async function updateOwnerVoiceDefaultsAction(patch: {
   holiday?: boolean; seasonal?: boolean; collab?: boolean;
 }): Promise<void> {
   await requireOwner(VOICE_PATH);
-  await writeOwnerVoiceConfig(patch);
-  revalidatePath(VOICE_PATH);
+  // If SystemConfig isn't reachable/migrated, degrade quietly rather than 500.
+  try {
+    await writeOwnerVoiceConfig(patch);
+    revalidatePath(VOICE_PATH);
+  } catch { /* owner defaults unavailable until the database is migrated */ }
 }
 
 export async function resetAssistantNameAction(): Promise<void> {
