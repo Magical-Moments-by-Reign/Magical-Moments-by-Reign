@@ -117,6 +117,18 @@ export default function MagicalAssistant({ assistantName, firstName, sessionKey 
   // Stop all audio if the assistant unmounts (leaving the dashboard / sign-out).
   useEffect(() => () => cancelSpeech(), []);
 
+  // Let other parts of the dashboard (e.g. a Journey area) open Journey with a
+  // question already in the box. Opens WITHOUT re-greeting.
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const seed = (e as CustomEvent<{ seed?: string }>).detail?.seed;
+      setOn(true);
+      if (seed) setInput(seed);
+    }
+    window.addEventListener("mmr:open-magical", onOpen as EventListener);
+    return () => window.removeEventListener("mmr:open-magical", onOpen as EventListener);
+  }, []);
+
   const speak = useCallback((text: string, onDone?: () => void) => {
     if (mutedRef.current) { onDone?.(); return; } // muted → captions only, no audio
     speakNatural(text, { persona: "journey", onStart: () => setSpeaking(true), onEnd: () => { setSpeaking(false); onDone?.(); } });

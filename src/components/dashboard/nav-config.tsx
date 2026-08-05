@@ -37,12 +37,12 @@ export interface NavEntry { id: string; label: string; href: string; icon: strin
 // Sidebar menu — mirrors the approved dashboard design.
 export const SIDE_NAV: NavEntry[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { id: "journeys", label: "Home Journeys", href: "/dashboard/journeys", icon: "home" },
-  { id: "vacation-homes", label: "Vacation Homes", href: "/dashboard/explore/vacation-homes", icon: "palm" },
-  { id: "renovation", label: "Renovation", href: "/dashboard/explore/renovation", icon: "key" },
-  { id: "investment-property", label: "Investment Property", href: "/dashboard/explore/investment-property", icon: "invest" },
-  { id: "moving", label: "Moving", href: "/dashboard/explore/moving", icon: "moving" },
-  { id: "home-maintenance", label: "Home Maintenance", href: "/dashboard/explore/home-maintenance", icon: "maintenance" },
+  { id: "journeys", label: "Home Journeys", href: "/dashboard/journeys/home", icon: "home" },
+  { id: "vacation-homes", label: "Vacation Homes", href: "/dashboard/journeys/home?area=vacation-homes", icon: "palm" },
+  { id: "renovation", label: "Renovation", href: "/dashboard/journeys/home?area=renovation", icon: "key" },
+  { id: "investment-property", label: "Investment Property", href: "/dashboard/journeys/home?area=investment-property", icon: "invest" },
+  { id: "moving", label: "Moving", href: "/dashboard/journeys/home?area=moving", icon: "moving" },
+  { id: "home-maintenance", label: "Home Maintenance", href: "/dashboard/journeys/home?area=home-maintenance", icon: "maintenance" },
   { id: "concierge-services", label: "Lifestyle Concierge", href: "/dashboard/concierge", icon: "concierge" },
   { id: "create", label: "Events & Celebrations", href: "/dashboard/create", icon: "events" },
   { id: "media", label: "My Moments", href: "/dashboard/media", icon: "moments" },

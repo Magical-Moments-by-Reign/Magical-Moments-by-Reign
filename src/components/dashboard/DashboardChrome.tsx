@@ -8,20 +8,28 @@
 // page — never a dead href). The Concierge card opens the in-app assistant.
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { SIDE_NAV, OWNER_NAV, Icon } from "./nav-config";
 import "./dashboard-ui.css";
 
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(href + "/");
+// Active-menu detection that respects `?area=` on shared paths (e.g. the Home
+// world), so exactly one item highlights.
+function isActive(pathname: string, currentArea: string | null, href: string): boolean {
+  const [p, qs] = href.split("?");
+  if (p === "/dashboard") return pathname === "/dashboard";
+  const pathMatch = pathname === p || pathname.startsWith(p + "/");
+  if (!pathMatch) return false;
+  const area = qs ? new URLSearchParams(qs).get("area") : null;
+  if (area) return currentArea === area;         // area item: match the query
+  return !currentArea || pathname !== p;         // base item: only when no area is active on the same path
 }
 
 export default function DashboardChrome({
   initial, unread, isOwner, children,
 }: { initial: string; unread: number; isOwner: boolean; children: ReactNode }) {
   const pathname = usePathname() || "/dashboard";
+  const currentArea = useSearchParams().get("area");
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [q, setQ] = useState("");
@@ -51,8 +59,8 @@ export default function DashboardChrome({
             key={it.id}
             href={it.href}
             data-tour={it.id}
-            className={`dsh-navi${isActive(pathname, it.href) ? " is-on" : ""}`}
-            aria-current={isActive(pathname, it.href) ? "page" : undefined}
+            className={`dsh-navi${isActive(pathname, currentArea, it.href) ? " is-on" : ""}`}
+            aria-current={isActive(pathname, currentArea, it.href) ? "page" : undefined}
             onClick={() => setDrawer(false)}
           >
             <Icon name={it.icon} />
