@@ -7,6 +7,11 @@
 .pr__reason { color: var(--soft); margin: .35rem 0 0; line-height: 1.55; }
 .pr__demo { display: inline-block; margin: .5rem 0 0; font-size: .78rem; font-weight: 700; color: var(--gold-deep); background: #f6efdd; border: 1px solid #e8d6a8; border-radius: 999px; padding: .2rem .7rem; }
 
+.pr-promise-note { background: #f6efdd; border: 1px solid #e8d6a8; border-radius: 13px; padding: .85rem 1.05rem; }
+.pr-promise-note b { color: var(--espresso); }
+.pr-promise-note p { margin: .35rem 0 0; font-size: .86rem; color: var(--soft); line-height: 1.55; }
+.pr-promise-note p b { color: var(--espresso); }
+
 .pr-advs { display: flex; flex-direction: column; gap: .6rem; }
 .pr-adv { display: flex; gap: .7rem; padding: .8rem 1rem; border-radius: 13px; border: 1px solid var(--line); background: var(--ivory); }
 .pr-adv--warn { background: #fbeee6; border-color: #ecc9b6; }
@@ -17,6 +22,10 @@
 .pr-adv__t { font-weight: 700; color: var(--espresso); display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .pr-adv__d { font-size: .88rem; color: var(--soft); margin-top: .15rem; line-height: 1.5; }
 .pr-adv__soon { font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: var(--soft); background: #efe6d6; border: 1px solid var(--line); border-radius: 999px; padding: .05rem .4rem; }
+.pr-adv__conf { font-size: .56rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 800; border-radius: 999px; padding: .1rem .45rem; border: 1px solid transparent; }
+.pr-adv__conf--verified { color: #33632f; background: #dcecd9; border-color: #c3ddbf; }
+.pr-adv__conf--estimated { color: #7a5a1e; background: #f6efdd; border-color: #e8d6a8; }
+.pr-adv__conf--coming_soon { color: var(--soft); background: #efe6d6; border-color: var(--line); }
 .pr-adv__opts { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
 .pr-adv__opt { font-size: .78rem; padding: .3rem .7rem; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--ink); }
 
@@ -42,6 +51,10 @@
 .pr-tot dt, .pr-tot dd { margin: 0; }
 .pr-tot__save dd { color: var(--ok); }
 .pr-tot__grand { font-size: 1.05rem !important; color: var(--espresso) !important; font-weight: 800; border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .5rem !important; }
+
+.pr-pay { margin-top: .9rem; border-top: 1px solid var(--line); padding-top: .7rem; }
+.pr-pay p { display: flex; gap: .5rem; font-size: .86rem; color: var(--ink); margin: .2rem 0; }
+.pr-pay p span { color: var(--soft); min-width: 110px; }
 
 .pr-delivery { margin-bottom: 1rem; }
 .pr-delivery h4, .pr-promise__h { font-family: var(--font-display, Georgia, serif); font-size: 1.05rem; color: var(--espresso); margin: 0 0 .5rem; }

@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  requiresReview, detectUpgrade, detectDuplicate, merchantWarnings, reviewPurchase, money,
+  requiresReview, detectUpgrade, detectDuplicate, detectSubscriptionConflict, merchantWarnings,
+  reviewPurchase, runProtection, money, DEFAULT_SETTINGS,
   type Order, type ProtectionContext,
 } from "./protection.ts";
 import { getMerchant } from "./merchants.ts";
@@ -13,7 +14,7 @@ const baseOrder = (over: Partial<Order> = {}): Order => ({
 });
 
 const ctx = (over: Partial<ProtectionContext> = {}): ProtectionContext => ({
-  priorPurchases: [], threshold: "100", now: "2026-08-05T00:00:00Z", ...over,
+  priorPurchases: [], now: "2026-08-05T00:00:00Z", ...over,
 });
 
 test("threshold gating: always / never / dollar thresholds", () => {
@@ -62,11 +63,30 @@ test("duplicate detection: recent same item from same merchant warns; old does n
   assert.equal(old, null); // outside the 30-day window
 });
 
-test("active subscription always counts as a duplicate regardless of date", () => {
-  const dup = detectDuplicate(baseOrder(), ctx({
-    priorPurchases: [{ merchantId: "acme", itemKey: "bouquet", label: "Bloom Club", purchasedAt: "2020-01-01T00:00:00Z", active: true }],
+test("active subscription is a subscription conflict (not a duplicate)", () => {
+  const order = baseOrder({ currentPlanId: "m", planOptions: [{ id: "m", label: "Monthly", interval: "monthly", price: 1500, normalizedMonthly: 1500 }] });
+  const active = ctx({ priorPurchases: [{ merchantId: "acme", itemKey: "x", label: "Bloom Club", purchasedAt: "2020-01-01T00:00:00Z", active: true }] });
+  assert.equal(detectDuplicate(order, active), null); // duplicate check ignores active subs
+  const sub = detectSubscriptionConflict(order, active);
+  assert.ok(sub && sub.id === "subscription" && sub.confidence === "verified");
+});
+
+test("runProtection respects setting toggles (independent modules)", () => {
+  const order = baseOrder();
+  const on = runProtection(order, getMerchant("magical-moments"), ctx({ settings: DEFAULT_SETTINGS }));
+  assert.ok(on.some((a) => a.id === "coupons")); // always-on module
+  // Disable duplicate detection → that module never contributes.
+  const off = runProtection(baseOrder(), getMerchant("acme"), ctx({
+    settings: { ...DEFAULT_SETTINGS, duplicateDetection: false },
+    priorPurchases: [{ merchantId: "acme", itemKey: "bouquet", label: "Bouquet", purchasedAt: "2026-07-30T00:00:00Z" }],
   }));
-  assert.ok(dup && /active/i.test(dup.detail));
+  assert.equal(off.some((a) => a.id === "duplicate"), false);
+});
+
+test("every advisory is labelled with a confidence", () => {
+  const advs = runProtection(baseOrder(), getMerchant("acme"), ctx());
+  assert.ok(advs.length > 0);
+  for (const a of advs) assert.ok(["verified", "estimated", "coming_soon"].includes(a.confidence), `${a.id} missing confidence`);
 });
 
 test("merchant without proration warns about two charges on an upgrade", () => {

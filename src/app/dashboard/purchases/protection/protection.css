@@ -8,6 +8,19 @@
 .prot-thr__b:hover { border-color: #d8b25e; }
 .prot-thr__b.is-on { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: #a67c2e; }
 
+.prot-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin-top: .6rem; }
+.prot-toggle { display: flex; align-items: flex-start; gap: .65rem; text-align: left; padding: .7rem .85rem; border-radius: 13px; border: 1px solid #e7dcc9; background: #fffdf9; cursor: pointer; }
+.prot-toggle:hover:not(:disabled) { border-color: #d8b25e; }
+.prot-toggle:disabled { cursor: not-allowed; opacity: .72; }
+.prot-toggle__sw { flex-shrink: 0; width: 38px; height: 22px; border-radius: 999px; background: #e2d3b3; position: relative; transition: background .16s; margin-top: .1rem; }
+.prot-toggle__dot { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fffdf9; box-shadow: 0 1px 3px rgba(42,29,18,.28); transition: left .16s; }
+.prot-toggle.is-on .prot-toggle__sw { background: linear-gradient(135deg, #d8b25e, #a67c2e); }
+.prot-toggle.is-on .prot-toggle__dot { left: 18px; }
+.prot-toggle__txt { display: flex; flex-direction: column; gap: .12rem; min-width: 0; }
+.prot-toggle__label { font-size: .88rem; font-weight: 600; color: #2c211a; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.prot-toggle__hint { font-size: .76rem; color: #6b5744; line-height: 1.4; }
+.prot-toggle__soon { font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: #6b5744; background: #efe6d6; border: 1px solid #e7dcc9; border-radius: 999px; padding: .05rem .4rem; }
+
 .prot-timeline { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 0; }
 .prot-timeline__i { display: flex; align-items: center; gap: .45rem; padding: .5rem .85rem; border: 1px solid #e7dcc9; border-radius: 999px; background: #fffdf9; font-size: .86rem; color: #3a2c1d; }
 .prot-timeline__n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: .72rem; font-weight: 800; background: linear-gradient(135deg, #e6d3a2, #c9a24b); color: #2a1d12; }
@@ -17,3 +30,5 @@
 .prot-list--ok li::marker { color: #4e7a52; }
 .prot-list--soon li { color: #6b5744; }
 .prot-list--soon li::marker { color: #a67c2e; }
+
+@media (max-width: 680px) { .prot-toggles { grid-template-columns: 1fr; } }
