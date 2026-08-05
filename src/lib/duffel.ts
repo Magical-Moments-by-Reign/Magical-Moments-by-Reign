@@ -1,11 +1,11 @@
 // ── Duffel flights (server only) ────────────────────────────────
 // Thin server-side client for the Duffel Flights API. The token is read from
-// DUFFEL_API_TOKEN and NEVER exposed to the browser. A `duffel_test_...` token
+// DUFFEL_ACCESS_TOKEN and NEVER exposed to the browser. A `duffel_test_...` token
 // returns Duffel's TEST inventory — sample data, no real money, no real tickets.
 // We surface that clearly in the UI and never claim a real booking.
 //
 // Env:
-//   DUFFEL_API_TOKEN   Duffel access token (test token starts with duffel_test_)
+//   DUFFEL_ACCESS_TOKEN   Duffel access token (test token starts with duffel_test_)
 //   DUFFEL_VERSION     API version header (default "v2")
 //
 // SERVER ONLY — do not import from a client component.
@@ -13,12 +13,12 @@
 const BASE = "https://api.duffel.com";
 
 export function duffelConfigured(): boolean {
-  return Boolean(process.env.DUFFEL_API_TOKEN);
+  return Boolean(process.env.DUFFEL_ACCESS_TOKEN);
 }
 
 /** True when the configured token is a TEST token (sample data, no real money). */
 export function duffelTestMode(): boolean {
-  return (process.env.DUFFEL_API_TOKEN || "").includes("test");
+  return (process.env.DUFFEL_ACCESS_TOKEN || "").includes("test");
 }
 
 export class DuffelError extends Error {
@@ -27,7 +27,7 @@ export class DuffelError extends Error {
 }
 
 async function duffel<T>(path: string, init: { method: string; body?: unknown; query?: Record<string, string> }): Promise<T> {
-  const token = process.env.DUFFEL_API_TOKEN;
+  const token = process.env.DUFFEL_ACCESS_TOKEN;
   if (!token) throw new DuffelError("Flights are not connected yet.", 503);
   const version = process.env.DUFFEL_VERSION || "v2";
   const qs = init.query ? "?" + new URLSearchParams(init.query).toString() : "";
