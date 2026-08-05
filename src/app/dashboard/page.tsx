@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
-import { MEMBERSHIP_LABEL } from "@/lib/membership-access";
+import { membershipDisplay } from "@/lib/membership-access";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard", robots: { index: false } };
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Dashboard", robots: { index: false }
 export default async function DashboardPage() {
   const account = await requireAccount("/dashboard");
 
-  const [journeys, upcoming, notifs] = await Promise.all([
+  const [journeys, upcoming, notifs, roleRow] = await Promise.all([
     prisma.experience.findMany({
       where: { accountId: account.id },
       orderBy: { updatedAt: "desc" },
@@ -29,11 +29,14 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" }, take: 4,
       select: { id: true, title: true, body: true, readAt: true, createdAt: true },
     }).catch(() => []),
+    prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true } }),
   ]);
 
   const active = journeys.filter((j) => j.status === "PUBLISHED");
   const drafts = journeys.filter((j) => j.status === "DRAFT");
-  const tier = MEMBERSHIP_LABEL[account.membershipTier] ?? account.membershipTier;
+  let owner = false;
+  try { owner = (JSON.parse(roleRow?.staffRoles || "[]") as unknown[]).includes("owner"); } catch { owner = false; }
+  const tier = membershipDisplay(account.membershipTier, { owner });
   const fmt = (d: Date | null) => d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
 
   return (
@@ -52,8 +55,22 @@ export default async function DashboardPage() {
         <Link href="/dashboard/journeys" className="stat"><span className="stat__n">{active.length}</span><span className="stat__k">Active Journeys</span></Link>
         <Link href="/dashboard/journeys" className="stat"><span className="stat__n">{drafts.length}</span><span className="stat__k">Draft Journeys</span></Link>
         <Link href="/dashboard/media" className="stat"><span className="stat__n">{upcoming.length}</span><span className="stat__k">Upcoming Dates</span></Link>
-        <div className="stat"><span className="stat__n">{tier}</span><span className="stat__k">Membership</span></div>
+        <div className="stat"><span className="stat__n" style={{ fontSize: "1.1rem", lineHeight: 1.25 }}>{owner ? "Lifetime · Owner" : tier}</span><span className="stat__k">Membership</span></div>
       </div>
+
+      {/* My Journeys / Home — only what the member owns. When empty, a welcoming
+          start (unpurchased occasions live in Explore, not here). */}
+      {journeys.length === 0 && (
+        <div className="empty" style={{ marginTop: "1.4rem" }}>
+          <div className="empty__mark"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5z M3 13l9 5 9-5" /></svg></div>
+          <p className="empty__t">No Journeys yet</p>
+          <p className="empty__s">Choose your first occasion and begin creating something magical.</p>
+          <div className="pg-actions" style={{ justifyContent: "center" }}>
+            <Link href="/experiences" className="btn btn--gold">Explore Journeys</Link>
+            <Link href="/membership" className="btn btn--ghost">View Memberships</Link>
+          </div>
+        </div>
+      )}
 
       {/* Continue editing (drafts) */}
       <section className="sec">

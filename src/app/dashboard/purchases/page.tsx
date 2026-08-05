@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
-import { MEMBERSHIP_LABEL, isPaidMember } from "@/lib/membership-access";
+import { membershipDisplay, isPaidMember } from "@/lib/membership-access";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Purchases", robots: { index: false } };
@@ -12,13 +12,18 @@ const money = (cents: number, currency = "USD") =>
 
 export default async function PurchasesPage() {
   const account = await requireAccount("/dashboard/purchases");
-  const orders = await prisma.order.findMany({
-    where: { accountId: account.id },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, number: true, experienceTitle: true, total: true, currency: true, paymentStatus: true, createdAt: true },
-  }).catch(() => []);
+  const [orders, roleRow] = await Promise.all([
+    prisma.order.findMany({
+      where: { accountId: account.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, number: true, experienceTitle: true, total: true, currency: true, paymentStatus: true, createdAt: true },
+    }).catch(() => []),
+    prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true } }),
+  ]);
+  let owner = false;
+  try { owner = (JSON.parse(roleRow?.staffRoles || "[]") as unknown[]).includes("owner"); } catch { owner = false; }
 
-  const tier = MEMBERSHIP_LABEL[account.membershipTier] ?? account.membershipTier;
+  const tier = membershipDisplay(account.membershipTier, { owner });
   const paid = isPaidMember(account.membershipTier);
   const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -36,7 +41,7 @@ export default async function PurchasesPage() {
           <div>
             <div className="stat__k">Current membership</div>
             <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "1.6rem", color: "var(--espresso)" }}>{tier}</div>
-            <p className="note">{paid ? "Active membership." : "Free Forever — upgrade anytime to unlock creating Journeys."}</p>
+            <p className="note">{owner ? "No expiration · no renewal · no payment required." : paid ? "Active membership." : "Free Forever — upgrade anytime to unlock creating Journeys."}</p>
           </div>
           <Link href="/membership" className="btn btn--gold">{paid ? "Manage membership" : "View Memberships"}</Link>
         </div>

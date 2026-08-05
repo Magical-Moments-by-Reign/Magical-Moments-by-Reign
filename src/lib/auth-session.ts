@@ -17,6 +17,7 @@ import {
 } from "@/lib/auth";
 import type { PlatformRole } from "@/lib/roles";
 import { normalizeTier, type MembershipTier } from "@/lib/membership-access";
+import { normalizeAssistantName } from "@/lib/assistant-name";
 
 export const SESSION_COOKIE = "mmr_session";
 
@@ -71,6 +72,8 @@ export interface CurrentAccount {
   guardianAccountId: string | null;
   /** Entitlements gate — see src/lib/membership-access.ts. Defaults to "free". */
   membershipTier: MembershipTier;
+  /** The member's chosen name for their Magical Assistant. Defaults to "Journey". */
+  assistantName: string;
   sessionId: string;
   sessionTokenHash: string;
 }
@@ -94,6 +97,7 @@ export async function currentAccount(): Promise<CurrentAccount | null> {
         select: {
           id: true, customerId: true, firstName: true, lastName: true,
           platformRole: true, status: true, guardianAccountId: true, membershipTier: true,
+          assistantName: true,
         },
       },
     },
@@ -115,6 +119,7 @@ export async function currentAccount(): Promise<CurrentAccount | null> {
     status: session.account.status,
     guardianAccountId: session.account.guardianAccountId,
     membershipTier: normalizeTier(session.account.membershipTier),
+    assistantName: normalizeAssistantName(session.account.assistantName),
     sessionId: session.id,
     sessionTokenHash: tokenHash,
   };

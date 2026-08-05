@@ -13,5 +13,6 @@ export async function GET() {
     signedIn: true,
     firstName: account.firstName,
     membershipTier: account.membershipTier,
+    assistantName: account.assistantName,
   });
 }

@@ -43,7 +43,7 @@ function format(text: string): { __html: string } {
   return { __html: bolded.replace(/\n/g, "<br/>") };
 }
 
-export default function ConciergeChat() {
+export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([WELCOME]);
@@ -126,7 +126,7 @@ export default function ConciergeChat() {
 
   return (
     <>
-      {(!open || minimized) && (
+      {(!open || minimized) && !hideLauncher && (
         <button
           type="button"
           className="cc-fab"
@@ -149,7 +149,7 @@ export default function ConciergeChat() {
               </span>
             </div>
             <div className="cc-head__ctrls">
-              <button type="button" className="cc-ctrl" onClick={() => setMinimized(true)} aria-label="Minimize" title="Minimize">–</button>
+              {!hideLauncher && <button type="button" className="cc-ctrl" onClick={() => setMinimized(true)} aria-label="Minimize" title="Minimize">–</button>}
               <button type="button" className="cc-ctrl" onClick={() => setOpen(false)} aria-label="Close" title="Close">×</button>
             </div>
           </header>

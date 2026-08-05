@@ -58,6 +58,7 @@ export default function DashboardChrome({
           <Link
             key={it.id}
             href={it.href}
+            data-tour={it.id}
             className={`dsh-navi${isActive(pathname, it.href) ? " is-on" : ""}`}
             aria-current={isActive(pathname, it.href) ? "page" : undefined}
             onClick={() => setDrawer(false)}
@@ -67,7 +68,7 @@ export default function DashboardChrome({
           </Link>
         ))}
       </nav>
-      <div className="dsh-scard">
+      <div className="dsh-scard" data-tour="concierge">
         <div className="dsh-scard__t">Concierge<br /><i>at your service</i></div>
         <div className="dsh-scard__p">Plan, organize, and bring your moments to life.</div>
         <button type="button" className="dsh-scard__b" onClick={openConcierge}>OPEN CONCIERGE</button>

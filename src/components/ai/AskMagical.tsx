@@ -34,6 +34,9 @@ export default function AskMagical() {
   const [signedIn, setSignedIn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname() || "/";
+  // Inside the member dashboard, the member's NAMED Magical Assistant takes over,
+  // so the generic site-wide widget steps aside to avoid two assistants at once.
+  const hiddenHere = pathname.startsWith("/dashboard");
 
   useEffect(() => {
     if (open && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -103,14 +106,14 @@ export default function AskMagical() {
 
   return (
     <>
-      {!open && (
+      {!open && !hiddenHere && (
         <button type="button" className="am-fab" onClick={() => setOpen(true)} aria-label="Ask Magical AI">
           <span className="am-fab__mark" aria-hidden="true">✨</span>
           <span className="am-fab__label">Ask Magical</span>
         </button>
       )}
 
-      {open && (
+      {open && !hiddenHere && (
         <div className="am-panel" role="dialog" aria-label="Ask Magical AI">
           <div className="am-head">
             <div className="am-head__title"><span aria-hidden="true">✨</span> Ask Magical</div>

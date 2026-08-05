@@ -27,6 +27,17 @@ export const MEMBERSHIP_LABEL: Record<MembershipTier, string> = {
   magical: "Lifetime Magical",
 };
 
+/** Special owner label. The owner/internal account (magical tier + owner role)
+ *  displays a permanent "Forever Lifetime Membership — Owner Access" — this is a
+ *  DISPLAY-only distinction and never grants entitlements to regular customers. */
+export const OWNER_LIFETIME_LABEL = "Forever Lifetime Membership — Owner Access";
+
+export function membershipDisplay(tier: string | null | undefined, opts?: { owner?: boolean }): string {
+  const t = normalizeTier(tier);
+  if (opts?.owner && t === "magical") return OWNER_LIFETIME_LABEL;
+  return MEMBERSHIP_LABEL[t];
+}
+
 const PAID_TIERS: readonly MembershipTier[] = ["monthly", "annual", "5yr", "10yr", "legacy", "reign", "magical"];
 const ALL_TIERS: readonly MembershipTier[] = ["free", ...PAID_TIERS];
 

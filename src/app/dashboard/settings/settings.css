@@ -1,0 +1,30 @@
+/* Assistant settings */
+.as-flash { padding: .6rem .9rem; border-radius: 10px; font-size: .88rem; margin-bottom: 1rem; }
+.as-flash--ok { background: #dcecd9; color: #33632f; border: 1px solid #c3ddbf; }
+.as-flash--warn { background: #f6e3d8; color: #9a4a3a; border: 1px solid #e6c7b8; }
+
+.as-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0 1rem; }
+.as-chip { font-size: .84rem; padding: .4rem .85rem; border-radius: 999px; cursor: pointer;
+  background: #f4ecdd; color: #5a4326; border: 1px solid #e6d3a3; }
+.as-chip:hover { background: #efe0c2; }
+.as-chip.is-on { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: #a67c2e; font-weight: 600; }
+.as-chip--label { background: transparent; border: none; color: #8a7a63; cursor: default; }
+
+.as-form { display: flex; flex-direction: column; gap: .8rem; }
+.as-field { display: flex; flex-direction: column; gap: .35rem; }
+.as-field > span { font-size: .82rem; font-weight: 600; color: #2a1d12; }
+.as-field input { padding: .6rem .7rem; border: 1.5px solid #e2d3b3; border-radius: 10px; font: inherit; font-size: 1rem; color: #3a2c1d; background: #fffdf9; max-width: 320px; }
+.as-field input:focus { outline: none; border-color: #c9a24b; }
+.as-hint { font-size: .8rem; margin: 0; }
+.as-hint--warn { color: #9a4a3a; }
+
+.as-preview { background: #fbf6ee; border: 1px solid #e7dcc9; border-radius: 12px; padding: .8rem 1rem; }
+.as-preview__k { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: #a67c2e; font-weight: 700; }
+.as-preview p { margin: .3rem 0 0; color: #4a3a28; line-height: 1.6; font-style: italic; }
+
+.as-prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .7rem; margin: .8rem 0 1rem; }
+.as-pref { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .6rem .8rem; border: 1px solid #e7dcc9; border-radius: 10px; background: #fffdf9; font-size: .88rem; color: #3a2c1d; }
+.as-pref--wide { grid-column: 1 / -1; }
+.as-pref input[type=checkbox] { accent-color: #c9a24b; width: 18px; height: 18px; }
+.as-pref input[type=range] { accent-color: #c9a24b; flex: 1; max-width: 200px; }
+.as-pref select { padding: .4rem .5rem; border: 1px solid #e2d3b3; border-radius: 8px; background: #fffdf9; color: #3a2c1d; font: inherit; font-size: .84rem; }
