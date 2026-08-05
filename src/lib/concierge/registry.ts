@@ -17,6 +17,7 @@ export const SERVICES: ConciergeService[] = [
   { id: "cruises", label: "Cruises", emoji: "🚢", group: "travel", capability: "request", blurb: "Plan and compare cruise sailings." },
   { id: "vacation-packages", label: "Vacation Packages", emoji: "🏖️", group: "travel", capability: "request", blurb: "Flights, stays, and extras bundled." },
   { id: "vacation-rentals", label: "Vacation Rentals", emoji: "🏠", group: "travel", capability: "search_book", blurb: "Homes and villas for a getaway." },
+  { id: "travel-insurance", label: "Travel Insurance", emoji: "🛡️", group: "travel", capability: "request", blurb: "Protect your trip and travelers." },
 
   // 🍽️ Food
   { id: "dining", label: "Restaurant Reservations", emoji: "🍽️", group: "food", capability: "search_book", blurb: "Reserve a table for any occasion." },
