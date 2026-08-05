@@ -33,10 +33,9 @@ function elevenReason(status: number): string {
   return `provider error (${status})`;
 }
 
-async function elevenLabs(text: string, voiceId: string): Promise<{ res?: Response; err?: { status: number; reason: string } }> {
+async function elevenLabs(text: string, id: string, source: string): Promise<{ res?: Response; err?: { status: number; reason: string } }> {
   const key = elevenKey();
   if (!key) return {};
-  const id = voiceId || process.env.ELEVENLABS_DEFAULT_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
   try {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${id}/stream?optimize_streaming_latency=3&output_format=mp3_44100_128`, {
       method: "POST",
@@ -45,7 +44,7 @@ async function elevenLabs(text: string, voiceId: string): Promise<{ res?: Respon
       signal: AbortSignal.timeout(20_000),
     });
     if (r.ok && r.body) {
-      return { res: new NextResponse(r.body, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store", "X-Voice-Provider": "elevenlabs", "X-Voice-Model": ELEVEN_MODEL, "X-Voice-Id": id } }) };
+      return { res: new NextResponse(r.body, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store", "X-Voice-Provider": "elevenlabs", "X-Voice-Model": ELEVEN_MODEL, "X-Voice-Id": id, "X-Voice-Source": source, "X-Eleven-Status": "200" } }) };
     }
     return { err: { status: r.status, reason: elevenReason(r.status) } };
   } catch {
@@ -94,10 +93,16 @@ export async function POST(req: Request) {
   //  3. the catalog's built-in id
   const rawPreview = privileged ? String(body.elevenVoiceId || "").trim() : "";
   const owner = await readOwnerElevenVoices().catch(() => null);
-  const elevenId = rawPreview || (owner ? resolveElevenId(owner, persona, gender) : "") || voice?.providerVoiceId || "";
+  const ownerId = owner ? resolveElevenId(owner, persona, gender) : "";
+  let elevenId = "", source = "none";
+  if (rawPreview) { elevenId = rawPreview; source = "owner-raw-preview"; }
+  else if (ownerId) { elevenId = ownerId; source = persona === "concierge" ? "owner-concierge" : (gender === "male" ? "owner-journey-male" : "owner-journey-female"); }
+  else if (voice?.providerVoiceId) { elevenId = voice.providerVoiceId; source = "catalog-default"; }
+  else if (process.env.ELEVENLABS_DEFAULT_VOICE_ID) { elevenId = String(process.env.ELEVENLABS_DEFAULT_VOICE_ID); source = "env-default"; }
+  else { elevenId = "21m00Tcm4TlvDq8ikWAM"; source = "built-in-fallback"; }
 
   // ElevenLabs primary → OpenAI fallback.
-  const primary = await elevenLabs(text, elevenId);
+  const primary = await elevenLabs(text, elevenId, source);
   if (primary.res) return primary.res;
   const fallback = await openAI(text, gender);
   if (fallback) {
@@ -110,6 +115,8 @@ export async function POST(req: Request) {
     error: "Voice service unavailable.",
     fallbackToBrowser: true,
     provider: "elevenlabs",
+    voiceIdSent: elevenId,
+    voiceIdSource: source,
     elevenStatus: primary.err?.status ?? null,
     detail: primary.err?.reason ?? "no cloud provider succeeded",
   }, { status: 502 });
