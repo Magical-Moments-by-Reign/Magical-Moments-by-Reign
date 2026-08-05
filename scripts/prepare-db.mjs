@@ -130,6 +130,20 @@ if (process.env.SKIP_DB_PUSH) {
   }
 }
 
+// 3) Optionally provision the owner/admin account during this controlled run.
+//    Set PROVISION_OWNER=true (with RUN_DATABASE_PUSH=true so this script runs).
+//    Idempotent + safe to re-run. Grants Owner/Super Admin + verified email +
+//    Forever Lifetime + billing bypass so /admin opens and everything unlocks.
+if (process.env.PROVISION_OWNER === "true") {
+  try {
+    console.log("[db] PROVISION_OWNER=true — provisioning the owner/admin account…");
+    execSync("npx tsx scripts/provision-owner-demo.ts", { stdio: "inherit" });
+  } catch (e) {
+    console.error("[db] ⚠ Owner provisioning failed:", e?.message ?? e);
+    process.exit(1);
+  }
+}
+
 console.log("[db] Production database ready. ✦");
 
 // ── How schema changes reach production now ──────────────────────

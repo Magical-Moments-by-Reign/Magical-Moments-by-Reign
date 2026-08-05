@@ -1,0 +1,39 @@
+# ── Manual production database deploy + owner provisioning ───────
+# A SEPARATE, manually-triggered task — never part of an ordinary Netlify build.
+# Applies only pending Prisma schema changes (idempotent, non-destructive) and,
+# when asked, provisions the single owner account. Uses the DATABASE_URL stored
+# as a GitHub Actions secret; it is masked and never printed.
+name: DB Deploy & Owner Provision (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      provision_owner:
+        description: "Also provision the owner account (info@magicalmomentsbyreign.com)"
+        type: boolean
+        default: true
+
+# Prevent overlapping runs from fighting over the pooler.
+concurrency:
+  group: db-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Apply schema + (optionally) provision owner
+        env:
+          # Store this in GitHub → Settings → Secrets and variables → Actions.
+          # Must be the Supabase SESSION pooler URL (…pooler.supabase.com:5432).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RUN_DATABASE_PUSH: "true"
+          PROVISION_OWNER: ${{ inputs.provision_owner }}
+        run: node scripts/prepare-db.mjs
