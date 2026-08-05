@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentAccount } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
+import { elevenKey, elevenKeyDiagnostics } from "@/lib/voice/eleven-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,8 +30,9 @@ export async function GET() {
   if (!account) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   if (!(await isOwner(account.id))) return NextResponse.json({ error: "Owner only." }, { status: 403 });
 
-  const key = process.env.ELEVENLABS_API_KEY;
-  if (!key) return NextResponse.json({ ok: false, configured: false, error: "ELEVENLABS_API_KEY is not set on this deployment." }, { status: 200 });
+  const key = elevenKey();
+  const diag = elevenKeyDiagnostics(); // safe, key-free — helps spot a mangled env value
+  if (!key) return NextResponse.json({ ok: false, configured: false, key: diag, error: "ELEVENLABS_API_KEY is not set on this deployment." }, { status: 200 });
 
   try {
     const res = await fetch("https://api.elevenlabs.io/v2/voices?page_size=100", {
@@ -38,7 +40,9 @@ export async function GET() {
       signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
-      return NextResponse.json({ ok: false, configured: true, status: res.status, error: reason(res.status) }, { status: 200 });
+      // 401 with a present key almost always means a malformed env value — the
+      // diagnostics (length/whitespace/quotes) show whether Netlify mangled it.
+      return NextResponse.json({ ok: false, configured: true, status: res.status, key: diag, error: reason(res.status) }, { status: 200 });
     }
     const data: any = await res.json();
     const voices = (data?.voices || []).map((v: any) => ({
@@ -49,8 +53,8 @@ export async function GET() {
       accent: v?.labels?.accent || "",
       description: v?.labels?.description || "",
     }));
-    return NextResponse.json({ ok: true, configured: true, count: voices.length, voices }, { status: 200 });
+    return NextResponse.json({ ok: true, configured: true, count: voices.length, key: diag, voices }, { status: 200 });
   } catch {
-    return NextResponse.json({ ok: false, configured: true, error: "Could not reach ElevenLabs (timeout or network)." }, { status: 200 });
+    return NextResponse.json({ ok: false, configured: true, key: diag, error: "Could not reach ElevenLabs (timeout or network)." }, { status: 200 });
   }
 }
