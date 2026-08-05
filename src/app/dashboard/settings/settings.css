@@ -38,3 +38,5 @@
 .vs-seg { display: inline-flex; border: 1px solid #e2d3b3; border-radius: 10px; overflow: hidden; width: fit-content; }
 .vs-seg button { padding: .5rem 1.1rem; border: none; background: #fffdf9; color: #6b5744; cursor: pointer; font: inherit; font-size: .9rem; }
 .vs-seg button.is-on { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; font-weight: 700; }
+.vs-link { color: #a67c2e; font-weight: 700; text-decoration: none; }
+.vs-link:hover { text-decoration: underline; }

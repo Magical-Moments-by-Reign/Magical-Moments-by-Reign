@@ -87,7 +87,8 @@ export default function VoiceSettings({ assistantName, firstName, profileVoicePr
         </div>
 
         <p className="note" style={{ marginTop: ".7rem" }}>
-          Voices are provided by your device/browser today (quality varies by device — <b>connected but limited</b>). A premium, ultra-natural cloud voice is <b>coming soon</b>.
+          These are the quick controls. For voice tiers (Free &amp; Premium), separate Journey and Concierge voices, and a full test drive, open the{" "}
+          <a href="/dashboard/settings/voice" className="vs-link">Voice Studio →</a>
         </p>
       </div>
     </section>
