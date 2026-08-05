@@ -21,9 +21,13 @@
 #   NEXT_PUBLIC_BASE_URL  your live URL (e.g. https://magical-m.netlify.app)
 
 [build]
-  # build:netlify = prisma generate → apply schema + seed (first time) →
-  # next build. See scripts/prepare-db.mjs.
-  command = "npm run build:netlify"
+  # Ordinary deploys (design, content, application code) run ONLY:
+  #   prisma generate && next build
+  # They do NOT touch the database — no `prisma db push` — so a build can never
+  # exhaust the Supabase Session pooler (EMAXCONNSESSION). Schema changes are
+  # applied deliberately and separately with `npm run db:deploy` (which sets
+  # RUN_DATABASE_PUSH=true). See scripts/prepare-db.mjs and DEPLOY.md.
+  command = "npm run build"
   publish = ".next"
 
 [build.environment]

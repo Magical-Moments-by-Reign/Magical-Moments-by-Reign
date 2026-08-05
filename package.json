@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:netlify": "prisma generate && node scripts/prepare-db.mjs && next build",
+    "build:netlify": "prisma generate && next build",
+    "db:deploy": "RUN_DATABASE_PUSH=true node scripts/prepare-db.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",

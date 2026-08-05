@@ -1,21 +1,31 @@
-// ── Deploy-time database setup ──────────────────────────────────
-// Runs during the Netlify build (where DATABASE_URL + network exist).
-// Applies the Prisma schema to the production database, then seeds the
-// default experiences — but ONLY on first setup (when the database has
-// no experiences yet), so it never duplicates data or resurrects
-// content you've deleted on later deploys.
+// ── Controlled database deploy (opt-in) ─────────────────────────
+// This is NOT part of an ordinary Netlify build anymore. Ordinary deploys run
+// only `prisma generate && next build` and never touch the database, so a build
+// can never exhaust the Supabase Session pooler (EMAXCONNSESSION).
 //
-// Connection safety (Supabase Session pooler, pool_size 15): the build must
-// use as FEW connections as possible. We force a low Prisma connection limit
-// for every child process and the in-process seed client, and we RETRY the
-// schema push on transient pool-exhaustion errors (EMAXCONNSESSION, "max
-// clients reached", P1001, connection-pool timeouts) instead of failing the
-// whole deploy. The DATABASE_URL (with its password) is NEVER printed.
+// This script runs ONLY when you deliberately deploy a schema change:
 //
-// Set SKIP_DB_PUSH=1 to skip the schema push entirely on ordinary deploys once
-// the schema is already synchronized (see the note at the bottom of this file).
+//     npm run db:deploy          # sets RUN_DATABASE_PUSH=true for you
+//
+// It then applies the Prisma schema to the database and seeds the default
+// experiences on first setup only (when the database has no experiences yet),
+// so it never duplicates data or resurrects content you've deleted.
+//
+// Connection safety (Supabase Session pooler, pool_size 15): we force a low
+// Prisma connection limit for every child process and the in-process seed
+// client, and we RETRY the schema push on transient pool-exhaustion errors
+// (EMAXCONNSESSION, "max clients reached", P1001, connection-pool timeouts)
+// instead of failing. The DATABASE_URL (with its password) is NEVER printed.
 
 import { execSync } from "node:child_process";
+
+// Safety gate: do nothing unless a schema deploy was explicitly requested.
+// The default Netlify deployment never sets this, so it never runs the push.
+if (process.env.RUN_DATABASE_PUSH !== "true") {
+  console.log("[db] RUN_DATABASE_PUSH is not \"true\" — skipping schema push (ordinary build).");
+  console.log("[db] To apply a schema change deliberately, run:  npm run db:deploy");
+  process.exit(0);
+}
 
 if (!process.env.DATABASE_URL) {
   console.log("[db] DATABASE_URL not set — skipping database setup.");
@@ -122,12 +132,14 @@ if (process.env.SKIP_DB_PUSH) {
 
 console.log("[db] Production database ready. ✦");
 
-// ── Note: is `prisma db push` needed on every deploy? ────────────
-// No. Once the schema is synchronized it is a no-op that still opens a pooled
-// connection. Two safer long-term options:
-//   • Set SKIP_DB_PUSH=1 in Netlify for ordinary content/UI deploys, and only
-//     unset it when the schema actually changed; or
-//   • Move to controlled migrations: `prisma migrate dev` locally to create a
-//     migration, commit prisma/migrations, and run `prisma migrate deploy`
-//     in the build instead of `db push`. That applies only new migrations,
-//     opens one connection briefly, and never risks an unexpected schema diff.
+// ── How schema changes reach production now ──────────────────────
+// Ordinary Netlify builds run `prisma generate && next build` and NEVER run this
+// script — so they never open a build-time database connection and can never hit
+// EMAXCONNSESSION. When you actually change prisma/schema.prisma:
+//   1. Deploy the code as usual (the app tolerates the additive column until the
+//      DB catches up, or deploy the DB first for a required column).
+//   2. Apply the schema deliberately, once, from a machine with the production
+//      DATABASE_URL:  npm run db:deploy
+//      (that sets RUN_DATABASE_PUSH=true and runs the retry-guarded push here).
+// Longer term you can graduate to versioned migrations: `prisma migrate dev`
+// locally, commit prisma/migrations, then `prisma migrate deploy` in db:deploy.
