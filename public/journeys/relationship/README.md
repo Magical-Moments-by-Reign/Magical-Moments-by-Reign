@@ -10,6 +10,7 @@ Drop the files here with these EXACT names (case-sensitive):
 | ---------------- | ------------------ |
 | `dating.jpg`     | Dating             |
 | `date-night.jpg` | Date Night Ideas   |
+| `engagement.jpg` | Engagement         |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the

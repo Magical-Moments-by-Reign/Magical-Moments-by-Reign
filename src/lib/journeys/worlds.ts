@@ -75,7 +75,7 @@ const RELATIONSHIP: JourneyWorld = {
         "Ring presentation ideas", "Proposal wording", "Proposal checklists",
       ],
     },
-    { slug: "engagement", label: "Engagement", tagline: "Celebrate the yes.", status: "explore" },
+    { slug: "engagement", label: "Engagement", tagline: "Celebrate the yes.", image: "/journeys/relationship/engagement.jpg", status: "explore" },
     { slug: "wedding", label: "Wedding", tagline: "Your day, your way.", image: "/story/wedding.jpg", status: "explore",
       ideas: ["Ceremony styles", "Reception themes", "Color palettes", "Venue types", "Wedding photography", "Vows & readings", "Guest experience", "Wedding checklists"] },
     { slug: "elopement", label: "Elopement", tagline: "Just the two of you.", status: "explore" },
