@@ -88,7 +88,8 @@ export default async function GetStartedPage() {
               <span className="gs-card__ic"><svg viewBox="0 0 24 24" aria-hidden="true">{c.icon}</svg></span>
               <h3 className="gs-card__t">{c.title}</h3>
               <p className="gs-card__s">{c.desc}</p>
-              <span className="gs-card__go">Explore <span aria-hidden="true">→</span></span>
+              <span className="gs-card__enter">Click to enter</span>
+              <span className="gs-card__open">OPEN</span>
             </Link>
           ))}
         </div>
