@@ -1,29 +1,34 @@
 /* ── Named Magical Assistant ────────────────────────────────────
-   Soft blinking gold launcher; luxury chocolate/cream/gold panel. */
-.ma-launch {
-  position: fixed; right: 1.3rem; bottom: 1.3rem; z-index: 940;
+   Persistent glowing on/off control; luxury chocolate/cream/gold panel. */
+.ma-toggle {
+  position: fixed; right: 1.3rem; bottom: 1.3rem; z-index: 950;
   display: inline-flex; align-items: center; gap: .6rem; cursor: pointer;
   padding: .7rem 1.15rem .7rem .7rem; border-radius: 999px;
   border: 1px solid #7a5b2e; color: #2a1a0d;
   background: linear-gradient(135deg, #e7cf94, #c9a24b 55%, #a67c2e);
   box-shadow: 0 10px 30px -8px rgba(201,162,75,.7);
-  animation: ma-blink 3s ease-in-out infinite;
 }
-.ma-launch:hover { transform: translateY(-2px); filter: brightness(1.04); }
-.ma-launch:focus-visible { outline: 3px solid #e7cf94; outline-offset: 3px; }
-.ma-launch__orb { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+.ma-toggle.is-off { animation: ma-glow 2.6s ease-in-out infinite; }
+.ma-toggle.is-on {
+  background: linear-gradient(135deg, #3a2417, #2a1d12); color: #f4e7cd; border-color: #7a5b2e;
+  box-shadow: 0 10px 26px -10px rgba(42,29,18,.7);
+}
+.ma-toggle:hover { transform: translateY(-2px); filter: brightness(1.04); }
+.ma-toggle:focus-visible { outline: 3px solid #e7cf94; outline-offset: 3px; }
+.ma-toggle__orb { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   background: radial-gradient(circle at 38% 34%, #fff3d6, #d8b25e 60%, #a67c2e); color: #4a3410; font-size: .95rem; }
-.ma-launch__txt { font-size: .86rem; font-weight: 600; letter-spacing: .01em; }
-.ma-launch__txt b { font-weight: 800; }
-@keyframes ma-blink {
+.ma-toggle.is-on .ma-toggle__orb { animation: ma-pulse 1.6s ease-in-out infinite; }
+.ma-toggle__txt { font-size: .86rem; font-weight: 600; letter-spacing: .01em; }
+.ma-toggle__txt b { font-weight: 800; }
+@keyframes ma-glow {
   0%, 100% { box-shadow: 0 10px 30px -8px rgba(201,162,75,.55); }
-  50% { box-shadow: 0 10px 34px -6px rgba(201,162,75,.95), 0 0 0 6px rgba(201,162,75,.10); }
+  50% { box-shadow: 0 10px 34px -6px rgba(201,162,75,.95), 0 0 0 7px rgba(201,162,75,.14); }
 }
-@media (prefers-reduced-motion: reduce){ .ma-launch { animation: none; } }
+@media (prefers-reduced-motion: reduce){ .ma-toggle.is-off, .ma-toggle.is-on .ma-toggle__orb { animation: none; } }
 
 .ma-panel {
-  position: fixed; right: 1.3rem; bottom: 1.3rem; z-index: 945;
-  width: min(400px, calc(100vw - 2rem)); height: min(620px, calc(100vh - 2.5rem));
+  position: fixed; right: 1.3rem; bottom: 4.7rem; z-index: 945;
+  width: min(400px, calc(100vw - 2rem)); height: min(600px, calc(100vh - 6.5rem));
   display: flex; flex-direction: column; overflow: hidden;
   background: #fbf6ee; border: 1px solid #e7dcc9; border-radius: 20px;
   box-shadow: 0 24px 60px rgba(42,29,18,.34); font-family: var(--font-body, system-ui, sans-serif);
@@ -38,9 +43,18 @@
 @keyframes ma-pulse { 0%,100%{ box-shadow:0 0 0 0 rgba(216,178,94,.5);} 50%{ box-shadow:0 0 0 7px rgba(216,178,94,.18);} }
 @keyframes ma-listen { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.08);} }
 .ma-head__t { display: flex; flex-direction: column; line-height: 1.1; font-size: 1.05rem; font-family: var(--font-display, Georgia, serif); }
-.ma-head__t small { font-size: .66rem; letter-spacing: .04em; color: #cbb287; font-family: var(--font-body, system-ui); margin-top: .12rem; }
-.ma-ctrl { background: rgba(255,255,255,.12); border: none; color: #f6ead0; border-radius: 8px; padding: .3rem .7rem; font-size: .78rem; cursor: pointer; }
+.ma-status { font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; font-family: var(--font-body, system-ui); margin-top: .18rem; display: inline-flex; align-items: center; gap: .3rem; }
+.ma-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ma-status--ready { color: #9fd0a0; }
+.ma-status--listening { color: #e8c06a; }
+.ma-status--speaking { color: #7ec8e3; }
+.ma-status--muted { color: #d79a8c; }
+.ma-status--off { color: #cbb287; }
+.ma-head__ctrls { display: flex; align-items: center; gap: .4rem; }
+.ma-ctrl { background: rgba(255,255,255,.12); border: none; color: #f6ead0; border-radius: 8px; padding: .32rem .7rem; font-size: .76rem; cursor: pointer; }
 .ma-ctrl:hover { background: rgba(255,255,255,.22); }
+.ma-ctrl--off { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; font-weight: 700; }
+.ma-ctrl--off:hover { filter: brightness(1.05); background: linear-gradient(135deg, #d8b25e, #a67c2e); }
 
 .ma-body { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .7rem; }
 .ma-msg { display: flex; align-items: flex-end; gap: .45rem; }
@@ -66,9 +80,15 @@
 .ma-input textarea:focus { outline: none; border-color: #c9a24b; }
 .ma-send { flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px; border: none; cursor: pointer; background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; font-size: 1.15rem; font-weight: 700; }
 .ma-send:disabled { opacity: .45; cursor: default; }
-.ma-fine { margin: 0; padding: .45rem 1rem .7rem; font-size: .68rem; color: #8a7a63; text-align: center; background: #fff; }
+.ma-fine { margin: 0; padding: .45rem 1rem .7rem; font-size: .68rem; color: #8a7a63; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.ma-fine span { flex: 1; text-align: right; }
+.ma-replay { background: none; border: none; color: #a67c2e; font-weight: 700; font-size: .68rem; cursor: pointer; padding: 0; white-space: nowrap; }
+.ma-replay:hover { text-decoration: underline; }
 
 @media (max-width: 640px) {
-  .ma-panel { right: 0; left: 0; bottom: 0; width: 100vw; height: 92vh; border-radius: 20px 20px 0 0; }
-  .ma-launch { right: 1rem; bottom: 1rem; }
+  .ma-panel { right: 0; left: 0; bottom: 0; width: 100vw; height: 90vh; border-radius: 20px 20px 0 0; z-index: 952; }
+  .ma-toggle { right: 1rem; bottom: 1rem; }
+  /* On mobile the open sheet fills the screen; its prominent "Turn Off" button
+     in the header handles the off action, so the floating pill hides while on. */
+  .ma-toggle.is-on { display: none; }
 }

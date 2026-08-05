@@ -35,6 +35,18 @@
 .vst-slider > span { font-size: .82rem; font-weight: 600; color: #2a1d12; }
 .vst-slider input[type=range] { accent-color: #c9a24b; }
 
+/* Provider status */
+.vst-status { margin-top: 1rem; padding-top: .9rem; border-top: 1px solid #eee0c8; }
+.vst-status__row { display: flex; align-items: center; gap: .5rem; font-size: .9rem; color: #3a2c1d; margin-bottom: .4rem; }
+.vst-status__dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.vst-status__dot--ok { background: #4e7a52; }
+.vst-status__dot--off { background: #b98a3f; }
+.vst-status__note { margin: .2rem 0 .7rem; }
+.vst-status__result { font-size: .86rem; font-weight: 600; margin: .6rem 0 0; padding: .5rem .8rem; border-radius: 10px; }
+.vst-status__result--ok { background: #dcecd9; color: #33632f; border: 1px solid #c3ddbf; }
+.vst-status__result--browser { background: #f6efdd; color: #7a5a1f; border: 1px solid #e8d6a8; }
+.vst-status__result--fail { background: #f6e3d8; color: #9a4a3a; border: 1px solid #e6c7b8; }
+
 /* Owner controls */
 .vst__owner { border: 1px dashed #d8b25e; background: #fdf9f0; }
 .vst-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .9rem; margin: .6rem 0 1rem; }

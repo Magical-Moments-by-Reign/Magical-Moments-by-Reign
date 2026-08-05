@@ -1,15 +1,13 @@
 "use client";
 
-// ── The named live Magical Assistant (Ask Magical) ──────────────
-// A soft blinking gold button lives across the signed-in dashboard. When the
-// member turns it ON it greets them by the assistant's chosen name, then stays
-// available for the whole session (it does NOT re-greet on route changes). It
-// can: navigate the app (working now), answer via the Qwen brain / honest
-// offline fallback (connected but limited), speak responses + take voice input
-// through the browser (connected but limited), and hand off Concierge requests.
+// ── The named live Magical Assistant (Journey / Ask Magical) ────
+// A persistent glowing on/off control lives across the signed-in dashboard. The
+// FULL welcome plays only once per signed-in session (keyed to the session id):
+// not on every turn-on, panel reopen, route change, or refresh. Turning Journey
+// back on in the same session gives a short "I'm back." — never the whole intro.
 //
 // Privacy: the microphone is never accessed unless the member taps it; a visible
-// "Listening" indicator shows whenever it is; no audio is stored.
+// "Listening" state shows whenever it is; no audio is stored.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,17 +20,12 @@ import "./magical-assistant.css";
 interface Msg { role: "user" | "assistant"; content: string; }
 const MSG_KEY = "mmr:assistant-msgs";
 const ON_KEY = "mmr:assistant-on";
-const GREET_KEY = "mmr:assistant-greeted";
 
 function fmt(text: string): { __html: string } {
   const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return { __html: esc.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>") };
 }
 
-// Best-effort natural-date parse for the flight handoff ("October 10", "10/13",
-// "Oct 10"). First date found = depart, second = return. Picks the next future
-// occurrence. Returns ISO YYYY-MM-DD strings, or empty when unsure (never guesses
-// flight data — only the dates the member actually typed).
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 function parseTripDates(text: string): { depart?: string; ret?: string } {
   const found: string[] = [];
@@ -50,7 +43,6 @@ function parseTripDates(text: string): { depart?: string; ret?: string } {
     const day = Number(mth![2]);
     if (mi >= 0 && day >= 1 && day <= 31) found.push(future(mi, day));
   }
-  // Numeric M/D or M/D/YY as a fallback.
   if (found.length < 2) {
     const nre = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g;
     let nm: RegExpExecArray | null;
@@ -65,7 +57,6 @@ function parseTripDates(text: string): { depart?: string; ret?: string } {
   return { depart: found[0], ret: found[1] };
 }
 
-// Navigation commands the assistant can actually perform right now.
 const NAV: { re: RegExp; path: string; say: string }[] = [
   { re: /family vault/i, path: "/dashboard/family-vault", say: "Opening your Family Vault." },
   { re: /\b(my )?memories\b|add a memory|my photos/i, path: "/dashboard/media", say: "Opening My Memories — add photos, videos, and keepsakes here." },
@@ -82,10 +73,11 @@ const NAV: { re: RegExp; path: string; say: string }[] = [
   { re: /dashboard|overview/i, path: "/dashboard", say: "Here is your dashboard." },
 ];
 
-export default function MagicalAssistant({ assistantName, firstName }: { assistantName: string; firstName: string }) {
+export default function MagicalAssistant({ assistantName, firstName, sessionKey }: { assistantName: string; firstName: string; sessionKey: string }) {
   const router = useRouter();
   const pathname = usePathname() || "/dashboard";
   const [on, setOn] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,20 +85,27 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   const [speaking, setSpeaking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<any>(null);
+  const mutedRef = useRef(false);
   const prefs = useRef(loadPrefs());
+  // The welcome is spoken once per SIGNED-IN SESSION. Keying on the session id
+  // means it replays after a genuine sign-out/in, but never on toggles, reopens,
+  // route changes, or refreshes within the same session.
+  const welcomeKey = `mmr:welcome:${sessionKey || "anon"}`;
 
-  const hasSR = typeof window !== "undefined" && (window as any).SpeechRecognition || (typeof window !== "undefined" && (window as any).webkitSpeechRecognition);
+  const hasSR = typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
-  // Restore session state (persists across route changes and reloads within the session).
+  useEffect(() => { mutedRef.current = muted; }, [muted]);
+
+  // Restore session state (persists across route changes and reloads within the
+  // session). NEVER speaks on mount — restoring is silent.
   useEffect(() => {
     try {
-      const savedOn = sessionStorage.getItem(ON_KEY) === "1";
       const savedMsgs = JSON.parse(sessionStorage.getItem(MSG_KEY) || "[]");
       if (Array.isArray(savedMsgs) && savedMsgs.length) setMsgs(savedMsgs);
-      if (savedOn) setOn(true);
-      else if (prefs.current.autostart && sessionStorage.getItem(GREET_KEY) !== "1") {
-        // Auto-start after entering (audio may require a tap; captions still show).
-        setTimeout(() => activate(true), 700);
+      if (sessionStorage.getItem(ON_KEY) === "1") {
+        setOn(true); // reopen silently — do NOT re-greet
+      } else if (prefs.current.autostart && sessionStorage.getItem(welcomeKey) !== "1") {
+        setTimeout(() => activate(true), 700); // first entry only
       }
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,15 +114,13 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   useEffect(() => { try { sessionStorage.setItem(MSG_KEY, JSON.stringify(msgs.slice(-40))); } catch {} }, [msgs]);
   useEffect(() => { try { sessionStorage.setItem(ON_KEY, on ? "1" : "0"); } catch {} }, [on]);
   useEffect(() => { if (on && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs, on, busy]);
+  // Stop all audio if the assistant unmounts (leaving the dashboard / sign-out).
+  useEffect(() => () => cancelSpeech(), []);
 
   const speak = useCallback((text: string, onDone?: () => void) => {
-    // Natural, style-shaped, sentence-chunked delivery in the member's saved
-    // JOURNEY voice (see lib/voice/speech). onDone fires after the line finishes.
+    if (mutedRef.current) { onDone?.(); return; } // muted → captions only, no audio
     speakNatural(text, { persona: "journey", onStart: () => setSpeaking(true), onEnd: () => { setSpeaking(false); onDone?.(); } });
   }, []);
-
-  // End any Journey audio when the assistant unmounts (e.g. the member signs out).
-  useEffect(() => () => cancelSpeech(), []);
 
   function chime() {
     const p = loadPrefs();
@@ -142,23 +139,47 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
     } catch { /* ignore */ }
   }
 
+  /** Play the FULL welcome. Once per session unless `force` (Replay welcome). */
+  function playWelcome(force: boolean) {
+    if (!force && sessionStorage.getItem(welcomeKey) === "1") return;
+    sessionStorage.setItem(welcomeKey, "1");
+    const greet = assistantGreeting({ assistantName, firstName, firstTime: msgs.length === 0 });
+    setMsgs((m) => (m.length && m[m.length - 1].content === greet ? m : [...m, { role: "assistant", content: greet }]));
+    setTimeout(() => speak(greet), prefs.current.soundOn ? 900 : 150);
+  }
+
   function activate(auto = false) {
     setOn(true);
-    const firstThisSession = sessionStorage.getItem(GREET_KEY) !== "1";
-    if (firstThisSession) {
-      sessionStorage.setItem(GREET_KEY, "1");
-      const greet = assistantGreeting({ assistantName, firstName, firstTime: msgs.length === 0 });
-      setMsgs((m) => [...m, { role: "assistant", content: greet }]);
+    const welcomed = sessionStorage.getItem(welcomeKey) === "1";
+    if (!welcomed) {
       if (!auto) chime();
-      setTimeout(() => speak(greet), prefs.current.soundOn && !auto ? 1500 : 200);
+      playWelcome(false);
+    } else if (!auto) {
+      // Re-opening in the same session: a brief acknowledgement, never the intro.
+      speak("I'm back. How can I help?");
     }
   }
 
   function turnOff() {
     setOn(false);
     stopListening();
+    cancelSpeech();      // stop current speech immediately
+    setSpeaking(false);  // history is kept; welcome flag is untouched
+  }
+
+  function toggle() { if (on) turnOff(); else activate(false); }
+
+  function replayWelcome() {
     cancelSpeech();
-    setSpeaking(false);
+    playWelcome(true);
+  }
+
+  function toggleMute() {
+    setMuted((m) => {
+      const next = !m;
+      if (next) cancelSpeech(); // muting stops any current speech
+      return next;
+    });
   }
 
   // ---- Voice input (browser Web Speech API) ----
@@ -175,20 +196,16 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
   }
   function startListening() {
     const r = ensureRecog(); if (!r) return;
-    cancelSpeech();  // interrupt speech when member talks
-    setSpeaking(false); setInput("");
+    cancelSpeech(); setSpeaking(false); setInput("");
     try { r.start(); setListening(true); } catch {}
   }
   function stopListening() { setListening(false); try { recogRef.current?.stop(); } catch {} }
 
-  // ---- Handle a member message (text or transcribed voice) ----
   async function handle(text: string) {
     const clean = text.trim(); if (!clean || busy) return;
     setInput("");
     setMsgs((m) => [...m, { role: "user", content: clean }]);
 
-    // 0) Flight SEARCH → open the luxury Flights page, carrying what we parsed
-    //    (destination + dates) so the member never re-types it.
     if (/\b(fly|flight|flights|airfare)\b/i.test(clean) && /\bto\b/i.test(clean)) {
       const dest = clean.match(/\bto\s+([A-Za-z][A-Za-z .'-]*?)(?:\s+(?:on|for|departing|leaving|next|this|from|,|and|\.|$))/i)?.[1]?.trim();
       const dates = parseTripDates(clean);
@@ -204,20 +221,14 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
       return;
     }
 
-    // 1) Concierge handoff — never answered here. Speak the handoff line in the
-    //    JOURNEY voice, THEN open the Concierge (which greets in its own voice and
-    //    picks up the request), so the two voices don't talk over each other. If
-    //    voice is off, open immediately. The request is passed along in the event
-    //    so the member never repeats it.
     if (looksLikeConciergeRequest(clean)) {
       const line = "I'll bring in your Concierge to help with that.";
       setMsgs((m) => [...m, { role: "assistant", content: line }]);
       const openConcierge = () => window.dispatchEvent(new CustomEvent("mmr:open-concierge", { detail: { seed: clean } }));
-      if (loadPrefs().voiceOn) speak(line, openConcierge);
+      if (loadPrefs().voiceOn && !mutedRef.current) speak(line, openConcierge);
       else openConcierge();
       return;
     }
-    // 2) Navigation actions the assistant can really do now.
     const nav = NAV.find((n) => n.re.test(clean));
     if (nav) {
       setMsgs((m) => [...m, { role: "assistant", content: nav.say }]);
@@ -225,7 +236,6 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
       router.push(nav.path);
       return;
     }
-    // 3) Otherwise ask the general assistant brain (Qwen / honest offline).
     setBusy(true);
     try {
       const history = [...msgs, { role: "user" as const, content: clean }];
@@ -247,58 +257,72 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handle(input); }
   }
 
-  // ---- OFF: the soft blinking button ----
-  if (!on) {
-    return (
-      <button type="button" className="ma-launch" data-tour="assistant" onClick={() => activate(false)} aria-label={`Turn on ${assistantName}, your Magical Assistant`}>
-        <span className="ma-launch__orb" aria-hidden="true">✦</span>
-        <span className="ma-launch__txt">Turn On <b>{assistantName}</b></span>
-      </button>
-    );
-  }
+  const status = !on ? "Off" : listening ? "Listening" : speaking ? "Speaking" : muted ? "Muted" : "Ready";
 
-  // ---- ON: the assistant panel ----
   return (
-    <div className="ma-panel" role="dialog" aria-label={`${assistantName}, your Magical Assistant`}>
-      <header className="ma-head">
-        <div className="ma-head__id">
-          <span className={`ma-orb${speaking ? " is-speaking" : ""}${listening ? " is-listening" : ""}`} aria-hidden="true">✦</span>
-          <span className="ma-head__t">{assistantName}<small>Your Magical Assistant{listening ? " · Listening…" : ""}</small></span>
-        </div>
-        <div className="ma-head__ctrls">
-          <button type="button" className="ma-ctrl" onClick={turnOff} aria-label="Turn off assistant" title="Turn off">Off</button>
-        </div>
-      </header>
+    <>
+      {on && (
+        <div className="ma-panel" role="dialog" aria-label={`${assistantName}, your Magical Assistant`}>
+          <header className="ma-head">
+            <div className="ma-head__id">
+              <span className={`ma-orb${speaking ? " is-speaking" : ""}${listening ? " is-listening" : ""}`} aria-hidden="true">✦</span>
+              <span className="ma-head__t">{assistantName}
+                <small className={`ma-status ma-status--${status.toLowerCase()}`}>{status}</small>
+              </span>
+            </div>
+            <div className="ma-head__ctrls">
+              <button type="button" className="ma-ctrl" onClick={toggleMute} aria-pressed={muted} title={muted ? "Unmute voice" : "Mute voice"}>
+                {muted ? "Unmute" : "Mute"}
+              </button>
+              <button type="button" className="ma-ctrl ma-ctrl--off" onClick={turnOff} aria-label={`Turn off ${assistantName}`}>Turn Off</button>
+            </div>
+          </header>
 
-      <div className="ma-body" ref={scrollRef}>
-        {msgs.map((m, i) => (
-          <div key={i} className={`ma-msg ma-msg--${m.role}`}>
-            {m.role === "assistant" && <span className="ma-ava" aria-hidden="true">✦</span>}
-            <div className="ma-bubble" dangerouslySetInnerHTML={fmt(m.content)} />
+          <div className="ma-body" ref={scrollRef}>
+            {msgs.map((m, i) => (
+              <div key={i} className={`ma-msg ma-msg--${m.role}`}>
+                {m.role === "assistant" && <span className="ma-ava" aria-hidden="true">✦</span>}
+                <div className="ma-bubble" dangerouslySetInnerHTML={fmt(m.content)} />
+              </div>
+            ))}
+            {busy && <div className="ma-msg ma-msg--assistant"><span className="ma-ava" aria-hidden="true">✦</span><div className="ma-bubble ma-typing"><span></span><span></span><span></span></div></div>}
           </div>
-        ))}
-        {busy && <div className="ma-msg ma-msg--assistant"><span className="ma-ava" aria-hidden="true">✦</span><div className="ma-bubble ma-typing"><span></span><span></span><span></span></div></div>}
-      </div>
 
-      <div className="ma-input">
-        <button
-          type="button"
-          className={`ma-mic${listening ? " is-on" : ""}`}
-          onClick={() => (listening ? stopListening() : startListening())}
-          aria-pressed={listening}
-          aria-label={listening ? "Stop listening" : "Tap to speak"}
-          title={hasSR ? (listening ? "Listening — tap to stop" : "Tap to speak") : "Voice input needs Chrome or Edge"}
-          disabled={!hasSR}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6 11a6 6 0 0 0 12 0M12 17v4" /></svg>
-        </button>
-        <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} rows={1}
-          placeholder={listening ? "Listening…" : `Ask ${assistantName}…`} aria-label={`Message ${assistantName}`} />
-        <button type="button" className="ma-send" onClick={() => handle(input)} disabled={busy || !input.trim()} aria-label="Send">↑</button>
-      </div>
-      <p className="ma-fine">
-        {hasSR ? "Tap the mic to speak — I only listen while it's on." : "Voice input works in Chrome & Edge. Typing works everywhere."}
-      </p>
-    </div>
+          <div className="ma-input">
+            <button
+              type="button"
+              className={`ma-mic${listening ? " is-on" : ""}`}
+              onClick={() => (listening ? stopListening() : startListening())}
+              aria-pressed={listening}
+              aria-label={listening ? "Stop listening" : "Tap to speak"}
+              title={hasSR ? (listening ? "Listening — tap to stop" : "Tap to speak") : "Voice input needs Chrome or Edge"}
+              disabled={!hasSR}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6 11a6 6 0 0 0 12 0M12 17v4" /></svg>
+            </button>
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} rows={1}
+              placeholder={listening ? "Listening…" : `Ask ${assistantName}…`} aria-label={`Message ${assistantName}`} />
+            <button type="button" className="ma-send" onClick={() => handle(input)} disabled={busy || !input.trim()} aria-label="Send">↑</button>
+          </div>
+          <p className="ma-fine">
+            <button type="button" className="ma-replay" onClick={replayWelcome}>↻ Replay welcome</button>
+            <span>{hasSR ? "Tap the mic to speak — I only listen while it's on." : "Voice input works in Chrome & Edge."}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Persistent on/off control — glowing when off, active when on. */}
+      <button
+        type="button"
+        className={`ma-toggle${on ? " is-on" : " is-off"}`}
+        data-tour="assistant"
+        onClick={toggle}
+        aria-pressed={on}
+        aria-label={on ? `Turn off ${assistantName}` : `Turn on ${assistantName}, your Magical Assistant`}
+      >
+        <span className="ma-toggle__orb" aria-hidden="true">✦</span>
+        <span className="ma-toggle__txt">{on ? "Turn Off" : "Turn On"} <b>{assistantName}</b></span>
+      </button>
+    </>
   );
 }

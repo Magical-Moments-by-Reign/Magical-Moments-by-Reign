@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { isPaidMember } from "@/lib/membership-access";
-import { cloudConfigured } from "@/lib/voice/catalog";
+import { cloudConfigured, cloudPrimary } from "@/lib/voice/catalog";
 import { readOwnerVoiceConfig } from "@/lib/voice/owner-config";
 import VoiceStudio from "./VoiceStudio";
 import OwnerVoiceDefaults from "./OwnerVoiceDefaults";
@@ -50,6 +50,7 @@ export default async function VoicePage() {
         profileVoicePrefs={voicePrefs}
         cloudReady={cloudReady}
         paidMember={paidMember}
+        cloudProvider={cloudPrimary()}
       />
 
       {owner && ownerConfig && <OwnerVoiceDefaults config={ownerConfig} />}

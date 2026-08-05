@@ -49,7 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <DashboardChrome initial={initial} unread={unread} isOwner={isOwner}>
         {children}
       </DashboardChrome>
-      <MagicalAssistant assistantName={account.assistantName} firstName={account.firstName} />
+      <MagicalAssistant assistantName={account.assistantName} firstName={account.firstName} sessionKey={account.sessionId} />
       <ConciergeChat hideLauncher />
       <GuidedTour autoOffer={autoOffer} assistantName={account.assistantName} firstName={account.firstName} />
     </>
