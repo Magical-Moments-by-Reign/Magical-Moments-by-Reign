@@ -20,20 +20,9 @@ export default function AssistantSettings({
   const router = useRouter();
   const [name, setName] = useState(currentName);
   const [prefs, setPrefs] = useState<AssistantPrefs>(() => loadPrefs());
-  const [voices, setVoices] = useState<{ uri: string; label: string }[]>([]);
   const [micState, setMicState] = useState<"idle" | "granted" | "denied">("idle");
 
   useEffect(() => { setPrefs(loadPrefs()); }, []);
-  useEffect(() => {
-    function loadVoices() {
-      const vs = (window.speechSynthesis?.getVoices?.() || [])
-        .filter((v) => /en/i.test(v.lang))
-        .map((v) => ({ uri: v.voiceURI, label: `${v.name} (${v.lang})` }));
-      setVoices(vs);
-    }
-    loadVoices();
-    if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = loadVoices;
-  }, []);
 
   function update(patch: Partial<AssistantPrefs>) { setPrefs(savePrefs(patch)); }
 
@@ -100,16 +89,8 @@ export default function AssistantSettings({
           <label className="as-pref"><span>Spoken responses</span><input type="checkbox" checked={prefs.voiceOn} onChange={(e) => update({ voiceOn: e.target.checked })} /></label>
           <label className="as-pref"><span>Captions</span><input type="checkbox" checked={prefs.captionsOn} onChange={(e) => update({ captionsOn: e.target.checked })} /></label>
           <label className="as-pref"><span>Start assistant automatically after entering</span><input type="checkbox" checked={prefs.autostart} onChange={(e) => update({ autostart: e.target.checked })} /></label>
-          <label className="as-pref as-pref--wide"><span>Voice speed</span><input type="range" min="0.7" max="1.2" step="0.05" value={prefs.speed} onChange={(e) => update({ speed: parseFloat(e.target.value) })} /></label>
-          {voices.length > 0 && (
-            <label className="as-pref as-pref--wide"><span>Voice</span>
-              <select value={prefs.voiceURI} onChange={(e) => update({ voiceURI: e.target.value })}>
-                <option value="">Automatic (recommended)</option>
-                {voices.map((v) => <option key={v.uri} value={v.uri}>{v.label}</option>)}
-              </select>
-            </label>
-          )}
         </div>
+        <p className="note" style={{ marginTop: ".5rem" }}>Choose the voice, style, speed &amp; pitch in the <b>🎙️ Assistant Voice</b> section below.</p>
 
         <div className="pg-actions">
           <button type="button" className="btn btn--ghost" onClick={requestMic}>
