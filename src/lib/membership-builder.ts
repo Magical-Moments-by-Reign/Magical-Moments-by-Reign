@@ -1,11 +1,10 @@
-// ── Membership Builder — Life Experience catalog ────────────────
-// A two-level catalog. TOP-LEVEL "Life Experiences" are the chapters a member
-// chooses first (each one is a reservable Life Estate / occasion for pricing).
-// NESTED "milestones" personalize a chosen chapter — they do NOT add to the
-// occasion count or the price; they simply let a member shape the story within
-// a chapter. This keeps the selector from overwhelming members with dozens of
-// top-level cards. ALL pricing/discount/upgrade logic lives in the canonical
-// pricing engine (lib/pricing-engine.ts) — never duplicate pricing here.
+// ── Membership Builder — Life Journey catalog ───────────────────
+// The canonical occasion structure: TWELVE top-level "Journeys" (each a
+// reservable occasion for pricing), and within each Journey a set of nested
+// sub-occasions ("milestones") that personalize it — they do NOT add to the
+// occasion count or the price. This keeps the selector to twelve elegant
+// chapters instead of dozens of loose cards. ALL pricing/discount/upgrade logic
+// lives in the canonical pricing engine (lib/pricing-engine.ts).
 
 export interface Milestone {
   id: string;
@@ -19,7 +18,7 @@ export interface LifeExperience {
   blurb: string;
   /** Background photo for the card. Cards without one fall back to a gradient. */
   photo?: string;
-  /** Optional milestones within this chapter (personalization, not priced). */
+  /** Nested sub-occasions within this Journey (personalization, not priced). */
   milestones: Milestone[];
 }
 
@@ -27,57 +26,119 @@ const m = (id: string, label: string): Milestone => ({ id, label });
 
 export const EXPERIENCES: LifeExperience[] = [
   {
-    id: "wedding", label: "Wedding Journey", icon: "💍",
-    blurb: "Two stories becoming one.", photo: "/story/wedding.jpg",
+    id: "relationship", label: "Relationship Journey", icon: "💕",
+    blurb: "Everything leading up to marriage and beyond.", photo: "/story/proposal.jpg",
     milestones: [
-      m("proposal", "Proposal"), m("engagement", "Engagement"), m("bridal-shower", "Bridal Shower"),
-      m("wedding-day", "Wedding Day"), m("honeymoon", "Honeymoon"), m("vow-renewal", "Vow Renewal"),
+      m("dating", "Dating"), m("first-date", "First Date"), m("proposal", "Proposal"),
+      m("engagement", "Engagement"), m("bridal-shower", "Bridal Shower"),
+      m("bachelor-bachelorette", "Bachelor/Bachelorette"), m("wedding", "Wedding"),
+      m("honeymoon", "Honeymoon"), m("anniversary", "Anniversary"), m("vow-renewal", "Vow Renewal"),
     ],
   },
   {
-    id: "birthday", label: "Birthday Celebration", icon: "🎂",
-    blurb: "Every year, beautifully marked.", photo: "/story/birthday.jpg",
+    id: "baby", label: "Baby Journey", icon: "👶",
+    blurb: "One complete journey from announcement through baby's first year.", photo: "/story/baby.jpg",
     milestones: [
-      m("first-birthday", "First Birthday"), m("sweet-16", "Sweet 16"), m("quinceanera", "Quinceañera"),
-      m("18th", "18th Birthday"), m("21st", "21st Birthday"), m("30th", "30th"),
-      m("40th", "40th"), m("50th", "50th"),
+      m("pregnancy-announcement", "Pregnancy Announcement"), m("gender-reveal", "Gender Reveal"),
+      m("baby-shower", "Baby Shower"), m("nursery-reveal", "Nursery Reveal"), m("birth-story", "Birth Story"),
+      m("welcome-baby", "Welcome Baby"), m("first-holidays", "First Holidays"),
+      m("first-birthday", "First Birthday"), m("baby-milestones", "Baby Milestones"),
     ],
   },
   {
-    id: "baby", label: "Baby Journey", icon: "🍼",
-    blurb: "The first chapter of a new life.", photo: "/story/baby.jpg",
+    id: "birthday", label: "Birthday Journey", icon: "🎂",
+    blurb: "For every birthday celebration.", photo: "/story/birthday.jpg",
     milestones: [
-      m("pregnancy", "Pregnancy"), m("gender-reveal", "Gender Reveal"), m("baby-shower", "Baby Shower"),
-      m("birth", "Birth"), m("first-birthday", "First Birthday"),
+      m("kids-birthdays", "Kids Birthdays"), m("sweet-16", "Sweet 16"), m("quinceanera", "Quinceañera"),
+      m("18th-birthday", "18th Birthday"), m("21st-birthday", "21st Birthday"),
+      m("adult-milestone-birthdays", "Adult Milestone Birthdays"), m("surprise-parties", "Surprise Parties"),
     ],
   },
   {
     id: "graduation", label: "Graduation Journey", icon: "🎓",
-    blurb: "From the last year to the next beginning.", photo: "/story/graduation.jpg",
+    blurb: "Everything from senior year through graduation.", photo: "/story/graduation.jpg",
     milestones: [
-      m("senior-year", "Senior Year"), m("prom", "Prom"), m("graduation", "Graduation"),
-      m("college-move-in", "College Move-In"),
+      m("senior-pictures", "Senior Pictures"), m("prom", "Prom"), m("senior-night", "Senior Night"),
+      m("college-acceptance", "College Acceptance"), m("scholarships", "Scholarships"),
+      m("graduation", "Graduation"), m("graduation-party", "Graduation Party"),
     ],
   },
-  { id: "anniversary", label: "Anniversary", icon: "❤️", blurb: "Love, year after year.", photo: "/story/anniversary.jpg", milestones: [] },
-  { id: "travel", label: "Vacation & Travel", icon: "✈️", blurb: "Journeys worth remembering.", photo: "/story/vacation.jpg", milestones: [] },
-  { id: "new-home", label: "New Home Journey", icon: "🏡", blurb: "Every home decision, from dream to keys.", photo: "/story/newhome.jpg", milestones: [] },
-  { id: "military", label: "Military Homecoming", icon: "🎖️", blurb: "The moment they walk through the door.", photo: "/story/military.jpg", milestones: [] },
-  { id: "reunion", label: "Family Reunion", icon: "👨‍👩‍👧‍👦", blurb: "The whole family, together again.", photo: "/story/reunion.jpg", milestones: [] },
-  { id: "retirement", label: "Retirement", icon: "🌅", blurb: "A lifetime of work, honored.", photo: "/story/retirement.jpg", milestones: [] },
-  { id: "celebration-of-life", label: "Celebration of Life", icon: "🕊️", blurb: "A life remembered with love.", photo: "/story/memorial.jpg", milestones: [] },
-  { id: "business", label: "Business", icon: "👔", blurb: "Build your legacy by design.", milestones: [] },
-  { id: "legacy", label: "Legacy", icon: "📜", blurb: "Love, preserved for generations.", milestones: [] },
-  { id: "relationship", label: "Relationship", icon: "💞", blurb: "The story of you two.", photo: "/story/proposal.jpg", milestones: [] },
-  { id: "custom", label: "Custom Life Moment", icon: "✨", blurb: "A chapter all your own.", milestones: [] },
+  {
+    id: "home", label: "Home Journey", icon: "🏡",
+    blurb: "Every chapter of finding and creating a home.", photo: "/story/newhome.jpg",
+    milestones: [
+      m("buying-a-home", "Buying a Home"), m("building-a-home", "Building a Home"),
+      m("selling-a-home", "Selling a Home"), m("moving", "Moving"), m("rental-journey", "Rental Journey"),
+      m("home-renovation", "Home Renovation"), m("housewarming", "Housewarming"),
+    ],
+  },
+  {
+    id: "travel", label: "Travel Journey", icon: "✈️",
+    blurb: "Every memorable trip.", photo: "/story/vacation.jpg",
+    milestones: [
+      m("vacation", "Vacation"), m("honeymoon", "Honeymoon"), m("cruise", "Cruise"),
+      m("family-trip", "Family Trip"), m("weekend-getaway", "Weekend Getaway"),
+      m("international-travel", "International Travel"),
+    ],
+  },
+  {
+    id: "military", label: "Military Journey", icon: "🎖",
+    blurb: "The complete military experience.", photo: "/story/military.jpg",
+    milestones: [
+      m("enlistment", "Enlistment"), m("basic-training", "Basic Training"), m("graduation", "Graduation"),
+      m("deployment", "Deployment"), m("homecoming", "Homecoming"), m("promotion", "Promotion"),
+      m("retirement", "Retirement"),
+    ],
+  },
+  {
+    id: "sports", label: "Sports Journey", icon: "🏆",
+    blurb: "One journey for every athlete.", photo: "/story/sports.jpg",
+    milestones: [
+      m("cheer", "Cheer"), m("football", "Football"), m("basketball", "Basketball"),
+      m("baseball", "Baseball"), m("soccer", "Soccer"), m("volleyball", "Volleyball"),
+      m("dance", "Dance"), m("gymnastics", "Gymnastics"), m("season-highlights", "Season Highlights"),
+      m("championships", "Championships"), m("college-signing", "College Signing"),
+    ],
+  },
+  {
+    id: "family", label: "Family Journey", icon: "👨‍👩‍👧‍👦",
+    blurb: "Family memories and gatherings.", photo: "/story/reunion.jpg",
+    milestones: [
+      m("family-reunion", "Family Reunion"), m("holiday-celebrations", "Holiday Celebrations"),
+      m("family-vacations", "Family Vacations"), m("family-milestones", "Family Milestones"),
+      m("generational-stories", "Generational Stories"),
+    ],
+  },
+  {
+    id: "career", label: "Career Journey", icon: "💼",
+    blurb: "Professional accomplishments.",
+    milestones: [
+      m("new-job", "New Job"), m("promotion", "Promotion"), m("business-launch", "Business Launch"),
+      m("grand-opening", "Grand Opening"), m("retirement", "Retirement"),
+      m("career-milestones", "Career Milestones"),
+    ],
+  },
+  {
+    id: "celebration-of-life", label: "Celebration of Life Journey", icon: "🕊",
+    blurb: "Honoring loved ones.", photo: "/story/memorial.jpg",
+    milestones: [
+      m("memorial", "Memorial"), m("obituary", "Obituary"), m("celebration-of-life", "Celebration of Life"),
+      m("tribute-gallery", "Tribute Gallery"), m("legacy-stories", "Legacy Stories"),
+    ],
+  },
+  {
+    id: "custom", label: "Custom Journey", icon: "✨",
+    blurb: "Create your own Magical Moment for any occasion not listed.",
+    milestones: [],
+  },
 ];
 
-/** Look up a top-level experience by id. */
+/** Look up a top-level Journey by id. */
 export function getExperience(id: string): LifeExperience | undefined {
   return EXPERIENCES.find((e) => e.id === id);
 }
 
-// Back-compat: the flat {id,label} list of the TOP-LEVEL experiences, used where
+// Back-compat: the flat {id,label} list of the TOP-LEVEL Journeys, used where
 // only the reservable occasion units are needed (pricing count, preview pills).
 export interface Occasion {
   id: string;

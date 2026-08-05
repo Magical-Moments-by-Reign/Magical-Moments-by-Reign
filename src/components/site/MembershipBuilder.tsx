@@ -87,7 +87,8 @@ export default function MembershipBuilder() {
   const suffix = isMonthly ? "/mo" : "";
 
   const firstOcc = count > 0 ? getExperience(occ[0]) : null;
-  const tiles = showAll ? EXPERIENCES : EXPERIENCES.slice(0, 10);
+  const VISIBLE = 12;
+  const tiles = showAll ? EXPERIENCES : EXPERIENCES.slice(0, VISIBLE);
 
   const occParam = encodeURIComponent(occ.join(","));
   const checkoutHref = isFree ? "/signup" : `/checkout?term=${term}&occasions=${occParam}${jpActive ? "&protection=1" : ""}`;
@@ -123,7 +124,6 @@ export default function MembershipBuilder() {
                 aria-pressed={on}
                 style={e.photo ? { backgroundImage: `url(${e.photo})` } : undefined}
               >
-                <span className="mbx-tile__ic" aria-hidden="true">{isFree ? "🔒" : e.icon}</span>
                 {on && <span className="mbx-tile__check" aria-hidden="true">✓</span>}
                 <span className="mbx-tile__label">{e.label}</span>
               </button>
@@ -136,11 +136,11 @@ export default function MembershipBuilder() {
             <p className="mbx-locknote__t">{UPGRADE_COPY.title}</p>
             <p className="mbx-locknote__s">Free Forever lets you explore, learn, and save your profile. Choose a membership below to begin creating.</p>
           </div>
-        ) : (
+        ) : EXPERIENCES.length > VISIBLE ? (
           <button type="button" className="mbx-viewall" onClick={() => setShowAll((v) => !v)}>
             {showAll ? "Show fewer occasions" : "View all occasions"} <span aria-hidden="true">›</span>
           </button>
-        )}
+        ) : null}
       </section>
 
       <div className="mbx-row">
