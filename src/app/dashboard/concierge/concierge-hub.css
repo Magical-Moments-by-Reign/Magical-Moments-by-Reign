@@ -1,0 +1,14 @@
+.cx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.cx-card { background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 16px; padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .5rem; }
+.cx-card--coming_soon { opacity: .92; }
+.cx-card__top { display: flex; align-items: center; justify-content: space-between; }
+.cx-emoji { font-size: 1.6rem; line-height: 1; }
+.cx-card__t { margin: 0; font-size: 1.08rem; color: var(--espresso, #2a1d12); }
+.cx-card__b { margin: 0; color: var(--ink-soft, #6b5744); font-size: .88rem; line-height: 1.5; flex: 1; }
+.cx-card__prov { margin: 0; font-size: .74rem; color: var(--gold-deep, #a67c2e); }
+.cx-card__act { margin-top: .5rem; }
+
+.cx-badge { font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: .16rem .5rem; border-radius: 6px; white-space: nowrap; }
+.cx-badge--live { background: #dcecd9; color: #33632f; border: 1px solid #c3ddbf; }
+.cx-badge--test { background: #f3e6c8; color: #a67c2e; border: 1px solid #e6d3a3; }
+.cx-badge--coming_soon { background: #efe6d6; color: #8a7a63; border: 1px solid #e7dcc9; }
