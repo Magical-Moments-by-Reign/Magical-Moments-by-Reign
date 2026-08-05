@@ -29,13 +29,20 @@ const LIVE = [
   "Merchant capability warnings (e.g. no prorated upgrades)",
   "Journey Protection Promise checklist",
 ];
+// These need a live, approved merchant integration before Journey can show real
+// data. Until then they stay labelled Coming Soon — Journey never fabricates a
+// coupon, tracking number, or savings figure.
 const SOON = [
-  "Live coupon & best-price search",
-  "Real tracking numbers & delivery monitoring",
-  "One-tap refund / return / exchange portals",
-  "Automatic receipt capture from merchants",
-  "Prorated-upgrade credit with supported merchants",
-  "Delivery verification follow-up (Perfect / Minor / Need help)",
+  "Live Coupons",
+  "Live Tracking",
+  "Live Returns",
+  "Live Refund Requests",
+  "Live Exchanges",
+  "Live Order Status",
+  "Live Warranty Claims",
+  "Live Subscription Cancellation",
+  "Price History",
+  "Price Drop Alerts",
 ];
 
 export default async function ProtectionPage() {

@@ -2,17 +2,18 @@
 
 // ── Purchase Review screen ──────────────────────────────────────
 // Journey's mandatory stop before any payment. It shows the full order, every
-// protective advisory, and the Protection Promise checklist. NO payment is
-// processed until the member explicitly taps Confirm. Reusable for memberships,
-// gifts, flights, and any future purchase — it renders whatever order it's given
-// and never fabricates prices, tracking, or merchant facts.
+// protective advisory (each labelled Verified / Estimated / Coming Soon), the
+// Protection Promise, and the merchant's supported capabilities. NO payment is
+// processed until the member taps Approve. Reusable for any purchase; it renders
+// only what it's given and never fabricates prices, tracking, or merchant facts.
 
-import { money, type Order, type PurchaseReview as Review } from "@/lib/commerce/protection";
+import { money, type Order, type PurchaseReview as Review, type Confidence } from "@/lib/commerce/protection";
 import { CAPABILITY_LABELS, type MerchantProfile } from "@/lib/commerce/merchants";
 import "./purchase-review.css";
 
 const LEVEL_ICON = { info: "ℹ︎", suggest: "✦", warn: "⚠" } as const;
 const PROMISE_ICON = { ok: "✓", warn: "⚠", pending: "…" } as const;
+const CONF_LABEL: Record<Confidence, string> = { verified: "Verified", estimated: "Estimated", coming_soon: "Coming Soon" };
 
 export default function PurchaseReview({
   order, review, merchant, demo = false, onConfirm, onEdit, onCancel,
@@ -31,6 +32,12 @@ export default function PurchaseReview({
         {demo && <p className="pr__demo">Preview only — no payment is processed.</p>}
       </div>
 
+      {/* The Protection Promise (shown before every approval) */}
+      <div className="pr-promise-note">
+        <b>Journey Purchase Protection™</b>
+        <p>Journey has reviewed this purchase for duplicate orders, subscription conflicts, payment optimization, financing options, and merchant protections. <b>No payment will be processed until you approve this purchase.</b></p>
+      </div>
+
       {/* Advisories */}
       {review.advisories.length > 0 && (
         <div className="pr-advs">
@@ -38,7 +45,7 @@ export default function PurchaseReview({
             <div key={a.id} className={`pr-adv pr-adv--${a.level}`}>
               <span className="pr-adv__ic" aria-hidden="true">{LEVEL_ICON[a.level]}</span>
               <div className="pr-adv__body">
-                <div className="pr-adv__t">{a.title}{a.comingSoon && <span className="pr-adv__soon">Coming Soon</span>}</div>
+                <div className="pr-adv__t">{a.title}<span className={`pr-adv__conf pr-adv__conf--${a.confidence}`}>{CONF_LABEL[a.confidence]}</span></div>
                 <div className="pr-adv__d">{a.detail}</div>
                 {a.options && !a.comingSoon && (
                   <div className="pr-adv__opts">{a.options.map((o) => <span key={o} className="pr-adv__opt">{o}</span>)}</div>
@@ -79,11 +86,18 @@ export default function PurchaseReview({
             <div><dt>Taxes</dt><dd>{money(order.tax, order.currency)}</dd></div>
             <div><dt>Shipping</dt><dd>{order.shipping ? money(order.shipping, order.currency) : "—"}</dd></div>
             {order.discount > 0 && <div className="pr-tot__save"><dt>Discounts{order.couponsApplied?.length ? ` (${order.couponsApplied.join(", ")})` : ""}</dt><dd>−{money(order.discount, order.currency)}</dd></div>}
-            <div className="pr-tot__grand"><dt>Grand total</dt><dd>{money(order.total, order.currency)}</dd></div>
+            <div className="pr-tot__grand"><dt>Total price</dt><dd>{money(order.total, order.currency)}</dd></div>
           </dl>
+
+          {(order.paymentMethod || order.financing) && (
+            <div className="pr-pay">
+              {order.paymentMethod && <p><span>Payment method</span>{order.paymentMethod}</p>}
+              {order.financing && <p><span>Financing</span>{order.financing}</p>}
+            </div>
+          )}
         </div>
 
-        {/* Delivery + promise */}
+        {/* Delivery + promise + capabilities */}
         <div className="pr-card">
           {(order.deliveryAddress || order.recipient || order.estimatedDelivery || order.giftMessage) && (
             <div className="pr-delivery">
@@ -104,16 +118,14 @@ export default function PurchaseReview({
             ))}
           </ul>
 
-          {supported.length > 0 && (
-            <p className="pr-caps"><b>This merchant supports:</b> {supported.join(" · ")}</p>
-          )}
+          <p className="pr-caps"><b>Merchant capabilities:</b> {supported.length ? supported.join(" · ") : "None verified for this merchant yet."}</p>
         </div>
       </div>
 
-      {/* Actions — no payment until Confirm */}
+      {/* Actions — no payment until Approve */}
       <div className="pr-actions">
-        <button type="button" className="pr-btn pr-btn--confirm" onClick={onConfirm}>🟢 Confirm Purchase</button>
-        <button type="button" className="pr-btn pr-btn--edit" onClick={onEdit}>Edit Order</button>
+        <button type="button" className="pr-btn pr-btn--confirm" onClick={onConfirm}>Approve Purchase</button>
+        <button type="button" className="pr-btn pr-btn--edit" onClick={onEdit}>Edit Purchase</button>
         <button type="button" className="pr-btn pr-btn--cancel" onClick={onCancel}>Cancel</button>
       </div>
     </div>

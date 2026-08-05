@@ -1,21 +1,25 @@
 // ── Merchant Capability Profiles ────────────────────────────────
 // Every merchant Journey transacts with has a capability profile. It drives the
-// protective warnings (e.g. "no prorated upgrades → two charges") and the
-// contact/return surfaces. The DEFAULT profile is deliberately conservative:
-// when we don't KNOW a merchant supports something, we assume it doesn't and
-// warn — protecting the member rather than making optimistic claims.
+// protective warnings and shows the member only the capabilities that merchant
+// actually supports. The DEFAULT profile is deliberately conservative: when we
+// don't KNOW a merchant supports something we assume it doesn't and warn —
+// protecting the member rather than making optimistic (unverified) claims.
 
 export interface MerchantCapabilities {
-  subscriptionUpgrades: boolean;
-  proratedBilling: boolean;
-  exchanges: boolean;
-  refunds: boolean;
   returns: boolean;
+  exchanges: boolean;
+  tracking: boolean;
   coupons: boolean;
-  splitPayments: boolean;
-  liveChat: boolean;
-  emailSupport: boolean;
-  phoneSupport: boolean;
+  financing: boolean;
+  warranty: boolean;
+  priceMatching: boolean;
+  subscriptionManagement: boolean;
+  giftCards: boolean;
+  storeCredit: boolean;
+  loyaltyProgram: boolean;
+  /** Internal: does the merchant credit prior purchases on an upgrade? Drives the
+   *  "two separate charges" warning. Not shown as a customer-facing capability. */
+  proratedBilling?: boolean;
 }
 
 export interface MerchantProfile {
@@ -30,42 +34,46 @@ export interface MerchantProfile {
   refundPolicy?: string;
   warranty?: string;
   capabilities: MerchantCapabilities;
-  /** false = these details are placeholders, not verified merchant facts. */
+  /** false = these details are conservative placeholders, not verified facts. */
   verified?: boolean;
 }
 
 export const NO_CAPABILITIES: MerchantCapabilities = {
-  subscriptionUpgrades: false, proratedBilling: false, exchanges: false, refunds: false,
-  returns: false, coupons: false, splitPayments: false, liveChat: false, emailSupport: false, phoneSupport: false,
+  returns: false, exchanges: false, tracking: false, coupons: false, financing: false,
+  warranty: false, priceMatching: false, subscriptionManagement: false, giftCards: false,
+  storeCredit: false, loyaltyProgram: false, proratedBilling: false,
 };
 
+// Customer-facing capability labels (the internal proratedBilling is excluded).
 export const CAPABILITY_LABELS: { key: keyof MerchantCapabilities; label: string }[] = [
-  { key: "subscriptionUpgrades", label: "Subscription upgrades" },
-  { key: "proratedBilling", label: "Prorated billing" },
-  { key: "exchanges", label: "Exchanges" },
-  { key: "refunds", label: "Refunds" },
   { key: "returns", label: "Returns" },
+  { key: "exchanges", label: "Exchanges" },
+  { key: "tracking", label: "Tracking" },
   { key: "coupons", label: "Coupons" },
-  { key: "splitPayments", label: "Split payments" },
-  { key: "liveChat", label: "Live chat" },
-  { key: "emailSupport", label: "Email support" },
-  { key: "phoneSupport", label: "Phone support" },
+  { key: "financing", label: "Financing" },
+  { key: "warranty", label: "Warranty" },
+  { key: "priceMatching", label: "Price matching" },
+  { key: "subscriptionManagement", label: "Subscription management" },
+  { key: "giftCards", label: "Gift cards" },
+  { key: "storeCredit", label: "Store credit" },
+  { key: "loyaltyProgram", label: "Loyalty program" },
 ];
 
-// Known merchants. Only our own is marked verified; others get a conservative
-// default until their real policies are confirmed (never invented).
+// Known, VERIFIED merchants. Others get the conservative default until their real
+// policies are confirmed through an approved integration (never invented).
 const MERCHANTS: Record<string, MerchantProfile> = {
   "magical-moments": {
     id: "magical-moments",
     name: "Magical Moments by Reign",
     email: "info@magicalmomentsbyreign.com",
     website: "https://magicalmomentsbyreign.com",
-    returnPolicy: "See your membership terms.",
+    returnPolicy: "Membership changes and refunds are handled by your Concierge.",
     refundPolicy: "Handled by Concierge.",
     verified: true,
     capabilities: {
-      subscriptionUpgrades: true, proratedBilling: true, exchanges: true, refunds: true,
-      returns: true, coupons: true, splitPayments: false, liveChat: true, emailSupport: true, phoneSupport: false,
+      returns: true, exchanges: true, tracking: false, coupons: true, financing: false,
+      warranty: false, priceMatching: false, subscriptionManagement: true, giftCards: true,
+      storeCredit: true, loyaltyProgram: true, proratedBilling: true,
     },
   },
 };
