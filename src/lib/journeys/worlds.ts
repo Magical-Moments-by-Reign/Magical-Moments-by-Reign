@@ -92,7 +92,7 @@ const RELATIONSHIP: JourneyWorld = {
     { slug: "relationship-milestones", label: "Relationship Milestones", tagline: "Mark every meaningful moment.", image: "/journeys/relationship/relationship-milestones.jpg", status: "explore" },
     { slug: "relationship-memories", label: "Relationship Memories", tagline: "Keep your moments close.", image: "/journeys/relationship/relationship-memories.jpg", status: "explore" },
     { slug: "romantic-gifts", label: "Romantic Gifts", tagline: "Thoughtful, from the heart.", image: "/journeys/relationship/romantic-gifts.jpg", status: "explore" },
-    { slug: "romantic-experiences", label: "Romantic Experiences", tagline: "Make memories, not just plans.", status: "explore" },
+    { slug: "romantic-experiences", label: "Romantic Experiences", tagline: "Make memories, not just plans.", image: "/journeys/relationship/romantic-experiences.jpg", status: "explore" },
     { slug: "custom-relationship-moment", label: "Custom Relationship Moment", tagline: "Something all your own.", image: "/story/custom.jpg", status: "explore" },
   ],
 };
