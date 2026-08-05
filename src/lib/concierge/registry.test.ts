@@ -46,3 +46,29 @@ test("summarizeOffer trims a Duffel offer into the UI shape", () => {
   assert.equal(s.slices[0].durationMins, 450); // 7h30m
   assert.ok(s.price.includes("482"));
 });
+
+test("owner can disable a service via env without code changes", () => {
+  process.env.CONCIERGE_DISABLED = "cruises, pet-services";
+  try {
+    assert.equal(resolveStatus(getService("cruises")!), "disabled");
+    assert.equal(resolveStatus(getService("pet-services")!), "disabled");
+    assert.equal(resolveStatus(getService("flowers")!), "coming_soon"); // untouched
+  } finally {
+    delete process.env.CONCIERGE_DISABLED;
+  }
+});
+
+test("status labels cover every state incl. Disabled", () => {
+  assert.equal(STATUS_LABEL.live, "Available");
+  assert.equal(STATUS_LABEL.test, "Test Mode");
+  assert.equal(STATUS_LABEL.coming_soon, "Coming Soon");
+  assert.equal(STATUS_LABEL.disabled, "Disabled");
+});
+
+test("the platform now spans ~30 services across all groups", () => {
+  assert.ok(SERVICES.length >= 28, `expected the full catalog, got ${SERVICES.length}`);
+  const groups = new Set(SERVICES.map((s) => s.group));
+  for (const g of ["travel", "celebrations", "food", "beauty", "keepsakes", "home", "family", "lifestyle"]) {
+    assert.ok(groups.has(g as any), `missing group ${g}`);
+  }
+});
