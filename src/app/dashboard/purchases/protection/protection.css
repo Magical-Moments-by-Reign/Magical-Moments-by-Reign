@@ -1,0 +1,19 @@
+/* ── Journey Purchase Protection page ───────────────────────────── */
+.prot { display: flex; flex-direction: column; }
+.prot-demo { display: flex; flex-direction: column; gap: 1rem; }
+.prot-outcome { margin: 1rem 0 0; font-size: .9rem; font-weight: 600; color: #33632f; background: #dcecd9; border: 1px solid #c3ddbf; border-radius: 10px; padding: .6rem .9rem; }
+
+.prot-thr { display: flex; flex-wrap: wrap; gap: .5rem; margin: .6rem 0; }
+.prot-thr__b { padding: .5rem 1rem; border-radius: 999px; font-size: .88rem; font-weight: 600; cursor: pointer; border: 1px solid #e2d3b3; background: #fffdf9; color: #5a4326; }
+.prot-thr__b:hover { border-color: #d8b25e; }
+.prot-thr__b.is-on { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: #a67c2e; }
+
+.prot-timeline { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 0; }
+.prot-timeline__i { display: flex; align-items: center; gap: .45rem; padding: .5rem .85rem; border: 1px solid #e7dcc9; border-radius: 999px; background: #fffdf9; font-size: .86rem; color: #3a2c1d; }
+.prot-timeline__n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: .72rem; font-weight: 800; background: linear-gradient(135deg, #e6d3a2, #c9a24b); color: #2a1d12; }
+
+.prot-list { margin: .3rem 0 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .28rem; }
+.prot-list li { font-size: .88rem; color: #3a2c1d; }
+.prot-list--ok li::marker { color: #4e7a52; }
+.prot-list--soon li { color: #6b5744; }
+.prot-list--soon li::marker { color: #a67c2e; }

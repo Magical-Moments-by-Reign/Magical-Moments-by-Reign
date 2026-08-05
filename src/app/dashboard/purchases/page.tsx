@@ -35,6 +35,16 @@ export default async function PurchasesPage() {
         <p className="pg-sub">Your membership and every Journey or add-on you&rsquo;ve purchased.</p>
       </div>
 
+      {/* Journey Purchase Protection entry */}
+      <Link href="/dashboard/purchases/protection" className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap", marginBottom: "1.4rem", textDecoration: "none", color: "inherit", borderColor: "#e0cfa6" }}>
+        <div>
+          <div className="stat__k" style={{ color: "var(--gold-deep)" }}>Journey Purchase Protection™</div>
+          <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "1.25rem", color: "var(--espresso)" }}>Journey protects every purchase — before, during & after</div>
+          <p className="note">Purchase review, duplicate &amp; upgrade detection, merchant policy warnings, and a protection threshold you control.</p>
+        </div>
+        <span className="btn btn--ghost btn--sm">Open Protection →</span>
+      </Link>
+
       {/* Membership status — real, from the account */}
       <div className="card" style={{ marginBottom: "1.4rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
