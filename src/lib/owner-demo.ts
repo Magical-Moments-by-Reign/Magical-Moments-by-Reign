@@ -169,14 +169,17 @@ export async function provisionOwnerDemo(
     where: { id: accountId },
     select: { staffRoles: true },
   });
+  // "owner" is the canonical Owner / Super Admin role (see admin-roles.ts —
+  // owner ⇒ every capability). We store ONLY valid AdminRole ids so the admin
+  // guard's parseStaffRoles keeps them (a bare "super_admin" string would be
+  // silently dropped). Merge, never replace, so re-running is safe.
   const roles = parseStaffRoles(current?.staffRoles);
   if (!roles.includes("owner")) roles.push("owner");
-  if (!roles.includes("super_admin")) roles.push("super_admin");
 
   await prisma.account.update({
     where: { id: accountId },
     data: {
-      platformRole: "admin", // Super Admin (staff) — see roles.ts isStaffRole
+      platformRole: "admin", // staff/admin — see roles.ts isStaffRole
       staffRoles: JSON.stringify(roles),
       membershipTier: "magical", // Full Lifetime, unlimited Journeys
       isDemo: true, // Internal Demo Account
@@ -184,8 +187,16 @@ export async function provisionOwnerDemo(
       ...(opts.passwordHash ? { passwordHash: opts.passwordHash } : {}),
     },
   });
+
+  // The admin guard requires a VERIFIED primary email. Ensure the owner's
+  // primary email is verified so /admin opens (idempotent — no-op if already).
+  await prisma.customerEmail.updateMany({
+    where: { accountId, isPrimary: true, verified: false },
+    data: { verified: true, verifiedAt: new Date() },
+  });
+
   await prisma.customerAuditLog.create({
-    data: { accountId, actor: "provision-owner-demo", action: "owner_demo_provisioned", detail: "owner+super_admin+demo+magical+billingExempt" },
+    data: { accountId, actor: "provision-owner-demo", action: "owner_demo_provisioned", detail: "owner(super_admin)+admin+demo+magical+billingExempt+emailVerified" },
   });
 
   // 3) One demo draft per Journey — create only when missing (edits preserved).
