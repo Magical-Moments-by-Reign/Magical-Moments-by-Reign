@@ -1,0 +1,9 @@
+.cm-form { display: flex; flex-direction: column; gap: 1.1rem; }
+.cm-field { display: flex; flex-direction: column; gap: .35rem; }
+.cm-field > span { font-size: .82rem; font-weight: 600; color: #2a1d12; display: flex; align-items: center; gap: .5rem; }
+.cm-field select, .cm-field input {
+  padding: .6rem .7rem; border: 1.5px solid #e2d3b3; border-radius: 10px; font: inherit; font-size: .92rem;
+  color: #3a2c1d; background: #fffdf9;
+}
+.cm-field select:focus, .cm-field input:focus { outline: none; border-color: #c9a24b; }
+.cm-field .note { font-weight: 400; font-style: normal; }
