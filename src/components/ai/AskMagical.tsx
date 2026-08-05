@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { looksLikeConciergeRequest, CONCIERGE_SIGNIN_PROMPT } from "@/lib/concierge-intent";
+import { speak as speakJourney, cancel as cancelSpeech } from "@/lib/voice/speech";
 import "./ask-magical.css";
 
 interface Msg { role: "user" | "assistant"; content: string; actions?: "signin" }
@@ -33,6 +34,7 @@ export default function AskMagical() {
   const [busy, setBusy] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(false);
   const pathname = usePathname() || "/";
   // Inside the member dashboard, the member's NAMED Magical Assistant takes over,
   // so the generic site-wide widget steps aside to avoid two assistants at once.
@@ -41,6 +43,11 @@ export default function AskMagical() {
   useEffect(() => {
     if (open && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, open, busy]);
+
+  // Stop speech on a real open→closed transition, and when the widget unmounts.
+  // (Guarded so mounting never cancels audio from another assistant.)
+  useEffect(() => { if (!open && wasOpenRef.current) cancelSpeech(); wasOpenRef.current = open; }, [open]);
+  useEffect(() => () => cancelSpeech(), []);
 
   // Know whether the visitor is signed in (drives the Concierge handoff).
   useEffect(() => {
@@ -64,6 +71,7 @@ export default function AskMagical() {
     try { sessionStorage.setItem(SEED_KEY, text); } catch { /* ignore */ }
     if (signedIn) {
       setMsgs((m) => [...m, { role: "assistant", content: "That's a Concierge request ✦ — bringing in your **Magical Concierge** now." }]);
+      speakJourney("That's a Concierge request — bringing in your Magical Concierge now.", { persona: "journey" });
       if (pathname.startsWith("/dashboard")) {
         window.dispatchEvent(new CustomEvent("mmr:open-concierge", { detail: { seed: text } }));
         setOpen(false);
@@ -92,7 +100,9 @@ export default function AskMagical() {
         body: JSON.stringify({ mode: "magical", messages: history.map((m) => ({ role: m.role, content: m.content })) }),
       });
       const data = await res.json();
-      setMsgs((m) => [...m, { role: "assistant", content: data.reply || "Sorry — I couldn't respond just now. Please try again." }]);
+      const reply = data.reply || "Sorry — I couldn't respond just now. Please try again.";
+      setMsgs((m) => [...m, { role: "assistant", content: reply }]);
+      speakJourney(reply, { persona: "journey" }); // spoken in the Journey voice (respects voice-on/off)
     } catch {
       setMsgs((m) => [...m, { role: "assistant", content: "Sorry — I couldn't reach the assistant. Please try again in a moment." }]);
     } finally {

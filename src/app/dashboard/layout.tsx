@@ -1,10 +1,12 @@
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { unreadCount } from "@/lib/notify";
+import { readOwnerVoiceConfig } from "@/lib/voice/owner-config";
 import DashboardChrome from "@/components/dashboard/DashboardChrome";
 import ConciergeChat from "@/components/concierge/ConciergeChat";
 import MagicalAssistant from "@/components/assistant/MagicalAssistant";
 import GuidedTour from "@/components/assistant/GuidedTour";
+import VoiceBootstrap from "@/components/assistant/VoiceBootstrap";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +17,10 @@ export const dynamic = "force-dynamic";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const account = await requireAccount("/dashboard");
 
-  const [unread, row] = await Promise.all([
+  const [unread, row, ownerVoice] = await Promise.all([
     unreadCount(account.id).catch(() => 0),
-    prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true, tourCompletedAt: true } }),
+    prisma.account.findUnique({ where: { id: account.id }, select: { staffRoles: true, tourCompletedAt: true, voicePrefs: true } }),
+    readOwnerVoiceConfig().catch(() => null),
   ]);
   let isOwner = false;
   try { isOwner = (JSON.parse(row?.staffRoles || "[]") as unknown[]).includes("owner"); } catch { isOwner = false; }
@@ -27,6 +30,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <>
+      <VoiceBootstrap
+        memberPrefs={row?.voicePrefs || "{}"}
+        ownerJourney={ownerVoice?.defaultJourney || "journey-warm"}
+        ownerConcierge={ownerVoice?.defaultConcierge || "concierge-hotel"}
+      />
       <DashboardChrome initial={initial} unread={unread} isOwner={isOwner}>
         {children}
       </DashboardChrome>

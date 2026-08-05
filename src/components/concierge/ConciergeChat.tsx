@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CONCIERGE_OPENING } from "@/lib/concierge-intent";
+import { speak as speakConcierge, cancel as cancelSpeech } from "@/lib/voice/speech";
 import "./concierge.css";
 
 interface Msg { role: "user" | "assistant"; content: string; }
@@ -69,6 +70,9 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
   const [showHelp, setShowHelp] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const greetedRef = useRef(false);
+  const wasOpenRef = useRef(false);
+  const sendRef = useRef<(t: string) => void>(() => {});
 
   useEffect(() => {
     if (open && !minimized && scrollRef.current) {
@@ -76,14 +80,36 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
     }
   }, [msgs, open, minimized, busy]);
 
-  // Let the sidebar card (or Ask Magical's handoff) open the Concierge,
-  // optionally seeding the original request so the member needn't repeat it.
+  // Speak the Concierge opening greeting once per session, in the member's saved
+  // CONCIERGE voice (distinct from Journey). speak() itself respects the member's
+  // voice-on/off preference, so a silent member stays silent.
+  useEffect(() => {
+    if (open && !minimized && !greetedRef.current) {
+      greetedRef.current = true;
+      speakConcierge(CONCIERGE_OPENING, { persona: "concierge" });
+    }
+  }, [open, minimized]);
+
+  // Stop any Concierge audio the moment the panel is closed or minimized — but
+  // only on a real open→closed transition, so mounting never clips another
+  // assistant's audio (e.g. a Journey greeting on dashboard entry).
+  useEffect(() => {
+    const isOpen = open && !minimized;
+    if (!isOpen && wasOpenRef.current) cancelSpeech();
+    wasOpenRef.current = isOpen;
+  }, [open, minimized]);
+
+  // End voice playback when the Concierge unmounts (e.g. the member signs out).
+  useEffect(() => () => cancelSpeech(), []);
+
+  // Let the sidebar card (or Ask Magical's handoff) open the Concierge. A handed-
+  // off request is auto-sent so the member never has to repeat it.
   useEffect(() => {
     function onOpen(e: Event) {
       setOpen(true);
       setMinimized(false);
       const seed = (e as CustomEvent<{ seed?: string }>).detail?.seed;
-      if (seed) setInput(seed);
+      if (seed) setTimeout(() => sendRef.current(seed), 60);
     }
     window.addEventListener("mmr:open-concierge", onOpen as EventListener);
     return () => window.removeEventListener("mmr:open-concierge", onOpen as EventListener);
@@ -97,7 +123,7 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
         sessionStorage.removeItem(SEED_KEY);
         setOpen(true);
         setMinimized(false);
-        setInput(seed);
+        setTimeout(() => sendRef.current(seed), 60);
       }
     } catch { /* sessionStorage unavailable — ignore */ }
   }, []);
@@ -119,13 +145,18 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
         }),
       });
       const data = await res.json();
-      setMsgs((m) => [...m, { role: "assistant", content: data.reply || "Sorry — I couldn't respond just now. Please try again." }]);
+      const reply = data.reply || "Sorry — I couldn't respond just now. Please try again.";
+      setMsgs((m) => [...m, { role: "assistant", content: reply }]);
+      speakConcierge(reply, { persona: "concierge" });
     } catch {
       setMsgs((m) => [...m, { role: "assistant", content: "Sorry — I couldn't reach the Concierge just now. Please try again in a moment." }]);
     } finally {
       setBusy(false);
     }
   }
+  // Keep a stable ref to the latest sendText so window-event handlers registered
+  // once on mount always call the current closure (fresh msgs/busy state).
+  sendRef.current = sendText;
 
   function onSuggestion(s: string) {
     if (s === "Ask a question") {

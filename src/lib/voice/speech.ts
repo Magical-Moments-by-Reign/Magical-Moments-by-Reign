@@ -11,8 +11,8 @@
 // If the cloud isn't connected or the member isn't eligible, it falls back to
 // the browser voice so speech never goes silent — callers don't change.
 
-import { loadPrefs, STYLE_PRESETS, type AssistantPrefs, type VoiceGender } from "@/lib/assistant-prefs";
-import { DEFAULT_VOICE, type VoicePersona } from "@/lib/voice/catalog";
+import { loadPrefs, STYLE_PRESETS, type AssistantPrefs, type VoiceGender, type VoiceStyle } from "@/lib/assistant-prefs";
+import { getVoice, type VoicePersona } from "@/lib/voice/catalog";
 
 export type VoiceProvider = "browser" | "cloud";
 export function activeVoiceProvider(): VoiceProvider {
@@ -30,13 +30,22 @@ export function listVoices(): SpeechSynthesisVoice[] {
   return window.speechSynthesis.getVoices().filter((v) => /en(-|_|$)/i.test(v.lang));
 }
 
-export function pickVoice(gender: VoiceGender, preferredURI?: string): SpeechSynthesisVoice | undefined {
+export function pickVoice(gender: VoiceGender, preferredURI?: string, accent?: string): SpeechSynthesisVoice | undefined {
   const voices = listVoices();
   if (preferredURI) { const exact = voices.find((v) => v.voiceURI === preferredURI); if (exact) return exact; }
   const want = gender === "male" ? MALE : FEMALE;
   const avoid = gender === "male" ? FEMALE : MALE;
-  return voices.find((v) => want.test(v.name) && !avoid.test(v.name))
+  // Bias by accent when the selected voice specifies one (British → en-GB, etc.).
+  const lang = /brit|uk|english \(u\.?k|gb/i.test(accent || "") ? /en-GB/i
+    : /austral/i.test(accent || "") ? /en-AU/i
+    : /american|us/i.test(accent || "") ? /en-US/i : null;
+  const byAccent = (arr: SpeechSynthesisVoice[]) => (lang ? arr.filter((v) => lang.test(v.lang)) : arr);
+  const gendered = voices.filter((v) => want.test(v.name) && !avoid.test(v.name));
+  return byAccent(gendered)[0]
+    || gendered[0]
+    || byAccent(voices.filter((v) => want.test(v.name)))[0]
     || voices.find((v) => want.test(v.name))
+    || (lang && voices.find((v) => lang.test(v.lang)))
     || voices.find((v) => /en-US|en-GB/i.test(v.lang))
     || voices[0];
 }
@@ -84,17 +93,18 @@ export function speak(
   cancel();
   stopFlag = false;
 
-  // PREMIUM: try the cloud voice first; fall back to browser on any failure.
+  const persona: VoicePersona = opts?.persona ?? "journey";
+  const voiceId = persona === "concierge" ? prefs.conciergeVoice : prefs.journeyVoice;
+
+  // PREMIUM: try the cloud voice first; fall back to the MATCHING browser voice
+  // on any failure (never a different persona).
   if (prefs.provider === "premium" && !cloudDisabled) {
-    const persona: VoicePersona = opts?.persona ?? "journey";
-    const voiceId = persona === "concierge" ? prefs.conciergeVoice : prefs.journeyVoice;
     speakCloud(clean, voiceId, prefs, opts).catch(() => {
-      // fall through to the browser voice below
-      speakBrowser(clean, prefs, opts);
+      speakBrowser(clean, prefs, voiceId, opts);
     });
     return;
   }
-  speakBrowser(clean, prefs, opts);
+  speakBrowser(clean, prefs, voiceId, opts);
 }
 
 /** Cloud (premium) synthesis: fetch MP3 from the server route and play it. */
@@ -127,15 +137,23 @@ async function speakCloud(
   await el.play();
 }
 
-/** Free (browser) synthesis: natural chunked speech synthesis. */
-function speakBrowser(text: string, prefs: AssistantPrefs, opts?: { onStart?: () => void; onEnd?: () => void }): void {
+/** Free (browser) synthesis: natural chunked speech synthesis. The SELECTED
+ *  persona voice (its gender / browser style / accent) drives delivery so the
+ *  member's Journey and Concierge choices actually sound different; the member's
+ *  speed / pitch / volume sliders still fine-tune on top. */
+function speakBrowser(text: string, prefs: AssistantPrefs, voiceId: string, opts?: { onStart?: () => void; onEnd?: () => void }): void {
   if (!window.speechSynthesis) return;
   const chunks = toSpokenChunks(text);
   if (!chunks.length) return;
 
   stopFlag = false;
-  const voice = pickVoice(prefs.gender, prefs.voiceURI);
-  const preset = STYLE_PRESETS[prefs.style] ?? STYLE_PRESETS.warm;
+  const vo = getVoice(voiceId);
+  const gender: VoiceGender = vo?.gender ?? prefs.gender;
+  const style: VoiceStyle = (vo?.browserStyle as VoiceStyle) ?? prefs.style;
+  // Only honor the device-voice override when it matches the selected gender.
+  const preferredURI = gender === prefs.gender ? prefs.voiceURI : "";
+  const voice = pickVoice(gender, preferredURI, vo?.accent);
+  const preset = STYLE_PRESETS[style] ?? STYLE_PRESETS.warm;
   // Blend the member's speed/pitch sliders with the style preset.
   const rate = Math.min(1.25, Math.max(0.7, prefs.speed * preset.rate));
   const pitch = Math.min(1.4, Math.max(0.7, prefs.pitch * preset.pitch));
