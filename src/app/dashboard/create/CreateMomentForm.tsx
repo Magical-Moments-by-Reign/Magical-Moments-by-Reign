@@ -37,8 +37,8 @@ export default function CreateMomentForm({ journeys }: { journeys: JourneyOpt[] 
       </div>
 
       <label className="cm-field">
-        <span>4 · Name your Moment</span>
-        <input type="text" name="title" placeholder="e.g. The Smith Wedding" maxLength={120} />
+        <span>4 · Name Your Memory</span>
+        <input type="text" name="title" placeholder="e.g. Our Forever Begins · Our Dream Home · Baby Emma" maxLength={120} />
       </label>
 
       <label className="cm-field">
@@ -56,7 +56,7 @@ export default function CreateMomentForm({ journeys }: { journeys: JourneyOpt[] 
       </label>
 
       <div className="pg-actions">
-        <button type="submit" className="btn btn--gold">Save draft &amp; continue to builder →</button>
+        <button type="submit" className="btn btn--gold">✨ Let&rsquo;s Build This Memory →</button>
       </div>
     </form>
   );
