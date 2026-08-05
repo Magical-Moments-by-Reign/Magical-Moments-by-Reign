@@ -111,7 +111,7 @@ export const EXPERIENCES: LifeExperience[] = [
   },
   {
     id: "career", label: "Career Journey", icon: "💼",
-    blurb: "Professional accomplishments.",
+    blurb: "Professional accomplishments.", photo: "/story/career.jpg",
     milestones: [
       m("new-job", "New Job"), m("promotion", "Promotion"), m("business-launch", "Business Launch"),
       m("grand-opening", "Grand Opening"), m("retirement", "Retirement"),
@@ -128,7 +128,7 @@ export const EXPERIENCES: LifeExperience[] = [
   },
   {
     id: "custom", label: "Custom Journey", icon: "✨",
-    blurb: "Create your own Magical Moment for any occasion not listed.",
+    blurb: "Create your own Magical Moment for any occasion not listed.", photo: "/story/custom.jpg",
     milestones: [],
   },
 ];

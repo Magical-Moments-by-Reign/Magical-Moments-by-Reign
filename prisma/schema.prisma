@@ -1052,6 +1052,16 @@ model Account {
   // values are dropped on parse so a bad value can never escalate privileges.
   staffRoles        String  @default("[]")
 
+  // Internal demo / owner test account (see scripts/provision-owner-demo.mjs).
+  // isDemo marks a non-customer account used to walk through the product; the
+  // Owner Demo Studio only ever operates on accounts with this flag set.
+  // billingExempt lets THIS account (owner/internal only) exercise every tier
+  // without a real charge — it never affects real customers, and it is granted
+  // solely by the server-side provisioning script, never by any UI. Both are
+  // additive, default-false, and safe to `prisma db push` (no data loss).
+  isDemo            Boolean @default(false)
+  billingExempt     Boolean @default(false)
+
   identity      AccountIdentity?
   sessions        Session[]
   notifications   Notification[]

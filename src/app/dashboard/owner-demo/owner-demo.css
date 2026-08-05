@@ -1,0 +1,141 @@
+/* ── Owner Demo Studio ─────────────────────────────────────────
+   Warm luxury surface: ivory/cream, espresso ink, champagne gold. No grey. */
+.od {
+  --ink: #2c211a;
+  --ink-soft: #6b5744;
+  --cream: #fbf6ee;
+  --ivory: #fffdf9;
+  --line: #e7dcc9;
+  --gold: #c9a24b;
+  --gold-deep: #a67c2e;
+  --espresso: #2a1d12;
+  --ok: #4e7a52;
+  --warn: #9a4a3a;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 2.4rem 1.4rem 5rem;
+  color: var(--ink);
+  background: var(--cream);
+  min-height: 100vh;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.od-top {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem;
+  flex-wrap: wrap; margin-bottom: 1.8rem;
+}
+.od-eyebrow {
+  display: inline-block; font-size: .72rem; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--gold-deep); font-weight: 700; margin-bottom: .5rem;
+}
+.od-h1 { font-family: var(--font-serif, Georgia, serif); font-size: clamp(1.9rem, 3.4vw, 2.7rem); margin: 0 0 .5rem; color: var(--espresso); }
+.od-sub { margin: 0; max-width: 60ch; color: var(--ink-soft); line-height: 1.6; }
+.od-topnav { display: flex; gap: 1rem; flex-shrink: 0; }
+.od-topnav a { color: var(--gold-deep); text-decoration: none; font-weight: 600; font-size: .92rem; }
+.od-topnav a:hover { text-decoration: underline; }
+
+/* Status banner */
+.od-status {
+  border: 1px solid var(--line); border-radius: 16px; padding: 1.3rem 1.4rem;
+  background: var(--ivory); margin-bottom: 2.4rem;
+}
+.od-status.is-ok { border-color: #cfe0cf; background: linear-gradient(180deg, #f6fbf5, var(--ivory)); }
+.od-status.is-pending { border-color: #eadfbf; background: linear-gradient(180deg, #fdf9ec, var(--ivory)); }
+.od-status__row { display: flex; align-items: center; gap: .6rem; font-size: 1.05rem; }
+.od-status__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px rgba(201,162,75,.18); }
+.is-ok .od-status__dot { background: var(--ok); box-shadow: 0 0 0 4px rgba(78,122,82,.16); }
+.od-status__facts { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .7rem; }
+.od-status__facts li { display: flex; flex-direction: column; font-size: .95rem; }
+.od-status__facts span { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: .15rem; }
+
+.od-note { color: var(--ink-soft); font-size: .9rem; line-height: 1.55; margin: .6rem 0 0; }
+.od-code, .od-status pre {
+  background: var(--espresso); color: #f4e8cf; padding: .8rem 1rem; border-radius: 10px;
+  font-size: .82rem; overflow-x: auto; margin: .7rem 0 0; font-family: ui-monospace, Menlo, monospace;
+}
+code { background: #f1e7d5; color: var(--espresso); padding: .05rem .35rem; border-radius: 5px; font-size: .85em; }
+
+/* Sections */
+.od-sec { margin-bottom: 2.8rem; }
+.od-h2 { font-family: var(--font-serif, Georgia, serif); font-size: 1.5rem; color: var(--espresso); margin: 0 0 .35rem; }
+.od-secsub { color: var(--ink-soft); margin: 0 0 1.3rem; line-height: 1.55; }
+
+/* Journey cards */
+.od-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.1rem; }
+.od-card {
+  border: 1px solid var(--line); border-radius: 16px; background: var(--ivory);
+  padding: 1.2rem 1.2rem 1rem; display: flex; flex-direction: column; gap: .7rem;
+  box-shadow: 0 1px 2px rgba(44,33,26,.04);
+}
+.od-card__head { display: flex; align-items: center; gap: .55rem; }
+.od-card__icon { font-size: 1.35rem; line-height: 1; }
+.od-card__title { font-size: 1.06rem; margin: 0; color: var(--espresso); flex: 1; }
+.od-card__status { min-height: 1.4rem; }
+.od-card__acts { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .3rem; }
+.od-card__acts form { margin: 0; }
+.od-card__foot { font-size: .78rem; color: var(--ink-soft); margin: .3rem 0 0; }
+.od-card__foot i { color: var(--gold-deep); font-style: normal; font-weight: 600; }
+
+/* Chips */
+.od-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.od-chip {
+  font-size: .74rem; padding: .18rem .55rem; border-radius: 999px;
+  background: #f4ecdd; color: var(--ink); border: 1px solid var(--line);
+}
+
+/* Badges */
+.od-badge { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .18rem .5rem; border-radius: 6px; white-space: nowrap; }
+.od-badge--demo { background: var(--gold); color: #2a1d12; }
+.od-badge--draft { background: #f3e6c8; color: var(--gold-deep); border: 1px solid #e6d3a3; }
+.od-badge--pub { background: #dcecd9; color: var(--ok); border: 1px solid #c3ddbf; }
+.od-badge--none { background: #efe6d6; color: var(--ink-soft); border: 1px solid var(--line); }
+
+/* Buttons */
+.od-btn {
+  display: inline-block; font-size: .82rem; font-weight: 600; padding: .42rem .8rem;
+  border-radius: 8px; border: 1px solid var(--line); cursor: pointer; text-decoration: none;
+  background: var(--ivory); color: var(--ink); line-height: 1.2; transition: transform .12s, box-shadow .12s;
+}
+.od-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(44,33,26,.1); }
+.od-btn--gold { background: linear-gradient(180deg, #d8b25e, var(--gold-deep)); color: #2a1d12; border-color: var(--gold-deep); }
+.od-btn--ghost { background: transparent; color: var(--gold-deep); border-color: #e2d3b3; }
+.od-btn--warn { background: transparent; color: var(--warn); border-color: #e3c4bc; }
+
+/* Preview */
+.od-preview { border: 1px solid var(--line); border-radius: 16px; background: var(--ivory); padding: 1rem; }
+.od-preview__bar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+.od-preview__pick { display: flex; flex-direction: column; gap: .3rem; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.od-preview__pick select { padding: .45rem .6rem; border-radius: 8px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); font-size: .9rem; text-transform: none; letter-spacing: 0; }
+.od-preview__dev { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.od-preview__dev button { padding: .45rem .9rem; border: 0; background: var(--cream); color: var(--ink-soft); cursor: pointer; font-size: .85rem; }
+.od-preview__dev button.is-on { background: var(--gold); color: #2a1d12; font-weight: 700; }
+.od-preview__open { margin-left: auto; color: var(--gold-deep); text-decoration: none; font-weight: 600; font-size: .88rem; }
+.od-preview__stage { display: flex; justify-content: center; background: var(--cream); border-radius: 12px; padding: 1rem; }
+.od-preview__frame { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.od-preview__stage--desktop .od-preview__frame { height: 620px; }
+.od-preview__stage--mobile .od-preview__frame { width: 390px; max-width: 100%; height: 720px; }
+.od-preview__hint { font-size: .82rem; color: var(--ink-soft); margin: .8rem 0 0; text-align: center; }
+
+/* Inventory */
+.od-inv { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+.od-invcol { border: 1px solid var(--line); border-radius: 14px; background: var(--ivory); padding: 1.1rem 1.2rem; }
+.od-invcol__t { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 .8rem; padding-bottom: .5rem; border-bottom: 1px solid var(--line); }
+.od-invcol__t--ok { color: var(--ok); }
+.od-invcol__t--partial { color: var(--gold-deep); }
+.od-invcol__t--soon { color: var(--ink-soft); }
+.od-invcol ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+.od-invcol li { font-size: .9rem; display: flex; flex-direction: column; gap: .15rem; }
+.od-invcol li a { color: var(--espresso); text-decoration: none; font-weight: 600; }
+.od-invcol li a:hover { color: var(--gold-deep); text-decoration: underline; }
+.od-invcol--soon li { flex-direction: row; }
+.od-invnote { font-size: .78rem; color: var(--ink-soft); font-style: normal; }
+.od-invcol__t--soon ~ ul li { flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; }
+
+/* Maintenance */
+.od-maint__row { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+.od-maint__row form { display: flex; flex-direction: column; gap: .35rem; max-width: 320px; }
+
+@media (max-width: 640px) {
+  .od-top { flex-direction: column; }
+  .od-preview__open { margin-left: 0; }
+}
