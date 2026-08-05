@@ -63,18 +63,21 @@ export default function VoiceStudio({
       });
       if (res.ok) {
         const provider = res.headers.get("X-Voice-Provider") || "cloud";
+        const model = res.headers.get("X-Voice-Model") || "";
+        const vid = res.headers.get("X-Voice-Id") || "";
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const el = new Audio(url);
         el.onended = () => URL.revokeObjectURL(url);
         await el.play().catch(() => {});
-        setTestState({ kind: "ok", msg: `Verified — real ${provider === "elevenlabs" ? "ElevenLabs" : provider === "openai" ? "OpenAI" : "cloud"} voice is playing.` });
+        const name = provider === "elevenlabs" ? "ElevenLabs" : provider === "openai" ? "OpenAI (fallback)" : "cloud";
+        setTestState({ kind: provider === "openai" ? "browser" : "ok", msg: `Playing — provider: ${name}${model ? `, model ${model}` : ""}${vid ? `, voice ${vid}` : ""}. If this doesn't sound like a browser voice, ElevenLabs is working.` });
         return;
       }
       const data = await res.json().catch(() => ({}));
-      if (data.fallbackToBrowser) setTestState({ kind: "browser", msg: "Both cloud providers failed — the assistant will use the browser voice." });
-      else if (res.status === 503) setTestState({ kind: "fail", msg: "Premium isn't connected yet (no cloud key)." });
-      else if (res.status === 403) setTestState({ kind: "fail", msg: "Premium voices are a paid-membership feature." });
+      if (data.fallbackToBrowser) setTestState({ kind: "browser", msg: `Cloud failed → BROWSER FALLBACK. ElevenLabs: ${data.detail || "no success"}${data.elevenStatus ? ` (status ${data.elevenStatus})` : ""}.` });
+      else if (res.status === 503) setTestState({ kind: "fail", msg: "Premium isn't connected yet (no cloud key on this deployment)." });
+      else if (res.status === 403) setTestState({ kind: "fail", msg: "Premium voices are a paid-membership feature (your account is not eligible)." });
       else setTestState({ kind: "fail", msg: data.error || "Could not reach the voice service." });
     } catch {
       setTestState({ kind: "browser", msg: "Couldn't reach the voice service — the assistant will use the browser voice." });

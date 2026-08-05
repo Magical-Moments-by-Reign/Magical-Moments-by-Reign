@@ -23,6 +23,31 @@ const K = {
   collab: "voice.special.collab",
 } as const;
 
+// Real ElevenLabs voice ids the owner assigns from their own account (My Voices).
+// These override the catalog's built-in ids at request time, per persona.
+const EK = {
+  journey: "voice.eleven.journey",
+  concierge: "voice.eleven.concierge",
+} as const;
+
+/** The owner-assigned ElevenLabs voice ids (empty string = not set). */
+export async function readOwnerElevenVoices(): Promise<{ journey: string; concierge: string }> {
+  try {
+    const rows = await prisma.systemConfig.findMany({ where: { key: { in: Object.values(EK) } } });
+    const map = new Map(rows.map((r) => [r.key, r.value]));
+    return { journey: map.get(EK.journey) || "", concierge: map.get(EK.concierge) || "" };
+  } catch {
+    return { journey: "", concierge: "" };
+  }
+}
+
+/** Owner-only: assign a real ElevenLabs voice id to a persona. */
+export async function writeOwnerElevenVoice(persona: "journey" | "concierge", voiceId: string): Promise<void> {
+  const key = persona === "concierge" ? EK.concierge : EK.journey;
+  const clean = String(voiceId || "").trim().slice(0, 64);
+  await prisma.systemConfig.upsert({ where: { key }, update: { value: clean }, create: { key, value: clean } });
+}
+
 export const OWNER_VOICE_DEFAULT: OwnerVoiceConfig = {
   defaultJourney: DEFAULT_VOICE.journey,
   defaultConcierge: DEFAULT_VOICE.concierge,

@@ -14,8 +14,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { assistantGreeting } from "@/lib/assistant-name";
 import { looksLikeConciergeRequest } from "@/lib/concierge-intent";
 import { loadPrefs } from "@/lib/assistant-prefs";
-import { speak as speakNatural, cancel as cancelSpeech } from "@/lib/voice/speech";
+import { speak as speakNatural, cancel as cancelSpeech, type UsedProvider } from "@/lib/voice/speech";
 import "./magical-assistant.css";
+
+const PROVIDER_LABEL: Record<UsedProvider, string> = { elevenlabs: "ElevenLabs", openai: "OpenAI", browser: "Browser voice" };
 
 interface Msg { role: "user" | "assistant"; content: string; }
 const MSG_KEY = "mmr:assistant-msgs";
@@ -83,6 +85,7 @@ export default function MagicalAssistant({ assistantName, firstName, sessionKey 
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [voiceProvider, setVoiceProvider] = useState<UsedProvider | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<any>(null);
   const mutedRef = useRef(false);
@@ -117,9 +120,21 @@ export default function MagicalAssistant({ assistantName, firstName, sessionKey 
   // Stop all audio if the assistant unmounts (leaving the dashboard / sign-out).
   useEffect(() => () => cancelSpeech(), []);
 
+  // Let other parts of the dashboard (e.g. a Journey area) open Journey with a
+  // question already in the box. Opens WITHOUT re-greeting.
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const seed = (e as CustomEvent<{ seed?: string }>).detail?.seed;
+      setOn(true);
+      if (seed) setInput(seed);
+    }
+    window.addEventListener("mmr:open-magical", onOpen as EventListener);
+    return () => window.removeEventListener("mmr:open-magical", onOpen as EventListener);
+  }, []);
+
   const speak = useCallback((text: string, onDone?: () => void) => {
     if (mutedRef.current) { onDone?.(); return; } // muted → captions only, no audio
-    speakNatural(text, { persona: "journey", onStart: () => setSpeaking(true), onEnd: () => { setSpeaking(false); onDone?.(); } });
+    speakNatural(text, { persona: "journey", onProvider: (p) => setVoiceProvider(p), onStart: () => setSpeaking(true), onEnd: () => { setSpeaking(false); onDone?.(); } });
   }, []);
 
   function chime() {
@@ -267,7 +282,7 @@ export default function MagicalAssistant({ assistantName, firstName, sessionKey 
             <div className="ma-head__id">
               <span className={`ma-orb${speaking ? " is-speaking" : ""}${listening ? " is-listening" : ""}`} aria-hidden="true">✦</span>
               <span className="ma-head__t">{assistantName}
-                <small className={`ma-status ma-status--${status.toLowerCase()}`}>{status}</small>
+                <small className={`ma-status ma-status--${status.toLowerCase()}`}>{status}{voiceProvider ? ` · ${PROVIDER_LABEL[voiceProvider]}` : ""}</small>
               </span>
             </div>
             <div className="ma-head__ctrls">

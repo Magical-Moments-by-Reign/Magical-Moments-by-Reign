@@ -213,6 +213,12 @@
 .db-tile__cta { margin-top: .9rem; font-size: .72rem; letter-spacing: .12em; font-weight: 700; color: #f4e7cd; border: 1px solid rgba(244,231,205,.5); border-radius: 999px; padding: .42rem 1.1rem; }
 .db-tile:hover .db-tile__cta { background: rgba(201,162,75,.9); color: #2a1d12; border-color: transparent; }
 
+/* Owned journeys (dashboard) */
+.db-owned { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .8rem; }
+.db-owned__card { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .9rem 1.1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--ivory); text-decoration: none; color: inherit; }
+.db-owned__card:hover { border-color: #e0cfa6; }
+.db-owned__t { font-weight: 600; color: var(--espresso); }
+
 /* Two-column band */
 .db-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; align-items: start; }
 .db-colA, .db-colB { display: flex; flex-direction: column; gap: 1.2rem; }

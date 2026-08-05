@@ -80,10 +80,10 @@ let audioEl: HTMLAudioElement | null = null;
 
 /** Speak text naturally. Returns immediately; use callbacks for state.
  *  persona selects which saved voice id (Journey vs Concierge) the cloud uses. */
-export function speak(
-  text: string,
-  opts?: { prefs?: AssistantPrefs; persona?: VoicePersona; onStart?: () => void; onEnd?: () => void },
-): void {
+export type UsedProvider = "elevenlabs" | "openai" | "browser";
+export interface SpeakOpts { prefs?: AssistantPrefs; persona?: VoicePersona; onStart?: () => void; onEnd?: () => void; onProvider?: (p: UsedProvider) => void; }
+
+export function speak(text: string, opts?: SpeakOpts): void {
   if (typeof window === "undefined") return;
   const prefs = opts?.prefs ?? loadPrefs();
   if (!prefs.voiceOn) return;
@@ -97,9 +97,10 @@ export function speak(
   const voiceId = persona === "concierge" ? prefs.conciergeVoice : prefs.journeyVoice;
 
   // PREMIUM: try the cloud voice first; fall back to the MATCHING browser voice
-  // on any failure (never a different persona).
+  // on any failure (never a different persona, and always reported so a fallback
+  // can't hide as if premium worked).
   if (prefs.provider === "premium" && !cloudDisabled) {
-    speakCloud(clean, voiceId, prefs, opts).catch(() => {
+    speakCloud(clean, voiceId, persona, prefs, opts).catch(() => {
       speakBrowser(clean, prefs, voiceId, opts);
     });
     return;
@@ -111,26 +112,28 @@ export function speak(
 async function speakCloud(
   text: string,
   voiceId: string,
+  persona: VoicePersona,
   prefs: AssistantPrefs,
-  opts?: { onStart?: () => void; onEnd?: () => void },
+  opts?: SpeakOpts,
 ): Promise<void> {
   const res = await fetch("/api/voice/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, voiceId }),
+    body: JSON.stringify({ text, voiceId, persona }),
   });
   if (!res.ok) {
     // 503 = premium not connected, 403 = not a paid member → don't retry this session.
     if (res.status === 503 || res.status === 403) cloudDisabled = true;
     throw new Error(`tts ${res.status}`);
   }
+  const provider = (res.headers.get("X-Voice-Provider") as UsedProvider) || "elevenlabs";
   const blob = await res.blob();
   if (stopFlag) return;
   const url = URL.createObjectURL(blob);
   const el = new Audio(url);
   audioEl = el;
   el.volume = Math.min(1, Math.max(0, prefs.volume));
-  el.onplay = () => opts?.onStart?.();
+  el.onplay = () => { opts?.onProvider?.(provider); opts?.onStart?.(); };
   const done = () => { URL.revokeObjectURL(url); if (audioEl === el) audioEl = null; opts?.onEnd?.(); };
   el.onended = done;
   el.onerror = () => { URL.revokeObjectURL(url); throw new Error("audio"); };
@@ -141,12 +144,13 @@ async function speakCloud(
  *  persona voice (its gender / browser style / accent) drives delivery so the
  *  member's Journey and Concierge choices actually sound different; the member's
  *  speed / pitch / volume sliders still fine-tune on top. */
-function speakBrowser(text: string, prefs: AssistantPrefs, voiceId: string, opts?: { onStart?: () => void; onEnd?: () => void }): void {
+function speakBrowser(text: string, prefs: AssistantPrefs, voiceId: string, opts?: SpeakOpts): void {
   if (!window.speechSynthesis) return;
   const chunks = toSpokenChunks(text);
   if (!chunks.length) return;
 
   stopFlag = false;
+  opts?.onProvider?.("browser");
   const vo = getVoice(voiceId);
   const gender: VoiceGender = vo?.gender ?? prefs.gender;
   const style: VoiceStyle = (vo?.browserStyle as VoiceStyle) ?? prefs.style;

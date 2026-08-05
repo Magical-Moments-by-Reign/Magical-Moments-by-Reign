@@ -4,7 +4,7 @@ import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { isPaidMember } from "@/lib/membership-access";
 import { cloudConfigured, cloudPrimary } from "@/lib/voice/catalog";
-import { readOwnerVoiceConfig } from "@/lib/voice/owner-config";
+import { readOwnerVoiceConfig, readOwnerElevenVoices } from "@/lib/voice/owner-config";
 import VoiceStudio from "./VoiceStudio";
 import OwnerVoiceDefaults from "./OwnerVoiceDefaults";
 import "../settings.css";
@@ -34,6 +34,7 @@ export default async function VoicePage() {
   const cloudReady = cloudConfigured();
   const paidMember = isPaidMember(account.membershipTier);
   const ownerConfig = owner ? await readOwnerVoiceConfig().catch(() => null) : null;
+  const ownerEleven = owner ? await readOwnerElevenVoices().catch(() => ({ journey: "", concierge: "" })) : { journey: "", concierge: "" };
 
   return (
     <>
@@ -53,7 +54,7 @@ export default async function VoicePage() {
         cloudProvider={cloudPrimary()}
       />
 
-      {owner && ownerConfig && <OwnerVoiceDefaults config={ownerConfig} />}
+      {owner && ownerConfig && <OwnerVoiceDefaults config={ownerConfig} eleven={ownerEleven} cloudReady={cloudReady} />}
     </>
   );
 }
