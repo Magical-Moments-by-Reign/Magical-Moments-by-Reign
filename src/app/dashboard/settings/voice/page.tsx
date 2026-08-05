@@ -17,15 +17,23 @@ export default async function VoicePage() {
   const account = await requireAccount("/dashboard/settings/voice");
   const detail = await prisma.account.findUnique({
     where: { id: account.id },
-    select: { staffRoles: true, voicePrefs: true },
+    select: { staffRoles: true },
   }).catch(() => null);
 
   let owner = false;
   try { owner = (JSON.parse(detail?.staffRoles || "[]") as unknown[]).includes("owner"); } catch { owner = false; }
 
+  // `voicePrefs` is a newer, additive column — fetch it in isolation so an
+  // un-migrated production database still renders the Voice Studio.
+  let voicePrefs = "{}";
+  try {
+    const v = await prisma.account.findUnique({ where: { id: account.id }, select: { voicePrefs: true } });
+    if (v?.voicePrefs) voicePrefs = v.voicePrefs;
+  } catch { voicePrefs = "{}"; }
+
   const cloudReady = cloudConfigured();
   const paidMember = isPaidMember(account.membershipTier);
-  const ownerConfig = owner ? await readOwnerVoiceConfig() : null;
+  const ownerConfig = owner ? await readOwnerVoiceConfig().catch(() => null) : null;
 
   return (
     <>
@@ -39,7 +47,7 @@ export default async function VoicePage() {
       <VoiceStudio
         assistantName={account.assistantName}
         firstName={account.firstName}
-        profileVoicePrefs={detail?.voicePrefs || "{}"}
+        profileVoicePrefs={voicePrefs}
         cloudReady={cloudReady}
         paidMember={paidMember}
       />
