@@ -57,6 +57,17 @@
 .vm-row__acts { display: flex; gap: .4rem; flex-wrap: wrap; }
 .vm-badge { font-size: .6rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: #2a1d12; background: linear-gradient(135deg, #f0dca4, #d8b25e); border-radius: 999px; padding: .1rem .5rem; }
 
+/* Live voice trace (A/B) */
+.vm-trace { margin-top: .8rem; border: 1px solid #e7dcc9; border-radius: 12px; overflow: hidden; }
+.vm-trace__row { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem .8rem; font-size: .84rem; background: #fffdf9; border-top: 1px solid #f0e7d5; }
+.vm-trace__row:first-child { border-top: none; }
+.vm-trace__k { color: #6b5744; }
+.vm-trace__v { color: #2a1d12; font-weight: 700; text-align: right; word-break: break-word; }
+.vm-trace__row--ok .vm-trace__v { color: #2f6b34; }
+.vm-trace__row--warn .vm-trace__v { color: #8a5a1f; }
+.vm-trace__row--bad { background: #fbeee6; }
+.vm-trace__row--bad .vm-trace__v { color: #9a4a3a; }
+
 /* Owner controls */
 .vst__owner { border: 1px dashed #d8b25e; background: #fdf9f0; }
 .vst-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .9rem; margin: .6rem 0 1rem; }

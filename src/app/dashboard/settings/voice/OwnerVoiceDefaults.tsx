@@ -165,6 +165,69 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
     setResult({ kind: "ok", msg: "Journey is now set to Premium (ElevenLabs) on this device. Turn Journey on to hear it." });
   }
 
+  // ── End-to-end live trace (A/B) ──
+  const TRACE_LINE = "Tabitha, this is a brand-new ElevenLabs voice test for Magical Moments.";
+  const [trace, setTrace] = useState<{ k: string; v: string; flag?: "ok" | "warn" | "bad" }[]>([]);
+  const [tracing, setTracing] = useState(false);
+
+  async function traceEleven() {
+    setTracing(true); setTrace([{ k: "Status", v: "Requesting fresh ElevenLabs audio…" }]);
+    try {
+      const res = await fetch("/api/voice/tts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        // unique nonce + a never-before-spoken sentence → cannot be a cached replay
+        body: JSON.stringify({ text: TRACE_LINE, persona: "journey", voiceId: "journey-warm-hd", nonce: `${Date.now()}-${Math.random()}` }),
+      });
+      if (res.ok) {
+        const provider = res.headers.get("X-Voice-Provider") || "";
+        const model = res.headers.get("X-Voice-Model") || "";
+        const vid = res.headers.get("X-Voice-Id") || "";
+        const src = res.headers.get("X-Voice-Source") || "";
+        const est = res.headers.get("X-Eleven-Status") || "200";
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob); const el = new Audio(url); el.onended = () => URL.revokeObjectURL(url); await el.play().catch(() => {});
+        const assigned = assign.journeyFemale || assign.journeyMale;
+        const matches = Boolean(vid && assigned && vid === assigned);
+        setTrace([
+          { k: "Provider actually used", v: provider === "elevenlabs" ? "ElevenLabs" : provider === "openai" ? "OpenAI (fallback)" : "Browser", flag: provider === "elevenlabs" ? "ok" : "bad" },
+          { k: "Selected Journey voice (assigned)", v: `${nameOf(assigned)} · ${assigned || "—"}` },
+          { k: "Voice ID sent to ElevenLabs", v: vid || "—" },
+          { k: "Matches your assigned voice?", v: matches ? "YES ✓" : `NO — source: ${src}`, flag: matches ? "ok" : "bad" },
+          { k: "Voice source", v: src || "—", flag: src.startsWith("owner") ? "ok" : "warn" },
+          { k: "Model", v: model || "—" },
+          { k: "ElevenLabs HTTP status", v: est },
+          { k: "Audio bytes received", v: `${blob.size}` },
+          { k: "Browser fallback occurred?", v: provider === "elevenlabs" ? "No" : "YES", flag: provider === "elevenlabs" ? "ok" : "bad" },
+          { k: "Cached audio used?", v: "No — fresh POST, Cache-Control no-store, unique nonce + new sentence" },
+        ]);
+      } else {
+        const d = await res.json().catch(() => ({} as any));
+        setTrace([
+          { k: "Provider actually used", v: "Browser fallback", flag: "bad" },
+          { k: "Cloud failure reason", v: `${d.detail || "unknown"}${d.elevenStatus ? ` (status ${d.elevenStatus})` : ""}`, flag: "bad" },
+          { k: "Voice ID that would be sent", v: d.voiceIdSent || "—" },
+          { k: "Voice source", v: d.voiceIdSource || "—" },
+          { k: "ElevenLabs HTTP status", v: `${d.elevenStatus ?? "—"}` },
+          { k: "Audio bytes received", v: "0" },
+          { k: "Browser fallback occurred?", v: "YES", flag: "bad" },
+        ]);
+      }
+    } catch { setTrace([{ k: "Error", v: "Could not reach the voice service.", flag: "bad" }]); }
+    finally { setTracing(false); }
+  }
+
+  function traceBrowser() {
+    try {
+      window.speechSynthesis?.cancel();
+      const u = new SpeechSynthesisUtterance(TRACE_LINE);
+      window.speechSynthesis?.speak(u);
+      setTrace([
+        { k: "Provider actually used", v: "Browser (speechSynthesis)", flag: "warn" },
+        { k: "Note", v: "Your device's built-in voice — compare it to the ElevenLabs sample above." },
+      ]);
+    } catch { setTrace([{ k: "Error", v: "Browser speech unavailable.", flag: "bad" }]); }
+  }
+
   const isAssigned = (id: string) => id && (assign.journeyFemale === id || assign.journeyMale === id || assign.concierge === id);
   const assignedAs = (id: string) => [
     assign.journeyFemale === id ? "Journey ♀" : "",
@@ -244,6 +307,25 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
       <p className="note" style={{ marginTop: ".7rem" }}>
         Assigned — Journey ♀: <b>{nameOf(assign.journeyFemale)}</b> · Journey ♂: <b>{nameOf(assign.journeyMale)}</b> · Concierge: <b>{nameOf(assign.concierge)}</b>
       </p>
+
+      {/* ── End-to-end live trace (A/B) ── */}
+      <h3 className="vst__h" style={{ marginTop: "1.4rem" }}>Live voice trace (A/B)</h3>
+      <p className="note">A brand-new sentence (never spoken, so it can&rsquo;t be a cached replay). Play it both ways and compare — the report shows exactly what happened.</p>
+      <p className="note" style={{ fontStyle: "italic" }}>&ldquo;{TRACE_LINE}&rdquo;</p>
+      <div className="pg-actions">
+        <button type="button" className="btn btn--gold btn--sm" onClick={traceEleven} disabled={tracing}>{tracing ? "…" : "▶ Play via ElevenLabs"}</button>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={traceBrowser}>▶ Play via Browser</button>
+      </div>
+      {trace.length > 0 && (
+        <div className="vm-trace">
+          {trace.map((row, i) => (
+            <div key={i} className={`vm-trace__row${row.flag ? ` vm-trace__row--${row.flag}` : ""}`}>
+              <span className="vm-trace__k">{row.k}</span>
+              <span className="vm-trace__v">{row.v}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
