@@ -36,14 +36,50 @@ const TEST_CONVERSATION: Record<VoicePersona, string[]> = {
 };
 
 export default function VoiceStudio({
-  assistantName, firstName, profileVoicePrefs, cloudReady, paidMember,
+  assistantName, firstName, profileVoicePrefs, cloudReady, paidMember, cloudProvider,
 }: {
   assistantName: string; firstName: string; profileVoicePrefs: string;
-  cloudReady: boolean; paidMember: boolean;
+  cloudReady: boolean; paidMember: boolean; cloudProvider: "elevenlabs" | "openai" | null;
 }) {
   const [prefs, setPrefs] = useState<AssistantPrefs>(DEFAULT_PREFS);
   const [persona, setPersona] = useState<VoicePersona>("journey");
+  const [testState, setTestState] = useState<{ kind: "idle" | "testing" | "ok" | "browser" | "fail"; msg: string }>({ kind: "idle", msg: "" });
   const saveTimer = useRef<any>(null);
+
+  // Live status line (requirement 14). Reflects what's actually connected.
+  const status = cloudProvider === "elevenlabs"
+    ? { cls: "ok", label: "ElevenLabs Connected", note: "Premium voices ready (OpenAI is the automatic fallback if it's configured)." }
+    : cloudProvider === "openai"
+      ? { cls: "ok", label: "OpenAI Fallback Connected", note: "OpenAI TTS is ready. Add ELEVENLABS_API_KEY to make ElevenLabs the primary voice." }
+      : { cls: "off", label: "Premium Voice Unavailable", note: "No cloud key configured — everyone is on Browser Voice for now." };
+
+  // Verify a REAL cloud MP3 before trusting premium (requirement 13).
+  async function testPremium() {
+    setTestState({ kind: "testing", msg: "Requesting a real cloud voice…" });
+    try {
+      const res = await fetch("/api/voice/tts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: VOICE_PREVIEW_LINE, voiceId: prefs.journeyVoice }),
+      });
+      if (res.ok) {
+        const provider = res.headers.get("X-Voice-Provider") || "cloud";
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const el = new Audio(url);
+        el.onended = () => URL.revokeObjectURL(url);
+        await el.play().catch(() => {});
+        setTestState({ kind: "ok", msg: `Verified — real ${provider === "elevenlabs" ? "ElevenLabs" : provider === "openai" ? "OpenAI" : "cloud"} voice is playing.` });
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (data.fallbackToBrowser) setTestState({ kind: "browser", msg: "Both cloud providers failed — the assistant will use the browser voice." });
+      else if (res.status === 503) setTestState({ kind: "fail", msg: "Premium isn't connected yet (no cloud key)." });
+      else if (res.status === 403) setTestState({ kind: "fail", msg: "Premium voices are a paid-membership feature." });
+      else setTestState({ kind: "fail", msg: data.error || "Could not reach the voice service." });
+    } catch {
+      setTestState({ kind: "browser", msg: "Couldn't reach the voice service — the assistant will use the browser voice." });
+    }
+  }
 
   useEffect(() => { setPrefs(hydrateFromProfile(profileVoicePrefs)); }, [profileVoicePrefs]);
 
@@ -120,6 +156,25 @@ export default function VoiceStudio({
         {tier === "premium" && premiumUsable && (
           <p className="note vst__ok">Premium is on. {assistantName} will speak in a cloud voice, with an automatic fallback to your device voice if the cloud is briefly unavailable.</p>
         )}
+
+        {/* Live provider status + real MP3 verification */}
+        <div className="vst-status">
+          <div className="vst-status__row">
+            <span className={`vst-status__dot vst-status__dot--ok`} /> <b>Browser Voice</b> — always available (Free tier)
+          </div>
+          <div className="vst-status__row">
+            <span className={`vst-status__dot vst-status__dot--${status.cls}`} /> <b>{status.label}</b>
+          </div>
+          <p className="note vst-status__note">{status.note}</p>
+          <div className="pg-actions">
+            <button type="button" className="btn btn--ghost btn--sm" onClick={testPremium} disabled={testState.kind === "testing"}>
+              {testState.kind === "testing" ? "Testing…" : "Test premium connection"}
+            </button>
+          </div>
+          {testState.kind !== "idle" && testState.kind !== "testing" && (
+            <p className={`vst-status__result vst-status__result--${testState.kind}`}>{testState.msg}</p>
+          )}
+        </div>
       </section>
 
       {/* Persona + voices */}

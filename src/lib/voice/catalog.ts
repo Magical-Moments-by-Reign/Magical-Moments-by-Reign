@@ -39,15 +39,25 @@ const FREE: VoiceOption[] = [
   { id: "concierge-travel", persona: "concierge", personality: "Travel Specialist", tier: "free", provider: "browser", gender: "female", accent: "American", browserStyle: "friendly" },
 ];
 
-// Premium (cloud) voices — same personalities, near-human. providerVoiceId is a
-// placeholder until the owner sets real ElevenLabs voice ids (env or SystemConfig).
+// Premium (cloud) voices — same personalities, near-human. providerVoiceId is an
+// ElevenLabs premade voice id (stable, public). The owner can override any of
+// these later via env/SystemConfig without a redesign. If an id ever fails, the
+// route falls back to OpenAI TTS, then to the browser voice — never a crash.
 const PREMIUM: VoiceOption[] = [
-  { id: "journey-warm-hd", persona: "journey", personality: "Warm", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "" },
-  { id: "journey-elegant-hd", persona: "journey", personality: "Elegant", tier: "premium", provider: "elevenlabs", gender: "female", accent: "British", providerVoiceId: "" },
-  { id: "journey-professional-hd", persona: "journey", personality: "Professional", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "" },
-  { id: "concierge-hotel-hd", persona: "concierge", personality: "Luxury Hotel Concierge", tier: "premium", provider: "elevenlabs", gender: "male", accent: "British", providerVoiceId: "" },
-  { id: "concierge-executive-hd", persona: "concierge", personality: "Executive Assistant", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "" },
-  { id: "concierge-travel-hd", persona: "concierge", personality: "Travel Specialist", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "" },
+  // Journey — female (warm, human, American)
+  { id: "journey-warm-hd", persona: "journey", personality: "Warm", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "21m00Tcm4TlvDq8ikWAM" },
+  // Journey — male (warm, natural, American)
+  { id: "journey-warm-hd-m", persona: "journey", personality: "Warm", tier: "premium", provider: "elevenlabs", gender: "male", accent: "American", providerVoiceId: "ErXwobaYiN019PkySvjV" },
+  // Journey — female (elegant, British)
+  { id: "journey-elegant-hd", persona: "journey", personality: "Elegant", tier: "premium", provider: "elevenlabs", gender: "female", accent: "British", providerVoiceId: "XB0fDUnXU5powFXDhCwa" },
+  // Journey — female (polished, professional, American)
+  { id: "journey-professional-hd", persona: "journey", personality: "Professional", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "EXAVITQu4vr4xnSDxMaL" },
+  // Concierge — male (luxury hotel concierge, British, distinct from Journey)
+  { id: "concierge-hotel-hd", persona: "concierge", personality: "Luxury Hotel Concierge", tier: "premium", provider: "elevenlabs", gender: "male", accent: "British", providerVoiceId: "onwK4e9ZLuTAKqWW03F9" },
+  // Concierge — female (executive assistant, American)
+  { id: "concierge-executive-hd", persona: "concierge", personality: "Executive Assistant", tier: "premium", provider: "elevenlabs", gender: "female", accent: "American", providerVoiceId: "EXAVITQu4vr4xnSDxMaL" },
+  // Concierge — female (travel specialist, British warm)
+  { id: "concierge-travel-hd", persona: "concierge", personality: "Travel Specialist", tier: "premium", provider: "elevenlabs", gender: "female", accent: "British", providerVoiceId: "pFZP5JQG7iQjIQuC4Bku" },
 ];
 
 export const VOICES: VoiceOption[] = [...FREE, ...PREMIUM];
