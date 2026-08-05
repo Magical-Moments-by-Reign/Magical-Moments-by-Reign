@@ -12,3 +12,4 @@
 .cx-badge--live { background: #dcecd9; color: #33632f; border: 1px solid #c3ddbf; }
 .cx-badge--test { background: #f3e6c8; color: #a67c2e; border: 1px solid #e6d3a3; }
 .cx-badge--coming_soon { background: #efe6d6; color: #8a7a63; border: 1px solid #e7dcc9; }
+.cx-badge--disabled { background: #efe1e0; color: #9a4a3a; border: 1px solid #e6c7b8; }

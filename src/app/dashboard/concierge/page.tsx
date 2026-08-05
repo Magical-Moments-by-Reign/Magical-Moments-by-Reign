@@ -13,15 +13,20 @@ const GROUPS: { id: ServiceGroup; label: string }[] = [
   { id: "travel", label: "Travel" },
   { id: "celebrations", label: "Celebrations & Events" },
   { id: "food", label: "Food & Dining" },
-  { id: "beauty", label: "Beauty" },
   { id: "keepsakes", label: "Keepsakes & Gifts" },
+  { id: "beauty", label: "Beauty" },
+  { id: "family", label: "Family & Milestones" },
   { id: "home", label: "Home" },
+  { id: "lifestyle", label: "Lifestyle & Errands" },
 ];
 
 export default async function ConciergeHubPage() {
   await requireAccount("/dashboard/concierge");
-  const withStatus = SERVICES.map((s) => ({ ...s, status: resolveStatus(s) }));
-  const liveCount = withStatus.filter((s) => s.status !== "coming_soon").length;
+  // Disabled services are turned off by the owner — hidden from members entirely.
+  const withStatus = SERVICES
+    .map((s) => ({ ...s, status: resolveStatus(s) }))
+    .filter((s) => s.status !== "disabled");
+  const liveCount = withStatus.filter((s) => s.status === "live" || s.status === "test").length;
 
   return (
     <>

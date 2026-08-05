@@ -65,9 +65,26 @@ export interface DuffelOffer {
   id: string;
   total_amount: string;
   total_currency: string;
-  owner: { name: string; iata_code: string };
+  owner: { name: string; iata_code: string; logo_symbol_url?: string };
   slices: DuffelSlice[];
   passengers?: { id: string; type?: string }[];
+  expires_at?: string;
+  conditions?: { refund_before_departure?: { allowed?: boolean } | null };
+}
+
+// ── Places (city / airport translation) ─────────────────────────
+export interface PlaceSuggestion { name: string; iata: string; type: string; city?: string; country?: string }
+
+/** Turn a human place ("Orlando", "Paris", "Disney World") into airport/city
+ *  IATA options. Duffel resolves the codes — we never guess them. */
+export async function suggestPlaces(query: string): Promise<PlaceSuggestion[]> {
+  const q = (query || "").trim();
+  if (q.length < 2) return [];
+  const data = await duffel<any[]>("/places/suggestions", { method: "GET", query: { query: q } });
+  return (data || [])
+    .filter((p) => p?.iata_code)
+    .map((p) => ({ name: p.name, iata: p.iata_code, type: p.type, city: p.city_name, country: p.iata_country_code }))
+    .slice(0, 8);
 }
 interface OfferRequestResponse { id: string; offers: DuffelOffer[]; passengers: { id: string; type: string }[] }
 
@@ -87,12 +104,16 @@ export interface OfferSummary {
   id: string;
   airline: string;
   airlineCode: string;
+  airlineLogo: string | null;
   price: string;         // formatted, e.g. "$482.30"
   amount: number;
   currency: string;
+  expiresAt: string | null;
+  refundable: boolean | null; // null = unknown (never invented)
   slices: {
     from: string; to: string; depart: string; arrive: string;
     stops: number; carriers: string[]; durationMins: number | null;
+    layovers: string[];
   }[];
 }
 
@@ -113,16 +134,22 @@ function fmtMoney(amount: string, currency: string): string {
 
 /** PURE: turn a Duffel offer into the summary the UI renders. */
 export function summarizeOffer(o: DuffelOffer): OfferSummary {
+  const refund = o.conditions?.refund_before_departure;
   return {
     id: o.id,
     airline: o.owner?.name ?? "Airline",
     airlineCode: o.owner?.iata_code ?? "",
+    airlineLogo: o.owner?.logo_symbol_url ?? null,
     price: fmtMoney(o.total_amount, o.total_currency),
     amount: Number(o.total_amount),
     currency: o.total_currency,
+    expiresAt: o.expires_at ?? null,
+    refundable: refund == null ? null : Boolean(refund.allowed),
     slices: (o.slices || []).map((s) => {
       const segs = s.segments || [];
       const first = segs[0]; const last = segs[segs.length - 1];
+      // Layover airports = every intermediate stop between segments.
+      const layovers = segs.slice(0, -1).map((seg) => seg.destination?.iata_code).filter(Boolean) as string[];
       return {
         from: first?.origin?.iata_code ?? "",
         to: last?.destination?.iata_code ?? "",
@@ -131,6 +158,7 @@ export function summarizeOffer(o: DuffelOffer): OfferSummary {
         stops: Math.max(0, segs.length - 1),
         carriers: Array.from(new Set(segs.map((x) => x.marketing_carrier?.name).filter(Boolean))) as string[],
         durationMins: isoDurationToMins(s.duration),
+        layovers,
       };
     }),
   };

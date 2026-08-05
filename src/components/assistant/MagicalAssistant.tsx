@@ -29,6 +29,42 @@ function fmt(text: string): { __html: string } {
   return { __html: esc.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>") };
 }
 
+// Best-effort natural-date parse for the flight handoff ("October 10", "10/13",
+// "Oct 10"). First date found = depart, second = return. Picks the next future
+// occurrence. Returns ISO YYYY-MM-DD strings, or empty when unsure (never guesses
+// flight data — only the dates the member actually typed).
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+function parseTripDates(text: string): { depart?: string; ret?: string } {
+  const found: string[] = [];
+  const now = new Date();
+  const iso = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const future = (m: number, d: number) => {
+    let y = now.getFullYear();
+    if (new Date(y, m, d).getTime() < now.getTime() - 86400000) y += 1;
+    return iso(y, m, d);
+  };
+  const re = new RegExp(`\\b(${MONTHS.map((x) => x.slice(0, 3)).join("|")})[a-z]*\\.?\\s+(\\d{1,2})\\b`, "gi");
+  let mth: RegExpExecArray | null;
+  while ((mth = re.exec(text)) && found.length < 2) {
+    const mi = MONTHS.findIndex((x) => x.startsWith(mth![1].toLowerCase()));
+    const day = Number(mth![2]);
+    if (mi >= 0 && day >= 1 && day <= 31) found.push(future(mi, day));
+  }
+  // Numeric M/D or M/D/YY as a fallback.
+  if (found.length < 2) {
+    const nre = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g;
+    let nm: RegExpExecArray | null;
+    while ((nm = nre.exec(text)) && found.length < 2) {
+      const mo = Number(nm[1]) - 1, day = Number(nm[2]);
+      if (mo >= 0 && mo <= 11 && day >= 1 && day <= 31) {
+        const y = nm[3] ? (nm[3].length === 2 ? 2000 + Number(nm[3]) : Number(nm[3])) : undefined;
+        found.push(y ? iso(y, mo, day) : future(mo, day));
+      }
+    }
+  }
+  return { depart: found[0], ret: found[1] };
+}
+
 // Navigation commands the assistant can actually perform right now.
 const NAV: { re: RegExp; path: string; say: string }[] = [
   { re: /family vault/i, path: "/dashboard/family-vault", say: "Opening your Family Vault." },
@@ -163,6 +199,23 @@ export default function MagicalAssistant({ assistantName, firstName }: { assista
     const clean = text.trim(); if (!clean || busy) return;
     setInput("");
     setMsgs((m) => [...m, { role: "user", content: clean }]);
+
+    // 0) Flight SEARCH → open the luxury Flights page, carrying what we parsed
+    //    (destination + dates) so the member never re-types it.
+    if (/\b(fly|flight|flights|airfare)\b/i.test(clean) && /\bto\b/i.test(clean)) {
+      const dest = clean.match(/\bto\s+([A-Za-z][A-Za-z .'-]*?)(?:\s+(?:on|for|departing|leaving|next|this|from|,|and|\.|$))/i)?.[1]?.trim();
+      const dates = parseTripDates(clean);
+      const line = "Absolutely. I'll open flight search and compare the available test flights for you now.";
+      setMsgs((m) => [...m, { role: "assistant", content: line }]);
+      speak(line);
+      const params = new URLSearchParams();
+      if (dest) params.set("toLabel", dest);
+      if (dates.depart) params.set("depart", dates.depart);
+      if (dates.ret) params.set("return", dates.ret);
+      const qs = params.toString();
+      router.push(`/dashboard/concierge/flights${qs ? `?${qs}` : ""}`);
+      return;
+    }
 
     // 1) Concierge handoff — never answered here.
     if (looksLikeConciergeRequest(clean)) {

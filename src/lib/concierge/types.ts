@@ -6,11 +6,14 @@
 // rebuilding the architecture.
 
 export type ServiceStatus =
-  | "live"         // real provider, real bookings
+  | "live"         // real provider, real bookings  → shown as "Available"
   | "test"         // real provider in TEST mode (sample data, no real money)
-  | "coming_soon"; // no provider connected yet
+  | "coming_soon"  // no provider connected yet
+  | "disabled";    // intentionally turned off (owner/admin) — hidden from members
 
-export type ServiceGroup = "travel" | "celebrations" | "food" | "beauty" | "keepsakes" | "home";
+export type ServiceGroup =
+  | "travel" | "celebrations" | "food" | "beauty" | "keepsakes"
+  | "home" | "family" | "lifestyle";
 
 export interface ConciergeService {
   id: string;
