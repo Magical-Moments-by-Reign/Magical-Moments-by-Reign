@@ -150,3 +150,6 @@
   .lp-pillars { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .lp-hero__bg, .lp-hero__sun, .lp-hero__in { animation: none; } }
+
+/* 12-Journey grid — slightly more compact cards for the fuller set */
+.lp-est-grid--12 .lp-est { min-height: 188px; }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ScrollCue from "@/components/site/ScrollCue";
 import { currentAccount } from "@/lib/auth-session";
-import { allEstates } from "@/lib/estates/registry";
+import { EXPERIENCES } from "@/lib/membership-builder";
 import { LIFETIME_COLLECTIONS, PRICING_CONFIG, formatUSD } from "@/lib/pricing-engine";
 import "./landing.css";
 
@@ -20,20 +20,10 @@ export default async function LandingPage() {
   const account = await currentAccount();
   const signedIn = Boolean(account);
 
-  // The Life Estates — eight worlds, each a chapter of life. Homes is the
-  // flagship that's open today (it links to the live Home estate); the rest are
-  // honestly marked "In creation." Every card carries a lifestyle photograph.
-  const homeKey = allEstates()[0]?.key ?? "home";
-  const ESTATES: { name: string; tagline: string; photo: string; open: boolean; href?: string }[] = [
-    { name: "Homes", tagline: "Buying, building, decorating, moving, and every chapter in between.", photo: "/story/newhome.jpg", open: true, href: signedIn ? `/estate/${homeKey}` : "/get-started" },
-    { name: "Relationships", tagline: "Love stories, anniversaries, engagements, and meaningful connections.", photo: "/story/proposal.jpg", open: false },
-    { name: "Weddings", tagline: "From “yes” to “I do” and every beautiful moment surrounding it.", photo: "/story/wedding.jpg", open: false },
-    { name: "New Baby", tagline: "Pregnancy, gender reveals, showers, arrivals, and first-year memories.", photo: "/story/baby.jpg", open: false },
-    { name: "Celebrations", tagline: "Birthdays, graduations, retirements, reunions, and special milestones.", photo: "/story/birthday.jpg", open: false },
-    { name: "Travel", tagline: "Vacations, honeymoons, family trips, and journeys worth remembering.", photo: "/story/vacation.jpg", open: false },
-    { name: "Business", tagline: "Launches, achievements, brand stories, and entrepreneurial milestones.", photo: "/brand/estate-home.png", open: false },
-    { name: "Legacy", tagline: "Family history, memorials, traditions, and stories preserved for generations.", photo: "/story/memorial.jpg", open: false },
-  ];
+  // The twelve Journeys — the official occasion catalog, shown here as an
+  // elegant promotional showcase. Names, photos, and order come straight from
+  // the catalog so the homepage, Get Started, pricing, and builder never drift.
+  const JOURNEYS = EXPERIENCES;
 
   const monthlyFrom = PRICING_CONFIG.firstOccasion.monthly;
   const lifetimeFrom = LIFETIME_COLLECTIONS[0].price;
@@ -109,37 +99,30 @@ export default async function LandingPage() {
         </p>
       </section>
 
-      {/* ── The Life Estates ── */}
+      {/* ── The Journeys ── */}
       <section className="lp-estates">
         <div className="lp-estates__head">
-          <span className="lp-eyebrow">The Life Estates</span>
+          <span className="lp-eyebrow">The Journeys</span>
           <h2 className="lp-sec__t">Worlds within <i>your world.</i></h2>
           <p className="lp-estates__lede">
-            Each Life Estate is a beautifully designed world for one part of life. Enter the ones that
-            matter to you. Begin with Homes &mdash; open today &mdash; as more estates are lovingly crafted.
+            Each Journey is a beautifully designed world for one chapter of life. Choose the ones that
+            matter to you &mdash; and personalize the moments within each.
           </p>
         </div>
-        <div className="lp-est-grid">
-          {ESTATES.map((e) => {
-            const inner = (
-              <>
-                <span className={`lp-est__badge${e.open ? " lp-est__badge--open" : ""}`}>{e.open ? "Now open" : "In creation"}</span>
-                <span className="lp-est__meta">
-                  <span className="lp-est__name">{e.name}</span>
-                  <span className="lp-est__tag">{e.tagline}</span>
-                </span>
-              </>
-            );
-            return e.open && e.href ? (
-              <Link key={e.name} href={e.href} className="lp-est lp-est--open lp-est--photo" style={{ backgroundImage: `url(${e.photo})` }}>
-                {inner}
-              </Link>
-            ) : (
-              <div key={e.name} className="lp-est lp-est--photo" aria-disabled="true" style={{ backgroundImage: `url(${e.photo})` }}>
-                {inner}
-              </div>
-            );
-          })}
+        <div className="lp-est-grid lp-est-grid--12">
+          {JOURNEYS.map((j) => (
+            <Link
+              key={j.id}
+              href={signedIn ? `/membership` : "/get-started"}
+              className={`lp-est lp-est--open${j.photo ? " lp-est--photo" : ""}`}
+              style={j.photo ? { backgroundImage: `url(${j.photo})` } : undefined}
+            >
+              <span className="lp-est__meta">
+                <span className="lp-est__name">{j.label}</span>
+                <span className="lp-est__tag">{j.blurb}</span>
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 

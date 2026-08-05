@@ -221,3 +221,8 @@
   .gs-foot__in { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) { .gs-grid { grid-template-columns: 1fr; } }
+
+/* Journey sub-occasion tag chips (Experiences tour) */
+.gs-xc__chips--tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.gs-xc__chip--tag { display: inline-flex; background: rgba(201, 163, 78, 0.12); border: 1px solid var(--line); border-radius: 999px; padding: 0.28rem 0.65rem; font-size: 0.72rem; color: var(--ink); }
+.gs-xc__chip--more { background: transparent; color: var(--champ-d); font-weight: 600; }
