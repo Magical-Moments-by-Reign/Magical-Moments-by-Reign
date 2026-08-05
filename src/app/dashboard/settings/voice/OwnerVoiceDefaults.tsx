@@ -42,14 +42,25 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
   };
   const nameOf = (id: string) => voices?.find((v) => v.voice_id === id)?.name || (id ? `${id.slice(0, 10)}…` : "built-in default");
 
+  function keyNote(k: any): string {
+    if (!k) return "";
+    const flags = [
+      k.trimmedWhitespace ? "had surrounding whitespace" : "",
+      k.strippedQuotes ? "had wrapping quotes" : "",
+      k.hasInternalWhitespace ? "contains an internal space/newline (INVALID)" : "",
+    ].filter(Boolean);
+    return ` [key: length ${k.length}, prefix "${k.prefix}"${flags.length ? `, ${flags.join(", ")}` : ""}]`;
+  }
+
   async function fetchVoices(): Promise<ElevenVoice[] | null> {
     setLoadState({ kind: "loading", msg: "Contacting ElevenLabs…" });
     try {
       const res = await fetch("/api/voice/elevenlabs-voices");
       const data = await res.json();
-      if (data.ok) { setVoices(data.voices || []); setLoadState({ kind: "ok", msg: `Connected — ${data.count} voice(s) in your ElevenLabs account.` }); return data.voices || []; }
-      if (data.configured === false) setLoadState({ kind: "err", msg: "ELEVENLABS_API_KEY is not set on this deployment." });
-      else setLoadState({ kind: "err", msg: data.error || "ElevenLabs did not respond." });
+      if (data.ok) { setVoices(data.voices || []); setLoadState({ kind: "ok", msg: `Connected — ${data.count} voice(s) in your ElevenLabs account.${keyNote(data.key)}` }); return data.voices || []; }
+      if (data.configured === false) setLoadState({ kind: "err", msg: `ELEVENLABS_API_KEY is not set on this deployment.${keyNote(data.key)}` });
+      else if (data.status === 401) setLoadState({ kind: "err", msg: `ElevenLabs rejected the key (401 — invalid key or permission).${keyNote(data.key)} If the length looks wrong or it flags whitespace/quotes, re-paste the key in Netlify without quotes or trailing spaces.` });
+      else setLoadState({ kind: "err", msg: `${data.error || "ElevenLabs did not respond."}${keyNote(data.key)}` });
       return null;
     } catch { setLoadState({ kind: "err", msg: "Could not reach the voice service." }); return null; }
   }

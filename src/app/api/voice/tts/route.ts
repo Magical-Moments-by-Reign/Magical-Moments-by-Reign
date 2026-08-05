@@ -3,6 +3,7 @@ import { currentAccount } from "@/lib/auth-session";
 import { isPaidMember } from "@/lib/membership-access";
 import { getVoice } from "@/lib/voice/catalog";
 import { readOwnerElevenVoices, resolveElevenId } from "@/lib/voice/owner-config";
+import { elevenKey } from "@/lib/voice/eleven-key";
 import { prisma } from "@/lib/db";
 
 // Owner / billing-exempt accounts may always test premium, regardless of tier.
@@ -33,7 +34,7 @@ function elevenReason(status: number): string {
 }
 
 async function elevenLabs(text: string, voiceId: string): Promise<{ res?: Response; err?: { status: number; reason: string } }> {
-  const key = process.env.ELEVENLABS_API_KEY;
+  const key = elevenKey();
   if (!key) return {};
   const id = voiceId || process.env.ELEVENLABS_DEFAULT_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
   try {
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
   const account = await currentAccount();
   if (!account) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
-  const hasCloud = Boolean(process.env.ELEVENLABS_API_KEY || process.env.OPENAI_API_KEY);
+  const hasCloud = Boolean(elevenKey() || process.env.OPENAI_API_KEY);
   if (!hasCloud) return NextResponse.json({ error: "Premium voices aren't connected yet.", comingSoon: true }, { status: 503 });
 
   const privileged = await ownerPrivilege(account.id);
