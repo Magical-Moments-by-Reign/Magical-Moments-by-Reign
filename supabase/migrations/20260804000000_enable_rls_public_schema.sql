@@ -76,10 +76,13 @@ $$;
 -- 2) Auto-enable RLS on any table created in `public` from now on, so no future
 --    table can ship with RLS disabled (satisfies the "new tables inherit RLS"
 --    requirement, including tables created by `prisma db push`).
+-- Event-trigger function. It does NOT use SECURITY DEFINER: event triggers run
+-- with the privileges of the role executing the DDL (migrations run as
+-- postgres), so no elevation is needed — and avoiding SECURITY DEFINER keeps it
+-- off the Security Advisor's "public can execute a SECURITY DEFINER function" list.
 create or replace function public.tg_enable_rls_on_new_tables()
 returns event_trigger
 language plpgsql
-security definer
 set search_path = public
 as $$
 declare
