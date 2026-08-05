@@ -78,6 +78,10 @@ let stopFlag = false;
 let cloudDisabled = false;
 let audioEl: HTMLAudioElement | null = null;
 
+/** Re-enable the cloud path (clears a stale session disable) — call this when the
+ *  member turns premium on, so a voice assigned after an earlier failure works. */
+export function enableCloud(): void { cloudDisabled = false; }
+
 /** Speak text naturally. Returns immediately; use callbacks for state.
  *  persona selects which saved voice id (Journey vs Concierge) the cloud uses. */
 export type UsedProvider = "elevenlabs" | "openai" | "browser";

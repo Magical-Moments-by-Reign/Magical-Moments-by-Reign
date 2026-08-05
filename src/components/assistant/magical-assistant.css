@@ -20,6 +20,10 @@
 .ma-toggle.is-on .ma-toggle__orb { animation: ma-pulse 1.6s ease-in-out infinite; }
 .ma-toggle__txt { font-size: .86rem; font-weight: 600; letter-spacing: .01em; }
 .ma-toggle__txt b { font-weight: 800; }
+.ma-toggle__prov { font-size: .6rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: .12rem .5rem; margin-left: .1rem; }
+.ma-toggle__prov--elevenlabs { background: #d7f0d9; color: #2f6b34; border: 1px solid #b7ddb9; }
+.ma-toggle__prov--openai { background: #dbeafe; color: #1e4e8c; border: 1px solid #b9d4f2; }
+.ma-toggle__prov--browser { background: #f3e2d3; color: #8a4a2a; border: 1px solid #e4c3a6; }
 @keyframes ma-glow {
   0%, 100% { box-shadow: 0 10px 30px -8px rgba(201,162,75,.55); }
   50% { box-shadow: 0 10px 34px -6px rgba(201,162,75,.95), 0 0 0 7px rgba(201,162,75,.14); }

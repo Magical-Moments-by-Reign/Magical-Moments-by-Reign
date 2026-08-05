@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { voicesFor, type VoicePersona } from "@/lib/voice/catalog";
 import { savePrefs, loadPrefs, portablePrefs } from "@/lib/assistant-prefs";
+import { enableCloud } from "@/lib/voice/speech";
 import { updateOwnerVoiceDefaultsAction, updateOwnerElevenVoiceAction, updateVoicePrefsAction } from "../actions";
 
 interface Config { defaultJourney: string; defaultConcierge: string; holiday: boolean; seasonal: boolean; collab: boolean; }
@@ -94,14 +95,22 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
         updateOwnerElevenVoiceAction("concierge", con),
       ]);
     } catch { /* saved best-effort */ }
+    enablePremiumForOwner();
+    setResult({ kind: "ok", msg: `Assigned — Journey ♀: ${nameOf(jf)} · Journey ♂: ${nameOf(jm)} · Concierge: ${nameOf(con)}. Journey is now Premium — press Test or turn Journey on to hear it.` });
+  }
+
+  // Turn the OWNER's own assistant to Premium (ElevenLabs) so the live Journey
+  // uses the cloud voice, and clear any stale session cloud-disable.
+  function enablePremiumForOwner() {
+    enableCloud();
     const next = savePrefs({ ...loadPrefs(), provider: "premium", journeyVoice: "journey-warm-hd" });
     updateVoicePrefsAction(portablePrefs(next)).catch(() => {});
-    setResult({ kind: "ok", msg: `Assigned — Journey ♀: ${nameOf(jf)} · Journey ♂: ${nameOf(jm)} · Concierge: ${nameOf(con)}. Journey is now Premium — press Test or turn Journey on to hear it.` });
   }
 
   function assignSlot(slot: Slot, voiceId: string) {
     setAssign((a) => ({ ...a, [slot]: voiceId }));
     updateOwnerElevenVoiceAction(slot, voiceId).catch(() => {});
+    enablePremiumForOwner(); // assigning a voice implies you want to use it live
   }
 
   // Preview a specific voice by its raw id (owner privilege on the route).
@@ -152,8 +161,7 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
   }
 
   function useForJourneyNow() {
-    const next = savePrefs({ ...loadPrefs(), provider: "premium", journeyVoice: "journey-warm-hd" });
-    updateVoicePrefsAction(portablePrefs(next)).catch(() => {});
+    enablePremiumForOwner();
     setResult({ kind: "ok", msg: "Journey is now set to Premium (ElevenLabs) on this device. Turn Journey on to hear it." });
   }
 

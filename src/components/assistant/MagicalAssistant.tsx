@@ -337,6 +337,11 @@ export default function MagicalAssistant({ assistantName, firstName, sessionKey 
       >
         <span className="ma-toggle__orb" aria-hidden="true">✦</span>
         <span className="ma-toggle__txt">{on ? "Turn Off" : "Turn On"} <b>{assistantName}</b></span>
+        {on && voiceProvider && (
+          <span className={`ma-toggle__prov ma-toggle__prov--${voiceProvider}`} title={`Speaking with ${PROVIDER_LABEL[voiceProvider]}`}>
+            {voiceProvider === "elevenlabs" ? "ElevenLabs" : voiceProvider === "openai" ? "OpenAI" : "Browser"}
+          </span>
+        )}
       </button>
     </>
   );
