@@ -65,8 +65,8 @@ const RELATIONSHIP: JourneyWorld = {
   momentNoun: "Relationship Moment",
   status: "live",
   areas: [
-    { slug: "dating", label: "Dating", tagline: "Fresh ways to spend time together.", status: "explore" },
-    { slug: "date-night-ideas", label: "Date Night Ideas", tagline: "From cozy to unforgettable.", status: "explore" },
+    { slug: "dating", label: "Dating", tagline: "Fresh ways to spend time together.", image: "/journeys/relationship/dating.jpg", status: "explore" },
+    { slug: "date-night-ideas", label: "Date Night Ideas", tagline: "From cozy to unforgettable.", image: "/journeys/relationship/date-night.jpg", status: "explore" },
     {
       slug: "proposal-ideas", label: "Proposal Ideas", tagline: "Explore the perfect way to ask.", image: "/story/proposal.jpg", status: "explore",
       ideas: [
