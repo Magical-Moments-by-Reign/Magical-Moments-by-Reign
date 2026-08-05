@@ -57,6 +57,13 @@
 .vm-row__acts { display: flex; gap: .4rem; flex-wrap: wrap; }
 .vm-badge { font-size: .6rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: #2a1d12; background: linear-gradient(135deg, #f0dca4, #d8b25e); border-radius: 999px; padding: .1rem .5rem; }
 
+/* Current voice state */
+.vm-current { border-radius: 12px; padding: .8rem 1rem; margin: .6rem 0 .9rem; font-size: .9rem; line-height: 1.7; }
+.vm-current code { background: rgba(0,0,0,.05); border-radius: 5px; padding: 0 .3rem; font-size: .78rem; }
+.vm-current--premium { background: #dcecd9; border: 1px solid #b7ddb9; color: #2f6b34; }
+.vm-current--premium b { color: #21532a; }
+.vm-current--free { background: #f6efdd; border: 1px solid #e8d6a8; color: #7a5a1f; }
+
 /* Live voice trace (A/B) */
 .vm-trace { margin-top: .8rem; border: 1px solid #e7dcc9; border-radius: 12px; overflow: hidden; }
 .vm-trace__row { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem .8rem; font-size: .84rem; background: #fffdf9; border-top: 1px solid #f0e7d5; }

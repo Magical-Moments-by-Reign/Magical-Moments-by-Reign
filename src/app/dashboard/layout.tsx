@@ -1,7 +1,7 @@
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { unreadCount } from "@/lib/notify";
-import { readOwnerVoiceConfig } from "@/lib/voice/owner-config";
+import { readOwnerVoiceConfig, readOwnerElevenVoices } from "@/lib/voice/owner-config";
 import DashboardChrome from "@/components/dashboard/DashboardChrome";
 import ConciergeChat from "@/components/concierge/ConciergeChat";
 import MagicalAssistant from "@/components/assistant/MagicalAssistant";
@@ -39,12 +39,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (v?.voicePrefs) memberVoicePrefs = v.voicePrefs;
   } catch { memberVoicePrefs = "{}"; }
 
+  // Durable premium truth: if the owner has assigned real ElevenLabs voices
+  // (SystemConfig), premium must survive every reload — it can never be reverted
+  // to the browser tier by a stale profile.
+  let ownerHasEleven = false;
+  if (isOwner) {
+    const ev = await readOwnerElevenVoices().catch(() => null);
+    ownerHasEleven = Boolean(ev && (ev.journeyFemale || ev.journeyMale || ev.concierge));
+  }
+
   return (
     <>
       <VoiceBootstrap
         memberPrefs={memberVoicePrefs}
         ownerJourney={ownerVoice?.defaultJourney || "journey-warm"}
         ownerConcierge={ownerVoice?.defaultConcierge || "concierge-hotel"}
+        forcePremium={ownerHasEleven}
       />
       <DashboardChrome initial={initial} unread={unread} isOwner={isOwner}>
         {children}

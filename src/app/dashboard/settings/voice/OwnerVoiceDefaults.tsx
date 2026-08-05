@@ -29,6 +29,8 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
   const [assign, setAssign] = useState<Eleven>(eleven);
   const [result, setResult] = useState<{ kind: "" | "ok" | "browser" | "fail"; msg: string }>({ kind: "", msg: "" });
   const [previewing, setPreviewing] = useState<string>("");
+  const [providerNow, setProviderNow] = useState<"free" | "premium">("free");
+  useEffect(() => { setProviderNow(loadPrefs().provider === "premium" ? "premium" : "free"); }, []);
 
   function save(patch: Partial<Config>) {
     const next = { ...cfg, ...patch }; setCfg(next); setSaved(false);
@@ -108,8 +110,10 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
   // uses the cloud voice, and clear any stale session cloud-disable.
   function enablePremiumForOwner() {
     enableCloud();
-    const next = savePrefs({ ...loadPrefs(), provider: "premium", journeyVoice: "journey-warm-hd" });
+    const cur = loadPrefs();
+    const next = savePrefs({ ...cur, provider: "premium", journeyVoice: /-hd$/.test(cur.journeyVoice) ? cur.journeyVoice : "journey-warm-hd" });
     updateVoicePrefsAction(portablePrefs(next)).catch(() => {});
+    setProviderNow("premium");
   }
 
   function assignSlot(slot: Slot, voiceId: string) {
@@ -167,7 +171,17 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
 
   function useForJourneyNow() {
     enablePremiumForOwner();
-    setResult({ kind: "ok", msg: "Journey is now set to Premium (ElevenLabs) on this device. Turn Journey on to hear it." });
+    traceEleven(); // prove it with a fresh real request — report success only if audio returns
+  }
+
+  // Owner recovery: reload real voices, confirm the provider returns them, force
+  // premium, clear stale cloud-disable, and play a fresh test — no sign-out.
+  async function restoreEleven() {
+    setResult({ kind: "", msg: "Restoring your ElevenLabs voice…" });
+    const list = await fetchVoices();
+    if (!list || !list.length) { setResult({ kind: "fail", msg: "Couldn't confirm your ElevenLabs voices — see the connection message above." }); return; }
+    enablePremiumForOwner();
+    await traceEleven();
   }
 
   // ── End-to-end live trace (A/B) ──
@@ -273,6 +287,18 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
 
       {/* ── ElevenLabs Voice Manager ── */}
       <h3 className="vst__h" style={{ marginTop: "1.4rem" }}>ElevenLabs Voice Manager</h3>
+
+      {/* Current state — never shows a free voice as active while premium. */}
+      <div className={`vm-current vm-current--${providerNow}`}>
+        <div>Current provider: <b>{providerNow === "premium" ? "ElevenLabs Premium" : "Browser (free)"}</b></div>
+        <div>Current Journey voice: <b>{nameOf(assign.journeyFemale || assign.journeyMale)}</b> <code>{assign.journeyFemale || assign.journeyMale || "—"}</code></div>
+        <div>Current Concierge voice: <b>{nameOf(assign.concierge)}</b> <code>{assign.concierge || "—"}</code></div>
+      </div>
+
+      <div className="pg-actions">
+        <button type="button" className="btn btn--gold btn--sm" onClick={restoreEleven} disabled={!cloudReady}>♻ Restore My ElevenLabs Voice</button>
+      </div>
+
       <p className="note">{cloudReady ? "Load your ElevenLabs voices, preview each, and assign them to Journey (female/male) and Concierge. No guessed ids." : "Add ELEVENLABS_API_KEY in Netlify to enable this."}</p>
       <div className="pg-actions">
         <button type="button" className="btn btn--ghost btn--sm" onClick={loadVoices} disabled={loadState.kind === "loading"}>
