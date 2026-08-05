@@ -113,9 +113,9 @@ const HOME: JourneyWorld = {
     { slug: "vacation-homes", label: "Vacation Homes", tagline: "Your escape. Your place.", image: "/journeys/home/vacation.jpg", status: "explore" },
     { slug: "renovation", label: "Renovation", tagline: "Reimagine the home you already love.", image: "/journeys/home/renovation.jpg", status: "explore" },
     { slug: "investment-property", label: "Investment Property", tagline: "Build wealth. Create freedom.", image: "/journeys/home/investment.jpg", status: "explore" },
-    { slug: "moving", label: "Moving", tagline: "A smooth move to what's next.", status: "explore" },
-    { slug: "home-maintenance", label: "Home Maintenance", tagline: "Keep your home at its best.", status: "explore" },
-    { slug: "lifestyle-concierge", label: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", status: "explore" },
+    { slug: "moving", label: "Moving", tagline: "A smooth move to what's next.", image: "/journeys/home/moving.jpg", status: "explore" },
+    { slug: "home-maintenance", label: "Home Maintenance", tagline: "Keep your home at its best.", image: "/journeys/home/maintenance.jpg", status: "explore" },
+    { slug: "lifestyle-concierge", label: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", image: "/journeys/home/concierge.jpg", status: "explore" },
   ],
 };
 

@@ -13,6 +13,9 @@ Drop the four files here with these EXACT names (case-sensitive):
 | `apartment.jpg`     | Apartment Rental      |
 | `investment.jpg`    | Investment Property   |
 | `vacation.jpg`      | Vacation Homes        |
+| `moving.jpg`        | Moving                |
+| `maintenance.jpg`   | Home Maintenance      |
+| `concierge.jpg`     | Lifestyle Concierge   |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the
