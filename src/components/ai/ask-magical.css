@@ -59,3 +59,12 @@
 .am-fine { margin: 0; padding: 0.5rem 1rem 0.8rem; font-size: 0.68rem; color: var(--muted, #8a7a63); text-align: center; background: #fff; line-height: 1.4; }
 
 @media print { .am-fab, .am-panel { display: none !important; } }
+
+/* Handoff sign-in CTA (shown when a signed-out visitor asks for a Concierge service) */
+.am-cta { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+.am-cta__b {
+  display: inline-block; padding: .5rem .9rem; border-radius: 9px; font-size: .74rem; font-weight: 700;
+  letter-spacing: .06em; text-decoration: none; border: 1px solid #c6a15a; color: #8a6a3a; background: #fff;
+}
+.am-cta__b--gold { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: #a67c2e; }
+.am-cta__b:hover { filter: brightness(1.04); }

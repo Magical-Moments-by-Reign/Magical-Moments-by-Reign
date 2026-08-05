@@ -15,6 +15,18 @@ export type MembershipTier =
 
 export const FREE_TIER: MembershipTier = "free";
 
+/** Human-facing membership names (for dashboards, receipts, badges). */
+export const MEMBERSHIP_LABEL: Record<MembershipTier, string> = {
+  free: "Free Forever",
+  monthly: "Monthly",
+  annual: "Annual",
+  "5yr": "5-Year",
+  "10yr": "10-Year",
+  legacy: "Lifetime Legacy",
+  reign: "Lifetime Reign",
+  magical: "Lifetime Magical",
+};
+
 const PAID_TIERS: readonly MembershipTier[] = ["monthly", "annual", "5yr", "10yr", "legacy", "reign", "magical"];
 const ALL_TIERS: readonly MembershipTier[] = ["free", ...PAID_TIERS];
 

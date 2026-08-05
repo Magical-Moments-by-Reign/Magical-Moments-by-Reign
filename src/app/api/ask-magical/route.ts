@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { askMagical, type ChatMessage } from "@/lib/ask-magical";
+import { askMagical, type ChatMessage, type AssistantMode } from "@/lib/ask-magical";
+import { currentAccount } from "@/lib/auth-session";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No valid messages." }, { status: 400 });
   }
 
-  const result = await askMagical(messages);
+  // Concierge is a member-only service. If a caller requests concierge mode
+  // without a valid session, fall back to the general Ask-Magical assistant —
+  // the server never grants member-only behaviour to a signed-out visitor.
+  const requested = (body as { mode?: unknown })?.mode;
+  let mode: AssistantMode = requested === "concierge" ? "concierge" : "magical";
+  if (mode === "concierge" && !(await currentAccount())) mode = "magical";
+
+  const result = await askMagical(messages, mode);
   return NextResponse.json(result);
 }
