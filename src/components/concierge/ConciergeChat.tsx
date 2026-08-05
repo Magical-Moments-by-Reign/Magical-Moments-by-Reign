@@ -36,6 +36,22 @@ const SUGGESTIONS = [
   "Ask a question",
 ];
 
+// Full capability list — lives on the "What can Concierge do?" help screen only,
+// never dumped into ordinary chat replies. "Coming Soon" = not directly connected
+// yet; everything else is help we can give right now.
+const CAPABILITIES: { label: string; soon?: boolean }[] = [
+  { label: "Plan dinners & compare restaurants" },
+  { label: "Compare flights, hotels & build itineraries" },
+  { label: "Baggage rules, routes & accessibility help" },
+  { label: "Coordinate celebrations & events" },
+  { label: "Find & shortlist vendors" },
+  { label: "Build checklists & organize dates" },
+  { label: "Gift ideas, guests & invitations (planning)" },
+  { label: "Direct restaurant reservation", soon: true },
+  { label: "Direct flight & hotel booking", soon: true },
+  { label: "Vendor booking & payment", soon: true },
+];
+
 // Minimal safe formatter: escape HTML, then render **bold** and line breaks.
 function format(text: string): { __html: string } {
   const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -50,6 +66,7 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showHuman, setShowHuman] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -149,10 +166,23 @@ export default function ConciergeChat({ hideLauncher = false }: { hideLauncher?:
               </span>
             </div>
             <div className="cc-head__ctrls">
+              <button type="button" className="cc-ctrl" onClick={() => setShowHelp((v) => !v)} aria-label="What can Concierge do?" title="What can Concierge do?">?</button>
               {!hideLauncher && <button type="button" className="cc-ctrl" onClick={() => setMinimized(true)} aria-label="Minimize" title="Minimize">–</button>}
               <button type="button" className="cc-ctrl" onClick={() => setOpen(false)} aria-label="Close" title="Close">×</button>
             </div>
           </header>
+
+          {showHelp && (
+            <div className="cc-help">
+              <h4>What can Concierge do?</h4>
+              <ul>
+                {CAPABILITIES.map((c) => (
+                  <li key={c.label}><span>{c.label}</span>{c.soon && <span className="cc-soon">Coming Soon</span>}</li>
+                ))}
+              </ul>
+              <button type="button" className="cc-help__close" onClick={() => setShowHelp(false)}>Got it</button>
+            </div>
+          )}
 
           <div className="cc-body" ref={scrollRef}>
             {msgs.map((m, i) => (
