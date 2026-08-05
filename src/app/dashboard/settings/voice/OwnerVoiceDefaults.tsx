@@ -42,15 +42,50 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
   };
   const nameOf = (id: string) => voices?.find((v) => v.voice_id === id)?.name || (id ? `${id.slice(0, 10)}…` : "built-in default");
 
-  async function loadVoices() {
+  async function fetchVoices(): Promise<ElevenVoice[] | null> {
     setLoadState({ kind: "loading", msg: "Contacting ElevenLabs…" });
     try {
       const res = await fetch("/api/voice/elevenlabs-voices");
       const data = await res.json();
-      if (data.ok) { setVoices(data.voices || []); setLoadState({ kind: "ok", msg: `Connected — ${data.count} voice(s) in your ElevenLabs account.` }); }
-      else if (data.configured === false) setLoadState({ kind: "err", msg: "ELEVENLABS_API_KEY is not set on this deployment." });
+      if (data.ok) { setVoices(data.voices || []); setLoadState({ kind: "ok", msg: `Connected — ${data.count} voice(s) in your ElevenLabs account.` }); return data.voices || []; }
+      if (data.configured === false) setLoadState({ kind: "err", msg: "ELEVENLABS_API_KEY is not set on this deployment." });
       else setLoadState({ kind: "err", msg: data.error || "ElevenLabs did not respond." });
-    } catch { setLoadState({ kind: "err", msg: "Could not reach the voice service." }); }
+      return null;
+    } catch { setLoadState({ kind: "err", msg: "Could not reach the voice service." }); return null; }
+  }
+  function loadVoices() { fetchVoices(); }
+
+  // Best-effort gender from the ElevenLabs label, else a name heuristic.
+  function inferGender(v: ElevenVoice): "female" | "male" {
+    const g = (v.gender || "").toLowerCase();
+    if (g.includes("female")) return "female";
+    if (g.includes("male")) return "male";
+    return /\b(brittney|hope|sarah|rachel|bella|elli|charlotte|lily|nova|emma|ava|grace|sophie|olivia|female|woman)\b/i.test(v.name) ? "female" : "male";
+  }
+
+  // One click: assign a female + male Journey voice and a distinct Concierge
+  // voice from the real account, save them, and switch the owner to Premium.
+  async function autoAssign() {
+    setResult({ kind: "", msg: "Assigning your ElevenLabs voices…" });
+    const list = voices ?? (await fetchVoices());
+    if (!list || !list.length) { setResult({ kind: "fail", msg: "Load your ElevenLabs voices first." }); return; }
+    const tagged = list.map((v) => ({ v, g: inferGender(v) }));
+    const females = tagged.filter((x) => x.g === "female").map((x) => x.v);
+    const males = tagged.filter((x) => x.g === "male").map((x) => x.v);
+    const jf = females[0]?.voice_id || list[0].voice_id;
+    const jm = males[0]?.voice_id || list.find((v) => v.voice_id !== jf)?.voice_id || jf;
+    const con = (females[1] || males.find((m) => m.voice_id !== jm) || list.find((v) => v.voice_id !== jf && v.voice_id !== jm))?.voice_id || jf;
+    setAssign((a) => ({ ...a, journeyFemale: jf, journeyMale: jm, concierge: con }));
+    try {
+      await Promise.all([
+        updateOwnerElevenVoiceAction("journeyFemale", jf),
+        updateOwnerElevenVoiceAction("journeyMale", jm),
+        updateOwnerElevenVoiceAction("concierge", con),
+      ]);
+    } catch { /* saved best-effort */ }
+    const next = savePrefs({ ...loadPrefs(), provider: "premium", journeyVoice: "journey-warm-hd" });
+    updateVoicePrefsAction(portablePrefs(next)).catch(() => {});
+    setResult({ kind: "ok", msg: `Assigned — Journey ♀: ${nameOf(jf)} · Journey ♂: ${nameOf(jm)} · Concierge: ${nameOf(con)}. Journey is now Premium — press Test or turn Journey on to hear it.` });
   }
 
   function assignSlot(slot: Slot, voiceId: string) {
@@ -155,6 +190,7 @@ export default function OwnerVoiceDefaults({ config, eleven, cloudReady }: { con
         <button type="button" className="btn btn--ghost btn--sm" onClick={loadVoices} disabled={loadState.kind === "loading"}>
           {loadState.kind === "loading" ? "Loading…" : "Load my ElevenLabs voices"}
         </button>
+        <button type="button" className="btn btn--gold btn--sm" onClick={autoAssign} disabled={!cloudReady}>Auto-assign my voices</button>
         <button type="button" className="btn btn--gold btn--sm" onClick={testElevenLabs} disabled={!cloudReady || previewing === "test"}>
           {previewing === "test" ? "Testing…" : "Test ElevenLabs Voice"}
         </button>
