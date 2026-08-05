@@ -1062,6 +1062,15 @@ model Account {
   isDemo            Boolean @default(false)
   billingExempt     Boolean @default(false)
 
+  // The member's chosen name for their Magical Assistant (the Ask Magical
+  // guide). Per-profile; defaults to "Journey". Validated + profanity-filtered
+  // in src/lib/assistant-name.ts. Additive + defaulted — safe `prisma db push`.
+  assistantName     String  @default("Journey")
+  // First-time guided Magical Space tour: set when the member finishes or
+  // intentionally skips it, so it never auto-offers again (they can replay it
+  // from Settings). Additive + nullable — safe `prisma db push`.
+  tourCompletedAt   DateTime?
+
   identity      AccountIdentity?
   sessions        Session[]
   notifications   Notification[]

@@ -2,17 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
-import { MEMBERSHIP_LABEL } from "@/lib/membership-access";
+import { membershipDisplay } from "@/lib/membership-access";
 import { logoutAction } from "../../account/actions";
+import AssistantSettings from "./AssistantSettings";
+import "./settings.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Account & Settings", robots: { index: false } };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: { searchParams: Promise<{ assistant?: string }> }) {
   const account = await requireAccount("/dashboard/settings");
+  const sp = await searchParams;
   const detail = await prisma.account.findUnique({
     where: { id: account.id },
     select: {
+      staffRoles: true,
       emails: { where: { isPrimary: true }, select: { email: true, verified: true }, take: 1 },
       phones: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
     },
@@ -20,7 +26,9 @@ export default async function SettingsPage() {
 
   const email = detail?.emails[0]?.email ?? "—";
   const phone = detail?.phones[0]?.phone ?? "Not added";
-  const tier = MEMBERSHIP_LABEL[account.membershipTier] ?? account.membershipTier;
+  let owner = false;
+  try { owner = (JSON.parse(detail?.staffRoles || "[]") as unknown[]).includes("owner"); } catch { owner = false; }
+  const tier = membershipDisplay(account.membershipTier, { owner });
 
   const MANAGE = [
     { t: "Profile", s: "Name, profile photo, personal details", href: "/account" },
@@ -49,6 +57,8 @@ export default async function SettingsPage() {
           <div className="row"><div className="row__main"><div className="row__s">Membership</div><div className="row__t">{tier}</div></div><Link href="/membership" className="btn btn--sm btn--ghost">Manage</Link></div>
         </div>
       </div>
+
+      <AssistantSettings currentName={account.assistantName} firstName={account.firstName} flag={sp.assistant} />
 
       <section className="sec">
         <div className="sec__h"><h2 className="sec__t">Manage</h2></div>
