@@ -5,7 +5,15 @@
 // no experiences yet), so it never duplicates data or resurrects
 // content you've deleted on later deploys.
 //
-// Safe to run on every deploy: schema push is idempotent.
+// Connection safety (Supabase Session pooler, pool_size 15): the build must
+// use as FEW connections as possible. We force a low Prisma connection limit
+// for every child process and the in-process seed client, and we RETRY the
+// schema push on transient pool-exhaustion errors (EMAXCONNSESSION, "max
+// clients reached", P1001, connection-pool timeouts) instead of failing the
+// whole deploy. The DATABASE_URL (with its password) is NEVER printed.
+//
+// Set SKIP_DB_PUSH=1 to skip the schema push entirely on ordinary deploys once
+// the schema is already synchronized (see the note at the bottom of this file).
 
 import { execSync } from "node:child_process";
 
@@ -14,58 +22,112 @@ if (!process.env.DATABASE_URL) {
   process.exit(0);
 }
 
-function run(cmd) {
-  console.log(`[db] $ ${cmd}`);
-  execSync(cmd, { stdio: "inherit" });
+// Append a low connection limit to the build's DATABASE_URL, in memory only.
+// Respect an explicit connection_limit if one is already set (e.g. in Netlify).
+function withConnLimit(url) {
+  if (!url || /[?&]connection_limit=/.test(url)) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}connection_limit=1&pool_timeout=20`;
+}
+// Every child process (prisma db push, tsx seed) and the in-process client
+// inherit this limited URL. The value is never logged.
+process.env.DATABASE_URL = withConnLimit(process.env.DATABASE_URL);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Transient = a temporary connection/pool problem that a retry can clear.
+const TRANSIENT =
+  /EMAXCONNSESSION|max clients reached|too many clients|remaining connection slots|P1001|Can't reach database server|connection pool timeout|pool[_ ]timeout|Timed out fetching a new connection|ECONNRESET|ETIMEDOUT/i;
+// Never retry this — retrying won't help and could hide a real problem.
+const DATA_LOSS = /data loss|--accept-data-loss/i;
+
+function printDataLossHint() {
+  console.error("\n[db] ✖ Schema push blocked by Prisma's DATA-LOSS guard (the database IS reachable — not a connection problem).");
+  console.error("[db]   A change (e.g. a new unique constraint, or a dropped column) could affect existing rows.");
+  console.error("[db]   Fix: make the change in prisma/schema.prisma additive/non-destructive, then redeploy.");
+  console.error("[db]   Only if verified safe on real data: run `prisma db push --accept-data-loss` deliberately.");
+}
+function printConnHint() {
+  console.error("\n[db] ✖ Could not reach the database to apply the schema.");
+  console.error("[db] DATABASE_URL must be the Supabase **Session pooler** string:");
+  console.error("[db]   host  →  aws-0-<region>.pooler.supabase.com : 5432   (IPv4, works on Netlify)");
+  console.error("[db]   NOT   →  db.<project>.supabase.co                    (direct, IPv6-only, unreachable)");
+  console.error("[db]   NOT   →  ...pooler.supabase.com:6543                 (transaction pooler, can't create tables)");
 }
 
-// 1) Create/update all tables from prisma/schema.prisma.
-//    We capture output so the error handler can tell WHY the push failed and
-//    print an accurate hint — a data-loss/schema guard is NOT a connection
-//    problem, and conflating the two has misled deploy diagnosis before.
-try {
-  console.log("[db] Applying schema to the database (prisma db push)…");
-  console.log("[db] $ npx prisma db push --skip-generate");
-  const out = execSync("npx prisma db push --skip-generate", { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-  process.stdout.write(out);
-} catch (err) {
-  if (err?.stdout) process.stdout.write(err.stdout);
-  if (err?.stderr) process.stderr.write(err.stderr);
-  const combined = `${err?.stdout ?? ""}\n${err?.stderr ?? ""}\n${err?.message ?? ""}`;
+/** Run `prisma db push`, retrying only on transient connection/pool errors. */
+async function pushWithRetry() {
+  const MAX_ATTEMPTS = 4; // first try + up to 3 retries
+  const DELAY_MS = 10_000;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      console.log(`[db] Applying schema (prisma db push, attempt ${attempt}/${MAX_ATTEMPTS})…`);
+      const out = execSync("npx prisma db push --skip-generate", {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      process.stdout.write(out);
+      return; // success
+    } catch (err) {
+      if (err?.stdout) process.stdout.write(err.stdout);
+      if (err?.stderr) process.stderr.write(err.stderr);
+      const combined = `${err?.stdout ?? ""}\n${err?.stderr ?? ""}\n${err?.message ?? ""}`;
 
-  if (/data loss|--accept-data-loss/i.test(combined)) {
-    // The database is reachable; Prisma refused a potentially-destructive change.
-    console.error("\n[db] ✖ Schema push blocked by Prisma's DATA-LOSS guard (the database IS reachable — this is not a connection problem).");
-    console.error("[db]   A change above (e.g. adding a unique constraint, or dropping a column) could affect existing rows.");
-    console.error("[db]   Preferred fix: adjust prisma/schema.prisma so the change is additive/non-destructive, then redeploy.");
-    console.error("[db]   Only if the change is verified safe on real data: re-run with `prisma db push --accept-data-loss`.");
-  } else {
-    console.error("\n[db] ✖ Could not reach the database to apply the schema.");
-    console.error("[db] DATABASE_URL must be the Supabase **Session pooler** string:");
-    console.error("[db]   host  →  aws-0-<region>.pooler.supabase.com   (IPv4, works on Netlify)");
-    console.error("[db]   NOT   →  db.<project>.supabase.co             (direct, IPv6-only, unreachable)");
-    console.error("[db]   NOT   →  ...pooler.supabase.com:6543          (transaction pooler, can't create tables)");
-    console.error("[db] Copy it from Supabase → Connect → 'Session pooler', then redeploy.");
+      if (DATA_LOSS.test(combined)) { printDataLossHint(); process.exit(1); }
+
+      const transient = TRANSIENT.test(combined);
+      if (transient && attempt < MAX_ATTEMPTS) {
+        console.warn(`[db] ⏳ Transient database/connection error — retrying in ${DELAY_MS / 1000}s (attempt ${attempt}/${MAX_ATTEMPTS}).`);
+        await sleep(DELAY_MS);
+        continue;
+      }
+      if (transient) {
+        console.error(`\n[db] ✖ Still could not connect after ${MAX_ATTEMPTS} attempts (connection pool likely saturated).`);
+        console.error("[db]   The pooler is at capacity. Retry the deploy in a minute, or lower runtime connections — do NOT raise pool_size as the first move.");
+        process.exit(1);
+      }
+      printConnHint();
+      process.exit(1);
+    }
   }
-  process.exit(1); // surface the problem in the deploy log
+}
+
+// 1) Create/update all tables from prisma/schema.prisma (idempotent).
+if (process.env.SKIP_DB_PUSH) {
+  console.log("[db] SKIP_DB_PUSH set — skipping schema push (schema assumed already synchronized).");
+} else {
+  await pushWithRetry();
 }
 
 // 2) Seed default experiences only when the database is empty.
-try {
+//    One short-lived client, with a guaranteed disconnect in `finally`.
+{
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
-  const count = await prisma.experience.count();
-  await prisma.$disconnect();
-
-  if (count === 0) {
-    console.log("[db] Database is empty — seeding default experiences…");
-    run("npx tsx prisma/seed.ts");
-  } else {
-    console.log(`[db] ${count} experience(s) already present — skipping seed.`);
+  try {
+    const count = await prisma.experience.count();
+    if (count === 0) {
+      console.log("[db] Database is empty — seeding default experiences…");
+      execSync("npx tsx prisma/seed.ts", { stdio: "inherit" });
+    } else {
+      console.log(`[db] ${count} experience(s) already present — skipping seed.`);
+    }
+  } catch (e) {
+    // Don't fail the whole deploy just because seeding hiccuped.
+    console.error("[db] ⚠ Seeding skipped due to an error:", e?.message ?? e);
+  } finally {
+    await prisma.$disconnect();
   }
-} catch (e) {
-  // Don't fail the whole deploy just because seeding hiccuped.
-  console.error("[db] ⚠ Seeding skipped due to an error:", e?.message ?? e);
 }
 
 console.log("[db] Production database ready. ✦");
+
+// ── Note: is `prisma db push` needed on every deploy? ────────────
+// No. Once the schema is synchronized it is a no-op that still opens a pooled
+// connection. Two safer long-term options:
+//   • Set SKIP_DB_PUSH=1 in Netlify for ordinary content/UI deploys, and only
+//     unset it when the schema actually changed; or
+//   • Move to controlled migrations: `prisma migrate dev` locally to create a
+//     migration, commit prisma/migrations, and run `prisma migrate deploy`
+//     in the build instead of `db push`. That applies only new migrations,
+//     opens one connection briefly, and never risks an unexpected schema diff.
