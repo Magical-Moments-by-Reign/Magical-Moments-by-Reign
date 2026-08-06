@@ -28,6 +28,11 @@ export interface JourneyWorld {
   areas: JourneyArea[];
 }
 
+// One constant, branded hero banner shown at the top of EVERY Journey world —
+// only the occasion tiles below it change from world to world. Swap this single
+// file to change the hero everywhere.
+export const WORLD_HERO = "/hero/world-hero.png";
+
 // Reusable workspace sections. "explore" is live; the rest are honestly labelled
 // Coming Soon until their data models are connected — no dead features.
 export const WORKSPACE_TABS: { id: string; label: string; live?: boolean }[] = [
