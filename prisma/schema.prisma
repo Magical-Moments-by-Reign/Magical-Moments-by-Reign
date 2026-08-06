@@ -710,6 +710,10 @@ model Family {
   // Website-level privacy for the whole family site: PUBLIC | UNLISTED | PRIVATE.
   // Per-occasion visibility still applies on top of this.
   visibility  String   @default("PUBLIC")
+  // Per-Journey overrides as JSON: { [sectionId]: { visibility, coverImage, order } }.
+  // Enables three-level privacy (family → journey → occasion) without forcing
+  // every Journey to inherit one global setting. Additive/nullable.
+  journeySettings String?
   ownerId     String?
   members     FamilyMember[]
   documents   FamilyDocument[]
