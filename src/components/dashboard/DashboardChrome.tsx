@@ -48,7 +48,7 @@ export default function DashboardChrome({
 
   const sidebar = (
     <>
-      <Link href="/dashboard" className="dsh-brand" onClick={() => setDrawer(false)}>
+      <Link href="/" className="dsh-brand" onClick={() => setDrawer(false)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/logo-champagne.png" alt="" width={40} height={40} />
         <span className="dsh-brand__t"><b>MAGICAL MOMENTS</b><i>BY REIGN</i></span>
