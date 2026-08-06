@@ -130,6 +130,17 @@ if (process.env.SKIP_DB_PUSH) {
   }
 }
 
+// 2a) Ensure canonical sample experiences exist (create-if-missing). Fixes
+//     Inspiration Gallery cards that 404 because their slug was added to the
+//     seed after the first deploy (e.g. /thejohnsonhome). Never overwrites
+//     existing rows, so owner content is untouched.
+try {
+  console.log("[db] Ensuring canonical sample experiences exist…");
+  execSync("npx tsx scripts/ensure-samples.ts", { stdio: "inherit" });
+} catch (e) {
+  console.error("[db] ⚠ ensure-samples skipped:", e?.message ?? e);
+}
+
 // 2b) Keep canonical public-sample content correct (idempotent; safe every run).
 {
   const { PrismaClient } = await import("@prisma/client");
