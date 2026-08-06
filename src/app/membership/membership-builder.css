@@ -385,7 +385,7 @@
 .mbx-hero__s { color: #6f6455; font-size: 1.02rem; line-height: 1.65; margin: 0; max-width: 52ch; }
 .mbx-hero__s strong { color: var(--gold-d); }
 .mbx-hero__locked { margin: 1rem 0 0; padding: 0.8rem 1.1rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(201,163,78,0.1); color: #55452e; font-size: 0.9rem; line-height: 1.5; }
-.mbx-hero__r { min-height: 340px; border-radius: 22px; background: #efe5d3 url("/story/bridalshower.jpg") center / cover no-repeat; box-shadow: 0 40px 80px -50px rgba(120,90,40,0.6); }
+.mbx-hero__r { min-height: 340px; border-radius: 22px; background: #efe5d3 url("/hero/membership-hero.jpg") center / cover no-repeat; box-shadow: 0 40px 80px -50px rgba(120,90,40,0.6); }
 
 @media (max-width: 860px) {
   .mbx-hero { grid-template-columns: 1fr; }
