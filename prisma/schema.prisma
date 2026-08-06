@@ -702,6 +702,14 @@ model GiftSettings {
 model Family {
   id          String   @id @default(cuid())
   name        String   @default("Our Family")
+  // Unified Family Website (Phase 1). The public client path segment, e.g.
+  // /family/the-johnson-family. Nullable + unique: additive and backfilled
+  // from `name` on deliberate deploy (scripts/prepare-db.mjs), so existing
+  // rows and old code are unaffected until a slug is assigned.
+  slug        String?  @unique
+  // Website-level privacy for the whole family site: PUBLIC | UNLISTED | PRIVATE.
+  // Per-occasion visibility still applies on top of this.
+  visibility  String   @default("PUBLIC")
   ownerId     String?
   members     FamilyMember[]
   documents   FamilyDocument[]
