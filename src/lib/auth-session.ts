@@ -89,19 +89,30 @@ export async function currentAccount(): Promise<CurrentAccount | null> {
   if (!token) return null;
 
   const tokenHash = hashSessionToken(token);
-  const session = await prisma.session.findUnique({
-    where: { tokenHash },
-    select: {
-      id: true, expiresAt: true, revokedAt: true,
-      account: {
-        select: {
-          id: true, customerId: true, firstName: true, lastName: true,
-          platformRole: true, status: true, guardianAccountId: true, membershipTier: true,
-          assistantName: true,
+
+  // Resolve the session against the DB. A database failure here must NEVER crash
+  // the page tree — every route funnels through this, so a throw would 500 the
+  // whole site (including the public homepage). On any DB error we degrade to
+  // "signed-out": the visitor still gets a working page instead of an error.
+  let session;
+  try {
+    session = await prisma.session.findUnique({
+      where: { tokenHash },
+      select: {
+        id: true, expiresAt: true, revokedAt: true,
+        account: {
+          select: {
+            id: true, customerId: true, firstName: true, lastName: true,
+            platformRole: true, status: true, guardianAccountId: true, membershipTier: true,
+            assistantName: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (err) {
+    console.error("[currentAccount] session lookup failed; treating as signed-out:", err);
+    return null;
+  }
   if (!session || !session.account) return null;
 
   const ok = sessionValid(
