@@ -7,7 +7,7 @@
 // always revalidates prices server-side regardless.)
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { EMPTY_CART, computeTotals, type CartState, type OrderTotals } from "@/lib/commerce";
+import { EMPTY_CART, computeTotals, type CartState, type CartMembership, type OrderTotals } from "@/lib/commerce";
 import { getAddOn, type PlanId } from "@/lib/plans";
 
 const STORAGE_KEY = "mmr_cart_v1";
@@ -21,6 +21,8 @@ interface CartContextValue {
   openCart: () => void;
   closeCart: () => void;
   setPlan: (planId: PlanId | null) => void;
+  /** Set (or clear) the membership. Mutually exclusive with a legacy plan. */
+  setMembership: (membership: CartMembership | null) => void;
   addAddon: (id: string, qty?: number) => void;
   setQty: (id: string, qty: number) => void;
   removeAddon: (id: string) => void;
@@ -47,7 +49,7 @@ export default function CartProvider({ children }: { children: React.ReactNode }
       if (raw) {
         const parsed = JSON.parse(raw) as CartState;
         if (parsed && typeof parsed === "object") {
-          setCart({ planId: parsed.planId ?? null, addons: parsed.addons ?? {} });
+          setCart({ membership: parsed.membership ?? null, planId: parsed.planId ?? null, addons: parsed.addons ?? {} });
         }
       }
     } catch {
@@ -77,7 +79,9 @@ export default function CartProvider({ children }: { children: React.ReactNode }
     isOpen,
     openCart: () => setOpen(true),
     closeCart: () => setOpen(false),
-    setPlan: (planId) => setCart((c) => ({ ...c, planId })),
+    // A legacy plan and a membership are mutually exclusive — one model at a time.
+    setPlan: (planId) => setCart((c) => ({ ...c, planId, membership: planId ? null : c.membership })),
+    setMembership: (membership) => setCart((c) => ({ ...c, membership, planId: membership ? null : c.planId })),
     addAddon: (id, qty = 1) =>
       setCart((c) => {
         const addon = getAddOn(id);

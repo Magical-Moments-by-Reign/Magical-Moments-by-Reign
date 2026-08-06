@@ -43,11 +43,12 @@ async function nextOrderNumber(now: Date): Promise<string> {
 }
 
 export async function createOrder(cart: CartState, details: CheckoutDetails): Promise<CreatedOrder> {
-  if (!cart.planId || !getPlan(cart.planId)) {
-    throw new Error("A preservation plan is required to check out.");
+  const isMembership = Boolean(cart.membership && cart.membership.occasions.length > 0);
+  if (!isMembership && (!cart.planId || !getPlan(cart.planId))) {
+    throw new Error("A membership or preservation plan is required to check out.");
   }
 
-  const totals = computeTotals(cart); // authoritative
+  const totals = computeTotals(cart); // authoritative — re-prices via pricing-engine
   const now = new Date();
   const number = await nextOrderNumber(now);
 
@@ -68,7 +69,10 @@ export async function createOrder(cart: CartState, details: CheckoutDetails): Pr
     data: {
       number,
       customerId: customer.id,
-      planId: cart.planId,
+      planId: cart.planId ?? null,
+      // Record the membership selection (term + occasions + protection) without a
+      // schema change; the line items carry the priced membership line.
+      notes: isMembership ? JSON.stringify({ membership: cart.membership }) : null,
       experienceTitle: details.experienceTitle || null,
       experienceType: details.experienceType || null,
       eventDate: details.eventDate ? new Date(details.eventDate) : null,
