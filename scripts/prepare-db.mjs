@@ -135,11 +135,21 @@ if (process.env.SKIP_DB_PUSH) {
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
   try {
-    const r = await prisma.experience.updateMany({
-      where: { slug: "smithwedding" },
-      data: { subtitle: "June 14th, 2026 · Napa Valley" },
-    });
-    console.log(`[db] Sample content fix: smithwedding subtitle → 2026 (${r.count} row).`);
+    // The hero date renders from the content JSON, so fix both the subtitle
+    // column AND the embedded date (2027 → 2026) on the sample record.
+    const w = await prisma.experience.findUnique({ where: { slug: "smithwedding" }, select: { id: true, content: true } });
+    if (w) {
+      await prisma.experience.update({
+        where: { id: w.id },
+        data: {
+          subtitle: "June 14th, 2026 · Napa Valley",
+          content: (w.content || "").split("2027").join("2026"),
+        },
+      });
+      console.log("[db] Sample content fix: smithwedding date → 2026 (subtitle + content).");
+    } else {
+      console.log("[db] Sample content fix: smithwedding not found; nothing to do.");
+    }
   } catch (e) {
     console.error("[db] ⚠ Sample content fix skipped:", e?.message ?? e);
   } finally {
