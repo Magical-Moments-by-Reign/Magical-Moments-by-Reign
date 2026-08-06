@@ -42,6 +42,9 @@ export default function MembershipBuilder() {
   const [jp, setJp] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  // The occasion the visitor tapped while on Free — carried through the upgrade
+  // modal so picking a membership there selects it immediately.
+  const [pendingOcc, setPendingOcc] = useState<string | null>(null);
   const [downgraded, setDowngraded] = useState(false);
 
   const isFree = term === "free";
@@ -66,12 +69,21 @@ export default function MembershipBuilder() {
   };
 
   const toggle = (id: string) => {
-    if (!canSelect) { setShowUpgrade(true); return; }
+    if (!canSelect) { setPendingOcc(id); setShowUpgrade(true); return; }
     setOcc((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (hasLimit && prev.length >= limit) return prev;
       return [...prev, id];
     });
+  };
+
+  // Pick a membership from the upgrade modal: set the term, keep the occasion
+  // the visitor was trying to select, and close the modal.
+  const pickMembership = (next: TermId) => {
+    changeTerm(next);
+    if (pendingOcc) setOcc((prev) => (prev.includes(pendingOcc) ? prev : [...prev, pendingOcc]));
+    setPendingOcc(null);
+    setShowUpgrade(false);
   };
 
   const q = isFree ? null : quote(count, term as TermId);
@@ -289,14 +301,15 @@ export default function MembershipBuilder() {
             <span className="mb2-upsell__eyebrow">{UPGRADE_COPY.eyebrow}</span>
             <h3 className="mb2-upsell__t" id="mbx-up-t">{UPGRADE_COPY.title}</h3>
             <p className="mb2-upsell__p">{UPGRADE_COPY.body}</p>
+            {/* Each plan is selectable right here — tap one to begin. */}
             <div className="mb2-upsell__plans">
-              <div className="mb2-upsell__plan"><span className="mb2-upsell__pk">Monthly</span><span className="mb2-upsell__pv">from {formatUSD(quote(1, "monthly").total)}<small>/mo</small></span></div>
-              <div className="mb2-upsell__plan"><span className="mb2-upsell__pk">Annual</span><span className="mb2-upsell__pv">from {formatUSD(quote(1, "1yr").total)}</span></div>
-              <div className="mb2-upsell__plan mb2-upsell__plan--feature"><span className="mb2-upsell__pk">Lifetime</span><span className="mb2-upsell__pv">from {formatUSD(collectionFor(1).price)}</span></div>
+              <button type="button" className="mb2-upsell__plan" onClick={() => pickMembership("monthly")}><span className="mb2-upsell__pk">Monthly</span><span className="mb2-upsell__pv">from {formatUSD(quote(1, "monthly").total)}<small>/mo</small></span></button>
+              <button type="button" className="mb2-upsell__plan" onClick={() => pickMembership("1yr")}><span className="mb2-upsell__pk">Annual</span><span className="mb2-upsell__pv">from {formatUSD(quote(1, "1yr").total)}</span></button>
+              <button type="button" className="mb2-upsell__plan mb2-upsell__plan--feature" onClick={() => pickMembership("lifetime")}><span className="mb2-upsell__pk">Lifetime</span><span className="mb2-upsell__pv">from {formatUSD(collectionFor(1).price)}</span></button>
             </div>
             <div className="mb2-upsell__actions">
-              <button type="button" className="mb2-upsell__pick" onClick={() => { changeTerm("monthly"); setShowUpgrade(false); }}>Choose a Membership</button>
-              <button type="button" className="mb2-upsell__later" onClick={() => setShowUpgrade(false)}>Maybe later</button>
+              <button type="button" className="mb2-upsell__pick" onClick={() => { setShowUpgrade(false); document.getElementById("step2")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>See all membership options</button>
+              <button type="button" className="mb2-upsell__later" onClick={() => { setPendingOcc(null); setShowUpgrade(false); }}>Maybe later</button>
             </div>
           </div>
         </div>
