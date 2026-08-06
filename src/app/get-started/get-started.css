@@ -39,8 +39,10 @@
 .gs-hero__cta:hover { filter: brightness(1.05); }
 .gs-hero__note { display: flex; align-items: center; gap: 0.5rem; color: var(--soft); font-size: 0.85rem; margin-top: 1.1rem; }
 .gs-hero__note svg { width: 14px; height: 14px; stroke: var(--champ-d); fill: none; stroke-width: 1.5; }
-.gs-hero__r { position: relative; overflow: hidden; background: #efe5d3 url("/hero/home-poster.jpg") center / cover no-repeat; }
-.gs-hero__vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.gs-hero__r { position: relative; overflow: hidden; background: #efe5d3; }
+/* contain (not cover) so the full "Our New Home" frame is always visible —
+   the top of the collage is never cropped. Cream fills any thin edge bars. */
+.gs-hero__vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
 
 /* Cards section */
 .gs-sec { max-width: 1180px; margin: 0 auto; padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2rem); }
