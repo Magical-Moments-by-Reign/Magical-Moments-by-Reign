@@ -11,7 +11,7 @@ import { slugify } from "../src/lib/slug";
 const prisma = new PrismaClient();
 
 const DEMOS: { slug: string; type: string; title: string; subtitle: string }[] = [
-  { slug: "smithwedding", type: "wedding", title: "The Smith Wedding", subtitle: "June 14th, 2027 · Napa Valley" },
+  { slug: "smithwedding", type: "wedding", title: "The Smith Wedding", subtitle: "June 14th, 2026 · Napa Valley" },
   { slug: "karlie2027", type: "birthday", title: "Karlie Turns Ten", subtitle: "A magical tenth birthday" },
   { slug: "babyolivia", type: "baby", title: "Baby Olivia", subtitle: "The story of our little miracle" },
   { slug: "rememberinggrandpajoe", type: "memorial", title: "Remembering Grandpa Joe", subtitle: "1938 – 2025 · Forever in our hearts" },

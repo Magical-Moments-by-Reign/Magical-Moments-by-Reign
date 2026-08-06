@@ -77,7 +77,7 @@ export default async function CreatePage({
               </label>
               <label className="cr-field">
                 <span>Subtitle (optional)</span>
-                <input name="subtitle" type="text" placeholder="e.g. June 14th, 2027 · Napa Valley" />
+                <input name="subtitle" type="text" placeholder="e.g. June 14th, 2026 · Napa Valley" />
               </label>
               <label className="cr-field">
                 <span>Custom link (optional)</span>
