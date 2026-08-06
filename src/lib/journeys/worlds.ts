@@ -128,10 +128,16 @@ const a = (slug: string, label: string, tagline?: string, image?: string): Journ
 
 const OTHERS: JourneyWorld[] = [
   world("baby", "Baby", "Baby Journey", "From the first announcement to first steps.", "/story/baby.jpg", "Baby Moment", [
-    a("gender-reveal", "Gender Reveal", "Share the happy news.", "/story/genderreveal.jpg"), a("baby-shower", "Baby Shower", "Celebrate the little one.", "/story/babyshower.jpg"),
-    a("nursery", "Nursery Ideas", "A room full of love."), a("first-birthday", "First Birthday", "One big year.", "/story/firstbirthday.jpg"),
-    a("milestones", "Baby Milestones", "Every first, remembered."), a("baby-memories", "Baby Memories", "Keep them close."),
-  ]),
+    a("welcome-baby", "Welcome Baby", "You are so loved already.", "/journeys/baby/welcome-baby.jpg"),
+    a("birth-story", "Birth Story", "Every moment. Every breath. Our greatest miracle.", "/journeys/baby/birth-story.jpg"),
+    a("gender-reveal", "Gender Reveal", "Share the happy news.", "/story/genderreveal.jpg"),
+    a("baby-shower", "Baby Shower", "Celebrate the little one.", "/story/babyshower.jpg"),
+    a("nursery", "Nursery Ideas", "A room full of love."),
+    a("milestones", "Baby Milestones", "Every first, remembered.", "/journeys/baby/milestones.jpg"),
+    a("first-holidays", "Baby's First Holidays", "Making memories that last a lifetime.", "/journeys/baby/first-holidays.jpg"),
+    a("first-birthday", "First Birthday", "One big year.", "/journeys/baby/first-birthday.jpg"),
+    a("baby-memories", "Baby Memories", "Keep them close."),
+  ], "live"),
   world("birthday", "Birthday", "Birthday Journey", "Every candle, every wish, every year.", "/story/birthday.jpg", "Birthday Moment", [
     a("kids-birthday", "Kids Birthday", "Big fun for little ones.", "/story/birthday.jpg"), a("milestone-birthday", "Milestone Birthday", "30, 40, 50 & beyond."),
     a("sweet-16", "Sweet 16", "A milestone to remember.", "/story/sweet16.jpg"), a("quinceanera", "Quinceañera", "A grand celebration.", "/story/quinceanera.jpg"),
