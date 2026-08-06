@@ -85,7 +85,7 @@ const RELATIONSHIP: JourneyWorld = {
     { slug: "honeymoon", label: "Honeymoon", tagline: "Begin forever, somewhere beautiful.", image: "/story/vacation.jpg", status: "explore" },
     { slug: "anniversary", label: "Anniversary", tagline: "Celebrate the years.", image: "/story/anniversary.jpg", status: "explore",
       ideas: ["Milestone anniversaries", "Romantic getaways", "At-home celebrations", "Gift by year", "Renewing traditions", "Anniversary photography"] },
-    { slug: "vow-renewal", label: "Vow Renewal", tagline: "Say it again.", status: "explore" },
+    { slug: "vow-renewal", label: "Vow Renewal", tagline: "Say it again.", image: "/journeys/relationship/vow-renewal.jpg", status: "explore" },
     { slug: "couples-travel", label: "Couples Travel", tagline: "See the world together.", image: "/story/vacation.jpg", status: "explore" },
     { slug: "love-letters", label: "Love Letters", tagline: "Words to keep forever.", image: "/journeys/relationship/love-letters.jpg", status: "explore" },
     { slug: "our-story", label: "Our Story", tagline: "How it all began.", image: "/journeys/relationship/our-story.jpg", status: "explore" },
