@@ -137,7 +137,7 @@ const OTHERS: JourneyWorld[] = [
     a("milestones", "Baby Milestones", "Every first, remembered.", "/journeys/baby/milestones.jpg"),
     a("first-holidays", "Baby's First Holidays", "Making memories that last a lifetime.", "/journeys/baby/first-holidays.jpg"),
     a("first-birthday", "First Birthday", "One big year.", "/journeys/baby/first-birthday.jpg"),
-    a("baby-memories", "Baby Memories", "Keep them close."),
+    a("baby-memories", "Baby Memories", "Little moments, big love.", "/journeys/baby/baby-memories.jpg"),
   ], "live"),
   world("birthday", "Birthday", "Birthday Journey", "Every candle, every wish, every year.", "/story/birthday.jpg", "Birthday Moment", [
     a("kids-birthday", "Kids Birthday", "Big fun for little ones.", "/story/birthday.jpg"), a("milestone-birthday", "Milestone Birthday", "30, 40, 50 & beyond."),

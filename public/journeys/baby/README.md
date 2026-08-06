@@ -17,6 +17,7 @@ Drop the files here with these EXACT names (case-sensitive):
 | `milestones.jpg`             | Baby Milestones          |
 | `first-holidays.jpg`         | Baby's First Holidays    |
 | `first-birthday.jpg`         | First Birthday           |
+| `baby-memories.jpg`          | Baby Memories            |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the
