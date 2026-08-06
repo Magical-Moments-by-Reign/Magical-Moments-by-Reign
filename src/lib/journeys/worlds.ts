@@ -91,8 +91,8 @@ const RELATIONSHIP: JourneyWorld = {
     { slug: "our-story", label: "Our Story", tagline: "How it all began.", image: "/journeys/relationship/our-story.jpg", status: "explore" },
     { slug: "relationship-milestones", label: "Relationship Milestones", tagline: "Mark every meaningful moment.", image: "/journeys/relationship/relationship-milestones.jpg", status: "explore" },
     { slug: "relationship-memories", label: "Relationship Memories", tagline: "Keep your moments close.", image: "/journeys/relationship/relationship-memories.jpg", status: "explore" },
-    { slug: "romantic-gifts", label: "Romantic Gifts", tagline: "Thoughtful, from the heart.", status: "explore" },
-    { slug: "romantic-experiences", label: "Romantic Experiences", tagline: "Make memories, not just plans.", status: "explore" },
+    { slug: "romantic-gifts", label: "Romantic Gifts", tagline: "Thoughtful, from the heart.", image: "/journeys/relationship/romantic-gifts.jpg", status: "explore" },
+    { slug: "romantic-experiences", label: "Romantic Experiences", tagline: "Make memories, not just plans.", image: "/journeys/relationship/romantic-experiences.jpg", status: "explore" },
     { slug: "custom-relationship-moment", label: "Custom Relationship Moment", tagline: "Something all your own.", image: "/story/custom.jpg", status: "explore" },
   ],
 };
@@ -128,10 +128,17 @@ const a = (slug: string, label: string, tagline?: string, image?: string): Journ
 
 const OTHERS: JourneyWorld[] = [
   world("baby", "Baby", "Baby Journey", "From the first announcement to first steps.", "/story/baby.jpg", "Baby Moment", [
-    a("gender-reveal", "Gender Reveal", "Share the happy news.", "/story/genderreveal.jpg"), a("baby-shower", "Baby Shower", "Celebrate the little one.", "/story/babyshower.jpg"),
-    a("nursery", "Nursery Ideas", "A room full of love."), a("first-birthday", "First Birthday", "One big year.", "/story/firstbirthday.jpg"),
-    a("milestones", "Baby Milestones", "Every first, remembered."), a("baby-memories", "Baby Memories", "Keep them close."),
-  ]),
+    a("pregnancy-announcement", "Pregnancy Announcement", "Baby coming soon.", "/journeys/baby/pregnancy-announcement.jpg"),
+    a("gender-reveal", "Gender Reveal", "The biggest surprise is on the way!", "/journeys/baby/gender-reveal.jpg"),
+    a("baby-shower", "Baby Shower", "A little one is on the way!", "/journeys/baby/baby-shower.jpg"),
+    a("nursery", "Nursery Setup & Reveal", "A beautiful new space for your little one.", "/journeys/baby/nursery.jpg"),
+    a("welcome-baby", "Welcome Baby", "You are so loved already.", "/journeys/baby/welcome-baby.jpg"),
+    a("birth-story", "Birth Story", "Every moment. Every breath. Our greatest miracle.", "/journeys/baby/birth-story.jpg"),
+    a("milestones", "Baby Milestones", "Every first, remembered.", "/journeys/baby/milestones.jpg"),
+    a("first-holidays", "Baby's First Holidays", "Making memories that last a lifetime.", "/journeys/baby/first-holidays.jpg"),
+    a("first-birthday", "First Birthday", "One big year.", "/journeys/baby/first-birthday.jpg"),
+    a("baby-memories", "Baby Memories", "Little moments, big love.", "/journeys/baby/baby-memories.jpg"),
+  ], "live"),
   world("birthday", "Birthday", "Birthday Journey", "Every candle, every wish, every year.", "/story/birthday.jpg", "Birthday Moment", [
     a("kids-birthday", "Kids Birthday", "Big fun for little ones.", "/story/birthday.jpg"), a("milestone-birthday", "Milestone Birthday", "30, 40, 50 & beyond."),
     a("sweet-16", "Sweet 16", "A milestone to remember.", "/story/sweet16.jpg"), a("quinceanera", "Quinceañera", "A grand celebration.", "/story/quinceanera.jpg"),

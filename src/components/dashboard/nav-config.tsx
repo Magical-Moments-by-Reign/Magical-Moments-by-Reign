@@ -11,6 +11,7 @@ const P: Record<string, ReactNode> = {
   dashboard: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></>,
   home: <path d="M4 12 12 5 20 12 M6 11V19H18V11" />,
   relationship: <><circle cx="9" cy="12" r="5" /><circle cx="15" cy="12" r="5" /></>,
+  baby: <><circle cx="12" cy="8" r="4" /><path d="M10 7.5h.01M14 7.5h.01" /><path d="M6 20c0-3.3 2.7-5 6-5s6 1.7 6 5" /></>,
   build: <><path d="M4 20h16" /><path d="M6 20v-7l6-4 6 4v7" /><path d="M9 20v-4h6v4" /></>,
   palm: <><path d="M12 21V10" /><path d="M12 10c-3-3-7-2-8 0 3-1 5 0 8 0Z" /><path d="M12 10c3-3 7-2 8 0-3-1-5 0-8 0Z" /><circle cx="12" cy="7" r="2" /></>,
   key: <><circle cx="8" cy="8" r="4" /><path d="M11 11 20 20M17 17l2-2M15 15l2-2" /></>,
@@ -43,6 +44,7 @@ export const SIDE_NAV: NavEntry[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: "dashboard" },
   { id: "housing", label: "Housing", href: "/dashboard/journeys/home", icon: "home" },
   { id: "relationship", label: "Relationship", href: "/dashboard/journeys/relationship", icon: "relationship" },
+  { id: "baby", label: "Baby", href: "/dashboard/journeys/baby", icon: "baby" },
   { id: "create", label: "Events & Celebrations", href: "/dashboard/create", icon: "events" },
   { id: "media", label: "My Moments", href: "/dashboard/media", icon: "moments" },
   { id: "documents", label: "Documents", href: "/dashboard/explore/documents", icon: "documents" },
@@ -60,16 +62,17 @@ export interface JourneyTile {
   image?: string; status: "live" | "soon";
 }
 
-// The 8 "Your Magical Journeys" tiles on the overview.
+// The 8 "Your Magical Journeys" tiles on the overview. Each opens its live area
+// inside the Housing world (tiles with pending art fall back to a warm gradient).
 export const JOURNEY_TILES: JourneyTile[] = [
-  { id: "buy-a-home", title: "Buy a Home", tagline: "Find the one that feels like you.", icon: "home", href: "/dashboard/explore/buy-a-home", image: "/hero/home-poster.jpg", status: "soon" },
-  { id: "build-a-home", title: "Build a Home", tagline: "From land to legacy. Let's build it.", icon: "build", href: "/dashboard/explore/build-a-home", image: "/story/newhome.jpg", status: "soon" },
-  { id: "vacation-homes", title: "Vacation Homes", tagline: "Your escape. Your place.", icon: "palm", href: "/dashboard/explore/vacation-homes", image: "/story/vacation.jpg", status: "soon" },
-  { id: "renovation", title: "Renovation", tagline: "Reimagine the home you already love.", icon: "key", href: "/dashboard/explore/renovation", status: "soon" },
-  { id: "investment-property", title: "Investment Property", tagline: "Build wealth. Create freedom.", icon: "invest", href: "/dashboard/explore/investment-property", status: "soon" },
-  { id: "moving", title: "Moving", tagline: "A smooth move to what's next.", icon: "moving", href: "/dashboard/explore/moving", status: "soon" },
-  { id: "home-maintenance", title: "Home Maintenance", tagline: "Keep your home at its best.", icon: "maintenance", href: "/dashboard/explore/home-maintenance", status: "soon" },
-  { id: "concierge", title: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", icon: "concierge", href: "/dashboard/concierge", status: "live" },
+  { id: "buy-a-home", title: "Buy a Home", tagline: "Find the one that feels like you.", icon: "home", href: "/dashboard/journeys/home?area=buy-a-home", image: "/hero/home-poster.jpg", status: "live" },
+  { id: "build-a-home", title: "Build a Home", tagline: "From land to legacy. Let's build it.", icon: "build", href: "/dashboard/journeys/home?area=build-a-home", image: "/story/newhome.jpg", status: "live" },
+  { id: "vacation-homes", title: "Vacation Homes", tagline: "Your escape. Your place.", icon: "palm", href: "/dashboard/journeys/home?area=vacation-homes", image: "/journeys/home/vacation.jpg", status: "live" },
+  { id: "renovation", title: "Renovation", tagline: "Reimagine the home you already love.", icon: "key", href: "/dashboard/journeys/home?area=renovation", image: "/journeys/home/renovation.jpg", status: "live" },
+  { id: "investment-property", title: "Investment Property", tagline: "Build wealth. Create freedom.", icon: "invest", href: "/dashboard/journeys/home?area=investment-property", image: "/journeys/home/investment.jpg", status: "live" },
+  { id: "moving", title: "Moving", tagline: "A smooth move to what's next.", icon: "moving", href: "/dashboard/journeys/home?area=moving", image: "/journeys/home/moving.jpg", status: "live" },
+  { id: "home-maintenance", title: "Home Maintenance", tagline: "Keep your home at its best.", icon: "maintenance", href: "/dashboard/journeys/home?area=home-maintenance", image: "/journeys/home/maintenance.jpg", status: "live" },
+  { id: "concierge", title: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", icon: "concierge", href: "/dashboard/journeys/home?area=lifestyle-concierge", image: "/journeys/home/concierge.jpg", status: "live" },
 ];
 
 // Metadata for the Coming-Soon category pages (/dashboard/explore/[slug]).
