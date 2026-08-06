@@ -99,18 +99,23 @@ export interface JourneyTile {
   image?: string; status: "live" | "soon";
 }
 
-// The 8 "Your Magical Journeys" tiles on the overview. Each opens its live area
-// inside the Housing world (tiles with pending art fall back to a warm gradient).
+// The "Your Magical Journeys" tiles on the overview — the TWELVE top-level
+// Journeys, matching the left sidebar. Each opens its Journey world (whose
+// sub-occasions live inside that world's page, not on the dashboard). Order and
+// slugs mirror SIDE_NAV so the dashboard and sidebar always agree.
 export const JOURNEY_TILES: JourneyTile[] = [
-  { id: "buy-a-home", title: "Buy a Home", tagline: "Find the one that feels like you.", icon: "home", href: "/dashboard/journeys/home?area=buy-a-home", image: "/story/newhome.jpg", status: "live" },
-  { id: "build-a-home", title: "Build a Home", tagline: "From land to legacy. Let's build it.", icon: "build", href: "/dashboard/journeys/home?area=build-a-home", image: "/hero/home-poster.jpg", status: "live" },
-  { id: "vacation-homes", title: "Vacation Homes", tagline: "Your escape. Your place.", icon: "palm", href: "/dashboard/journeys/home?area=vacation-homes", image: "/journeys/home/vacation.jpg", status: "live" },
-  { id: "renovation", title: "Renovation", tagline: "Reimagine the home you already love.", icon: "key", href: "/dashboard/journeys/home?area=renovation", image: "/journeys/home/renovation.jpg", status: "live" },
-  { id: "investment-property", title: "Investment Property", tagline: "Build wealth. Create freedom.", icon: "invest", href: "/dashboard/journeys/home?area=investment-property", image: "/journeys/home/investment.jpg", status: "live" },
-  { id: "moving", title: "Moving", tagline: "A smooth move to what's next.", icon: "moving", href: "/dashboard/journeys/home?area=moving", image: "/journeys/home/moving.jpg", status: "live" },
-  // maintenance & concierge have no dedicated banner yet — fall back to the elegant gradient + gold icon.
-  { id: "home-maintenance", title: "Home Maintenance", tagline: "Keep your home at its best.", icon: "maintenance", href: "/dashboard/journeys/home?area=home-maintenance", status: "live" },
-  { id: "concierge", title: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", icon: "concierge", href: "/dashboard/journeys/home?area=lifestyle-concierge", status: "live" },
+  { id: "housing", title: "Housing", tagline: "Every chapter of finding & creating a home.", icon: "home", href: "/dashboard/journeys/home", image: "/story/newhome.jpg", status: "live" },
+  { id: "relationship", title: "Relationship", tagline: "Every chapter of your love story.", icon: "relationship", href: "/dashboard/journeys/relationship", image: "/story/proposal.jpg", status: "live" },
+  { id: "baby", title: "Baby", tagline: "The story of a brand-new life.", icon: "baby", href: "/dashboard/journeys/baby", image: "/story/baby.jpg", status: "live" },
+  { id: "birthday", title: "Birthday", tagline: "Another year worth celebrating.", icon: "birthday", href: "/dashboard/journeys/birthday", image: "/story/birthday.jpg", status: "live" },
+  { id: "graduation", title: "Graduation", tagline: "The milestone that started everything.", icon: "graduation", href: "/dashboard/journeys/graduation", image: "/story/graduation.jpg", status: "live" },
+  { id: "travel", title: "Travel", tagline: "Every memorable trip, kept forever.", icon: "travel", href: "/dashboard/journeys/travel", image: "/story/vacation.jpg", status: "live" },
+  { id: "military", title: "Military", tagline: "Service, homecoming, and honor.", icon: "military", href: "/dashboard/journeys/military", image: "/story/military.jpg", status: "live" },
+  { id: "sports", title: "Sports", tagline: "Every season, every win.", icon: "sports", href: "/dashboard/journeys/sports", image: "/story/sports.jpg", status: "live" },
+  { id: "family", title: "Family", tagline: "Everyone, together again.", icon: "family", href: "/dashboard/journeys/family", image: "/story/reunion.jpg", status: "live" },
+  { id: "career", title: "Career", tagline: "A life's work, honored.", icon: "career", href: "/dashboard/journeys/career", image: "/story/career.jpg", status: "live" },
+  { id: "celebration-of-life", title: "Celebration of Life", tagline: "A life remembered with love.", icon: "celebration", href: "/dashboard/journeys/celebration-of-life", image: "/story/memorial.jpg", status: "live" },
+  { id: "custom", title: "Custom", tagline: "Your one-of-a-kind moment.", icon: "star", href: "/dashboard/journeys/custom", image: "/story/custom.jpg", status: "live" },
 ];
 
 // Metadata for the Coming-Soon category pages (/dashboard/explore/[slug]).
