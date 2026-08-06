@@ -130,6 +130,23 @@ if (process.env.SKIP_DB_PUSH) {
   }
 }
 
+// 2b) Keep canonical public-sample content correct (idempotent; safe every run).
+{
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  try {
+    const r = await prisma.experience.updateMany({
+      where: { slug: "smithwedding" },
+      data: { subtitle: "June 14th, 2026 · Napa Valley" },
+    });
+    console.log(`[db] Sample content fix: smithwedding subtitle → 2026 (${r.count} row).`);
+  } catch (e) {
+    console.error("[db] ⚠ Sample content fix skipped:", e?.message ?? e);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 // 3) Optionally provision the owner/admin account during this controlled run.
 //    Set PROVISION_OWNER=true (with RUN_DATABASE_PUSH=true so this script runs).
 //    Idempotent + safe to re-run. Grants Owner/Super Admin + verified email +
