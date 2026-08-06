@@ -165,8 +165,8 @@
 /* ══ Approved home dashboard overview ═══════════════════════════ */
 .db { display: flex; flex-direction: column; gap: 1.7rem; }
 
-/* Brand banner (top of dashboard) */
-.db-banner { border-radius: 22px; overflow: hidden; box-shadow: 0 16px 40px rgba(44,33,26,.16); line-height: 0; }
+/* Brand banner (top of dashboard) — clean, borderless, large */
+.db-banner { line-height: 0; }
 .db-banner img { width: 100%; height: auto; display: block; }
 .db-welcome { margin: 0; color: var(--ink-soft); font-size: 1rem; }
 .db-welcome b { color: var(--espresso); }
