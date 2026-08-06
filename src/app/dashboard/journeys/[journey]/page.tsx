@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { getWorld, getArea, WORKSPACE_TABS } from "@/lib/journeys/worlds";
+import { getWorld, getArea, WORKSPACE_TABS, WORLD_HERO } from "@/lib/journeys/worlds";
 import JourneyActions from "@/components/journeys/JourneyActions";
 import "@/components/journeys/journeys.css";
 
@@ -30,12 +30,10 @@ export default async function JourneyWorldPage({
     <div className="jw">
       <p className="jw-back"><Link href="/dashboard/journeys">← All Journeys</Link></p>
 
-      {/* World hero */}
-      <section className="jw-hero" style={world.hero ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.28), rgba(28,19,12,.82)), url(${world.hero})` } : undefined}>
-        <span className="jw-hero__eyebrow">{world.eyebrow}</span>
-        <h1 className="jw-hero__title">{world.label}</h1>
-        <p className="jw-hero__tag">{world.tagline}</p>
-        <p className="jw-hero__note">Look around freely — no forms, no pressure. Explore ideas, save what you love, and plan only when you&rsquo;re ready.</p>
+      {/* Constant branded hero — same on every world; only the occasions change */}
+      <section className="jw-heroimg">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={WORLD_HERO} alt="Magical Moments by Reign" />
       </section>
 
       {/* Workspace tabs */}
