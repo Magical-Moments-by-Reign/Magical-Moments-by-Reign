@@ -53,9 +53,9 @@ export interface LifetimeCollection {
 }
 
 export const LIFETIME_COLLECTIONS: LifetimeCollection[] = [
-  { id: "legacy", name: "Lifetime Legacy", price: 2499, maxOccasions: 5, includesEverything: false, customJourneys: 0, blurb: "Up to 5 Lifetime Occasions." },
-  { id: "reign", name: "Lifetime Reign", price: 4999, maxOccasions: 10, includesEverything: false, customJourneys: 0, blurb: "Up to 10 Lifetime Occasions." },
-  { id: "magical", name: "Lifetime Magical Moments", price: 9999, maxOccasions: Infinity, includesEverything: true, customJourneys: 1, blurb: "Every current + future Occasion, plus 1 Custom Journey." },
+  { id: "legacy", name: "Lifetime Legacy", price: 2499, maxOccasions: 4, includesEverything: false, customJourneys: 0, blurb: "Up to 4 Lifetime Occasions." },
+  { id: "reign", name: "Lifetime Reign", price: 4999, maxOccasions: 8, includesEverything: false, customJourneys: 0, blurb: "Up to 8 Lifetime Occasions." },
+  { id: "magical", name: "Lifetime Magical Moments", price: 7999, maxOccasions: 12, includesEverything: true, customJourneys: 1, blurb: "All 12 Lifetime Occasions, including 1 Custom Journey." },
 ];
 
 /** Smallest Lifetime Collection that covers `occasionCount` occasions. */
@@ -70,12 +70,17 @@ export function collectionFor(occasionCount: number): LifetimeCollection {
 // The membership determines access, not the UI. The Builder reads these so the
 // occasion selector can never offer more than the chosen membership is entitled
 // to. Free Forever reserves nothing (it is a basic introduction). Lifetime
-// reserves up to the Reign cap (10 Life Estates); the all-inclusive Magical
-// collection is chosen from the Lifetime Collections, not built one-by-one.
+// reserves up to the top Collection cap (Magical, 12 Life Estates including a
+// Custom Journey), so a member can build straight up to the highest tier.
 // Every other paid term reserves as many occasions as the member wishes
 // (priced per occasion by quote()).
-export const LIFETIME_ESTATE_LIMIT: number =
-  LIFETIME_COLLECTIONS.find((c) => c.id === "reign")?.maxOccasions ?? 10;
+//
+// The lifetime builder cap is the HIGHEST Collection cap (Magical, 12) — not a
+// middle tier — so a member can build all the way up to the top Lifetime
+// Collection. collectionFor() then maps the count to the right tier/price.
+export const LIFETIME_ESTATE_LIMIT: number = Math.max(
+  ...LIFETIME_COLLECTIONS.map((c) => (Number.isFinite(c.maxOccasions) ? c.maxOccasions : 0)),
+);
 
 /** The maximum Life Estates a builder membership selection may reserve. */
 export function estateLimitFor(selection: "free" | TermId): number {
@@ -129,9 +134,9 @@ export const MEMBERSHIP_OPTIONS: MembershipOption[] = [
   { id: "annual", name: "Annual Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "Pay yearly. Upgrade anytime." },
   { id: "5yr", name: "5-Year Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "One term for five years." },
   { id: "10yr", name: "10-Year Membership", glyph: "💜", price: null, priceLabel: "Build your price", tier: "paid", note: "One term for ten years." },
-  { id: "legacy", name: "Lifetime Legacy", glyph: "👑", price: 2499, priceLabel: formatUSD(2499), tier: "lifetime", note: "Up to 5 Lifetime Occasions." },
-  { id: "reign", name: "Lifetime Reign", glyph: "👑", price: 4999, priceLabel: formatUSD(4999), tier: "lifetime", note: "Up to 10 Lifetime Occasions." },
-  { id: "magical", name: "Lifetime Magical Moments", glyph: "✨", price: 9999, priceLabel: formatUSD(9999), tier: "lifetime", note: "Every current + future Occasion, plus 1 Custom Journey." },
+  { id: "legacy", name: "Lifetime Legacy", glyph: "👑", price: 2499, priceLabel: formatUSD(2499), tier: "lifetime", note: "Up to 4 Lifetime Occasions." },
+  { id: "reign", name: "Lifetime Reign", glyph: "👑", price: 4999, priceLabel: formatUSD(4999), tier: "lifetime", note: "Up to 8 Lifetime Occasions." },
+  { id: "magical", name: "Lifetime Magical Moments", glyph: "✨", price: 7999, priceLabel: formatUSD(7999), tier: "lifetime", note: "All 12 Lifetime Occasions, including 1 Custom Journey." },
 ];
 
 // Billing cadences a paid membership can be charged on.
@@ -242,7 +247,7 @@ export function lifetimeCeiling(occasionCount: number): number {
 
 /**
  * The most valuable membership to recommend for a given number of Journeys
- * (3 → Legacy, 8 → Reign, 15 → Magical Moments), per the Smart Pricing Engine.
+ * (3 → Legacy, 6 → Reign, 12 → Magical Moments), per the Smart Pricing Engine.
  */
 export function recommendedCollection(occasionCount: number): LifetimeCollection {
   return collectionFor(Math.max(1, occasionCount));

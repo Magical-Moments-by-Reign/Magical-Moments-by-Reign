@@ -1,0 +1,51 @@
+/* ── Unified Family Website — warm luxury (cream/ivory/champagne) ── */
+.fw { min-height: 100vh; background: linear-gradient(180deg, #fffdf9 0%, #faf4e9 100%); color: #2c211a; }
+.fw-wrap { max-width: 1100px; margin: 0 auto; padding: clamp(1.5rem, 5vw, 3rem) clamp(1.1rem, 5vw, 2.4rem) 4rem; }
+
+/* Masthead */
+.fw-head { text-align: center; padding: clamp(1.5rem, 5vw, 3rem) 0 1.4rem; }
+.fw-head__eyebrow { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: #a67c2e; font-weight: 700; }
+.fw-head__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2rem, 6vw, 3.4rem); font-weight: 600; margin: .3rem 0 .2rem; color: #2a1d12; }
+.fw-head__tag { color: #6b5744; margin: 0; font-size: 1rem; }
+.fw-head__rule { width: 64px; height: 3px; margin: 1.1rem auto 0; border-radius: 999px; background: linear-gradient(90deg, #e8d6a8, #a67c2e); }
+
+/* Section-jump nav */
+.fw-nav { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; margin: 1.4rem 0 2rem; }
+.fw-nav a { text-decoration: none; font-size: .82rem; color: #6b5744; border: 1px solid #e7dcc9; background: #fffdf9;
+  border-radius: 999px; padding: .4rem .85rem; transition: border-color .14s, color .14s; }
+.fw-nav a:hover { border-color: #d8b25e; color: #2a1d12; }
+
+/* A Journey section */
+.fw-section { margin: 0 0 2.6rem; scroll-margin-top: 1rem; }
+.fw-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #ece1cb; padding-bottom: .5rem; margin-bottom: 1rem; }
+.fw-section__title { font-family: var(--font-display, Georgia, serif); font-size: 1.5rem; color: #2a1d12; margin: 0; font-weight: 600; }
+.fw-section__blurb { color: #7a5c34; font-size: .84rem; margin: 0; }
+.fw-section__link { text-decoration: none; font-size: .74rem; letter-spacing: .06em; font-weight: 700; text-transform: uppercase; color: #a67c2e; white-space: nowrap; }
+.fw-section__link:hover { text-decoration: underline; }
+
+/* Occasion cards */
+.fw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .9rem; }
+.fw-card { display: flex; flex-direction: column; text-decoration: none; border-radius: 14px; overflow: hidden;
+  background: #fffdf9; border: 1px solid #ece1cb; box-shadow: 0 6px 16px rgba(44,33,26,.06);
+  transition: transform .14s, box-shadow .14s, border-color .14s; }
+.fw-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(44,33,26,.14); border-color: #d8b25e; }
+.fw-card__body { padding: 1rem 1.05rem 1.1rem; }
+.fw-card__kicker { font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: #a67c2e; font-weight: 700; }
+.fw-card__title { font-family: var(--font-display, Georgia, serif); font-size: 1.16rem; color: #2c211a; margin: .18rem 0 .2rem; }
+.fw-card__sub { font-size: .82rem; color: #6b5744; margin: 0; line-height: 1.4; }
+.fw-card__meta { margin-top: .7rem; display: flex; gap: .5rem; flex-wrap: wrap; font-size: .7rem; color: #8a6f4a; }
+.fw-card__pill { background: #f6efdd; border: 1px solid #ecd9b0; border-radius: 999px; padding: .1rem .5rem; }
+
+/* Empty section (permanent, honest) */
+.fw-empty { color: #93815f; font-size: .86rem; font-style: italic; padding: .3rem 0 .2rem; }
+
+/* Empty whole-site state */
+.fw-blank { text-align: center; padding: 3rem 1rem; color: #7a5c34; }
+
+/* Footer */
+.fw-foot { text-align: center; color: #93815f; font-size: .78rem; padding: 2rem 0 0; border-top: 1px solid #ece1cb; margin-top: 2rem; }
+.fw-foot a { color: #a67c2e; text-decoration: none; }
+
+@media (max-width: 560px) {
+  .fw-section__head { flex-direction: column; align-items: flex-start; gap: .2rem; }
+}

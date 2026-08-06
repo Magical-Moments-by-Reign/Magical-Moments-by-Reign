@@ -130,6 +130,17 @@ if (process.env.SKIP_DB_PUSH) {
   }
 }
 
+// 2a) Ensure canonical sample experiences exist (create-if-missing). Fixes
+//     Inspiration Gallery cards that 404 because their slug was added to the
+//     seed after the first deploy (e.g. /thejohnsonhome). Never overwrites
+//     existing rows, so owner content is untouched.
+try {
+  console.log("[db] Ensuring canonical sample experiences exist…");
+  execSync("npx tsx scripts/ensure-samples.ts", { stdio: "inherit" });
+} catch (e) {
+  console.error("[db] ⚠ ensure-samples skipped:", e?.message ?? e);
+}
+
 // 2b) Keep canonical public-sample content correct (idempotent; safe every run).
 {
   const { PrismaClient } = await import("@prisma/client");
@@ -152,6 +163,89 @@ if (process.env.SKIP_DB_PUSH) {
     }
   } catch (e) {
     console.error("[db] ⚠ Sample content fix skipped:", e?.message ?? e);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// 2b-ii) Example wedding registry on the sample "Smith Wedding" (idempotent).
+//        The registry block already renders after the gallery and the guest
+//        messages, just before the footer — this simply gives the sample real
+//        example data so visitors can see what a registry looks like. Links go
+//        to real store registry pages; no prices, cash handles, or purchases are
+//        fabricated. Safe to run every deploy (upsert by experienceId).
+{
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  try {
+    const w = await prisma.experience.findUnique({ where: { slug: "smithwedding" }, select: { id: true } });
+    if (w) {
+      const registries = JSON.stringify([
+        { label: "Crate & Barrel", url: "https://www.crateandbarrel.com/gift-registry" },
+        { label: "Williams Sonoma", url: "https://www.williams-sonoma.com/registry" },
+        { label: "Target", url: "https://www.target.com/gift-registry" },
+        { label: "Amazon", url: "https://www.amazon.com/wedding" },
+      ]);
+      const items = JSON.stringify([
+        { id: "ex-1", name: "Dutch oven", store: "Le Creuset", description: "For our first Sunday dinners at home.", priority: "high" },
+        { id: "ex-2", name: "Linen bedding set", store: "Parachute", description: "Soft mornings in the new place.", priority: "medium" },
+        { id: "ex-3", name: "Stand mixer", store: "KitchenAid", description: "Baking together, always.", priority: "medium" },
+      ]);
+      const message = "Your love and presence are the greatest gifts. For guests who would like to help us begin our next chapter, our registries are below.";
+      await prisma.giftSettings.upsert({
+        where: { experienceId: w.id },
+        update: { enabled: true, mode: "registry", registries, items, message, visibility: "everyone" },
+        create: { experienceId: w.id, enabled: true, mode: "registry", registries, items, message, visibility: "everyone" },
+      });
+      console.log("[db] Sample registry: example wedding registry set on smithwedding.");
+    } else {
+      console.log("[db] Sample registry: smithwedding not found; nothing to do.");
+    }
+  } catch (e) {
+    console.error("[db] ⚠ Sample registry setup skipped:", e?.message ?? e);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// 2c) Backfill the Unified Family Website slug (Phase 1). Additive + idempotent:
+//     every family with no slug yet gets a unique, URL-safe slug derived from
+//     its name (e.g. "The Johnson Family" → "the-johnson-family"). Families that
+//     already have a slug are left untouched, so this is safe to run every deploy.
+{
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  const slugify = (input) =>
+    (input || "")
+      .toLowerCase().trim().normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-")
+      .slice(0, 48) || "our-family";
+  try {
+    const families = await prisma.family.findMany({ where: { slug: null }, select: { id: true, name: true } });
+    if (families.length === 0) {
+      console.log("[db] Family website slugs: all families already have a slug; nothing to backfill.");
+    } else {
+      const taken = new Set(
+        (await prisma.family.findMany({ where: { slug: { not: null } }, select: { slug: true } }))
+          .map((f) => f.slug),
+      );
+      let done = 0;
+      for (const fam of families) {
+        const base = slugify(fam.name);
+        let candidate = base;
+        let n = 1;
+        while (taken.has(candidate)) { n += 1; candidate = `${base}-${n}`; }
+        taken.add(candidate);
+        await prisma.family.update({ where: { id: fam.id }, data: { slug: candidate } });
+        done += 1;
+      }
+      console.log(`[db] Family website slugs: backfilled ${done} family slug(s).`);
+    }
+  } catch (e) {
+    console.error("[db] ⚠ Family slug backfill skipped:", e?.message ?? e);
   } finally {
     await prisma.$disconnect();
   }
