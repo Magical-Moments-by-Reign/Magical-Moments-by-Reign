@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/cart/CartProvider";
 import { getPlan, formatPrice } from "@/lib/plans";
-import { needsShipping, requiredAcks } from "@/lib/commerce";
+import { needsShipping, requiredAcks, membershipView } from "@/lib/commerce";
 import { EXPERIENCE_TYPES } from "@/lib/experience-types";
 
 const STEPS = ["Details", "Billing", "Review", "Payment"];
@@ -23,9 +23,14 @@ const emptyAddr: Addr = { line1: "", line2: "", city: "", region: "", postal: ""
 export default function CheckoutClient() {
   const { cart, totals, clear } = useCart();
   const plan = cart.planId ? getPlan(cart.planId) : undefined;
+  const membership = cart.membership && cart.membership.occasions.length > 0 ? cart.membership : null;
+  const membershipV = membership ? membershipView(membership) : null;
   const shipping = needsShipping(cart);
   const acks = requiredAcks(cart);
   const hasCustomDomain = plan?.id === "diamond" || plan?.id === "lifetime";
+  // What the customer is buying — a membership OR a legacy plan.
+  const summaryName = plan ? `${plan.name} · ${plan.termShort}` : membershipV ? `${membershipV.label} · ${membershipV.termLabel}` : "";
+  const includedAddress = plan ? plan.domain : "Magical Moments by Reign page address";
 
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -53,12 +58,15 @@ export default function CheckoutClient() {
   const [order, setOrder] = useState<{ id: string; number: string } | null>(null);
   const cardRef = useRef<{ tokenize: () => Promise<{ status: string; token?: string }> } | null>(null);
 
-  if (!plan) {
+  if (!plan && !membership) {
     return (
       <div className="co-emptycart">
         <h2>Your cart needs a plan</h2>
-        <p>Choose a preservation plan to begin checkout.</p>
-        <Link href="/pricing" className="btn-gold">View plans</Link>
+        <p>Choose a membership or preservation plan to begin checkout.</p>
+        <div style={{ display: "flex", gap: ".6rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/membership" className="btn-gold">Build your membership</Link>
+          <Link href="/pricing" className="btn btn-dark">View plans</Link>
+        </div>
       </div>
     );
   }
@@ -191,11 +199,14 @@ export default function CheckoutClient() {
             <section className="co2-card">
               <h2 className="co2-h2">Review &amp; confirm</h2>
               <ul className="co2-review">
-                <li><span>Plan</span><strong>{plan.name} · {plan.termShort}</strong></li>
+                <li><span>{membership ? "Membership" : "Plan"}</span><strong>{summaryName}</strong></li>
+                {membership && (
+                  <li><span>Occasions ({membership.occasions.length})</span><strong>{membership.occasions.join(", ")}</strong></li>
+                )}
                 {totals.lines.filter((l) => l.kind === "addon").map((l) => (
                   <li key={l.id}><span>{l.label} × {l.qty}</span><strong>{formatPrice(l.amount)}</strong></li>
                 ))}
-                <li><span>Included address</span><strong>{plan.domain}</strong></li>
+                <li><span>Included address</span><strong>{includedAddress}</strong></li>
                 {customDomain && <li><span>Requested domain</span><strong>{customDomain}</strong></li>}
               </ul>
 
@@ -203,7 +214,7 @@ export default function CheckoutClient() {
                 {acks.map((a, i) => (
                   <label key={i} className="co2-check"><input type="checkbox" checked={ackChecked[i]} onChange={(e) => setAckChecked((s) => s.map((v, j) => (j === i ? e.target.checked : v)))} /><span>{a}</span></label>
                 ))}
-                <label className="co2-check"><input type="checkbox" checked={renewalAck} onChange={(e) => setRenewalAck(e.target.checked)} /><span>I understand my plan is a one-time payment for its term and does not auto-renew; custom domains renew annually and are subject to availability.</span></label>
+                <label className="co2-check"><input type="checkbox" checked={renewalAck} onChange={(e) => setRenewalAck(e.target.checked)} /><span>{membershipV?.recurring ? "I understand my membership is billed on the selected cadence until I cancel; custom domains renew annually and are subject to availability." : "I understand this is a one-time payment for its term and does not auto-renew; custom domains renew annually and are subject to availability."}</span></label>
                 <label className="co2-check"><input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)} /><span>I agree to the Terms of Service.</span></label>
                 <label className="co2-check"><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} /><span>I agree to the Privacy Policy.</span></label>
               </div>

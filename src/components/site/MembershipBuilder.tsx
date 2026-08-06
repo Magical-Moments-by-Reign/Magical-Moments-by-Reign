@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   quote, collectionFor, JOURNEY_PROTECTION, formatUSD,
   estateLimitFor, canReserveEstates, PRICING_CONFIG, type TermId,
 } from "@/lib/pricing-engine";
 import { EXPERIENCES, getExperience } from "@/lib/membership-builder";
 import { FREE_FOREVER_INCLUDES, UPGRADE_COPY } from "@/lib/membership-access";
+import { useCart } from "@/components/cart/CartProvider";
 
 // The official Membership Builder — three steps, driven by the canonical pricing
 // engine. The MEMBERSHIP controls access: Free Forever cannot select Occasions
@@ -43,6 +45,9 @@ export default function MembershipBuilder() {
   const [showAll, setShowAll] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [downgraded, setDowngraded] = useState(false);
+
+  const router = useRouter();
+  const { setMembership } = useCart();
 
   const isFree = term === "free";
   const isMonthly = term === "monthly";
@@ -92,6 +97,15 @@ export default function MembershipBuilder() {
 
   const occParam = encodeURIComponent(occ.join(","));
   const checkoutHref = isFree ? "/signup" : `/checkout?term=${term}&occasions=${occParam}${jpActive ? "&protection=1" : ""}`;
+
+  // Write the membership into the cart (the single source of truth Checkout
+  // reads), THEN navigate. The URL keeps params for shareability, but the cart
+  // is what Checkout and the Order API consume.
+  const continueToCheckout = () => {
+    if (isFree || occ.length === 0) return; // isFree already means term === "free"
+    setMembership({ term: term as TermId, occasions: occ, protection: jpActive, addedAt: new Date().toISOString() });
+    router.push("/checkout");
+  };
 
   return (
     <div className="mbx">
@@ -234,7 +248,7 @@ export default function MembershipBuilder() {
               {count === 0 ? (
                 <span className="mbx-continue mbx-continue--off">Choose an occasion</span>
               ) : (
-                <a href={checkoutHref} className="mbx-continue">Continue to Inclusions <span aria-hidden="true">→</span></a>
+                <a href={checkoutHref} className="mbx-continue" onClick={(e) => { e.preventDefault(); continueToCheckout(); }}>Continue to Inclusions <span aria-hidden="true">→</span></a>
               )}
               <p className="mbx-preview__note">You never lose a dollar when you upgrade — prior payments are credited. Taxes are calculated at checkout.</p>
             </>

@@ -4,8 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { createOrder, type CheckoutDetails } from "@/lib/orders";
-import type { CartState } from "@/lib/commerce";
-import { getPlan } from "@/lib/plans";
+import { hasPurchase, type CartState } from "@/lib/commerce";
 
 export async function POST(request: Request) {
   let body: { cart?: CartState; details?: CheckoutDetails };
@@ -17,16 +16,19 @@ export async function POST(request: Request) {
 
   const cart = body.cart;
   const details = body.details;
-  if (!cart?.planId || !getPlan(cart.planId)) {
-    return NextResponse.json({ error: "Please select a preservation plan." }, { status: 400 });
+  // Accept a membership OR a legacy plan — both flow through the same order path.
+  if (!cart || !hasPurchase(cart)) {
+    return NextResponse.json({ error: "Please select a membership or preservation plan." }, { status: 400 });
   }
   if (!details?.name || !details?.email) {
     return NextResponse.json({ error: "Name and email are required." }, { status: 400 });
   }
 
   try {
+    // Pass the whole cart (membership + plan + addons); createOrder re-prices
+    // authoritatively via computeTotals / pricing-engine — client totals are ignored.
     const order = await createOrder(
-      { planId: cart.planId, addons: cart.addons ?? {} },
+      { membership: cart.membership ?? null, planId: cart.planId ?? null, addons: cart.addons ?? {} },
       details,
     );
     return NextResponse.json(order, { status: 201 });
