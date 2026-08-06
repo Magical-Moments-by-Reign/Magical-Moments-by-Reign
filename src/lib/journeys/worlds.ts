@@ -128,11 +128,12 @@ const a = (slug: string, label: string, tagline?: string, image?: string): Journ
 
 const OTHERS: JourneyWorld[] = [
   world("baby", "Baby", "Baby Journey", "From the first announcement to first steps.", "/story/baby.jpg", "Baby Moment", [
+    a("pregnancy-announcement", "Pregnancy Announcement", "Baby coming soon.", "/journeys/baby/pregnancy-announcement.jpg"),
+    a("gender-reveal", "Gender Reveal", "The biggest surprise is on the way!", "/journeys/baby/gender-reveal.jpg"),
+    a("baby-shower", "Baby Shower", "A little one is on the way!", "/journeys/baby/baby-shower.jpg"),
+    a("nursery", "Nursery Setup & Reveal", "A beautiful new space for your little one.", "/journeys/baby/nursery.jpg"),
     a("welcome-baby", "Welcome Baby", "You are so loved already.", "/journeys/baby/welcome-baby.jpg"),
     a("birth-story", "Birth Story", "Every moment. Every breath. Our greatest miracle.", "/journeys/baby/birth-story.jpg"),
-    a("gender-reveal", "Gender Reveal", "Share the happy news.", "/story/genderreveal.jpg"),
-    a("baby-shower", "Baby Shower", "Celebrate the little one.", "/story/babyshower.jpg"),
-    a("nursery", "Nursery Ideas", "A room full of love."),
     a("milestones", "Baby Milestones", "Every first, remembered.", "/journeys/baby/milestones.jpg"),
     a("first-holidays", "Baby's First Holidays", "Making memories that last a lifetime.", "/journeys/baby/first-holidays.jpg"),
     a("first-birthday", "First Birthday", "One big year.", "/journeys/baby/first-birthday.jpg"),

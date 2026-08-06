@@ -6,13 +6,17 @@ lays its title on top.
 
 Drop the files here with these EXACT names (case-sensitive):
 
-| File                  | Baby Journey tile        |
-| --------------------- | ------------------------ |
-| `welcome-baby.jpg`    | Welcome Baby             |
-| `birth-story.jpg`     | Birth Story              |
-| `milestones.jpg`      | Baby Milestones          |
-| `first-holidays.jpg`  | Baby's First Holidays    |
-| `first-birthday.jpg`  | First Birthday           |
+| File                         | Baby Journey tile        |
+| ---------------------------- | ------------------------ |
+| `pregnancy-announcement.jpg` | Pregnancy Announcement   |
+| `gender-reveal.jpg`          | Gender Reveal            |
+| `baby-shower.jpg`            | Baby Shower              |
+| `nursery.jpg`                | Nursery Setup & Reveal   |
+| `welcome-baby.jpg`           | Welcome Baby             |
+| `birth-story.jpg`            | Birth Story              |
+| `milestones.jpg`             | Baby Milestones          |
+| `first-holidays.jpg`         | Baby's First Holidays    |
+| `first-birthday.jpg`         | First Birthday           |
 
 Notes
 - `.jpg` is expected. If you upload `.png` instead, tell me and I'll switch the
