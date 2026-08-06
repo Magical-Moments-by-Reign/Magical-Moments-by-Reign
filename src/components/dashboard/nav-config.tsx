@@ -42,6 +42,26 @@ export function Icon({ name }: { name: string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true">{P[name] ?? P.dashboard}</svg>;
 }
 
+// Per-world default icon for occasion tiles.
+const WORLD_ICON: Record<string, string> = {
+  home: "home", relationship: "relationship", baby: "baby", birthday: "birthday",
+  graduation: "graduation", travel: "travel", military: "military", sports: "sports",
+  family: "family", career: "career", "celebration-of-life": "celebration", "legacy-and-memories": "documents",
+  custom: "star",
+};
+
+// Icon for a specific occasion tile. Housing gets distinct per-area icons (its the
+// showcase); everything else falls back to its world icon, then a gold star.
+const AREA_ICON: Record<string, string> = {
+  "buy-a-home": "home", "build-a-home": "build", "apartment-rental": "key", "vacation-homes": "palm",
+  renovation: "maintenance", "investment-property": "invest", moving: "moving",
+  "home-maintenance": "maintenance", "lifestyle-concierge": "concierge",
+};
+
+export function areaIcon(worldSlug: string, areaSlug: string): string {
+  return AREA_ICON[areaSlug] || WORLD_ICON[worldSlug] || "star";
+}
+
 export interface NavEntry { id: string; label: string; href: string; icon: string }
 
 // Sidebar menu. Housing is a SINGLE entry — the whole home world (Buy, Build,
