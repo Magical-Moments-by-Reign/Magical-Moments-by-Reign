@@ -102,14 +102,15 @@ export interface JourneyTile {
 // The 8 "Your Magical Journeys" tiles on the overview. Each opens its live area
 // inside the Housing world (tiles with pending art fall back to a warm gradient).
 export const JOURNEY_TILES: JourneyTile[] = [
-  { id: "buy-a-home", title: "Buy a Home", tagline: "Find the one that feels like you.", icon: "home", href: "/dashboard/journeys/home?area=buy-a-home", image: "/hero/home-poster.jpg", status: "live" },
-  { id: "build-a-home", title: "Build a Home", tagline: "From land to legacy. Let's build it.", icon: "build", href: "/dashboard/journeys/home?area=build-a-home", image: "/story/newhome.jpg", status: "live" },
+  { id: "buy-a-home", title: "Buy a Home", tagline: "Find the one that feels like you.", icon: "home", href: "/dashboard/journeys/home?area=buy-a-home", image: "/story/newhome.jpg", status: "live" },
+  { id: "build-a-home", title: "Build a Home", tagline: "From land to legacy. Let's build it.", icon: "build", href: "/dashboard/journeys/home?area=build-a-home", image: "/hero/home-poster.jpg", status: "live" },
   { id: "vacation-homes", title: "Vacation Homes", tagline: "Your escape. Your place.", icon: "palm", href: "/dashboard/journeys/home?area=vacation-homes", image: "/journeys/home/vacation.jpg", status: "live" },
   { id: "renovation", title: "Renovation", tagline: "Reimagine the home you already love.", icon: "key", href: "/dashboard/journeys/home?area=renovation", image: "/journeys/home/renovation.jpg", status: "live" },
   { id: "investment-property", title: "Investment Property", tagline: "Build wealth. Create freedom.", icon: "invest", href: "/dashboard/journeys/home?area=investment-property", image: "/journeys/home/investment.jpg", status: "live" },
   { id: "moving", title: "Moving", tagline: "A smooth move to what's next.", icon: "moving", href: "/dashboard/journeys/home?area=moving", image: "/journeys/home/moving.jpg", status: "live" },
-  { id: "home-maintenance", title: "Home Maintenance", tagline: "Keep your home at its best.", icon: "maintenance", href: "/dashboard/journeys/home?area=home-maintenance", image: "/journeys/home/maintenance.jpg", status: "live" },
-  { id: "concierge", title: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", icon: "concierge", href: "/dashboard/journeys/home?area=lifestyle-concierge", image: "/journeys/home/concierge.jpg", status: "live" },
+  // maintenance & concierge have no dedicated banner yet — fall back to the elegant gradient + gold icon.
+  { id: "home-maintenance", title: "Home Maintenance", tagline: "Keep your home at its best.", icon: "maintenance", href: "/dashboard/journeys/home?area=home-maintenance", status: "live" },
+  { id: "concierge", title: "Lifestyle Concierge", tagline: "We handle the details. You enjoy the life.", icon: "concierge", href: "/dashboard/journeys/home?area=lifestyle-concierge", status: "live" },
 ];
 
 // Metadata for the Coming-Soon category pages (/dashboard/explore/[slug]).
