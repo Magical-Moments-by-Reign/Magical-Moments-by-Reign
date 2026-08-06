@@ -157,6 +157,49 @@ if (process.env.SKIP_DB_PUSH) {
   }
 }
 
+// 2c) Backfill the Unified Family Website slug (Phase 1). Additive + idempotent:
+//     every family with no slug yet gets a unique, URL-safe slug derived from
+//     its name (e.g. "The Johnson Family" → "the-johnson-family"). Families that
+//     already have a slug are left untouched, so this is safe to run every deploy.
+{
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  const slugify = (input) =>
+    (input || "")
+      .toLowerCase().trim().normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-")
+      .slice(0, 48) || "our-family";
+  try {
+    const families = await prisma.family.findMany({ where: { slug: null }, select: { id: true, name: true } });
+    if (families.length === 0) {
+      console.log("[db] Family website slugs: all families already have a slug; nothing to backfill.");
+    } else {
+      const taken = new Set(
+        (await prisma.family.findMany({ where: { slug: { not: null } }, select: { slug: true } }))
+          .map((f) => f.slug),
+      );
+      let done = 0;
+      for (const fam of families) {
+        const base = slugify(fam.name);
+        let candidate = base;
+        let n = 1;
+        while (taken.has(candidate)) { n += 1; candidate = `${base}-${n}`; }
+        taken.add(candidate);
+        await prisma.family.update({ where: { id: fam.id }, data: { slug: candidate } });
+        done += 1;
+      }
+      console.log(`[db] Family website slugs: backfilled ${done} family slug(s).`);
+    }
+  } catch (e) {
+    console.error("[db] ⚠ Family slug backfill skipped:", e?.message ?? e);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 // 3) Optionally provision the owner/admin account during this controlled run.
 //    Set PROVISION_OWNER=true (with RUN_DATABASE_PUSH=true so this script runs).
 //    Idempotent + safe to re-run. Grants Owner/Super Admin + verified email +
