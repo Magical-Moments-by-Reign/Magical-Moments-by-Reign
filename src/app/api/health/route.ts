@@ -24,6 +24,7 @@ export async function GET() {
       commit: commit ? commit.slice(0, 7) : "unknown",
       database,
       qwen: configured(process.env.QWEN_API_KEY),
+      journeyStudio: configured(process.env.OPENAI_API_KEY),
       duffel: configured(process.env.DUFFEL_ACCESS_TOKEN),
       premiumVoice: configured(process.env.ELEVENLABS_API_KEY || process.env.OPENAI_API_KEY),
       time: new Date().toISOString(),
