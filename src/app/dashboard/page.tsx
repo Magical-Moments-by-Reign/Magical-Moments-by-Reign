@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
-import { Icon } from "@/components/dashboard/nav-config";
+import { Icon, JOURNEY_TILES } from "@/components/dashboard/nav-config";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard", robots: { index: false } };
@@ -59,15 +59,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="db">
-      {/* Hero */}
-      <section className="db-hero">
-        <div className="db-hero__text">
-          <span className="db-hero__eyebrow">Welcome back ✦</span>
-          <h1 className="db-hero__title">Welcome to Your <i>Magical Space</i></h1>
-          <p className="db-hero__sub">Let&rsquo;s create more magical moments together.</p>
-        </div>
-        <div className="db-hero__img" aria-hidden="true" />
+      {/* Brand banner — the first thing a member sees */}
+      <section className="db-banner">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/hero/memories-magic.png" alt="Magical Moments by Reign — Where Your Memories Become Magic. A beautiful online space to celebrate, share, and preserve life's most meaningful moments." />
       </section>
+      <p className="db-welcome">Welcome back, <b>{first}</b> ✦ Let&rsquo;s create more magical moments together.</p>
 
       {/* Stat cards */}
       <section className="db-stats">
@@ -83,30 +80,29 @@ export default async function DashboardPage() {
         ))}
       </section>
 
-      {/* Your Journeys — only what the member owns/created. The full catalogue of
-          Journey worlds lives under Explore Journeys, not on the dashboard. */}
+      {/* Your Magical Journeys — the home world entry points. */}
       <section className="db-sec">
         <div className="db-sec__h">
-          <h2 className="db-sec__t">Your Journeys</h2>
-          <Link href="/dashboard/journeys" className="db-sec__link">Explore Journeys →</Link>
+          <h2 className="db-sec__t">Your Magical Journeys</h2>
+          <Link href="/dashboard/journeys" className="db-sec__link">View all journeys →</Link>
         </div>
-        {journeys.length ? (
-          <div className="db-owned">
-            {journeys.slice(0, 8).map((j) => (
-              <Link key={j.slug} href={`/${j.slug}`} className="db-owned__card">
-                <span className="db-owned__t">{j.title}</span>
-                <span className={`badge badge--${j.status === "PUBLISHED" ? "pub" : "draft"}`}>{j.status === "PUBLISHED" ? "Published" : "Draft"}</span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="empty">
-            <div className="empty__mark"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5z M3 13l9 5 9-5" /></svg></div>
-            <p className="empty__t">Your Journeys will live here</p>
-            <p className="empty__s">Step into a Journey world, explore ideas freely, and create your first Moment — it&rsquo;ll appear here.</p>
-            <Link href="/dashboard/journeys" className="btn btn--gold">Explore Journeys</Link>
-          </div>
-        )}
+        <div className="db-tiles">
+          {JOURNEY_TILES.map((t) => (
+            <Link
+              key={t.id}
+              href={t.href}
+              className="db-tile"
+              data-id={t.id}
+              style={t.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.18), rgba(28,19,12,.72)), url(${t.image})` } : undefined}
+            >
+              {t.status === "soon" && <span className="db-tile__soon">Coming Soon</span>}
+              <span className="db-tile__icon"><Icon name={t.icon} /></span>
+              <span className="db-tile__title">{t.title}</span>
+              <span className="db-tile__tag">{t.tagline}</span>
+              <span className="db-tile__cta">EXPLORE</span>
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* Two-column: events / messages + projects / promo */}
