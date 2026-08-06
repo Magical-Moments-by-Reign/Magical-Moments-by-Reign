@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getWorld, getArea, WORKSPACE_TABS, WORLD_HERO } from "@/lib/journeys/worlds";
+import { Icon, areaIcon } from "@/components/dashboard/nav-config";
 import JourneyActions from "@/components/journeys/JourneyActions";
 import "@/components/journeys/journeys.css";
 
@@ -66,10 +67,9 @@ export default async function JourneyWorldPage({
                   key={ar.slug}
                   href={`${base}?area=${ar.slug}`}
                   className={`jw-area${active ? " is-active" : ""}${area && !active ? " is-dim" : ""}`}
-                  style={ar.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.12), rgba(28,19,12,.8)), url(${ar.image})` } : undefined}
-                  data-plain={ar.image ? undefined : ""}
                 >
                   {active && <span className="jw-area__active">Active</span>}
+                  <span className="jw-area__ic"><Icon name={areaIcon(world.slug, ar.slug)} /></span>
                   <span className="jw-area__title">{ar.label}</span>
                   {ar.tagline && <span className="jw-area__tag">{ar.tagline}</span>}
                 </Link>
@@ -93,7 +93,7 @@ export default async function JourneyWorldPage({
 
               <div className="jw-gallery">
                 {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="jw-gallery__tile" style={area.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.1), rgba(28,19,12,.5)), url(${area.image})` } : undefined}>
+                  <div key={i} className="jw-gallery__tile">
                     <span className="jw-gallery__soon">Inspiration Gallery · Coming Soon</span>
                   </div>
                 ))}
