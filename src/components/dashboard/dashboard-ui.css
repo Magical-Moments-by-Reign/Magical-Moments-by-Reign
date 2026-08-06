@@ -265,7 +265,7 @@
 .db-project__go { font-size: .8rem; color: var(--gold-deep); white-space: nowrap; }
 
 /* Promo */
-.db-promo { border-radius: 18px; overflow: hidden; min-height: 200px; display: flex; align-items: flex-end; background: linear-gradient(180deg, rgba(28,19,12,.2), rgba(28,19,12,.8)), url(/story/anniversary.jpg) center/cover; box-shadow: 0 10px 26px rgba(44,33,26,.16); }
+.db-promo { border-radius: 18px; overflow: hidden; min-height: 200px; display: flex; align-items: flex-end; background: linear-gradient(180deg, rgba(28,19,12,.15), rgba(28,19,12,.82)), url(/hero/every-moment.png) center/cover; box-shadow: 0 10px 26px rgba(44,33,26,.16); }
 .db-promo__body { padding: 1.4rem 1.4rem 1.5rem; }
 .db-promo__body h3 { font-family: var(--font-display, Georgia, serif); font-size: 1.5rem; color: #fff7ea; margin: 0 0 .4rem; font-weight: 500; line-height: 1.12; }
 .db-promo__body p { color: #ecdcc2; font-size: .88rem; margin: 0 0 .9rem; max-width: 30ch; }
