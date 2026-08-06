@@ -158,6 +158,7 @@ const OTHERS: JourneyWorld[] = [
     a("luxury-travel", "Luxury Travel", "Travel, elevated."), a("group-travel", "Group Travel", "Better together."), a("travel-memories", "Travel Memories", "Every journey, kept."),
   ]),
   world("military", "Military", "Military Journey", "Honor service, homecomings, and family.", "/story/military.jpg", "Military Moment", [
+    a("enlisting", "Enlisting", "The proud start of service."),
     a("homecoming", "Homecoming", "Welcome them home.", "/story/military.jpg"), a("deployment", "Deployment Send-off", "With love and pride."),
     a("promotion", "Promotion & Retirement", "Recognize the service."), a("military-memories", "Military Memories", "A legacy of service."),
   ]),
