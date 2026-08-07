@@ -1,0 +1,70 @@
+/* ── Journey Studio review panel ─────────────────────────────────
+   Warm luxury: cream/ivory surfaces, chocolate ink, champagne gold. No grey. */
+.jst-page { min-height: 100vh; background: #f7f1e7; padding-bottom: 3rem; }
+.jst-page .container { max-width: 940px; margin: 0 auto; padding: 1.5rem 1.2rem 0; }
+
+.jst {
+  --ink: #2c211a; --soft: #6b5744; --ivory: #fffdf9; --line: #e7dcc9;
+  --gold: #c9a24b; --gold-deep: #a67c2e; --espresso: #2a1d12; --warn: #9a4a3a; --ok: #4e7a52;
+  color: var(--ink); font-family: var(--font-body, system-ui, sans-serif);
+}
+
+.jst-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-top: .5rem; }
+.jst-eyebrow { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; }
+.jst-title { font-family: var(--font-display, Georgia, serif); font-size: clamp(1.5rem, 3vw, 2.1rem); color: var(--espresso); margin: .25rem 0 0; }
+.jst-badge { flex-shrink: 0; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: .35rem .8rem; }
+.jst-badge.is-ai { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; }
+.jst-badge.is-heur { background: #f0e7d4; color: var(--gold-deep); border: 1px solid var(--line); }
+
+.jst-note-key { background: #fbf4e3; border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 10px; padding: .7rem .9rem; font-size: .86rem; color: var(--soft); line-height: 1.5; margin: 1rem 0 0; }
+.jst-note-key code { background: #efe3c9; padding: .05rem .35rem; border-radius: 5px; color: var(--espresso); }
+
+.jst-error { background: #fbeeea; border: 1px solid #e3c4bc; color: var(--warn); border-radius: 10px; padding: .7rem .9rem; margin: 1rem 0 0; font-size: .9rem; }
+.jst-flash { background: #eef5ee; border: 1px solid #cfe1cf; color: var(--ok); border-radius: 10px; padding: .7rem .9rem; margin: 1rem 0 0; font-size: .9rem; }
+
+.jst-summary { font-family: var(--font-display, Georgia, serif); font-size: 1.15rem; color: var(--espresso); line-height: 1.5; margin: 1.2rem 0 .3rem; }
+
+.jst-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.1rem 0; }
+.jst-rerun { background: none; border: 1px solid var(--line); border-radius: 999px; padding: .5rem 1rem; color: var(--gold-deep); font-weight: 600; font-size: .82rem; cursor: pointer; }
+.jst-rerun:hover:not(:disabled) { background: rgba(201,162,75,.1); }
+.jst-actions button:disabled { opacity: .5; cursor: not-allowed; }
+
+.jst-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .9rem; }
+.jst-card { display: flex; gap: .7rem; align-items: flex-start; background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; cursor: pointer; transition: border-color .12s, box-shadow .12s; }
+.jst-card:hover { border-color: #e0cfa6; box-shadow: 0 6px 16px rgba(44,33,26,.06); }
+.jst-card input { margin-top: .25rem; accent-color: var(--gold-deep); width: 16px; height: 16px; flex-shrink: 0; }
+.jst-card__body { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.jst-card__t { font-weight: 700; color: var(--espresso); font-size: .95rem; }
+.jst-card__s { color: var(--soft); font-size: .84rem; line-height: 1.45; }
+.jst-thumb { width: 100%; max-height: 130px; object-fit: cover; border-radius: 9px; border: 1px solid var(--line); }
+
+.jst-list { margin: .1rem 0 0; padding-left: 1rem; color: var(--soft); font-size: .84rem; line-height: 1.5; }
+.jst-list b { color: var(--espresso); }
+.jst-chips, .jst-chip { display: inline-flex; }
+.jst-chips { flex-wrap: wrap; gap: .3rem; }
+.jst-chip { background: #f0e7d4; color: var(--gold-deep); border-radius: 999px; padding: .15rem .55rem; font-size: .72rem; font-weight: 600; text-transform: capitalize; }
+
+.jst-advisory { background: #fbf4e3; border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1rem; margin-top: 1rem; display: flex; flex-direction: column; gap: .4rem; }
+.jst-advisory a { color: var(--gold-deep); }
+.jst-notes { margin: 1rem 0 0; padding-left: 1.1rem; color: var(--soft); font-size: .86rem; line-height: 1.6; }
+
+.jst-empty { text-align: center; background: var(--ivory); border: 1px dashed var(--line); border-radius: 14px; padding: 2rem 1.2rem; margin-top: 1.2rem; color: var(--soft); display: flex; flex-direction: column; align-items: center; gap: .9rem; }
+
+.jst-history { margin-top: 1.6rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+.jst-history__t { font-family: var(--font-display, Georgia, serif); font-size: 1.05rem; color: var(--espresso); margin: 0 0 .5rem; }
+.jst-hrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem .2rem; border-bottom: 1px solid #f0e8d8; font-size: .86rem; color: var(--soft); }
+.jst-hrow.is-undone { opacity: .55; text-decoration: line-through; }
+.jst-undo { background: none; border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem; color: var(--gold-deep); font-weight: 600; font-size: .78rem; cursor: pointer; }
+.jst-undo:hover:not(:disabled) { background: rgba(201,162,75,.1); }
+
+.jst-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.8rem; flex-wrap: wrap; }
+.jst-preview { color: var(--gold-deep); font-weight: 600; text-decoration: none; }
+.jst-preview:hover { text-decoration: underline; }
+
+/* Shared button fallbacks (in case globals aren't in scope here). */
+.jst .btn-gold, .jst-empty .btn-gold { display: inline-flex; align-items: center; gap: .4rem; background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border: none; border-radius: 10px; padding: .6rem 1.15rem; font-weight: 700; font-size: .88rem; text-decoration: none; cursor: pointer; }
+.jst .btn-gold:hover:not(:disabled) { filter: brightness(1.05); }
+.jst .btn.btn-dark { display: inline-flex; align-items: center; gap: .4rem; background: var(--espresso); color: #f4e7cd; border: none; border-radius: 10px; padding: .6rem 1.15rem; font-weight: 700; font-size: .88rem; text-decoration: none; cursor: pointer; }
+.jst .btn.btn-dark:hover:not(:disabled) { filter: brightness(1.1); }
+
+@media (max-width: 560px) { .jst-head { flex-direction: column; } .jst-cards { grid-template-columns: 1fr; } }
