@@ -85,6 +85,33 @@ export default async function ServicePage({
     );
   }
 
+  // Hotels: self-serve search goes to the Expedia-backed results page.
+  if (service === "hotels" && path === "search") {
+    return (
+      <>
+        {header}
+        <h1 className="pg-title">Search Hotels</h1>
+        <p className="pg-sub">Tell us where and when — we&apos;ll show hotels you can explore, save, or hand to the concierge.</p>
+        <div style={{ margin: ".6rem 0 1rem" }}>
+          <Link href="/dashboard/luxury-services/hotels/reservations" className="ls-link">View my hotel reservations →</Link>
+        </div>
+        <form action="/dashboard/luxury-services/hotels/results" className="cx-form sec">
+          <div className="cx-form__grid">
+            <label className="cx-field"><span className="cx-field__label">Destination *</span><input name="location" required placeholder="City, area, or hotel name" /></label>
+            <label className="cx-field"><span className="cx-field__label">Check-in</span><input name="checkIn" type="date" /></label>
+            <label className="cx-field"><span className="cx-field__label">Check-out</span><input name="checkOut" type="date" /></label>
+            <label className="cx-field"><span className="cx-field__label">Guests</span><input name="guests" type="number" placeholder="2" /></label>
+          </div>
+          <div className="cx-honest">Hotel results, prices, and availability come only from our connected provider and are subject to change until booked. Nothing is booked or charged until you review it in Purchase Review.</div>
+          <div className="cx-form__actions">
+            <button type="submit" className="btn btn--gold">Search Hotels</button>
+            <Link href="/dashboard/luxury-services/hotels?path=help" className="btn btn--ghost">Help me find a stay instead</Link>
+          </div>
+        </form>
+      </>
+    );
+  }
+
   const fields = intakeFor(service, path);
   const submit = createRequestAction.bind(null, service, path);
   const save = saveServiceAction.bind(null, service);

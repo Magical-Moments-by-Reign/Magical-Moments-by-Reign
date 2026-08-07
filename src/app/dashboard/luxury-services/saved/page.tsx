@@ -65,6 +65,8 @@ export default async function SavedPage() {
                       {s.serviceType === "restaurants" && typeof s.details.businessId === "string" ? (
                         // Refresh full details live from the provider by stored id.
                         <Link href={`/dashboard/luxury-services/restaurants/business/${encodeURIComponent(s.details.businessId as string)}${s.provider ? `?provider=${encodeURIComponent(s.provider)}` : ""}`} className="btn btn--sm btn--gold">View details</Link>
+                      ) : s.serviceType === "hotels" && typeof s.details.propertyId === "string" ? (
+                        <Link href={`/dashboard/luxury-services/hotels/property/${encodeURIComponent(s.details.propertyId as string)}${s.provider ? `?provider=${encodeURIComponent(s.provider)}` : ""}`} className="btn btn--sm btn--gold">View details</Link>
                       ) : (
                         <Link href={`/dashboard/luxury-services/${s.serviceType}`} className="btn btn--sm btn--gold">Continue</Link>
                       )}

@@ -11,6 +11,7 @@ import { requireAccount } from "@/lib/guard";
 import { intakeFor, getServiceCategory, type ServicePath } from "@/lib/reservations/catalog";
 import { createReservationRequest, cancelReservation, submitDraft } from "@/lib/reservations/service";
 import { saveService, removeSaved } from "@/lib/reservations/saved";
+import { newPartnerTransactionId } from "@/lib/reservations/hotels/partner-tx";
 
 function titleFor(serviceType: string, d: Record<string, string>): string {
   const svc = getServiceCategory(serviceType);
@@ -148,6 +149,63 @@ export async function saveRestaurantAction(formData: FormData): Promise<void> {
     journeyNotes: (formData.get("_notes") as string)?.trim() || null,
     // Store only the stable provider reference — refresh details from it later.
     details: businessId ? { businessId } : {},
+  });
+  revalidatePath("/dashboard/luxury-services/saved");
+  redirect("/dashboard/luxury-services/saved");
+}
+
+/**
+ * Request Concierge Assistance for a hotel discovered via a provider (Expedia).
+ * HONEST: discovery ≠ booking — this creates a real concierge request only, and
+ * never fabricates a confirmation. A Partner-Transaction-ID is generated
+ * server-side and stored so support can locate the Expedia transaction.
+ */
+export async function requestHotelAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/luxury-services/hotels");
+  const name = String(formData.get("name") || "").trim();
+  if (!name) redirect("/dashboard/luxury-services/hotels");
+
+  const details: Record<string, string> = {};
+  for (const k of ["provider", "propertyId", "city", "checkIn", "checkOut", "guests", "pricePerNight", "totalPrice", "sample"]) {
+    const v = formData.get(k);
+    if (typeof v === "string" && v.trim()) details[k] = v.trim();
+  }
+  const guests = details.guests ? parseInt(details.guests, 10) : NaN;
+  // Partner-Transaction-ID — generated server-side, stored with the reservation.
+  details.partnerTransactionId = newPartnerTransactionId(account.id, "HOTEL");
+
+  const rec = await createReservationRequest({
+    accountId: account.id,
+    serviceType: "hotels",
+    title: `Hotel — ${name}`,
+    business: name,
+    location: details.city || null,
+    date: details.checkIn || null,
+    guestCount: Number.isFinite(guests) ? guests : null,
+    details,
+  });
+
+  revalidatePath("/dashboard/luxury-services/reservations");
+  redirect(`/dashboard/luxury-services/reservations/${rec.id}`);
+}
+
+/** Save a hotel to My Saved Services (favorites). Stores provider + property id. */
+export async function saveHotelAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/luxury-services/hotels");
+  const name = String(formData.get("name") || "").trim();
+  const propertyId = String(formData.get("propertyId") || "").trim();
+  if (!name) redirect("/dashboard/luxury-services/hotels");
+  const isSample = String(formData.get("sample") || "") === "1";
+
+  await saveService({
+    accountId: account.id,
+    serviceType: "hotels",
+    label: name,
+    provider: (formData.get("provider") as string)?.trim() || null,
+    // Only store a price when it's LIVE provider data — never a sample price.
+    estimatedPrice: isSample ? null : ((formData.get("pricePerNight") as string)?.trim() || null),
+    collection: (formData.get("_collection") as string)?.trim() || null,
+    details: propertyId ? { propertyId } : {},
   });
   revalidatePath("/dashboard/luxury-services/saved");
   redirect("/dashboard/luxury-services/saved");

@@ -117,3 +117,10 @@
 .rc__actions form { margin: 0; }
 .rb-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .5rem; margin: 1rem 0; }
 .rb-photos img { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line, #e7dcc9); }
+
+/* ── Hotels (Expedia) ─────────────────────────────────────────── */
+.ho-price { margin: .2rem 0 0; font-weight: 700; color: var(--espresso, #2a1d12); font-size: .95rem; }
+.ho-price span { font-weight: 400; color: var(--ink-soft, #6b5744); font-size: .82rem; }
+.ho-total { color: var(--ink-soft, #6b5744); }
+.ho-filters { background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 14px; padding: 1rem 1.1rem; margin: 1rem 0; display: flex; flex-direction: column; gap: .6rem; }
+.ho-filterrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; }
