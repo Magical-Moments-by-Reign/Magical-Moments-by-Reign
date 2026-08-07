@@ -3,19 +3,19 @@ import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getServiceCategory, RESERVATION_STATUS } from "@/lib/reservations/catalog";
 import { listReservations } from "@/lib/reservations/service";
-import "../concierge-hub.css";
+import "../luxury.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "My Reservations", robots: { index: false } };
 
 export default async function ReservationsPage() {
-  const account = await requireAccount("/dashboard/concierge/reservations");
+  const account = await requireAccount("/dashboard/luxury-services/reservations");
   const reservations = await listReservations(account.id).catch(() => []);
 
   return (
     <>
       <div className="pg-head">
-        <Link href="/dashboard/concierge" className="cx-back">← Concierge &amp; Reservations</Link>
+        <Link href="/dashboard/luxury-services" className="cx-back">← Luxury Services</Link>
         <span className="pg-eyebrow">Concierge Desk</span>
         <h1 className="pg-title">My Reservations</h1>
         <p className="pg-sub">Every request you&apos;ve made, from first draft to confirmed — all in one place.</p>
@@ -24,7 +24,7 @@ export default async function ReservationsPage() {
       {reservations.length === 0 ? (
         <div className="cx-empty">
           <p>You haven&apos;t made any requests yet.</p>
-          <Link href="/dashboard/concierge" className="btn btn--gold">Explore services</Link>
+          <Link href="/dashboard/luxury-services" className="btn btn--gold">Explore Luxury Services</Link>
         </div>
       ) : (
         <div className="cx-table">
@@ -32,7 +32,7 @@ export default async function ReservationsPage() {
             const meta = RESERVATION_STATUS[r.status];
             const svc = getServiceCategory(r.serviceType);
             return (
-              <Link key={r.id} href={`/dashboard/concierge/reservations/${r.id}`} className="cx-trow">
+              <Link key={r.id} href={`/dashboard/luxury-services/reservations/${r.id}`} className="cx-trow">
                 <span className="cx-trow__icon" aria-hidden="true">{svc?.icon ?? "✦"}</span>
                 <span className="cx-trow__main">
                   <span className="cx-trow__title">{r.title}</span>

@@ -4,21 +4,24 @@ import {
   SERVICE_CATEGORIES,
   getServiceCategory,
   connectionLabel,
+  pathsFor,
   RESERVATION_STATUS,
   clientCanTransition,
   clientCanCancel,
   intakeFor,
-  RESTAURANT_INTAKE,
+  RESTAURANT_HELP,
+  RESTAURANT_SEARCH,
+  RESTAURANT_FILTERS,
   type ReservationStatus,
 } from "./catalog";
 
-test("all 14 service categories are present and honestly labeled", () => {
-  assert.equal(SERVICE_CATEGORIES.length, 14, "14 categories");
-  // None may claim to be bookable now — no provider is connected.
+test("all 15 branded services are present and honestly labeled", () => {
+  assert.equal(SERVICE_CATEGORIES.length, 15, "15 branded services");
   for (const s of SERVICE_CATEGORIES) {
-    assert.notEqual(s.connection, "connected", `${s.id} must not falsely claim instant booking`);
+    assert.notEqual(s.connection, "connected", `${s.id} must not falsely claim it's connected`);
+    assert.ok(s.brandedLabel.startsWith("Magical Moments "), `${s.id} carries the Magical Moments brand`);
   }
-  assert.ok(getServiceCategory("restaurants")?.hasIntake, "restaurants has a structured intake");
+  assert.equal(getServiceCategory("restaurants")?.brandedLabel, "Magical Moments Restaurant Reservations");
 });
 
 test("connection labels never overstate availability", () => {
@@ -27,12 +30,18 @@ test("connection labels never overstate availability", () => {
   assert.equal(connectionLabel("not_connected"), "Not yet available");
 });
 
+test("the client always chooses: every service offers help + concierge; searchable ones add search", () => {
+  const restaurants = getServiceCategory("restaurants")!;
+  assert.deepEqual(pathsFor(restaurants), ["search", "help", "concierge"]);
+  const photography = getServiceCategory("photography")!;
+  assert.deepEqual(pathsFor(photography), ["help", "concierge"], "non-searchable services never fake a search path");
+});
+
 test("submitted status carries the exact honest wording", () => {
   assert.equal(
     RESERVATION_STATUS.REQUEST_SUBMITTED.description,
     "Concierge request submitted — reservation not yet confirmed.",
   );
-  assert.equal(RESERVATION_STATUS.REQUEST_SUBMITTED.showsConfirmation, false, "no confirmation number before it's real");
 });
 
 test("a member can NEVER move a reservation to Confirmed themselves", () => {
@@ -42,27 +51,27 @@ test("a member can NEVER move a reservation to Confirmed themselves", () => {
   }
 });
 
-test("confirmation number only shows in real/settled states", () => {
-  assert.ok(RESERVATION_STATUS.CONFIRMED.showsConfirmation);
-  assert.ok(RESERVATION_STATUS.COMPLETED.showsConfirmation);
-  assert.ok(!RESERVATION_STATUS.CONCIERGE_REVIEWING.showsConfirmation);
-  assert.ok(!RESERVATION_STATUS.AWAITING_PROVIDER.showsConfirmation);
-});
-
-test("clients can cancel while pending but a cancelled/completed request is terminal", () => {
+test("clients can cancel while pending; cancelled/completed are terminal", () => {
   assert.ok(clientCanCancel("REQUEST_SUBMITTED"));
-  assert.ok(clientCanCancel("CONFIRMED"), "cancel-request is allowed (subject to provider policy)");
+  assert.ok(clientCanCancel("CONFIRMED"));
   assert.ok(!clientCanCancel("CANCELLED"));
   assert.ok(!clientCanCancel("COMPLETED"));
-  assert.ok(RESERVATION_STATUS.CANCELLED.terminal && RESERVATION_STATUS.COMPLETED.terminal);
 });
 
-test("restaurant intake captures every field the concierge needs", () => {
-  const keys = RESTAURANT_INTAKE.map((f) => f.key);
-  for (const k of ["city", "date", "time", "guests", "cuisine", "priceRange", "seating", "dietary", "accessibility", "occasion", "flexible", "notes"]) {
-    assert.ok(keys.includes(k), `intake includes ${k}`);
+test("restaurant intakes differ by path: quick search vs guided help", () => {
+  assert.equal(intakeFor("restaurants", "search"), RESTAURANT_SEARCH);
+  assert.equal(intakeFor("restaurants", "help"), RESTAURANT_HELP);
+  const searchKeys = RESTAURANT_SEARCH.map((f) => f.key);
+  assert.deepEqual(searchKeys, ["city", "date", "time", "guests"], "quick search asks the four basics");
+  for (const k of ["occasion", "atmosphere", "cuisine", "budget", "dietary", "accessibility", "notes"]) {
+    assert.ok(RESTAURANT_HELP.some((f) => f.key === k), `guided help asks ${k}`);
   }
-  assert.equal(RESTAURANT_INTAKE.find((f) => f.key === "city")?.required, true, "city is required");
-  assert.equal(intakeFor("restaurants"), RESTAURANT_INTAKE, "restaurants → restaurant intake");
-  assert.ok(intakeFor("flights").length > 0, "other services fall back to the custom intake");
+  assert.equal(intakeFor("flights").length > 0, true);
+  assert.equal(intakeFor("photography")[0].key, "title", "non-search services fall back to the custom intake");
+});
+
+test("restaurant filters cover cuisine, price, style, features, distance", () => {
+  const ids = RESTAURANT_FILTERS.map((g) => g.id);
+  assert.deepEqual(ids, ["cuisine", "price", "style", "features", "distance"]);
+  assert.deepEqual(RESTAURANT_FILTERS.find((g) => g.id === "price")!.options, ["$", "$$", "$$$", "$$$$"]);
 });

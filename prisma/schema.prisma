@@ -1095,6 +1095,7 @@ model Account {
   sessions        Session[]
   notifications   Notification[]
   reservations    Reservation[]
+  savedServices   SavedService[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   authTokens      AuthToken[]
@@ -2378,6 +2379,29 @@ model Reservation {
 
   @@index([accountId, status])
   @@index([accountId, createdAt])
+}
+
+// A "saved for later" service/search in Luxury Services (favorites &
+// collections). HONESTY: estimatedPrice / expiresAt are ONLY ever populated
+// from real provider data — otherwise null. We never promise a saved price
+// will hold; the UI always reminds that supplier pricing may change.
+model SavedService {
+  id            String   @id @default(cuid())
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  serviceType   String   // ServiceCategory id
+  label         String   // what was saved, e.g. "Dinner at ... " / "ATL→CDG, Jun 10"
+  provider      String?  // real provider name, when results came from one
+  estimatedPrice String? // real supplier estimate only; never fabricated
+  journeyNotes  String?  // Journey's/member's notes
+  expiresAt     DateTime? // supplier-provided hold expiry, when given
+  reminderAt    DateTime? // optional reminder the member set
+  collection    String?  // favorites grouping, e.g. "Date Night", "Vacation"
+  details       String   @default("{}") // JSON — the saved search/params
+  createdAt     DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([accountId, collection])
 }
 
 // An in-app notification (source of truth) + record of external delivery.

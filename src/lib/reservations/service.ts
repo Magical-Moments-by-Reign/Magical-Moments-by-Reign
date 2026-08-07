@@ -49,7 +49,7 @@ function hydrate(row: any): ReservationRecord {
   return { ...row, status: row.status as ReservationStatus, details };
 }
 
-const deepLink = (id: string) => `/dashboard/concierge/reservations/${id}`;
+const deepLink = (id: string) => `/dashboard/luxury-services/reservations/${id}`;
 
 export interface CreateReservationInput {
   accountId: string;

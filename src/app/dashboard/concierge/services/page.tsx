@@ -31,7 +31,7 @@ export default async function ConciergeHubPage() {
   return (
     <>
       <div className="pg-head">
-        <Link href="/dashboard/concierge" className="cx-back">← Concierge &amp; Reservations</Link>
+        <Link href="/dashboard/luxury-services" className="cx-back">← Luxury Services</Link>
         <span className="pg-eyebrow">Concierge</span>
         <h1 className="pg-title">Browse Our Services</h1>
         <p className="pg-sub">One concierge for every part of the experience. {liveCount > 0 ? "Connected services are ready now; " : ""}the rest are on the way — ask the Concierge anytime and it will help you plan while we connect direct booking.</p>

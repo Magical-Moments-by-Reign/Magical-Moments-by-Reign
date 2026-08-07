@@ -1,15 +1,16 @@
-// ── Concierge & Reservations — catalog + status core (PURE) ─────
+// ── Luxury Services — catalog + status core (PURE) ──────────────
 //
-// The honest vocabulary of the Concierge & Reservations Hub. No prisma, no
-// network — plain data + pure helpers, fully unit-testable.
+// The honest vocabulary of the Magical Moments Luxury Services marketplace.
+// No prisma, no network — plain data + pure helpers, fully unit-testable.
 //
 // HONESTY BY CONSTRUCTION:
-//   • A service is only "connected" (bookable now) when a REAL provider is
-//     wired. With none connected today, every service is "concierge" — the
-//     client submits a real request a human/Journey fulfills. Nothing here
-//     claims instant availability, prices, or confirmations.
+//   • A service is only "connected" (searchable/bookable now) when a REAL
+//     provider is wired. With none connected today, every service is
+//     "concierge" — the client submits a real request a human/Journey
+//     fulfills. Nothing here claims availability, prices, ratings, times, or
+//     confirmations.
 //   • Reservation status never reads "Confirmed" until a real provider or an
-//     authorized concierge records it (see reservation-status transitions).
+//     authorized concierge records it (see the transitions below).
 
 /** How a service can be engaged right now — always the truth. */
 export type ServiceConnection =
@@ -20,33 +21,39 @@ export type ServiceConnection =
 
 export interface ServiceCategory {
   id: string;
+  /** Plain label, e.g. "Flights". */
   label: string;
+  /** Branded label shown to members, e.g. "Magical Moments Flights". */
+  brandedLabel: string;
   description: string;
-  /** Emoji accent for the card (line-art icons can replace later). */
   icon: string;
   connection: ServiceConnection;
-  /** Whether this category has a structured intake flow (vs. a generic request). */
-  hasIntake?: boolean;
+  /** Whether a self-serve SEARCH surface exists for this service. When the
+   *  service isn't connected, the search path stays honest (no fake results). */
+  searchable: boolean;
 }
 
-// The 14 categories. Every one is "concierge" today — honestly sourced by a
-// human/Journey via a real request — because no reservation provider is wired.
-// Flip a `connection` to "connected" only when its provider actually goes live.
+const MM = (name: string) => `Magical Moments ${name}`;
+
+// The 15 branded services. Every one is "concierge" today — honestly sourced
+// by a human/Journey via a real request — because no provider is wired. Flip a
+// `connection` to "connected" only when its provider actually goes live.
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
-  { id: "restaurants", label: "Restaurant Reservations", description: "A table for the moments worth gathering around.", icon: "🍽️", connection: "concierge", hasIntake: true },
-  { id: "flights", label: "Flights", description: "Getting there, thoughtfully arranged.", icon: "✈️", connection: "concierge" },
-  { id: "hotels", label: "Hotels & Lodging", description: "Somewhere lovely to rest your head.", icon: "🏨", connection: "concierge" },
-  { id: "vacation-packages", label: "Vacation Packages", description: "The whole journey, curated end to end.", icon: "🌅", connection: "concierge" },
-  { id: "vacation-homes", label: "Vacation Homes", description: "A home away from home for the whole party.", icon: "🏡", connection: "concierge" },
-  { id: "rental-cars", label: "Rental Cars", description: "The keys to the open road.", icon: "🚗", connection: "concierge" },
-  { id: "private-transportation", label: "Private Transportation", description: "Arrive in comfort and on time.", icon: "🚙", connection: "concierge" },
-  { id: "cruises", label: "Cruises", description: "The sea, and everywhere it can take you.", icon: "🛳️", connection: "concierge" },
-  { id: "experiences", label: "Experiences & Excursions", description: "The unforgettable things you'll talk about for years.", icon: "🎟️", connection: "concierge" },
-  { id: "event-venues", label: "Event Venues", description: "The perfect setting for the occasion.", icon: "🏛️", connection: "concierge" },
-  { id: "beauty-wellness", label: "Beauty & Wellness", description: "Look and feel your very best.", icon: "💆", connection: "concierge" },
-  { id: "gifts-deliveries", label: "Gifts & Deliveries", description: "The right gesture, delivered with care.", icon: "🎁", connection: "concierge" },
-  { id: "local-recommendations", label: "Local Recommendations", description: "Insider picks for wherever you are.", icon: "📍", connection: "concierge" },
-  { id: "custom", label: "Custom Concierge Request", description: "Anything else on your mind — just ask.", icon: "✨", connection: "concierge", hasIntake: true },
+  { id: "flights", label: "Flights", brandedLabel: MM("Flights"), description: "Getting there, thoughtfully arranged.", icon: "✈️", connection: "concierge", searchable: true },
+  { id: "hotels", label: "Hotels", brandedLabel: MM("Hotels"), description: "Somewhere lovely to rest your head.", icon: "🏨", connection: "concierge", searchable: true },
+  { id: "restaurants", label: "Restaurant Reservations", brandedLabel: MM("Restaurant Reservations"), description: "A table for the moments worth gathering around.", icon: "🍽️", connection: "concierge", searchable: true },
+  { id: "vacation-packages", label: "Vacation Packages", brandedLabel: MM("Vacation Packages"), description: "The whole journey, curated end to end.", icon: "🌅", connection: "concierge", searchable: true },
+  { id: "rental-cars", label: "Rental Cars", brandedLabel: MM("Rental Cars"), description: "The keys to the open road.", icon: "🚗", connection: "concierge", searchable: true },
+  { id: "cruises", label: "Cruises", brandedLabel: MM("Cruises"), description: "The sea, and everywhere it can take you.", icon: "🛳️", connection: "concierge", searchable: true },
+  { id: "vacation-homes", label: "Vacation Homes", brandedLabel: MM("Vacation Homes"), description: "A home away from home for the whole party.", icon: "🏡", connection: "concierge", searchable: true },
+  { id: "entertainment", label: "Entertainment", brandedLabel: MM("Entertainment"), description: "Shows, tickets, and nights to remember.", icon: "🎭", connection: "concierge", searchable: false },
+  { id: "experiences", label: "Experiences", brandedLabel: MM("Experiences"), description: "The unforgettable things you'll talk about for years.", icon: "🎟️", connection: "concierge", searchable: false },
+  { id: "flowers-gifts", label: "Flowers & Gifts", brandedLabel: MM("Flowers & Gifts"), description: "The right gesture, delivered with care.", icon: "💐", connection: "concierge", searchable: false },
+  { id: "transportation", label: "Transportation", brandedLabel: MM("Transportation"), description: "Arrive in comfort and on time.", icon: "🚙", connection: "concierge", searchable: false },
+  { id: "photography", label: "Photography", brandedLabel: MM("Photography"), description: "Keep the moment long after it passes.", icon: "📸", connection: "concierge", searchable: false },
+  { id: "event-services", label: "Event Services", brandedLabel: MM("Event Services"), description: "Everything the occasion needs, handled.", icon: "🎉", connection: "concierge", searchable: false },
+  { id: "wellness", label: "Wellness", brandedLabel: MM("Wellness"), description: "Look and feel your very best.", icon: "💆", connection: "concierge", searchable: false },
+  { id: "custom", label: "Custom Requests", brandedLabel: MM("Custom Requests"), description: "Anything else on your mind — just ask.", icon: "✨", connection: "concierge", searchable: false },
 ];
 
 export function getServiceCategory(id: string): ServiceCategory | undefined {
@@ -56,16 +63,24 @@ export function getServiceCategory(id: string): ServiceCategory | undefined {
 /** Member-facing label for a connection state. Always honest. */
 export function connectionLabel(c: ServiceConnection): string {
   switch (c) {
-    case "connected": return "Bookable now";
+    case "connected": return "Available now";
     case "concierge": return "Concierge assisted";
     case "coming_soon": return "Coming soon";
     case "not_connected": return "Not yet available";
   }
 }
 
+/** The paths a member may choose for a service — the client always chooses. */
+export type ServicePath = "search" | "help" | "concierge";
+
+/** Which paths a service offers. Everything offers help + concierge; only
+ *  searchable services also offer self-serve search. */
+export function pathsFor(service: ServiceCategory): ServicePath[] {
+  return service.searchable ? ["search", "help", "concierge"] : ["help", "concierge"];
+}
+
 // ── Reservation status ──────────────────────────────────────────
 
-/** The lifecycle of a reservation request. Stored as the string value. */
 export type ReservationStatus =
   | "DRAFT"
   | "REQUEST_SUBMITTED"
@@ -79,13 +94,9 @@ export type ReservationStatus =
 
 export interface ReservationStatusMeta {
   label: string;
-  /** A short, honest description shown on the record. */
   description: string;
-  /** Visual tone token (drives the badge color in CSS). */
   tone: "draft" | "pending" | "active" | "success" | "warn" | "muted";
-  /** A confirmation number is only meaningful (and shown) in these states. */
   showsConfirmation: boolean;
-  /** True when no further movement is expected. */
   terminal: boolean;
 }
 
@@ -101,30 +112,24 @@ export const RESERVATION_STATUS: Record<ReservationStatus, ReservationStatusMeta
   COMPLETED: { label: "Completed", description: "This reservation is complete.", tone: "success", showsConfirmation: true, terminal: true },
 };
 
-/** Statuses a member can set themselves (the rest are concierge/provider-driven).
- *  Crucially, a member can NEVER move a record to CONFIRMED — only an
- *  authorized concierge/provider records a real confirmation. */
 const CLIENT_TRANSITIONS: Partial<Record<ReservationStatus, ReservationStatus[]>> = {
   DRAFT: ["REQUEST_SUBMITTED", "CANCELLED"],
   REQUEST_SUBMITTED: ["CANCELLED"],
   CONCIERGE_REVIEWING: ["CANCELLED"],
   AWAITING_PROVIDER: ["CANCELLED"],
-  AWAITING_CLIENT_APPROVAL: ["CANCELLED"], // approval of a real option is a separate, provider-recorded step
-  CONFIRMED: ["CANCELLED"], // request-to-cancel; subject to the provider's policy
+  AWAITING_CLIENT_APPROVAL: ["CANCELLED"],
+  CONFIRMED: ["CANCELLED"],
   CHANGED: ["CANCELLED"],
 };
 
-/** Whether the member may move a reservation from `from` to `to` themselves. */
 export function clientCanTransition(from: ReservationStatus, to: ReservationStatus): boolean {
   return (CLIENT_TRANSITIONS[from] ?? []).includes(to);
 }
-
-/** Whether the member may cancel from this status. */
 export function clientCanCancel(from: ReservationStatus): boolean {
   return clientCanTransition(from, "CANCELLED");
 }
 
-// ── Restaurant intake ───────────────────────────────────────────
+// ── Intake schemas ──────────────────────────────────────────────
 
 export type IntakeFieldType = "text" | "date" | "time" | "number" | "select" | "textarea";
 
@@ -138,34 +143,82 @@ export interface IntakeField {
   help?: string;
 }
 
-/** The restaurant reservation intake — captured as a real request (never a
- *  booking) and handed to the concierge. */
-export const RESTAURANT_INTAKE: IntakeField[] = [
-  { key: "city", label: "City or location", type: "text", required: true, placeholder: "e.g. Savannah, GA" },
-  { key: "date", label: "Preferred date", type: "date" },
-  { key: "time", label: "Preferred time", type: "time" },
+/** Quick self-serve restaurant search (destination/date/time/guests). */
+export const RESTAURANT_SEARCH: IntakeField[] = [
+  { key: "city", label: "Where are you dining?", type: "text", required: true, placeholder: "City or neighborhood" },
+  { key: "date", label: "Date", type: "date" },
+  { key: "time", label: "Time", type: "time" },
   { key: "guests", label: "Number of guests", type: "number", placeholder: "2" },
-  { key: "cuisine", label: "Cuisine preference", type: "text", placeholder: "e.g. Italian, steakhouse, seafood" },
-  { key: "priceRange", label: "Price range", type: "select", options: ["$", "$$", "$$$", "$$$$", "No preference"] },
-  { key: "seating", label: "Seating", type: "select", options: ["Indoor", "Outdoor", "Rooftop", "Private room", "No preference"] },
-  { key: "dietary", label: "Dietary restrictions or allergies", type: "textarea", placeholder: "Anything we should tell the kitchen" },
-  { key: "accessibility", label: "Accessibility needs", type: "textarea", placeholder: "Step-free access, seating needs, etc." },
-  { key: "occasion", label: "Special occasion", type: "text", placeholder: "e.g. anniversary, birthday" },
-  { key: "flexible", label: "Flexibility with date or time", type: "select", options: ["Yes, flexible", "Somewhat flexible", "Not flexible"] },
-  { key: "notes", label: "Additional notes", type: "textarea", placeholder: "Anything else that would help us find the perfect table" },
 ];
 
-/** A short intake for the generic custom concierge request. */
+/** "Help Me Find the Perfect Restaurant" — the guided, concierge-style intake. */
+export const RESTAURANT_HELP: IntakeField[] = [
+  { key: "city", label: "City or location", type: "text", required: true, placeholder: "e.g. Savannah, GA" },
+  { key: "occasion", label: "What's the occasion?", type: "select", options: ["Date Night", "Birthday", "Anniversary", "Family Dinner", "Business Meeting", "Vacation", "Proposal", "Celebration", "Just Because"] },
+  { key: "atmosphere", label: "Preferred atmosphere", type: "select", options: ["Elegant", "Romantic", "Relaxed", "Fun", "Quiet", "Modern", "Historic", "Family Friendly"] },
+  { key: "cuisine", label: "Cuisine preference", type: "text", placeholder: "e.g. Italian, steakhouse, seafood" },
+  { key: "guests", label: "Number of guests", type: "number", placeholder: "2" },
+  { key: "date", label: "Preferred date", type: "date" },
+  { key: "time", label: "Preferred time", type: "time" },
+  { key: "budget", label: "Budget", type: "select", options: ["$", "$$", "$$$", "$$$$", "No preference"] },
+  { key: "seating", label: "Indoor or outdoor", type: "select", options: ["Indoor", "Outdoor", "Rooftop", "Private room", "No preference"] },
+  { key: "dietary", label: "Food allergies or dietary needs", type: "textarea", placeholder: "Anything we should tell the kitchen" },
+  { key: "accessibility", label: "Accessibility needs", type: "textarea", placeholder: "Step-free access, seating needs, etc." },
+  { key: "notes", label: "Special requests", type: "textarea", placeholder: "Anything else that would help us find the perfect table" },
+];
+
+/** Flights search intake. */
+export const FLIGHTS_SEARCH: IntakeField[] = [
+  { key: "from", label: "Departure airport", type: "text", required: true, placeholder: "e.g. ATL" },
+  { key: "to", label: "Destination", type: "text", required: true, placeholder: "e.g. CDG" },
+  { key: "departDate", label: "Departure date", type: "date" },
+  { key: "returnDate", label: "Return date", type: "date" },
+  { key: "passengers", label: "Passengers", type: "number", placeholder: "1" },
+  { key: "cabin", label: "Cabin class", type: "select", options: ["Economy", "Premium Economy", "Business", "First"] },
+  { key: "flexible", label: "Flexible dates", type: "select", options: ["Yes, flexible", "Somewhat flexible", "Not flexible"] },
+  { key: "stops", label: "Stops preference", type: "select", options: ["Nonstop preferred", "1 stop OK", "Any"] },
+  { key: "budget", label: "Budget", type: "text", placeholder: "e.g. up to $900 per person" },
+];
+
+/** Vacation package intake. */
+export const VACATION_PACKAGE: IntakeField[] = [
+  { key: "destination", label: "Destination", type: "text", required: true, placeholder: "Where would you like to go?" },
+  { key: "dates", label: "Travel dates", type: "text", placeholder: "e.g. June 10–17" },
+  { key: "travelers", label: "Number of travelers", type: "number", placeholder: "2" },
+  { key: "hotelRating", label: "Preferred hotel rating", type: "select", options: ["3-star", "4-star", "5-star", "No preference"] },
+  { key: "budget", label: "Budget", type: "text", placeholder: "e.g. up to $5,000 total" },
+  { key: "airfare", label: "Include airfare?", type: "select", options: ["Yes, include airfare", "No, lodging only"] },
+  { key: "notes", label: "Anything else?", type: "textarea", placeholder: "Occasion, must-haves, preferences" },
+];
+
+/** Generic custom concierge request. */
 export const CUSTOM_INTAKE: IntakeField[] = [
-  { key: "title", label: "What can we help with?", type: "text", required: true, placeholder: "e.g. Send flowers to my mother in Atlanta" },
+  { key: "title", label: "What can we help with?", type: "text", required: true, placeholder: "e.g. A private chef for an anniversary dinner" },
   { key: "city", label: "City or location", type: "text", placeholder: "Where should this happen?" },
   { key: "date", label: "Preferred date", type: "date" },
-  { key: "budget", label: "Budget (optional)", type: "text", placeholder: "e.g. up to $200" },
+  { key: "budget", label: "Budget (optional)", type: "text", placeholder: "e.g. up to $500" },
   { key: "notes", label: "Details", type: "textarea", placeholder: "Tell us everything that would help" },
 ];
 
-/** The intake schema for a service (restaurants + custom have structured ones). */
-export function intakeFor(serviceId: string): IntakeField[] {
-  if (serviceId === "restaurants") return RESTAURANT_INTAKE;
+/**
+ * Intake schema for a service + path. "search" gives the quick self-serve
+ * form where one exists; "help" gives the guided, concierge-style questions.
+ */
+export function intakeFor(serviceId: string, path: ServicePath = "help"): IntakeField[] {
+  if (serviceId === "restaurants") return path === "search" ? RESTAURANT_SEARCH : RESTAURANT_HELP;
+  if (serviceId === "flights") return FLIGHTS_SEARCH;
+  if (serviceId === "vacation-packages") return VACATION_PACKAGE;
   return CUSTOM_INTAKE;
 }
+
+// ── Restaurant filters (browse-yourself) ────────────────────────
+
+export interface FilterGroup { id: string; label: string; options: string[] }
+
+export const RESTAURANT_FILTERS: FilterGroup[] = [
+  { id: "cuisine", label: "Cuisine", options: ["Italian", "Steakhouse", "Seafood", "Mexican", "Japanese", "Chinese", "Thai", "Indian", "Southern", "American", "French", "Mediterranean", "Barbecue", "Breakfast", "Brunch", "Desserts", "Coffee", "Pizza", "Vegan", "Vegetarian", "Gluten Free"] },
+  { id: "price", label: "Price", options: ["$", "$$", "$$$", "$$$$"] },
+  { id: "style", label: "Dining Style", options: ["Casual", "Family Friendly", "Romantic", "Luxury Dining", "Business Dining", "Private Dining", "Outdoor Patio", "Rooftop", "Waterfront", "Wine Bar", "Live Music", "Chef's Table"] },
+  { id: "features", label: "Features", options: ["Reservations Available", "Walk-ins Welcome", "Wheelchair Accessible", "Pet Friendly", "Kid Friendly", "Free Parking", "Valet Parking", "Hotel Restaurant", "Open Late"] },
+  { id: "distance", label: "Distance", options: ["Nearby", "Within 5 Miles", "Within 10 Miles", "Entire City"] },
+];
