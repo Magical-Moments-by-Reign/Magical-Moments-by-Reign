@@ -157,17 +157,24 @@ export default function CheckoutClient() {
               </div>
               <div className="co2-row">
                 <label className="co2-field"><span>Phone</span><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
-                <label className="co2-field"><span>Experience type</span>
-                  <select value={expType} onChange={(e) => setExpType(e.target.value)}>
-                    <option value="">— Select —</option>
-                    {EXPERIENCE_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-                  </select>
-                </label>
+                {/* Experience type/title/date apply to legacy single-experience plans.
+                    A membership already carries the chosen occasions, so these fields
+                    are redundant there and are hidden. */}
+                {!membership && (
+                  <label className="co2-field"><span>Experience type</span>
+                    <select value={expType} onChange={(e) => setExpType(e.target.value)}>
+                      <option value="">— Select —</option>
+                      {EXPERIENCE_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                    </select>
+                  </label>
+                )}
               </div>
-              <div className="co2-row">
-                <label className="co2-field"><span>Experience title</span><input value={expTitle} onChange={(e) => setExpTitle(e.target.value)} placeholder="e.g. The Smith Wedding" /></label>
-                <label className="co2-field"><span>Event date (optional)</span><input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></label>
-              </div>
+              {!membership && (
+                <div className="co2-row">
+                  <label className="co2-field"><span>Experience title</span><input value={expTitle} onChange={(e) => setExpTitle(e.target.value)} placeholder="e.g. The Smith Wedding" /></label>
+                  <label className="co2-field"><span>Event date (optional)</span><input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></label>
+                </div>
+              )}
               {hasCustomDomain && (
                 <label className="co2-field"><span>Preferred custom domain (optional)</span><input value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="thesmithwedding.com" />
                   <small>Availability is not guaranteed — we&apos;ll confirm or help you choose another.</small>
