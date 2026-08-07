@@ -13,7 +13,7 @@
 
 .lp-hero { position: relative; height: 88vh; min-height: 600px; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; }
 .lp-hero__bg { position: absolute; inset: -6%; background: url("/brand/estate-home.png") center / cover no-repeat; animation: lp-kb 42s ease-in-out infinite alternate; }
-.lp-hero__grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(24, 16, 6, 0.62), rgba(24, 16, 6, 0.40) 38%, rgba(24, 16, 6, 0.46) 64%, rgba(22, 14, 5, 0.74)); }
+.lp-hero__grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(24, 16, 6, 0.44), rgba(24, 16, 6, 0.22) 38%, rgba(24, 16, 6, 0.28) 64%, rgba(22, 14, 5, 0.56)); }
 .lp-hero__sun { position: absolute; inset: 0; background: linear-gradient(118deg, rgba(255, 241, 206, 0) 34%, rgba(255, 241, 206, 0.2) 50%, rgba(255, 241, 206, 0) 66%); background-size: 260% 260%; mix-blend-mode: screen; animation: lp-sun 18s ease-in-out infinite; }
 @keyframes lp-kb { from { transform: scale(1); } to { transform: scale(1.1) translate(1.4%, -1.2%); } }
 @keyframes lp-sun { 0% { background-position: 12% 8%; opacity: 0.5; } 50% { background-position: 70% 55%; opacity: 0.85; } 100% { background-position: 12% 8%; opacity: 0.5; } }
