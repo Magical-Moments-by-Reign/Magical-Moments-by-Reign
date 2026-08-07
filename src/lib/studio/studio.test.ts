@@ -58,6 +58,37 @@ test("missing sections are the catalog-required ones not yet present", () => {
   assert.ok(rec.missingSections!.includes("gallery"), "gallery is missing");
 });
 
+test("enhance explains WHY with an encouraging, grounded rationale", () => {
+  const rec = heuristicRecommend({ task: "enhance", occasionType: "wedding", media: MEDIA });
+  assert.ok(rec.rationale, "provides rationale");
+  assert.ok(rec.rationale!.cover && rec.rationale!.cover.length > 0, "explains the cover");
+  assert.ok(rec.rationale!.gallery && rec.rationale!.gallery.length > 0, "explains the gallery order");
+  assert.ok(rec.rationale!.timeline && /2 different days|2 natural chapters|unfolding/.test(rec.rationale!.timeline), "timeline why is grounded in real day count");
+  // Encouraging tone: never criticizes quantity or quality.
+  const all = Object.values(rec.rationale!).join(" ").toLowerCase();
+  for (const bad of ["poor", "low quality", "not enough", "too few", "blurry", "bad"]) {
+    assert.ok(!all.includes(bad), `rationale never says "${bad}"`);
+  }
+});
+
+test("enhance offers occasion-specific Missing Memories as inspiration", () => {
+  const rec = heuristicRecommend({ task: "enhance", occasionType: "wedding", media: MEDIA });
+  assert.ok(rec.memoryIdeas && rec.memoryIdeas.length > 0, "suggests memory moments");
+  assert.ok(rec.memoryIdeas!.some((m) => /ceremony/i.test(m)), "wedding ideas include the ceremony");
+});
+
+test("reflection is generated from the occasion when real content exists", () => {
+  const rec = heuristicRecommend({ task: "enhance", occasionType: "wedding", title: "Reign & Jordan", media: MEDIA });
+  assert.ok(rec.reflection && rec.reflection.includes("Reign & Jordan"), "uses the family's own title, never invented names");
+});
+
+test("reflection is OMITTED (honesty) when there's no content to reflect on", () => {
+  const noMedia = heuristicRecommend({ task: "enhance", occasionType: "wedding", media: [] });
+  assert.equal(noMedia.reflection, undefined, "no media → no reflection");
+  const noType = heuristicRecommend({ task: "enhance", media: MEDIA });
+  assert.equal(noType.reflection, undefined, "unknown occasion → no reflection");
+});
+
 test("deterministic: same request → identical result", () => {
   const req: StudioRequest = { task: "enhance", occasionType: "baby", media: MEDIA };
   const a = JSON.stringify(heuristicRecommend(req));

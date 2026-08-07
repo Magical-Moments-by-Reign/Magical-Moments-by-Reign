@@ -82,6 +82,22 @@ export interface StudioDuplicateGroup {
 }
 
 /**
+ * Warm, encouraging "why" for each recommendation — the Creative Director
+ * explaining its thinking. HONESTY RULE: every line is grounded in a real
+ * signal the Studio actually has (orientation, resolution, capture dates,
+ * captions, counts, the occasion catalog). It never claims to judge visual
+ * quality it cannot see (lighting, expressions, gaze) and never criticizes —
+ * it only inspires ("consider adding…", "if these memories exist…").
+ */
+export interface StudioRationale {
+  cover?: string;
+  gallery?: string;
+  timeline?: string;
+  layout?: string;
+  missing?: string;
+}
+
+/**
  * The Studio's answer. Every advisory field is OPTIONAL — a task fills in
  * only what it produced. This is structured content and recommendations
  * ONLY; it never contains code, migrations, or commands.
@@ -101,7 +117,22 @@ export interface StudioRecommendation {
   detectedSections?: SectionKind[];
   /** Sections worth adding that aren't filled yet. */
   missingSections?: SectionKind[];
+  /**
+   * Gentle, occasion-specific "memory moments" worth capturing — inspiration,
+   * NOT a claim that they're missing (the Studio can't see inside photos).
+   * Framed as "consider adding, if these memories exist."
+   */
+  memoryIdeas?: string[];
   duplicates?: StudioDuplicateGroup[];
+  /** The warm "why" behind each recommendation. Encouraging, never critical. */
+  rationale?: StudioRationale;
+  /**
+   * A short closing Creative Reflection on the occasion — a warm sentence that
+   * makes the family feel the meaning of what they're preserving. Generated
+   * only from real signals (the chosen occasion + actual uploaded content);
+   * OMITTED entirely when it can't be produced honestly and confidently.
+   */
+  reflection?: string;
   /** Any extra creative notes, one per line. */
   notes: string[];
 }

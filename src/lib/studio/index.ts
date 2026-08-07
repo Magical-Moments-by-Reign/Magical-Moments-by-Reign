@@ -40,6 +40,7 @@ export type {
   StudioCoverSuggestion,
   StudioTimelineMoment,
   StudioDuplicateGroup,
+  StudioRationale,
   StudioRecommendation,
 } from "./types";
 export { studioAiConfigured } from "./openai-adapter";

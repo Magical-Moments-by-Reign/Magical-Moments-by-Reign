@@ -10,10 +10,13 @@
 
 import type { SectionKind } from "@/types";
 import { getExperienceType } from "@/lib/experience-types";
+import { memoryIdeasFor } from "./memory-ideas";
+import { reflectionFor } from "./reflections";
 import type {
   StudioDuplicateGroup,
   StudioLayout,
   StudioMediaItem,
+  StudioRationale,
   StudioRecommendation,
   StudioRequest,
   StudioTimelineMoment,
@@ -172,6 +175,55 @@ export function heuristicRecommend(req: StudioRequest): StudioRecommendation {
   if (type && (wants("detect_sections") || wants("recommend_layout"))) {
     const present = new Set<SectionKind>(rec.detectedSections ?? detectSections(req, media));
     rec.missingSections = type.requiredSections.filter((s) => !present.has(s));
+  }
+
+  // ── The "why" behind each recommendation — warm, encouraging, and grounded
+  // ONLY in signals we actually have. Never claims visual qualities we can't
+  // see (lighting, expressions); never criticizes.
+  if (wants("detect_sections") || wants("recommend_layout") || wants("suggest_cover") || wants("organize_uploads") || wants("build_timeline")) {
+    const photos = media.filter((m) => m.kind === "photo");
+    const dated = media.filter((m) => m.takenAt);
+    const days = new Set(dated.map((m) => (m.takenAt as string).slice(0, 10)));
+    const typeLabel = (type?.label ?? "occasion").toLowerCase();
+    const rationale: StudioRationale = {};
+
+    if (rec.coverSuggestion) {
+      const cov = media.find((m) => m.id === rec.coverSuggestion!.mediaId);
+      const landscape = cov?.width && cov?.height ? cov.width >= cov.height : false;
+      rationale.cover = landscape
+        ? "This is the widest, highest-resolution photo you've uploaded — it fills the hero beautifully and draws visitors straight in."
+        : photos.length > 0
+          ? "This is the strongest photo we have to lead with, giving your page a warm, welcoming first impression."
+          : "A gentle image to lead your page.";
+    }
+    if (rec.galleryOrder && rec.galleryOrder.length) {
+      rationale.gallery = dated.length >= 2
+        ? "These flow in the order your moments were captured, so visitors relive the story the way it unfolded."
+        : "These open with your cover and flow gently into the rest of your photos for a smooth, unhurried gallery.";
+    }
+    if (rec.timeline && rec.timeline.length) {
+      rationale.timeline = days.size > 1
+        ? `Your photos span ${days.size} different days, which form ${rec.timeline.length} natural chapters in your story.`
+        : "Your dated photos gather into a gentle timeline, giving your story a lovely sense of unfolding.";
+    }
+    if (rec.layout) {
+      rationale.layout = `This arrangement opens with your hero and carries visitors smoothly through the ${typeLabel} — the flow we find reads most beautifully.`;
+    }
+    if (rec.missingSections && rec.missingSections.length) {
+      rationale.missing = "You've already gathered lovely memories here. If these moments exist, adding them could make your story even richer.";
+    }
+    if (Object.keys(rationale).length) rec.rationale = rationale;
+
+    // Occasion-specific memory inspiration (never a claim that anything's missing).
+    if (wants("detect_sections") || wants("recommend_layout")) {
+      rec.memoryIdeas = memoryIdeasFor(req.occasionType);
+    }
+  }
+
+  // Closing Creative Reflection — only when there's an honest basis for one.
+  if (wants("detect_sections") || wants("recommend_layout")) {
+    const reflection = reflectionFor({ occasionType: req.occasionType, title: req.title, hasMedia: media.length > 0 });
+    if (reflection) rec.reflection = reflection;
   }
 
   // A warm, honest one-liner summary.

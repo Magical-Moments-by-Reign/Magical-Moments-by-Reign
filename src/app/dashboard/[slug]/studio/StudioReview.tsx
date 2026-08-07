@@ -85,6 +85,7 @@ export default function StudioReview({
 
   const isAI = rec?.source === "openai";
   const coverAsset = rec?.coverSuggestion ? assetById.get(rec.coverSuggestion.mediaId) : undefined;
+  const why = rec?.rationale;
 
   return (
     <div className="jst">
@@ -142,7 +143,7 @@ export default function StudioReview({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img className="jst-thumb" src={coverAsset.url} alt="Suggested cover" />
                       )}
-                      <span className="jst-card__s">{rec.coverSuggestion?.reason || "The strongest image to lead the page."}</span>
+                      <span className="jst-why">{why?.cover || rec.coverSuggestion?.reason || "The strongest image to lead the page."}</span>
                     </div>
                   </label>
                 )}
@@ -152,7 +153,8 @@ export default function StudioReview({
                     <input type="checkbox" checked={selected.has("gallery")} onChange={() => toggle("gallery")} />
                     <div className="jst-card__body">
                       <span className="jst-card__t">Gallery order</span>
-                      <span className="jst-card__s">Arrange your {rec.galleryOrder?.length ?? 0} uploaded photo(s) into a curated flow, cover first.</span>
+                      <span className="jst-card__s">Arranges your {rec.galleryOrder?.length ?? 0} uploaded photo(s), cover first.</span>
+                      <span className="jst-why">{why?.gallery || "A smooth, curated flow for your gallery."}</span>
                     </div>
                   </label>
                 )}
@@ -167,6 +169,7 @@ export default function StudioReview({
                           <li key={i}>{m.date ? <b>{m.date}</b> : null} {m.title}</li>
                         ))}
                       </ul>
+                      {why?.timeline && <span className="jst-why">{why.timeline}</span>}
                     </div>
                   </label>
                 )}
@@ -184,10 +187,21 @@ export default function StudioReview({
                       {(rec.missingSections?.length ?? 0) > 0 && (
                         <span className="jst-card__s">Adds: {rec.missingSections!.join(", ")}</span>
                       )}
+                      {why?.layout && <span className="jst-why">{why.layout}</span>}
                     </div>
                   </label>
                 )}
               </div>
+
+              {(rec.memoryIdeas?.length ?? 0) > 0 && (
+                <div className="jst-advisory jst-memories">
+                  <span className="jst-card__t">Missing Memories</span>
+                  <span className="jst-card__s">{why?.missing || "If these memories exist, they could make your story even richer."}</span>
+                  <ul className="jst-memlist">
+                    {rec.memoryIdeas!.map((m, i) => <li key={i}>{m}</li>)}
+                  </ul>
+                </div>
+              )}
 
               {(rec.duplicates?.length ?? 0) > 0 && (
                 <div className="jst-advisory">
@@ -209,6 +223,14 @@ export default function StudioReview({
             </>
           )}
         </>
+      )}
+
+      {rec?.reflection && (
+        <figure className="jst-reflection">
+          <span className="jst-reflection__mark">✦</span>
+          <blockquote>{rec.reflection}</blockquote>
+          <figcaption>Journey Studio — Creative Reflection</figcaption>
+        </figure>
       )}
 
       {history.length > 0 && (
