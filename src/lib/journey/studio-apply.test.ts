@@ -9,6 +9,8 @@ import {
   applyTimeline,
   applySections,
   applyStudioSelections,
+  applyManifestation,
+  removeManifestation,
   type StudioAsset,
 } from "./studio-apply";
 import type { DesignSpec, ExperienceContent } from "@/types";
@@ -117,6 +119,20 @@ test("applyStudioSelections applies only selected+offered kinds", () => {
   assert.equal(out.content.hero.posterUrl, "https://cdn/a2.jpg"); // cover applied
   assert.deepEqual(out.content.gallery.map((g) => g.url), ["https://cdn/placeholder.jpg"]); // gallery untouched
   assert.equal(out.designSpec.sectionOrder[0], "hero"); // sections applied
+});
+
+test("applyManifestation writes content.quote and makes the quote section visible", () => {
+  const out = applyManifestation(baseContent(), baseDesign(), { text: "Two hearts, one journey." });
+  assert.equal(out.content.quote?.text, "Two hearts, one journey.");
+  assert.ok(out.designSpec.sectionOrder.includes("quote"), "quote section added");
+  assert.equal(out.designSpec.sectionOrder[out.designSpec.sectionOrder.length - 1], "footer", "footer stays last");
+});
+
+test("removeManifestation clears the quote and hides the section (round-trips)", () => {
+  const added = applyManifestation(baseContent(), baseDesign(), { text: "Together is a beautiful place to be." });
+  const removed = removeManifestation(added.content, added.designSpec);
+  assert.equal(removed.content.quote, undefined, "quote cleared");
+  assert.ok(!removed.designSpec.sectionOrder.includes("quote"), "quote section removed");
 });
 
 test("applyStudioSelections ignores kinds the recommendation doesn't offer", () => {

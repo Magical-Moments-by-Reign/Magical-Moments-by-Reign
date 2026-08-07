@@ -11,7 +11,6 @@
 import type { SectionKind } from "@/types";
 import { getExperienceType } from "@/lib/experience-types";
 import { memoryIdeasFor } from "./memory-ideas";
-import { reflectionFor } from "./reflections";
 import type {
   StudioDuplicateGroup,
   StudioLayout,
@@ -220,11 +219,10 @@ export function heuristicRecommend(req: StudioRequest): StudioRecommendation {
     }
   }
 
-  // Closing Creative Reflection — only when there's an honest basis for one.
-  if (wants("detect_sections") || wants("recommend_layout")) {
-    const reflection = reflectionFor({ occasionType: req.occasionType, title: req.title, hasMedia: media.length > 0 });
-    if (reflection) rec.reflection = reflection;
-  }
+  // NOTE: emotional context, the Creative Reflection, and manifestations are
+  // curated (occasion-soul.ts) and applied centrally in runJourneyStudio for
+  // BOTH the heuristic and AI paths — so that warm, meaningful content always
+  // comes from the curated library and never from a model.
 
   // A warm, honest one-liner summary.
   const parts: string[] = [];

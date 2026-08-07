@@ -16,10 +16,10 @@
 //     live in content. Each apply-kind writes only its own home.
 
 import type { DesignSpec, ExperienceContent, SectionKind } from "@/types";
-import type { StudioMediaItem, StudioRecommendation, StudioRequest } from "@/lib/studio";
+import type { StudioManifestation, StudioMediaItem, StudioRecommendation, StudioRequest } from "@/lib/studio";
 
 /** The distinct, independently-approvable things a member can APPLY. */
-export type StudioApplyKind = "cover" | "gallery" | "timeline" | "sections";
+export type StudioApplyKind = "cover" | "gallery" | "timeline" | "sections" | "quote";
 
 const SECTION_KINDS: SectionKind[] = ["hero", "story", "gallery", "timeline", "quote", "details", "guestbook", "footer"];
 
@@ -143,6 +143,46 @@ export function applySections(designSpec: DesignSpec, rec: StudioRecommendation)
 
   const variants = { ...designSpec.variants, ...(rec.layout?.variants ?? {}) };
   return { ...designSpec, sectionOrder: order, variants };
+}
+
+/** Ensure a section appears in the order (before footer); no-op if present. */
+function withSection(order: SectionKind[], section: SectionKind): SectionKind[] {
+  if (order.includes(section)) return order;
+  const footerAt = order.indexOf("footer");
+  if (footerAt < 0) return [...order, section];
+  return [...order.slice(0, footerAt), section, ...order.slice(footerAt)];
+}
+
+/**
+ * Add a manifestation to the page: write it into content.quote AND make the
+ * quote section visible in the layout. Reversible via removeManifestation.
+ * The caller is responsible for confirming the text is curated (honesty gate).
+ */
+export function applyManifestation(
+  content: ExperienceContent,
+  designSpec: DesignSpec,
+  manifestation: StudioManifestation,
+): { content: ExperienceContent; designSpec: DesignSpec } {
+  const quote = manifestation.attribution
+    ? { text: manifestation.text, attribution: manifestation.attribution }
+    : { text: manifestation.text };
+  return {
+    content: { ...content, quote },
+    designSpec: { ...designSpec, sectionOrder: withSection(designSpec.sectionOrder, "quote") },
+  };
+}
+
+/** Remove the manifestation: clear content.quote and hide the quote section. */
+export function removeManifestation(
+  content: ExperienceContent,
+  designSpec: DesignSpec,
+): { content: ExperienceContent; designSpec: DesignSpec } {
+  const next = { ...content };
+  delete next.quote;
+  return {
+    content: next,
+    designSpec: { ...designSpec, sectionOrder: designSpec.sectionOrder.filter((s) => s !== "quote") },
+  };
 }
 
 export interface StudioApplyResult {

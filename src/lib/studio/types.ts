@@ -98,6 +98,17 @@ export interface StudioRationale {
 }
 
 /**
+ * A manifestation / inspirational line for an occasion. Drawn ONLY from the
+ * curated library (see occasion-soul.ts) — never generated on the fly, never
+ * scraped from a real author without attribution. `attribution` is present
+ * only when the curated entry has a known, intended source.
+ */
+export interface StudioManifestation {
+  text: string;
+  attribution?: string;
+}
+
+/**
  * The Studio's answer. Every advisory field is OPTIONAL — a task fills in
  * only what it produced. This is structured content and recommendations
  * ONLY; it never contains code, migrations, or commands.
@@ -126,6 +137,16 @@ export interface StudioRecommendation {
   duplicates?: StudioDuplicateGroup[];
   /** The warm "why" behind each recommendation. Encouraging, never critical. */
   rationale?: StudioRationale;
+  /**
+   * The emotional meaning of the occasion — derived ENTIRELY from the Journey
+   * type (a wedding is the beginning of a marriage; a memorial holds grief),
+   * NEVER inferred from photographs or guessed relationships. Curated.
+   */
+  emotionalContext?: string;
+  /** The suggested manifestation (first of the curated set for this occasion). */
+  manifestation?: StudioManifestation;
+  /** The full curated manifestation library for this occasion (for cycling). */
+  manifestations?: StudioManifestation[];
   /**
    * A short closing Creative Reflection on the occasion — a warm sentence that
    * makes the family feel the meaning of what they're preserving. Generated

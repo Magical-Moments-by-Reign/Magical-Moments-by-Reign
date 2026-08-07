@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { runReview, applyStudio, revertStudio, type StudioReviewResult, type StudioSnapshot } from "./actions";
+import { runReview, applyStudio, revertStudio, applyManifestation, removeManifestation, type StudioReviewResult, type StudioSnapshot } from "./actions";
 import type { StudioApplyKind } from "@/lib/journey/studio-apply";
 import "./studio.css";
 
@@ -21,6 +21,7 @@ const KIND_LABEL: Record<StudioApplyKind, string> = {
   gallery: "Gallery order",
   timeline: "Timeline",
   sections: "Layout & sections",
+  quote: "Manifestation",
 };
 
 export default function StudioReview({
@@ -32,10 +33,15 @@ export default function StudioReview({
 }) {
   const [result, setResult] = useState<StudioReviewResult>(initial);
   const [selected, setSelected] = useState<Set<StudioApplyKind>>(new Set());
-  const [busy, setBusy] = useState<null | "review" | "apply" | "undo">(null);
+  const [busy, setBusy] = useState<null | "review" | "apply" | "undo" | "quote">(null);
   const [error, setError] = useState("");
   const [flash, setFlash] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [manifestIdx, setManifestIdx] = useState(0);
+
+  function pushHistory(applied: StudioApplyKind[], previous: StudioSnapshot) {
+    setHistory((h) => [{ id: h.length ? h[0].id + 1 : 1, applied, previous, at: new Date().toLocaleTimeString() }, ...h]);
+  }
 
   const rec = result.recommendation;
   const available = result.available ?? [];
@@ -64,10 +70,7 @@ export default function StudioReview({
     try {
       const r = await applyStudio(slug, kinds);
       if (!r.ok || !r.previous) { setError(r.error || "Nothing was changed."); return; }
-      setHistory((h) => [
-        { id: h.length ? h[0].id + 1 : 1, applied: r.applied ?? kinds, previous: r.previous!, at: new Date().toLocaleTimeString() },
-        ...h,
-      ]);
+      pushHistory(r.applied ?? kinds, r.previous);
       setSelected(new Set());
       setFlash(`Applied: ${(r.applied ?? kinds).map((k) => KIND_LABEL[k]).join(", ")}. You can undo this below.`);
     } finally { setBusy(null); }
@@ -83,7 +86,29 @@ export default function StudioReview({
     } finally { setBusy(null); }
   }
 
+  async function addManifestation(text: string) {
+    setBusy("quote"); setError(""); setFlash("");
+    try {
+      const r = await applyManifestation(slug, text);
+      if (!r.ok || !r.previous) { setError(r.error || "We couldn't add that."); return; }
+      pushHistory(r.applied ?? ["quote"], r.previous);
+      setFlash("Manifestation added to your page. You can undo this below.");
+    } finally { setBusy(null); }
+  }
+
+  async function dropManifestation() {
+    setBusy("quote"); setError(""); setFlash("");
+    try {
+      const r = await removeManifestation(slug);
+      if (!r.ok || !r.previous) { setError(r.error || "We couldn't remove that."); return; }
+      pushHistory(r.applied ?? ["quote"], r.previous);
+      setFlash("Manifestation removed from your page. You can undo this below.");
+    } finally { setBusy(null); }
+  }
+
   const isAI = rec?.source === "openai";
+  const manifestations = rec?.manifestations ?? [];
+  const currentManifest = manifestations.length ? manifestations[manifestIdx % manifestations.length] : undefined;
   const coverAsset = rec?.coverSuggestion ? assetById.get(rec.coverSuggestion.mediaId) : undefined;
   const why = rec?.rationale;
 
@@ -98,6 +123,10 @@ export default function StudioReview({
           {isAI ? "AI Creative Director" : "Smart curation"}
         </span>
       </header>
+
+      {rec?.emotionalContext && (
+        <p className="jst-emotion">{rec.emotionalContext}</p>
+      )}
 
       {!result.aiConfigured && (
         <p className="jst-note-key">
@@ -223,6 +252,28 @@ export default function StudioReview({
             </>
           )}
         </>
+      )}
+
+      {currentManifest && (
+        <div className="jst-manifest">
+          <span className="jst-manifest__eyebrow">A manifestation for your journey</span>
+          <p className="jst-manifest__text">“{currentManifest.text}”</p>
+          {currentManifest.attribution && <p className="jst-manifest__attr">— {currentManifest.attribution}</p>}
+          <div className="jst-manifest__actions">
+            <button className="btn-gold" disabled={busy !== null} onClick={() => addManifestation(currentManifest.text)}>
+              {busy === "quote" ? "Working…" : "Add to my page"}
+            </button>
+            {manifestations.length > 1 && (
+              <button className="jst-rerun" disabled={busy !== null} onClick={() => setManifestIdx((i) => (i + 1) % manifestations.length)}>
+                Show another
+              </button>
+            )}
+            <button className="jst-rerun" disabled={busy !== null} onClick={dropManifestation}>
+              Remove from page
+            </button>
+          </div>
+          <span className="jst-manifest__note">Curated for this occasion. Choose one to add, swap it, or leave it off — your page, your words.</span>
+        </div>
       )}
 
       {rec?.reflection && (

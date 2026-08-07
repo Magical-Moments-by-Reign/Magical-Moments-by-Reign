@@ -15,12 +15,14 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireAccount } from "@/lib/guard";
 import { serialize, hydrateExperience } from "@/lib/serialize";
-import { runJourneyStudio, studioAiConfigured, type StudioRecommendation } from "@/lib/studio";
+import { runJourneyStudio, studioAiConfigured, isCuratedManifestation, type StudioRecommendation } from "@/lib/studio";
 import { recordJourneyEvent } from "@/lib/journey/audit";
 import {
   buildStudioRequest,
   applyStudioSelections,
   availableApplyKinds,
+  applyManifestation as applyManifestationToContent,
+  removeManifestation as removeManifestationFromContent,
   type StudioApplyKind,
   type StudioAsset,
 } from "@/lib/journey/studio-apply";
@@ -130,6 +132,52 @@ export async function applyStudio(slug: string, kinds: StudioApplyKind[]): Promi
   revalidatePath(`/dashboard/${slug}/studio`);
   revalidatePath(`/${slug}`);
   return { ok: true, applied: next.applied, previous };
+}
+
+/**
+ * Add a manifestation to the page. HONESTY GATE: the text must be a curated
+ * manifestation for this occasion — arbitrary/model text is refused, so only
+ * curated lines are ever written. Returns the pre-apply snapshot for Undo.
+ */
+export async function applyManifestation(slug: string, text: string): Promise<StudioApplyResponse> {
+  const owned = await loadOwned(slug);
+  if (!owned) return { ok: false, error: "We couldn't find that occasion in your account." };
+  const { account, exp } = owned;
+
+  if (!isCuratedManifestation(exp.type, text)) {
+    return { ok: false, error: "That manifestation isn't available for this occasion." };
+  }
+
+  const previous: StudioSnapshot = { content: exp.content, designSpec: exp.designSpec };
+  const next = applyManifestationToContent(exp.content, exp.designSpec, { text: text.trim() });
+
+  await prisma.experience.updateMany({
+    where: { slug, accountId: account.id },
+    data: { content: serialize(next.content), designSpec: serialize(next.designSpec) },
+  });
+  recordJourneyEvent({ kind: "tool_result", accountId: account.id, at: new Date().toISOString(), tool: "journeyStudio.manifestation.add", detail: { slug } });
+  revalidatePath(`/dashboard/${slug}/studio`);
+  revalidatePath(`/${slug}`);
+  return { ok: true, applied: ["quote"], previous };
+}
+
+/** Remove the manifestation from the page. Returns the snapshot for Undo. */
+export async function removeManifestation(slug: string): Promise<StudioApplyResponse> {
+  const owned = await loadOwned(slug);
+  if (!owned) return { ok: false, error: "We couldn't find that occasion in your account." };
+  const { account, exp } = owned;
+
+  const previous: StudioSnapshot = { content: exp.content, designSpec: exp.designSpec };
+  const next = removeManifestationFromContent(exp.content, exp.designSpec);
+
+  await prisma.experience.updateMany({
+    where: { slug, accountId: account.id },
+    data: { content: serialize(next.content), designSpec: serialize(next.designSpec) },
+  });
+  recordJourneyEvent({ kind: "tool_result", accountId: account.id, at: new Date().toISOString(), tool: "journeyStudio.manifestation.remove", detail: { slug } });
+  revalidatePath(`/dashboard/${slug}/studio`);
+  revalidatePath(`/${slug}`);
+  return { ok: true, applied: ["quote"], previous };
 }
 
 /** Undo: restore a snapshot captured before an apply. */
