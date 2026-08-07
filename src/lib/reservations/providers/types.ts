@@ -27,6 +27,11 @@ export interface RestaurantSearchParams {
 
 /** A search-result summary — only fields a real provider actually returned. */
 export interface RestaurantSummary {
+  /** Canonical provider slug that produced this record, e.g. "google" | "yelp".
+   *  Travels with the result everywhere so a provider id is never crossed. */
+  provider: string;
+  /** The provider-native id (Google Place ID or Yelp Business ID). Same as
+   *  `id`; named explicitly to make the identity contract obvious. */
   id: string;
   name: string;
   imageUrl?: string;
@@ -71,6 +76,8 @@ export interface RestaurantSearchResult {
 
 /** The contract every restaurant-discovery provider implements. */
 export interface RestaurantProvider {
+  /** Canonical, lowercase slug — the permanent identity, e.g. "google" | "yelp". */
+  readonly slug: string;
   /** Display name, e.g. "Yelp". */
   readonly name: string;
   /** Attribution string shown wherever this provider's data appears. */

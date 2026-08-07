@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { restaurantProvider } from "@/lib/reservations/providers";
+import { providerForId } from "@/lib/reservations/providers";
 import { reserveRestaurantAction, saveRestaurantAction } from "../../../actions";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import ShareButton from "@/components/luxury/ShareButton";
@@ -20,10 +20,18 @@ function fmtTime(t: string): string {
   return `${h}:${m} ${ap}`;
 }
 
-export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BusinessPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ provider?: string }>;
+}) {
   const { id } = await params;
+  const { provider: providerName } = await searchParams;
   await requireAccount(`/dashboard/luxury-services/restaurants/business/${id}`);
-  const provider = restaurantProvider();
+  // Route back to the SAME provider that produced this result (its id is
+  // provider-specific), falling back to the primary provider.
+  const provider = providerForId(providerName);
 
   const header = (
     <div className="pg-head">
@@ -43,7 +51,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     : b.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.address)}` : undefined;
 
   const hidden: Record<string, string> = {
-    businessId: b.id, name: b.name, provider: provider.name,
+    businessId: b.id, name: b.name, provider: b.provider || provider.slug,
     address: b.address ?? "", phone: b.phone ?? "", providerUrl: b.providerUrl ?? "",
     priceLevel: b.priceLevel ?? "", rating: b.rating ? String(b.rating) : "", categories: b.categories.join(", "),
   };

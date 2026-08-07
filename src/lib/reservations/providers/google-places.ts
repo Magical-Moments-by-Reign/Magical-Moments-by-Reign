@@ -82,6 +82,7 @@ function firstPhotoUrl(p: any, width = 800): string | undefined {
 export function mapPlace(p: any): RestaurantSummary {
   const status = p?.businessStatus;
   return {
+    provider: "google",
     id: String(p?.id ?? ""),
     name: String(p?.displayName?.text ?? ""),
     imageUrl: firstPhotoUrl(p),
@@ -117,6 +118,7 @@ export function mapPlaceDetails(p: any): RestaurantDetails {
 }
 
 export const GooglePlacesProvider: RestaurantProvider = {
+  slug: "google",
   name: "Google",
   attribution: "Powered by Google",
 

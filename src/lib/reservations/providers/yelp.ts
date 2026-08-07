@@ -31,6 +31,7 @@ function yelpKey(): string | undefined {
 /** Pure: map one Yelp business object → our summary shape. Exported for tests. */
 export function mapBusiness(b: any): RestaurantSummary {
   return {
+    provider: "yelp",
     id: String(b?.id ?? ""),
     name: String(b?.name ?? ""),
     imageUrl: typeof b?.image_url === "string" && b.image_url ? b.image_url : undefined,
@@ -75,6 +76,7 @@ export function priceParam(price?: number[]): string | undefined {
 }
 
 export const YelpProvider: RestaurantProvider = {
+  slug: "yelp",
   name: "Yelp",
   attribution: "Powered by Yelp",
 

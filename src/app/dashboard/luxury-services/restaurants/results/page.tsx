@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { restaurantProvider, type RestaurantSummary } from "@/lib/reservations/providers";
+import { searchRestaurants, restaurantDiscoveryConfigured, type RestaurantSummary } from "@/lib/reservations/providers";
 import { reserveRestaurantAction, saveRestaurantAction } from "../../actions";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import "../../luxury.css";
@@ -21,12 +21,14 @@ function priceToLevels(p?: string): number[] | undefined {
 
 function Card({ b, carry }: { b: RestaurantSummary; carry: Record<string, string> }) {
   const hidden = {
-    businessId: b.id, name: b.name, provider: "Yelp",
+    // Provider identity travels with the result: provider slug + provider-native id.
+    businessId: b.id, name: b.name, provider: b.provider,
     address: b.address ?? "", phone: b.phone ?? "", providerUrl: b.providerUrl ?? "",
     priceLevel: b.priceLevel ?? "", rating: b.rating ? String(b.rating) : "",
     categories: b.categories.join(", "),
     date: carry.date ?? "", time: carry.time ?? "", guests: carry.guests ?? "",
   };
+  const detailHref = `/dashboard/luxury-services/restaurants/business/${encodeURIComponent(b.id)}?provider=${encodeURIComponent(b.provider)}`;
   return (
     <article className="rc">
       {b.imageUrl ? (
@@ -46,7 +48,7 @@ function Card({ b, carry }: { b: RestaurantSummary; carry: Record<string, string
         </p>
         {b.address && <p className="rc__addr">{b.address}</p>}
         <div className="rc__actions">
-          <Link href={`/dashboard/luxury-services/restaurants/business/${encodeURIComponent(b.id)}`} className="btn btn--sm btn--ghost">Details</Link>
+          <Link href={detailHref} className="btn btn--sm btn--ghost">Details</Link>
           <form action={reserveRestaurantAction}>
             {Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
             <button type="submit" className="btn btn--sm btn--gold">Request Concierge Assistance</button>
@@ -69,7 +71,7 @@ export default async function RestaurantResultsPage({ searchParams }: { searchPa
   const term = get("term");
   const carry = { date: get("date"), time: get("time"), guests: get("guests") };
 
-  const provider = restaurantProvider();
+  const configured = restaurantDiscoveryConfigured();
 
   const header = (
     <div className="pg-head">
@@ -80,7 +82,7 @@ export default async function RestaurantResultsPage({ searchParams }: { searchPa
   );
 
   // No provider connected → honest message + concierge path. Never fake results.
-  if (!provider) {
+  if (!configured) {
     return (
       <>
         {header}
@@ -96,7 +98,8 @@ export default async function RestaurantResultsPage({ searchParams }: { searchPa
     return (<>{header}<div className="cx-empty"><p>Tell us where you&apos;d like to dine to see results.</p><Link href="/dashboard/luxury-services/restaurants?path=search" className="btn btn--gold">Start a search</Link></div></>);
   }
 
-  const result = await provider.search({ location, term: term || undefined, price: priceToLevels(get("price")), openNow: get("open") === "1", sortBy: (get("sort") as "best_match") || undefined, limit: 20 });
+  // Google first, automatic Yelp fallback on empty/error/quota — orchestrated.
+  const result = await searchRestaurants({ location, term: term || undefined, price: priceToLevels(get("price")), openNow: get("open") === "1", sortBy: (get("sort") as "best_match") || undefined, limit: 20 });
 
   if (!result || result.businesses.length === 0) {
     return (

@@ -64,7 +64,7 @@ export default async function SavedPage() {
                     <div className="cx-actionbar" style={{ marginTop: ".6rem" }}>
                       {s.serviceType === "restaurants" && typeof s.details.businessId === "string" ? (
                         // Refresh full details live from the provider by stored id.
-                        <Link href={`/dashboard/luxury-services/restaurants/business/${encodeURIComponent(s.details.businessId as string)}`} className="btn btn--sm btn--gold">View details</Link>
+                        <Link href={`/dashboard/luxury-services/restaurants/business/${encodeURIComponent(s.details.businessId as string)}${s.provider ? `?provider=${encodeURIComponent(s.provider)}` : ""}`} className="btn btn--sm btn--gold">View details</Link>
                       ) : (
                         <Link href={`/dashboard/luxury-services/${s.serviceType}`} className="btn btn--sm btn--gold">Continue</Link>
                       )}
