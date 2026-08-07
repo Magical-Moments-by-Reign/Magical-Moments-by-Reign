@@ -93,7 +93,7 @@ export default async function DashboardPage() {
               href={t.href}
               className="db-tile"
               data-id={t.id}
-              style={t.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.18), rgba(28,19,12,.72)), url(${t.image})` } : undefined}
+              style={t.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.14), rgba(28,19,12,.50)), url(${t.image})` } : undefined}
             >
               {t.status === "soon" && <span className="db-tile__soon">Coming Soon</span>}
               <span className="db-tile__title">{t.title}</span>
