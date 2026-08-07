@@ -16,7 +16,13 @@ export interface Money {
 }
 
 export interface HotelSearchParams {
+  /** Human-readable destination the member typed (display only). */
   location: string;
+  /** Resolved provider destination code (internal). When present, providers
+   *  use it directly instead of trying to parse the free-text location. */
+  destinationCode?: string;
+  /** The resolved destination's display name, e.g. "Miami, Florida". */
+  destinationName?: string;
   checkIn?: string; // ISO date
   checkOut?: string; // ISO date
   guests?: number;

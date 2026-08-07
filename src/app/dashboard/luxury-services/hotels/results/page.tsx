@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { searchHotels, type HotelSummary } from "@/lib/reservations/hotels";
+import { searchHotels, searchDestinations, hotelDiscoveryConfigured, type HotelSummary } from "@/lib/reservations/hotels";
 import { requestHotelAction, saveHotelAction } from "../../actions";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import "../../luxury.css";
@@ -85,7 +85,66 @@ export default async function HotelResultsPage({ searchParams }: { searchParams:
     return (<>{header}<div className="cx-empty"><p>Tell us where you&apos;d like to stay to see hotels.</p><Link href="/dashboard/luxury-services/hotels?path=search" className="btn btn--gold">Start a search</Link></div></>);
   }
 
-  const result = await searchHotels({ location, checkIn: carry.checkIn || undefined, checkOut: carry.checkOut || undefined, guests: carry.guests ? parseInt(carry.guests, 10) : undefined, starRatings: stars.length ? stars : undefined, amenities: amenities.length ? amenities : undefined, minPrice, maxPrice, sortBy, userId: account.id });
+  // Preserve all search params when linking to a resolved destination.
+  const preserve = (extra: Record<string, string>) => {
+    const p = new URLSearchParams();
+    p.set("location", location);
+    if (carry.checkIn) p.set("checkIn", carry.checkIn);
+    if (carry.checkOut) p.set("checkOut", carry.checkOut);
+    if (carry.guests) p.set("guests", carry.guests);
+    if (get("sort")) p.set("sort", get("sort"));
+    for (const [k, v] of Object.entries(extra)) p.set(k, v);
+    return `/dashboard/luxury-services/hotels/results?${p.toString()}`;
+  };
+
+  // ── Destination resolution (live provider only) ──
+  // Turn the human destination into a REAL Hotelbeds code. We never guess a
+  // code; ambiguous matches are offered as a choice; no match is honest.
+  let destinationCode = get("destinationCode");
+  let destinationName = get("destinationName") || location;
+  const liveConfigured = hotelDiscoveryConfigured();
+
+  if (liveConfigured && !destinationCode) {
+    const dests = await searchDestinations(location, 8).catch(() => []);
+    if (dests.length === 0) {
+      return (
+        <>{header}
+          <div className="cx-empty">
+            <p>We couldn&apos;t find that destination in our current hotel inventory. Try another city, airport, or nearby destination.</p>
+            <div className="cx-actionbar" style={{ justifyContent: "center" }}>
+              <Link href="/dashboard/luxury-services/hotels?path=search" className="btn btn--gold">Try another destination</Link>
+              <OpenConciergeButton className="btn btn--ghost" seed={`Help me choose a destination for a hotel — I searched "${location}".`}>Ask Journey</OpenConciergeButton>
+              <OpenConciergeButton className="btn btn--ghost" seed={`Please help me find a hotel near "${location}".`}>Ask Concierge</OpenConciergeButton>
+            </div>
+          </div>
+        </>
+      );
+    }
+    if (dests.length > 1) {
+      return (
+        <>{header}
+          <p className="pg-sub">We found a few places matching “{location}”. Which did you mean?</p>
+          <div className="cx-table">
+            {dests.map((d) => (
+              <Link key={d.code} href={preserve({ destinationCode: d.code, destinationName: d.name })} className="cx-trow">
+                <span className="cx-trow__icon" aria-hidden="true">📍</span>
+                <span className="cx-trow__main">
+                  <span className="cx-trow__title">{d.name}</span>
+                  <span className="cx-trow__meta">{[d.region, d.country].filter(Boolean).join(" · ")}</span>
+                </span>
+                <span className="ls-card__go">Choose →</span>
+              </Link>
+            ))}
+          </div>
+          <p className="note" style={{ marginTop: "1rem" }}>Not seeing it? <Link href="/dashboard/luxury-services/hotels?path=search" className="ls-link">Try another destination</Link>.</p>
+        </>
+      );
+    }
+    destinationCode = dests[0].code;
+    destinationName = dests[0].name;
+  }
+
+  const result = await searchHotels({ location, destinationCode: destinationCode || undefined, destinationName, checkIn: carry.checkIn || undefined, checkOut: carry.checkOut || undefined, guests: carry.guests ? parseInt(carry.guests, 10) : undefined, starRatings: stars.length ? stars : undefined, amenities: amenities.length ? amenities : undefined, minPrice, maxPrice, sortBy, userId: account.id });
 
   // Live provider reachable but nothing matched → honest empty message.
   if (result && !result.sample && result.hotels.length === 0) {

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getServiceCategory, intakeFor, pathsFor, RESTAURANT_FILTERS, type IntakeField, type ServicePath } from "@/lib/reservations/catalog";
 import { restaurantDiscoveryConfigured } from "@/lib/reservations/providers";
+import HotelDestinationInput from "@/components/luxury/HotelDestinationInput";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import { createRequestAction, saveServiceAction } from "../actions";
 import "../luxury.css";
@@ -97,7 +98,7 @@ export default async function ServicePage({
         </div>
         <form action="/dashboard/luxury-services/hotels/results" className="cx-form sec">
           <div className="cx-form__grid">
-            <label className="cx-field"><span className="cx-field__label">Destination *</span><input name="location" required placeholder="City, area, or hotel name" /></label>
+            <HotelDestinationInput />
             <label className="cx-field"><span className="cx-field__label">Check-in</span><input name="checkIn" type="date" /></label>
             <label className="cx-field"><span className="cx-field__label">Check-out</span><input name="checkOut" type="date" /></label>
             <label className="cx-field"><span className="cx-field__label">Guests</span><input name="guests" type="number" placeholder="2" /></label>

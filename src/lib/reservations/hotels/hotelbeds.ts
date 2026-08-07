@@ -36,6 +36,12 @@ export function hotelbedsSignature(apiKey: string, secret: string, unixSeconds: 
   return createHash("sha256").update(`${apiKey}${secret}${unixSeconds}`).digest("hex");
 }
 
+/** Server-side auth headers (exported for the destinations loader). Returns
+ *  null when credentials are absent. Never exposed to the browser. */
+export function hotelbedsHeaders(): Record<string, string> | null {
+  return hbHeaders();
+}
+
 /** Server-side auth headers. Returns null when credentials are absent. */
 function hbHeaders(): Record<string, string> | null {
   const c = hbCreds();
@@ -181,10 +187,10 @@ export const HotelbedsProvider: HotelProvider = {
       const body: any = { stay: {}, occupancies: [{ rooms: params.rooms ?? 1, adults: params.guests ?? 2, children: 0 }] };
       if (params.checkIn) body.stay.checkIn = params.checkIn;
       if (params.checkOut) body.stay.checkOut = params.checkOut;
-      // Hotelbeds requires a destination code / geolocation / hotel list. When a
-      // resolved destination code is available it is set here; until then this
-      // path returns an honest empty result rather than fabricated inventory.
-      const destinationCode = params.location && /^[A-Z]{3}$/.test(params.location) ? params.location : undefined;
+      // Hotelbeds requires a real destination code (resolved from the member's
+      // text upstream — see hotelbeds-destinations.ts). We NEVER guess a code:
+      // without one, return an honest empty result rather than inventing inventory.
+      const destinationCode = params.destinationCode?.trim();
       if (destinationCode) body.destination = { code: destinationCode };
       else return { provider: this.name, attribution: this.attribution, sample: false, hotels: [], total: 0 };
 

@@ -13,6 +13,7 @@ export type {
   HotelDetails, HotelRoomOption, HotelSort, Money,
 } from "./types";
 export { verifyHotelbedsAuth, hotelbedsBase } from "./hotelbeds";
+export { searchDestinations, destinationByCode, verifyHotelbedsReadiness, type HotelbedsDestination, type HotelbedsReadiness } from "./hotelbeds-destinations";
 
 // Priority order. Hotelbeds is the live provider (real credentials); Expedia
 // remains for its schema-accurate sample mode until its own credentials land.

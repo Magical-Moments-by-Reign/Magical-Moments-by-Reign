@@ -124,3 +124,12 @@
 .ho-total { color: var(--ink-soft, #6b5744); }
 .ho-filters { background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 14px; padding: 1rem 1.1rem; margin: 1rem 0; display: flex; flex-direction: column; gap: .6rem; }
 .ho-filterrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; }
+
+/* Hotel destination autocomplete */
+.ho-ac { position: relative; }
+.ho-ac__menu { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; margin-top: .2rem; background: #fffdf9; border: 1px solid var(--line, #e7dcc9); border-radius: 12px; box-shadow: 0 12px 28px rgba(44,33,26,.12); overflow: hidden; max-height: 300px; overflow-y: auto; }
+.ho-ac__item { display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid #f0e8d8; padding: .55rem .8rem; cursor: pointer; font: inherit; }
+.ho-ac__item:hover { background: #fbf4e3; }
+.ho-ac__name { color: var(--espresso, #2a1d12); font-weight: 600; font-size: .9rem; }
+.ho-ac__sub { color: var(--ink-soft, #6b5744); font-size: .76rem; }
+.ho-ac__loading { padding: .6rem .8rem; color: var(--ink-soft, #6b5744); font-size: .82rem; }
