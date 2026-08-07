@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { hotelProviderForId, hotelDiscoveryConfigured, type Money } from "@/lib/reservations/hotels";
+import { hotelProviderForId, type Money } from "@/lib/reservations/hotels";
 import { requestHotelAction, saveHotelAction } from "../../../actions";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import ShareButton from "@/components/luxury/ShareButton";
@@ -32,7 +32,8 @@ export default async function HotelPropertyPage({
   const h = await provider.details(id, { location: "", userId: account.id });
   if (!h) notFound();
 
-  const sample = !hotelDiscoveryConfigured();
+  // Accurate per-provider: a result from an unconfigured provider is sample.
+  const sample = !provider.isConfigured();
   const mapHref = h.latitude && h.longitude ? `https://www.google.com/maps/search/?api=1&query=${h.latitude},${h.longitude}` : h.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.address)}` : undefined;
   const hidden: Record<string, string> = {
     provider: h.provider, propertyId: h.id, name: h.name, city: h.city ?? "",

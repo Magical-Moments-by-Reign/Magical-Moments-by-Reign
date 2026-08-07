@@ -66,9 +66,10 @@ test("provider returns SAMPLE results (sample:true) before credentials arrive", 
   }
 });
 
-test("hotel id stays bound to its provider (Expedia)", () => {
-  assert.equal(hotelProviderForId("expedia")?.slug, "expedia");
-  assert.equal(hotelProviderForId(undefined)?.slug, "expedia", "no hint → primary");
+test("hotel id stays bound to its named provider; no hint → primary (Hotelbeds)", () => {
+  assert.equal(hotelProviderForId("expedia")?.slug, "expedia", "an Expedia id always routes to Expedia");
+  assert.equal(hotelProviderForId("hotelbeds")?.slug, "hotelbeds");
+  assert.equal(hotelProviderForId(undefined)?.slug, "hotelbeds", "no hint → primary (Hotelbeds)");
 });
 
 test("Partner-Transaction-ID matches MM-{USER}-{SERVICE}-{YYYYMMDD}-{RANDOM}", () => {

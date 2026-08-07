@@ -5,15 +5,19 @@
 // no page changes. The UI never learns which provider supplied the data.
 
 import { ExpediaRapidProvider } from "./expedia";
+import { HotelbedsProvider } from "./hotelbeds";
 import type { HotelProvider, HotelSearchParams, HotelSearchResult } from "./types";
 
 export type {
   HotelProvider, HotelSearchParams, HotelSearchResult, HotelSummary,
   HotelDetails, HotelRoomOption, HotelSort, Money,
 } from "./types";
+export { verifyHotelbedsAuth, hotelbedsBase } from "./hotelbeds";
 
-// Priority order. Expedia is primary; add fallbacks here.
-const PROVIDERS: HotelProvider[] = [ExpediaRapidProvider];
+// Priority order. Hotelbeds is the live provider (real credentials); Expedia
+// remains for its schema-accurate sample mode until its own credentials land.
+// New hotel providers slot in here with no page changes.
+const PROVIDERS: HotelProvider[] = [HotelbedsProvider, ExpediaRapidProvider];
 
 /** The primary hotel provider (always present so the UI works with sample data). */
 export function hotelProvider(): HotelProvider | null {
@@ -39,20 +43,24 @@ export function hotelProviderForId(providerName?: string | null): HotelProvider 
 }
 
 /**
- * Search with automatic fallback across configured providers (Expedia today).
- * A provider returning results wins; one that errors/returns null is skipped;
- * a reachable-but-empty provider yields an honest empty result. Sample results
- * (no live creds) are returned as-is with sample:true.
+ * Search across providers in priority order.
+ *
+ * LIVE IS AUTHORITATIVE: the moment a live provider (sample:false) is reachable
+ * — even with zero matches — we return its result and STOP. A live "no hotels
+ * found" is never papered over with another provider's sample data. Sample
+ * providers are consulted only when no live provider answered (so the UI still
+ * works before credentials arrive). A provider that errors (null) is skipped.
  */
 export async function searchHotels(
   params: HotelSearchParams,
   providers: HotelProvider[] = PROVIDERS,
 ): Promise<HotelSearchResult | null> {
-  let reachableButEmpty: HotelSearchResult | null = null;
+  let sampleFallback: HotelSearchResult | null = null;
   for (const p of providers) {
     const res = await p.search(params);
-    if (res && res.hotels.length > 0) return res;
-    if (res) reachableButEmpty = reachableButEmpty ?? res;
+    if (!res) continue; // error / unavailable → try the next
+    if (!res.sample) return res; // live + reachable → authoritative (even if empty)
+    sampleFallback = sampleFallback ?? res; // remember sample; keep seeking a live one
   }
-  return reachableButEmpty;
+  return sampleFallback;
 }
