@@ -16,7 +16,7 @@ export type NotificationType =
   | "celebration_reminder" | "task_reminder" | "appointment_reminder"
   | "education_deadline" | "scholarship_deadline" | "vendor_compliance"
   | "trial_billing" | "domain_renewal" | "message" | "invitation"
-  | "achievement" | "rsvp" | "general";
+  | "achievement" | "rsvp" | "reservation_update" | "general";
 
 export interface NotificationTypeDef {
   id: NotificationType;
@@ -38,6 +38,7 @@ export const NOTIFICATION_TYPES: NotificationTypeDef[] = [
   { id: "invitation", label: "Invitations", category: "family", defaultChannels: ["in_app", "email"] },
   { id: "achievement", label: "Achievements", category: "family", defaultChannels: ["in_app"] },
   { id: "rsvp", label: "RSVP updates", category: "family", defaultChannels: ["in_app"] },
+  { id: "reservation_update", label: "Concierge & reservation updates", category: "organization", defaultChannels: ["in_app", "email"] },
   { id: "general", label: "General", category: "system", defaultChannels: ["in_app"] },
 ];
 

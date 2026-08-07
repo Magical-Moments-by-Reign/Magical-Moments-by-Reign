@@ -13,3 +13,71 @@
 .cx-badge--test { background: #f3e6c8; color: #a67c2e; border: 1px solid #e6d3a3; }
 .cx-badge--coming_soon { background: #efe6d6; color: #8a7a63; border: 1px solid #e7dcc9; }
 .cx-badge--disabled { background: #efe1e0; color: #9a4a3a; border: 1px solid #e6c7b8; }
+
+/* ── Concierge & Reservations Hub ─────────────────────────────── */
+.cx-back { display: inline-block; margin-bottom: .5rem; color: var(--gold-deep, #a67c2e); text-decoration: none; font-size: .82rem; font-weight: 600; }
+.cx-back:hover { text-decoration: underline; }
+
+/* Connection badges (service cards) */
+.cx-badge--connected { background: #dcecd9; color: #33632f; border: 1px solid #c3ddbf; }
+.cx-badge--concierge { background: #f3e6c8; color: #a67c2e; border: 1px solid #e6d3a3; }
+.cx-badge--not_connected { background: #efe1e0; color: #9a4a3a; border: 1px solid #e6c7b8; }
+
+/* Status badges (reservations) */
+.cx-badge--draft { background: #eee7d8; color: #8a7a63; border: 1px solid #e2d6bf; }
+.cx-badge--pending { background: #f3e6c8; color: #a67c2e; border: 1px solid #e6d3a3; }
+.cx-badge--active { background: #dbe7f0; color: #3a6178; border: 1px solid #c4d8e4; }
+.cx-badge--warn { background: #f6e5cf; color: #9a5a2a; border: 1px solid #eccea6; }
+.cx-badge--success { background: #dcecd9; color: #33632f; border: 1px solid #c3ddbf; }
+.cx-badge--muted { background: #ece7df; color: #8a7f70; border: 1px solid #ddd4c6; }
+
+/* Two primary paths */
+.cx-paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin: 0 0 1.6rem; }
+.cx-path { display: flex; flex-direction: column; gap: .3rem; text-align: left; background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 16px; padding: 1.3rem 1.4rem; text-decoration: none; cursor: pointer; font: inherit; transition: border-color .12s, box-shadow .12s, transform .12s; }
+.cx-path:hover { border-color: #e0cfa6; box-shadow: 0 8px 20px rgba(44,33,26,.07); transform: translateY(-1px); }
+.cx-path--ask { background: linear-gradient(135deg, #fbf4e3, #fffdf9); }
+.cx-path__icon { font-size: 1.5rem; color: var(--gold-deep, #a67c2e); }
+.cx-path__t { font-family: var(--font-display, Georgia, serif); font-size: 1.2rem; color: var(--espresso, #2a1d12); }
+.cx-path__b { color: var(--ink-soft, #6b5744); font-size: .88rem; line-height: 1.5; }
+
+/* My Reservations preview + rows */
+.cx-seeall { color: var(--gold-deep, #a67c2e); text-decoration: none; font-size: .82rem; font-weight: 600; }
+.cx-seeall:hover { text-decoration: underline; }
+.cx-reslist { display: flex; flex-direction: column; gap: .5rem; }
+.cx-resrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 12px; padding: .7rem 1rem; text-decoration: none; }
+.cx-resrow:hover { border-color: #e0cfa6; }
+.cx-resrow__title { color: var(--espresso, #2a1d12); font-weight: 600; font-size: .92rem; }
+
+/* My Reservations table */
+.cx-table { display: flex; flex-direction: column; gap: .6rem; }
+.cx-trow { display: flex; align-items: center; gap: .9rem; background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 14px; padding: .85rem 1.1rem; text-decoration: none; }
+.cx-trow:hover { border-color: #e0cfa6; box-shadow: 0 6px 16px rgba(44,33,26,.06); }
+.cx-trow__icon { font-size: 1.4rem; }
+.cx-trow__main { display: flex; flex-direction: column; gap: .15rem; flex: 1; min-width: 0; }
+.cx-trow__title { color: var(--espresso, #2a1d12); font-weight: 700; font-size: .95rem; }
+.cx-trow__meta { color: var(--ink-soft, #6b5744); font-size: .8rem; }
+
+.cx-empty { text-align: center; background: var(--ivory, #fffdf9); border: 1px dashed var(--line, #e7dcc9); border-radius: 16px; padding: 2.4rem 1.2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--ink-soft, #6b5744); }
+
+/* Intake form */
+.cx-form__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.cx-field { display: flex; flex-direction: column; gap: .3rem; }
+.cx-field__label { font-size: .82rem; font-weight: 600; color: var(--espresso, #2a1d12); }
+.cx-field__help { font-size: .74rem; color: var(--ink-soft, #6b5744); }
+.cx-field input, .cx-field select, .cx-field textarea { font: inherit; padding: .55rem .7rem; border: 1px solid var(--line, #e7dcc9); border-radius: 10px; background: #fffdf9; color: var(--espresso, #2a1d12); }
+.cx-field input:focus, .cx-field select:focus, .cx-field textarea:focus { outline: none; border-color: var(--gold, #c9a24b); }
+.cx-honest { background: #fbf4e3; border: 1px solid var(--line, #e7dcc9); border-left: 3px solid var(--gold, #c9a24b); border-radius: 10px; padding: .8rem 1rem; font-size: .85rem; color: var(--ink-soft, #6b5744); line-height: 1.5; margin-top: 1.1rem; }
+.cx-form__actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.1rem; }
+
+/* Detail */
+.cx-status-line { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; margin-top: .5rem; }
+.cx-status-desc { color: var(--ink-soft, #6b5744); font-size: .88rem; }
+.cx-detail { display: flex; flex-direction: column; }
+.cx-drow { display: flex; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid #f0e8d8; }
+.cx-drow__k { flex: 0 0 40%; max-width: 220px; color: var(--ink-soft, #6b5744); font-size: .84rem; text-transform: capitalize; }
+.cx-drow__v { color: var(--espresso, #2a1d12); font-size: .9rem; }
+.cx-pay { border: 1px solid #eccea6; background: #fdf7ea; border-radius: 16px; padding: 1.1rem 1.2rem; }
+.cx-pay__intro { color: var(--espresso, #2a1d12); font-size: .9rem; line-height: 1.5; margin: 0 0 .6rem; }
+.cx-actionbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.cx-actionbar form { margin: 0; }
+.cx-danger { color: #9a4a3a; border-color: #e6c7b8; }
