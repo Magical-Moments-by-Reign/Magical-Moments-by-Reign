@@ -112,7 +112,7 @@ const SOUL: Record<string, OccasionSoul> = {
     manifestations: ["Well done is better than well said.", "The next chapter is yours to write.", "Rest — you have earned it."],
   },
   memorial: {
-    emotion: "your family may still be grieving",
+    emotion: "this occasion honors remembrance, love, and the life being celebrated",
     reflection: "This collection honors a life that continues to live through every shared memory.",
     manifestations: ["A life this beautiful is never truly gone.", "Held in memory, kept in love.", "Their light lives on in every memory shared."],
   },
