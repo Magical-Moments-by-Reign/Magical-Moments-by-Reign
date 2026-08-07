@@ -171,7 +171,9 @@
 .mb2-upsell__t { font-family: var(--serif); font-size: 1.5rem; line-height: 1.2; color: var(--ink); margin: 0.4rem 0 0.5rem; }
 .mb2-upsell__p { color: var(--taupe); font-size: 0.95rem; margin: 0 0 1.3rem; }
 .mb2-upsell__plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1.4rem; }
-.mb2-upsell__plan { border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem 0.5rem; background: var(--warm-white); }
+.mb2-upsell__plan { border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem 0.5rem; background: var(--warm-white); font: inherit; color: inherit; text-align: center; width: 100%; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+.mb2-upsell__plan:hover { border-color: var(--gold); box-shadow: 0 14px 26px -20px rgba(169, 132, 63, 0.7); transform: translateY(-2px); }
+.mb2-upsell__plan:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .mb2-upsell__plan--feature { border-color: var(--gold); box-shadow: 0 16px 30px -22px rgba(169, 132, 63, 0.8); }
 .mb2-upsell__pk { display: block; font: 600 0.6rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 0.35rem; }
 .mb2-upsell__pv { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; color: var(--ink); }
