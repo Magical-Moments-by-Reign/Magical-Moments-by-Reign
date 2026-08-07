@@ -55,6 +55,8 @@ export interface CreateReservationInput {
   accountId: string;
   serviceType: string;
   title: string;
+  /** Provider/business name — only when it's real (e.g. a discovered restaurant). */
+  business?: string | null;
   location?: string | null;
   date?: string | null;
   time?: string | null;
@@ -79,6 +81,7 @@ export async function createReservationRequest(input: CreateReservationInput): P
       serviceType: input.serviceType,
       status,
       title: input.title,
+      business: input.business ?? null,
       location: input.location ?? null,
       date: input.date ?? null,
       time: input.time ?? null,

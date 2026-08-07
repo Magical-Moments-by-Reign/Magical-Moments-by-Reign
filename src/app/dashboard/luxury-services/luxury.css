@@ -100,3 +100,20 @@
 .cx-trow__main { display: flex; flex-direction: column; gap: .15rem; flex: 1; min-width: 0; }
 .cx-trow__title { color: var(--espresso, #2a1d12); font-weight: 700; font-size: .95rem; }
 .cx-trow__meta { color: var(--ink-soft, #6b5744); font-size: .8rem; }
+
+/* ── Restaurant discovery (Yelp) results + detail ─────────────── */
+.rc-attrib { font-size: .78rem; color: var(--ink-soft, #6b5744); background: #fbf4e3; border: 1px solid var(--line, #e7dcc9); border-radius: 8px; padding: .6rem .8rem; margin: 0 0 1rem; line-height: 1.5; }
+.rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.rc { background: var(--ivory, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.rc__photo { width: 100%; height: 160px; object-fit: cover; display: block; }
+.rc__photo--empty { display: flex; align-items: center; justify-content: center; font-size: 2.4rem; background: #f3ecdd; }
+.rc__body { padding: .9rem 1rem; display: flex; flex-direction: column; gap: .35rem; }
+.rc__name { margin: 0; font-size: 1.05rem; color: var(--espresso, #2a1d12); font-family: var(--font-display, Georgia, serif); }
+.rc__meta { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; color: var(--ink-soft, #6b5744); font-size: .82rem; }
+.rc__rating { color: var(--gold-deep, #a67c2e); font-weight: 700; }
+.rc__closed { color: #9a4a3a; font-weight: 600; }
+.rc__addr { margin: 0; color: var(--ink-soft, #6b5744); font-size: .8rem; }
+.rc__actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+.rc__actions form { margin: 0; }
+.rb-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .5rem; margin: 1rem 0; }
+.rb-photos img { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line, #e7dcc9); }

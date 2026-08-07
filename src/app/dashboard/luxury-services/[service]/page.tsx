@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getServiceCategory, intakeFor, pathsFor, RESTAURANT_FILTERS, type IntakeField, type ServicePath } from "@/lib/reservations/catalog";
+import { restaurantDiscoveryConfigured } from "@/lib/reservations/providers";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import { createRequestAction, saveServiceAction } from "../actions";
 import "../luxury.css";
@@ -43,7 +44,9 @@ export default async function ServicePage({
 
   const offered = pathsFor(svc);
   const path = (rawPath && (offered as string[]).includes(rawPath) ? rawPath : undefined) as ServicePath | undefined;
-  const notConnected = svc.connection !== "connected";
+  // Restaurants become truly connected once a discovery provider (Yelp) is wired.
+  const liveDiscovery = svc.id === "restaurants" && restaurantDiscoveryConfigured();
+  const notConnected = svc.connection !== "connected" && !liveDiscovery;
 
   const header = (
     <div className="pg-head">
@@ -97,6 +100,30 @@ export default async function ServicePage({
         <p className="note" style={{ marginBottom: "1rem" }}>Looking for the whole trip? <Link href="/dashboard/luxury-services/vacation-packages?path=help" className="ls-link">Price a Vacation Package →</Link></p>
       )}
 
+      {liveDiscovery && path === "search" ? (
+        // Live restaurant discovery (Yelp connected): a real search → results.
+        <form action="/dashboard/luxury-services/restaurants/results" className="cx-form sec">
+          <div className="cx-form__grid">
+            <label className="cx-field"><span className="cx-field__label">Where are you dining? *</span><input name="location" required placeholder="City or neighborhood" /></label>
+            <label className="cx-field"><span className="cx-field__label">Cuisine or keywords</span><input name="term" placeholder="e.g. Italian, steakhouse" /></label>
+            <label className="cx-field"><span className="cx-field__label">Date</span><input name="date" type="date" /></label>
+            <label className="cx-field"><span className="cx-field__label">Time</span><input name="time" type="time" /></label>
+            <label className="cx-field"><span className="cx-field__label">Guests</span><input name="guests" type="number" placeholder="2" /></label>
+            <label className="cx-field"><span className="cx-field__label">Price</span>
+              <select name="price" defaultValue=""><option value="">Any</option><option value="$">$</option><option value="$$">$$</option><option value="$$$">$$$</option><option value="$$$$">$$$$</option></select>
+            </label>
+            <label className="cx-field"><span className="cx-field__label">Sort by</span>
+              <select name="sort" defaultValue="best_match"><option value="best_match">Best match</option><option value="rating">Rating</option><option value="review_count">Most reviewed</option><option value="distance">Distance</option></select>
+            </label>
+            <label className="cx-field"><span className="cx-field__label">Open now</span><span className="ls-chip"><input type="checkbox" name="open" value="1" /> Only show open now</span></label>
+          </div>
+          <div className="cx-honest">Live results are provided by Yelp and may change. Reserving a table sends a request to our concierge — nothing is booked or charged until confirmed, and every purchase goes through Purchase Review.</div>
+          <div className="cx-form__actions">
+            <button type="submit" className="btn btn--gold">Search Restaurants</button>
+            <Link href="/dashboard/luxury-services/restaurants?path=help" className="btn btn--ghost">Help me choose instead</Link>
+          </div>
+        </form>
+      ) : (
       <form action={submit} className="cx-form sec">
         <div className="cx-form__grid">
           {fields.map((f) => <Field key={f.key} f={f} />)}
@@ -136,6 +163,7 @@ export default async function ServicePage({
           <button type="submit" name="_action" value="draft" className="btn btn--ghost">Save as draft</button>
         </div>
       </form>
+      )}
     </>
   );
 }

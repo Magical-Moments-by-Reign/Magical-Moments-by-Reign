@@ -90,6 +90,69 @@ export async function removeSavedAction(formData: FormData): Promise<void> {
   if (id) { await removeSaved(account.id, id); revalidatePath("/dashboard/luxury-services/saved"); }
 }
 
+/**
+ * Request Concierge Assistance for a discovered restaurant. HONEST: Yelp is a
+ * DISCOVERY provider, not a reservation provider — so this creates a real
+ * concierge REQUEST only (status "Request Submitted"). It never fabricates a
+ * reservation time, table, confirmation number, or "booked" status. The
+ * concierge secures any actual table and records a real confirmation later,
+ * and when a reservation provider (e.g. OpenTable) is connected this same flow
+ * gains a Reservation Review + real confirmation — no redesign needed.
+ */
+export async function reserveRestaurantAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/luxury-services/restaurants");
+  const name = String(formData.get("name") || "").trim();
+  if (!name) redirect("/dashboard/luxury-services/restaurants");
+
+  const details: Record<string, string> = {};
+  for (const k of ["businessId", "provider", "address", "phone", "providerUrl", "date", "time", "guests"]) {
+    const v = formData.get(k);
+    if (typeof v === "string" && v.trim()) details[k] = v.trim();
+  }
+  const guests = details.guests ? parseInt(details.guests, 10) : NaN;
+
+  const rec = await createReservationRequest({
+    accountId: account.id,
+    serviceType: "restaurants",
+    title: `Concierge request — ${name}`,
+    business: name,
+    location: details.address || null,
+    date: details.date || null,
+    time: details.time || null,
+    guestCount: Number.isFinite(guests) ? guests : null,
+    details: { ...details, discoveredVia: details.provider || "provider" },
+  });
+
+  revalidatePath("/dashboard/luxury-services/reservations");
+  redirect(`/dashboard/luxury-services/reservations/${rec.id}`);
+}
+
+/**
+ * Save a provider-discovered restaurant. Per the architecture, we store only
+ * the STABLE reference — the provider business id — plus the member's own
+ * collection + notes, and never duplicate Yelp's business record. Full details
+ * are refreshed live from the provider by id on the detail page.
+ */
+export async function saveRestaurantAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/luxury-services/restaurants");
+  const name = String(formData.get("name") || "").trim();
+  const businessId = String(formData.get("businessId") || "").trim();
+  if (!name) redirect("/dashboard/luxury-services/restaurants");
+
+  await saveService({
+    accountId: account.id,
+    serviceType: "restaurants",
+    label: name,
+    provider: (formData.get("provider") as string)?.trim() || null,
+    collection: (formData.get("_collection") as string)?.trim() || null,
+    journeyNotes: (formData.get("_notes") as string)?.trim() || null,
+    // Store only the stable provider reference — refresh details from it later.
+    details: businessId ? { businessId } : {},
+  });
+  revalidatePath("/dashboard/luxury-services/saved");
+  redirect("/dashboard/luxury-services/saved");
+}
+
 export async function cancelReservationAction(formData: FormData): Promise<void> {
   const account = await requireAccount("/dashboard/luxury-services");
   const id = String(formData.get("id") || "");
