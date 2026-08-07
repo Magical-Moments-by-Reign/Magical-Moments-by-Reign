@@ -73,9 +73,11 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
       <section className="sec cx-detail">
         {b.address && <div className="cx-drow"><span className="cx-drow__k">Address</span><span className="cx-drow__v">{b.address}</span></div>}
         {b.displayPhone && <div className="cx-drow"><span className="cx-drow__k">Phone</span><span className="cx-drow__v">{b.displayPhone}</span></div>}
-        {b.hours.length > 0 && (
+        {(b.hoursText?.length ?? 0) > 0 ? (
+          <div className="cx-drow"><span className="cx-drow__k">Hours</span><span className="cx-drow__v">{b.hoursText!.map((h, i) => <span key={i} style={{ display: "block" }}>{h}</span>)}</span></div>
+        ) : b.hours.length > 0 ? (
           <div className="cx-drow"><span className="cx-drow__k">Hours</span><span className="cx-drow__v">{b.hours.map((h) => `${h.day} ${fmtTime(h.start)}–${fmtTime(h.end)}`).join(" · ")}</span></div>
-        )}
+        ) : null}
       </section>
 
       <p className="rc-attrib">Details, photos, ratings, and hours are provided by {provider.attribution.replace("Powered by ", "")} and may change. Reserving sends a request to our concierge — nothing is booked or charged until confirmed.</p>
@@ -90,6 +92,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
           <button type="submit" className="btn btn--ghost">Save for Later</button>
         </form>
         {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" className="btn btn--ghost">Directions</a>}
+        {b.website && <a href={b.website} target="_blank" rel="noreferrer" className="btn btn--ghost">Website</a>}
         {b.providerUrl && <a href={b.providerUrl} target="_blank" rel="noreferrer" className="btn btn--ghost">View on {provider.name}</a>}
         <ShareButton title={b.name} className="btn btn--ghost" />
       </div>

@@ -68,8 +68,10 @@ test("priceParam formats Yelp price levels and drops out-of-range", () => {
 test("provider gates on the server-side key (no key → not configured, no calls)", () => {
   const had = process.env.YELP_API_KEY;
   const had2 = process.env.YELP_FUSION_API_KEY;
+  const hadG = process.env.GOOGLE_PLACES_API_KEY;
   delete process.env.YELP_API_KEY;
   delete process.env.YELP_FUSION_API_KEY;
+  delete process.env.GOOGLE_PLACES_API_KEY;
   try {
     assert.equal(YelpProvider.isConfigured(), false);
     assert.equal(restaurantProvider(), null);
@@ -77,11 +79,14 @@ test("provider gates on the server-side key (no key → not configured, no calls
   } finally {
     if (had !== undefined) process.env.YELP_API_KEY = had;
     if (had2 !== undefined) process.env.YELP_FUSION_API_KEY = had2;
+    if (hadG !== undefined) process.env.GOOGLE_PLACES_API_KEY = hadG;
   }
 });
 
-test("configured provider is exposed through the registry", () => {
+test("Yelp is exposed through the registry when it's the only provider", () => {
   const had = process.env.YELP_API_KEY;
+  const hadG = process.env.GOOGLE_PLACES_API_KEY;
+  delete process.env.GOOGLE_PLACES_API_KEY;
   process.env.YELP_API_KEY = "test-key-not-real";
   try {
     assert.equal(restaurantDiscoveryConfigured(), true);
@@ -89,5 +94,6 @@ test("configured provider is exposed through the registry", () => {
     assert.equal(restaurantProvider()?.attribution, "Powered by Yelp");
   } finally {
     if (had === undefined) delete process.env.YELP_API_KEY; else process.env.YELP_API_KEY = had;
+    if (hadG !== undefined) process.env.GOOGLE_PLACES_API_KEY = hadG;
   }
 });

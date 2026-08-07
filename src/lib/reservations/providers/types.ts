@@ -52,7 +52,11 @@ export interface RestaurantHours {
 
 export interface RestaurantDetails extends RestaurantSummary {
   photos: string[];
+  /** Structured weekly hours (providers that expose them, e.g. Yelp). */
   hours: RestaurantHours[];
+  /** Pre-formatted, human-readable weekly hours (e.g. Google's descriptions). */
+  hoursText?: string[];
+  website?: string;
   latitude?: number;
   longitude?: number;
   displayPhone?: string;
