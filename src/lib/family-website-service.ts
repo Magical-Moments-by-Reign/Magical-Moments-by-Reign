@@ -51,7 +51,9 @@ function toOccasionCard(r: ExperienceRow): OccasionCard {
 async function loadFamilyBySlug(slug: string) {
   const clean = slug.trim().toLowerCase();
   if (!clean) return null;
-  return prisma.family.findUnique({
+  // slug is indexed but not a DB unique constraint (uniqueness is enforced in
+  // the backfill), so this is a findFirst rather than findUnique.
+  return prisma.family.findFirst({
     where: { slug: clean },
     select: {
       id: true, name: true, slug: true, visibility: true, journeySettings: true,
@@ -170,7 +172,7 @@ export async function getFamilyOccasion(
 ): Promise<OccasionResult> {
   if (!getJourneySection(journeyId)) return { status: "not_found" };
 
-  const family = await prisma.family.findUnique({
+  const family = await prisma.family.findFirst({
     where: { slug: familySlug.trim().toLowerCase() },
     select: { id: true, name: true, slug: true, visibility: true, journeySettings: true },
   });
@@ -218,7 +220,7 @@ export async function ensureFamilySlug(familyId: string, name: string): Promise<
   let n = 1;
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const clash = await prisma.family.findUnique({ where: { slug: candidate }, select: { id: true } });
+    const clash = await prisma.family.findFirst({ where: { slug: candidate }, select: { id: true } });
     if (!clash) break;
     n += 1;
     candidate = `${base}-${n}`;

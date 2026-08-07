@@ -703,10 +703,13 @@ model Family {
   id          String   @id @default(cuid())
   name        String   @default("Our Family")
   // Unified Family Website (Phase 1). The public client path segment, e.g.
-  // /family/the-johnson-family. Nullable + unique: additive and backfilled
-  // from `name` on deliberate deploy (scripts/prepare-db.mjs), so existing
-  // rows and old code are unaffected until a slug is assigned.
-  slug        String?  @unique
+  // /family/the-johnson-family. Nullable + indexed (not a DB unique constraint):
+  // additive and backfilled from `name` on deliberate deploy
+  // (scripts/prepare-db.mjs), which enforces collision-safe uniqueness in
+  // application code at write time. Kept non-unique so `prisma db push` stays a
+  // purely additive, no-data-loss migration. Existing rows and old code are
+  // unaffected until a slug is assigned.
+  slug        String?
   // Website-level privacy for the whole family site: PUBLIC | UNLISTED | PRIVATE.
   // Per-occasion visibility still applies on top of this.
   visibility  String   @default("PUBLIC")
@@ -731,6 +734,7 @@ model Family {
   updatedAt   DateTime @updatedAt
 
   @@index([ownerId])
+  @@index([slug])
 }
 
 // A person (or pet) in the family, with profile + emergency/medical/
