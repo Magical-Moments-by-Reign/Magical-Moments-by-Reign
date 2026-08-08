@@ -83,6 +83,7 @@ export const SIDE_NAV: NavEntry[] = [
   { id: "celebration-of-life", label: "Celebration of Life", href: "/dashboard/journeys/celebration-of-life", icon: "celebration" },
   { id: "custom", label: "Custom", href: "/dashboard/journeys/custom", icon: "star" },
   { id: "create", label: "Events & Celebrations", href: "/dashboard/create", icon: "events" },
+  { id: "luxury-services", label: "Luxury Services", href: "/dashboard/luxury-services", icon: "concierge" },
   { id: "media", label: "My Moments", href: "/dashboard/media", icon: "moments" },
   { id: "documents", label: "Documents", href: "/dashboard/explore/documents", icon: "documents" },
   { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "messages" },

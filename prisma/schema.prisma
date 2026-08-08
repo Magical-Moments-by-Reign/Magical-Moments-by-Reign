@@ -1094,6 +1094,8 @@ model Account {
   identity      AccountIdentity?
   sessions        Session[]
   notifications   Notification[]
+  reservations    Reservation[]
+  savedServices   SavedService[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   authTokens      AuthToken[]
@@ -2334,6 +2336,72 @@ model Concierge {
   preferences String    @default("{}") // JSON growth bag (colors, family, dates…)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// A Concierge & Reservations request. HONEST BY DESIGN: a reservation is a
+// real request the concierge fulfills — never a self-serve booking. `status`
+// starts at REQUEST_SUBMITTED (or DRAFT) and only an authorized concierge/
+// provider ever sets CONFIRMED. `confirmationNumber` and provider terms are
+// nullable and populated ONLY from a real confirmation — never invented.
+// JSON blobs are TEXT for SQLite-dev / Postgres-prod portability (see
+// serialize.ts convention). See src/lib/reservations/*.
+model Reservation {
+  id           String   @id @default(cuid())
+  accountId    String
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  // Optional link to the occasion this request supports (not enforced FK-side
+  // to keep it lightweight; resolved in application logic when present).
+  experienceId String?
+
+  serviceType  String   // ServiceCategory id (see reservations/catalog.ts)
+  status       String   @default("REQUEST_SUBMITTED") // ReservationStatus
+
+  // Human-facing summary fields (also mirrored inside `details`).
+  title        String   // short label, e.g. "Dinner in Savannah for 4"
+  business     String?  // provider / restaurant name (real only)
+  location     String?
+  date         String?  // free-text/ISO date as the member entered it
+  time         String?
+  guestCount   Int?
+
+  // Populated ONLY from a real confirmation — never fabricated.
+  confirmationNumber String?
+  providerContact    String?
+  cancellationPolicy String?
+  depositRequirement String? // human-readable terms when a real charge applies
+
+  clientNotes    String? // notes from the member
+  conciergeNotes String? // notes from the concierge team (member-visible)
+  details        String  @default("{}") // JSON — full intake payload
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([accountId, status])
+  @@index([accountId, createdAt])
+}
+
+// A "saved for later" service/search in Luxury Services (favorites &
+// collections). HONESTY: estimatedPrice / expiresAt are ONLY ever populated
+// from real provider data — otherwise null. We never promise a saved price
+// will hold; the UI always reminds that supplier pricing may change.
+model SavedService {
+  id            String   @id @default(cuid())
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  serviceType   String   // ServiceCategory id
+  label         String   // what was saved, e.g. "Dinner at ... " / "ATL→CDG, Jun 10"
+  provider      String?  // real provider name, when results came from one
+  estimatedPrice String? // real supplier estimate only; never fabricated
+  journeyNotes  String?  // Journey's/member's notes
+  expiresAt     DateTime? // supplier-provided hold expiry, when given
+  reminderAt    DateTime? // optional reminder the member set
+  collection    String?  // favorites grouping, e.g. "Date Night", "Vacation"
+  details       String   @default("{}") // JSON — the saved search/params
+  createdAt     DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([accountId, collection])
 }
 
 // An in-app notification (source of truth) + record of external delivery.
