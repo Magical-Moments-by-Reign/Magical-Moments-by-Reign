@@ -129,26 +129,26 @@
 .lx { display: flex; flex-direction: column; gap: 2.2rem; }
 
 /* Hero */
+/* Light editorial hero: the concierge photo sits on the right and FADES into
+   the cream toward the text on the left — no box, no border (matches mockup).
+   Until the photo is uploaded, the cream simply shows through. */
 .lx-hero {
-  position: relative; overflow: hidden; border-radius: 22px; padding: 2.6rem 2.4rem;
-  color: #f7ecd6; background: linear-gradient(120deg, #1f130b 0%, #2f2015 46%, #4a361d 100%);
-  display: grid; grid-template-columns: 1.25fr .75fr; gap: 1.5rem; align-items: center;
-  box-shadow: 0 18px 44px rgba(31,19,11,.22);
-}
-.lx-hero__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.4rem, 5vw, 3.6rem); margin: 0; color: #fff8ec; letter-spacing: .01em; }
-.lx-hero__rule { color: #d8b25e; letter-spacing: .5em; margin: .5rem 0 1rem; font-size: .7rem; }
-.lx-hero__eyebrow { color: #e8c983; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: .82rem; margin: 0 0 .9rem; line-height: 1.5; }
-.lx-hero__lede { color: #e6d6bd; line-height: 1.75; font-size: .98rem; max-width: 52ch; margin: 0; }
-.lx-hero__media {
-  align-self: stretch; border-radius: 16px; min-height: 220px; border: 1px solid rgba(216,178,94,.25);
+  position: relative; overflow: hidden; border-radius: 20px;
+  min-height: 340px; padding: 3rem 2.6rem;
+  display: flex; flex-direction: column; justify-content: center;
+  background-color: var(--cream, #f7f1e7);
   background-image:
-    url(/luxury/hero-concierge.jpg),
-    radial-gradient(circle at 62% 42%, rgba(216,178,94,.30), rgba(20,12,6,0) 62%),
-    linear-gradient(135deg, #2a1c11, #17100a);
-  background-size: cover, auto, auto;
-  background-position: center;
-  background-repeat: no-repeat;
+    linear-gradient(90deg, #f7f1e7 0%, #f7f1e7 34%, rgba(247,241,231,.72) 50%, rgba(247,241,231,0) 74%),
+    url(/luxury/hero-concierge.jpg);
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, right center;
+  background-size: cover, cover;
 }
+.lx-hero__text { position: relative; z-index: 1; max-width: 46ch; }
+.lx-hero__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.4rem, 5vw, 3.6rem); margin: 0; color: var(--espresso, #2a1d12); letter-spacing: .01em; }
+.lx-hero__rule { color: var(--gold, #c9a24b); letter-spacing: .5em; margin: .5rem 0 1rem; font-size: .7rem; }
+.lx-hero__eyebrow { color: var(--gold-deep, #a67c2e); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: .82rem; margin: 0 0 .9rem; line-height: 1.5; }
+.lx-hero__lede { color: var(--ink-soft, #6b5744); line-height: 1.75; font-size: .98rem; max-width: 52ch; margin: 0; }
 
 /* Three paths */
 .lx-paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
@@ -195,8 +195,7 @@
 .lx-promise__sig i { font-style: italic; font-size: .8rem; letter-spacing: .1em; }
 
 @media (max-width: 980px) {
-  .lx-hero { grid-template-columns: 1fr; }
-  .lx-hero__media { display: none; }
+  .lx-hero { min-height: 280px; background-image: linear-gradient(90deg, #f7f1e7 0%, #f7f1e7 46%, rgba(247,241,231,.6) 68%, rgba(247,241,231,.15) 100%), url(/luxury/hero-concierge.jpg); }
   .lx-paths { grid-template-columns: 1fr; }
   .lx-feat { grid-template-columns: repeat(3, 1fr); }
   .lx-colgrid { grid-template-columns: repeat(2, 1fr); }
