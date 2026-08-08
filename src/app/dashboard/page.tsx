@@ -32,8 +32,16 @@ export default async function DashboardPage() {
   return (
     <div className="hub">
       <header className="hub-welcome">
-        <div><span className="hub-kicker">YOUR MAGICAL MOMENTS HUB</span><h1>Welcome back, {first}</h1><p>Everything you&rsquo;re planning, celebrating, and preserving—beautifully together.</p></div>
-        <Link href="/dashboard/create" className="hub-primary"><span>＋</span> Create an Occasion</Link>
+        <div className="hub-welcome__copy">
+          <span className="hub-kicker">YOUR MAGICAL MOMENTS HUB</span>
+          <h1>Welcome back, {first}</h1>
+          <p>Everything you&rsquo;re planning, celebrating, and preserving—beautifully together.</p>
+          <Link href="/dashboard/create" className="hub-primary"><span>＋</span> Create an Occasion</Link>
+        </div>
+        <div className="hub-welcome__piano" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/hero/baby-grand-piano.svg" alt="" />
+        </div>
       </header>
 
       <section className="hub-stats" aria-label="Occasion summary">
