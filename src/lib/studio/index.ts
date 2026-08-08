@@ -30,6 +30,7 @@
 
 import { heuristicRecommend } from "./heuristics";
 import { openaiRecommend, studioAiConfigured } from "./openai-adapter";
+import { enrichRecommendation } from "./occasion-soul";
 import type { StudioRecommendation, StudioRequest } from "./types";
 
 export type {
@@ -40,9 +41,12 @@ export type {
   StudioCoverSuggestion,
   StudioTimelineMoment,
   StudioDuplicateGroup,
+  StudioRationale,
+  StudioManifestation,
   StudioRecommendation,
 } from "./types";
 export { studioAiConfigured } from "./openai-adapter";
+export { manifestationsFor, isCuratedManifestation } from "./occasion-soul";
 
 /**
  * Run Journey Studio for one creative task.
@@ -53,13 +57,17 @@ export { studioAiConfigured } from "./openai-adapter";
  * The return value is advice only — the caller decides what to apply.
  */
 export async function runJourneyStudio(req: StudioRequest): Promise<StudioRecommendation> {
+  // Emotional context, the Creative Reflection, and manifestations are overlaid
+  // from the CURATED library here — so no matter which path produced the
+  // organization advice, that warm, meaningful content is curated, never
+  // model-generated, and grounded only in the occasion type.
   if (studioAiConfigured()) {
     const live = await openaiRecommend(req);
-    if (live) return live;
+    if (live) return enrichRecommendation(live, req);
     // Live path failed (network / bad JSON / invalid) — degrade honestly.
     const fallback = heuristicRecommend(req);
     fallback.notes.push("Journey Studio's live model was unavailable for this request; used deterministic curation instead.");
-    return fallback;
+    return enrichRecommendation(fallback, req);
   }
-  return heuristicRecommend(req);
+  return enrichRecommendation(heuristicRecommend(req), req);
 }

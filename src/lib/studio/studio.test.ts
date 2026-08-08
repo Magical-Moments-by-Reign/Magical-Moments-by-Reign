@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { heuristicRecommend } from "./heuristics.ts";
-import { runJourneyStudio } from "./index.ts";
+import { runJourneyStudio, manifestationsFor, isCuratedManifestation } from "./index.ts";
 import type { StudioMediaItem, StudioRequest } from "./types.ts";
 
 const MEDIA: StudioMediaItem[] = [
@@ -56,6 +56,58 @@ test("missing sections are the catalog-required ones not yet present", () => {
   assert.ok(rec.missingSections, "reports missing sections");
   assert.ok(rec.missingSections!.includes("story"), "story is missing");
   assert.ok(rec.missingSections!.includes("gallery"), "gallery is missing");
+});
+
+test("enhance explains WHY with an encouraging, grounded rationale", () => {
+  const rec = heuristicRecommend({ task: "enhance", occasionType: "wedding", media: MEDIA });
+  assert.ok(rec.rationale, "provides rationale");
+  assert.ok(rec.rationale!.cover && rec.rationale!.cover.length > 0, "explains the cover");
+  assert.ok(rec.rationale!.gallery && rec.rationale!.gallery.length > 0, "explains the gallery order");
+  assert.ok(rec.rationale!.timeline && /2 different days|2 natural chapters|unfolding/.test(rec.rationale!.timeline), "timeline why is grounded in real day count");
+  // Encouraging tone: never criticizes quantity or quality.
+  const all = Object.values(rec.rationale!).join(" ").toLowerCase();
+  for (const bad of ["poor", "low quality", "not enough", "too few", "blurry", "bad"]) {
+    assert.ok(!all.includes(bad), `rationale never says "${bad}"`);
+  }
+});
+
+test("enhance offers occasion-specific Missing Memories as inspiration", () => {
+  const rec = heuristicRecommend({ task: "enhance", occasionType: "wedding", media: MEDIA });
+  assert.ok(rec.memoryIdeas && rec.memoryIdeas.length > 0, "suggests memory moments");
+  assert.ok(rec.memoryIdeas!.some((m) => /ceremony/i.test(m)), "wedding ideas include the ceremony");
+});
+
+test("emotional context + reflection + manifestations are curated from the occasion TYPE", async () => {
+  const rec = await runJourneyStudio({ task: "enhance", occasionType: "wedding", media: MEDIA });
+  assert.equal(rec.emotionalContext, "Journey understands this is the beginning of a marriage.", "emotion is curated, type-derived");
+  assert.equal(rec.reflection, "Today marks more than a celebration. It marks the beginning of a lifetime together.", "reflection is the curated line");
+  assert.ok(rec.manifestations && rec.manifestations.length > 0, "offers a curated manifestation library");
+  assert.ok(rec.manifestation && rec.manifestation.text === rec.manifestations![0].text, "suggests the first curated manifestation");
+});
+
+test("curated soul is grounded in the type, not the photos or a title", async () => {
+  // Same occasion + zero media → still has emotional context (type-based, honest).
+  const noMedia = await runJourneyStudio({ task: "enhance", occasionType: "wedding", media: [] });
+  assert.ok(noMedia.emotionalContext && noMedia.reflection, "type gives meaning even with no uploads");
+  // The reflection never embeds a family title / invented name.
+  const titled = await runJourneyStudio({ task: "enhance", occasionType: "wedding", title: "Reign & Jordan", media: MEDIA });
+  assert.ok(!titled.reflection!.includes("Reign & Jordan"), "reflection stays curated, never interpolates names");
+});
+
+test("honesty: an unknown occasion gets NO emotional context/reflection/manifestation", async () => {
+  const rec = await runJourneyStudio({ task: "enhance", media: MEDIA });
+  assert.equal(rec.emotionalContext, undefined, "no type → no fabricated emotion");
+  assert.equal(rec.reflection, undefined, "no type → no reflection");
+  assert.equal(rec.manifestation, undefined, "no type → no manifestation");
+});
+
+test("manifestations come from a curated library; the curation gate rejects other text", () => {
+  const lib = manifestationsFor("wedding");
+  assert.ok(lib.length > 0, "wedding has a curated manifestation library");
+  assert.ok(isCuratedManifestation("wedding", lib[0].text), "a curated line passes the gate");
+  assert.ok(!isCuratedManifestation("wedding", "Buy now and save 50%!"), "arbitrary text is refused");
+  assert.ok(!isCuratedManifestation("wedding", lib[0].text.slice(0, 4)), "a partial/altered line is refused");
+  assert.ok(!isCuratedManifestation(undefined, lib[0].text), "no occasion → nothing is curated");
 });
 
 test("deterministic: same request → identical result", () => {

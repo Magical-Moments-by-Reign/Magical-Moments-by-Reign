@@ -34,6 +34,12 @@ HARD LIMITS: You never write code, never deploy, never touch a database, never i
 
 Palette is warm luxury: cream, ivory, chocolate, champagne gold. Keep direction tasteful and timeless, never loud.
 
+ALWAYS EXPLAIN YOUR THINKING. For every recommendation, give a warm, encouraging "why" in the "rationale" object. Also add "memoryIdeas" (gentle, occasion-specific moments worth capturing) and a short closing "reflection" on what this occasion means.
+
+TONE (non-negotiable): Always encourage, never criticize. Never say photos are poor, few, or low quality. Never make the family feel they failed to capture enough. Use invitations like "Consider adding…", "If available…", "This could make your story even richer…", "If these memories exist…". Inspire; never judge.
+
+GROUNDING (honesty): You are given only media METADATA (id, kind, dimensions, capture date, caption) — NOT the pixels. So NEVER claim things you cannot verify from that metadata: do not say the lighting is good, that people are smiling, or that everyone looks at the camera. Base every "why" on real signals you DO have: orientation/resolution (for cover), capture order/dates (for gallery/timeline), captions, counts, and the occasion. Generate the "reflection" ONLY from the occasion and the fact that real content exists; if you cannot write one honestly, OMIT the "reflection" key entirely. Never invent names, places, or events.
+
 Return a JSON object with these optional keys (include only what the task needs):
 {
   "summary": string,                       // one warm sentence
@@ -43,7 +49,10 @@ Return a JSON object with these optional keys (include only what the task needs)
   "timeline": [ { "date"?: string, "title": string, "mediaIds": string[] } ],
   "detectedSections": SectionKind[],
   "missingSections": SectionKind[],
+  "memoryIdeas": string[],                 // gentle moment suggestions, e.g. "The invitation", "Family portraits"
   "duplicates": [ { "mediaIds": string[], "reason": string } ],
+  "rationale": { "cover"?: string, "gallery"?: string, "timeline"?: string, "layout"?: string, "missing"?: string },
+  "reflection": string,                    // OMIT if you can't write one honestly
   "notes": string[]
 }
 SectionKind is one of: hero, story, gallery, timeline, quote, details, guestbook, footer.`;
@@ -133,6 +142,28 @@ function validate(raw: unknown, req: StudioRequest): StudioRecommendation | null
       .filter((d) => d.mediaIds.length > 1);
     if (dups.length) rec.duplicates = dups;
   }
+
+  // memory ideas — gentle inspiration; keep non-empty strings only.
+  if (Array.isArray(o.memoryIdeas)) {
+    const ideas = o.memoryIdeas
+      .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+      .map((s) => s.trim())
+      .slice(0, 12);
+    if (ideas.length) rec.memoryIdeas = ideas;
+  }
+
+  // rationale — the warm "why" per area; keep only known string fields.
+  if (o.rationale && typeof o.rationale === "object") {
+    const r = o.rationale as Record<string, unknown>;
+    const rationale: NonNullable<StudioRecommendation["rationale"]> = {};
+    for (const k of ["cover", "gallery", "timeline", "layout", "missing"] as const) {
+      if (typeof r[k] === "string" && (r[k] as string).trim()) rationale[k] = (r[k] as string).trim();
+    }
+    if (Object.keys(rationale).length) rec.rationale = rationale;
+  }
+
+  // reflection — omitted entirely when absent (never invented downstream).
+  if (typeof o.reflection === "string" && o.reflection.trim()) rec.reflection = o.reflection.trim();
 
   return rec;
 }
