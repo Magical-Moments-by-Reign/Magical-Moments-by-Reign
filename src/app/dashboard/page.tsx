@@ -96,7 +96,6 @@ export default async function DashboardPage() {
               style={t.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.18), rgba(28,19,12,.72)), url(${t.image})` } : undefined}
             >
               {t.status === "soon" && <span className="db-tile__soon">Coming Soon</span>}
-              <span className="db-tile__icon"><Icon name={t.icon} /></span>
               <span className="db-tile__title">{t.title}</span>
               <span className="db-tile__tag">{t.tagline}</span>
               <span className="db-tile__cta">EXPLORE</span>
