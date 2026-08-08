@@ -76,6 +76,7 @@ export default async function LuxuryServicesPage() {
             entertainment, transportation, and concierge planning — all in one beautifully curated experience.
           </p>
         </div>
+        <div className="lx-hero__photo" aria-hidden="true" />
       </section>
 
       {/* ── THREE PATHS ──────────────────────────────────────── */}
