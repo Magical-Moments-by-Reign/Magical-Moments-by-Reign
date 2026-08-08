@@ -128,37 +128,40 @@
 /* ══ Luxury Services HOME — editorial layout (lx-*) ═══════════════ */
 .lx { display: flex; flex-direction: column; gap: 1.5rem; }
 
-/* Hero: compact split banner. Ivory copy on the left; the concierge photo
-   fills a right panel and FEATHERS into the ivory via a mask — no box, no
-   hard edges, no border. Shorter height + tight padding per the approved
-   proportions. */
+/* Hero: text and photo are two SEPARATE boxes in a flex row — never the
+   same box, never absolutely stacked. This makes overlap structurally
+   impossible rather than dependent on percentages lining up. The photo is
+   its own rounded card with a soft, generous fade confined to its OWN
+   left edge — the fade lives inside the photo's box, never across the
+   text column. Desktop: text | photo, side by side, wide gap between. */
 .lx-hero {
-  position: relative; overflow: hidden; border-radius: 18px;
-  min-height: 300px; padding: 1.9rem 2.2rem;
-  display: flex; flex-direction: column; justify-content: center;
+  position: relative; border-radius: 18px;
+  padding: 2.4rem 2.6rem;
+  display: flex; flex-direction: row; align-items: center; gap: 3rem;
   background-color: var(--cream, #f7f1e7);
 }
-/* Watermark, not a photo: spans the FULL hero so the mask stops map
-   directly to hero width (0-84% pure cream, then a soft blend to the
-   image at the far right). The image itself sits pushed off past the
-   right edge (background-position > 100%) so only its atmosphere shows,
-   and overall opacity keeps it faint — texture behind the copy, never a
-   competing subject. The left ~84% is always clean negative space. */
+.lx-hero__text { flex: 1 1 auto; min-width: 0; max-width: 480px; }
+.lx-hero__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.1rem, 4vw, 3rem); margin: 0; color: var(--espresso, #2a1d12); letter-spacing: .01em; }
+.lx-hero__rule { color: var(--gold, #c9a24b); letter-spacing: .5em; margin: .5rem 0 .9rem; font-size: .68rem; }
+.lx-hero__eyebrow { color: var(--gold-deep, #a67c2e); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: .8rem; margin: 0 0 .8rem; line-height: 1.5; }
+.lx-hero__lede { color: var(--ink-soft, #6b5744); line-height: 1.7; font-size: .93rem; max-width: 38ch; margin: 0; }
+
+/* The photo — its own contained, rounded card with room around it. Cover
+   fits naturally because the card has a sane (not extreme wide/short)
+   aspect ratio, so the bell isn't crammed/over-cropped. The fade is a
+   mask on THIS element only, feathering its own left edge — it never
+   extends into the text column's box. */
 .lx-hero__photo {
-  position: absolute; inset: 0; z-index: 1;
+  flex: 0 0 340px; align-self: stretch; min-height: 260px;
+  border-radius: 16px; overflow: hidden;
   background-image: url(/luxury/hero-concierge.jpg);
   background-repeat: no-repeat;
-  background-position: 92% 50%;
+  background-position: 60% 42%;
   background-size: cover;
-  opacity: .32;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 82%, rgba(0,0,0,.45) 94%, #000 100%);
-          mask-image: linear-gradient(90deg, transparent 0%, transparent 82%, rgba(0,0,0,.45) 94%, #000 100%);
+  opacity: .62;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 32%, #000 55%);
+          mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 32%, #000 55%);
 }
-.lx-hero__text { position: relative; z-index: 2; max-width: 560px; }
-.lx-hero__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.1rem, 4.4vw, 3.1rem); margin: 0; color: var(--espresso, #2a1d12); letter-spacing: .01em; }
-.lx-hero__rule { color: var(--gold, #c9a24b); letter-spacing: .5em; margin: .4rem 0 .8rem; font-size: .68rem; }
-.lx-hero__eyebrow { color: var(--gold-deep, #a67c2e); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: .8rem; margin: 0 0 .7rem; line-height: 1.5; }
-.lx-hero__lede { color: var(--ink-soft, #6b5744); line-height: 1.65; font-size: .94rem; max-width: 48ch; margin: 0; }
 
 /* Three paths — compact, immediately beneath the hero */
 .lx-paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
@@ -205,23 +208,35 @@
 .lx-promise__sig i { font-style: italic; font-size: .8rem; letter-spacing: .1em; }
 
 @media (max-width: 980px) {
-  .lx-hero { min-height: 240px; }
+  .lx-hero { gap: 1.8rem; }
+  .lx-hero__photo { flex-basis: 240px; min-height: 220px; }
   .lx-paths { grid-template-columns: 1fr; }
   .lx-feat { grid-template-columns: repeat(3, 1fr); }
   .lx-colgrid { grid-template-columns: repeat(2, 1fr); }
 }
-/* Phones: stack the hero — photo as a full-width band on top that fades
-   downward into the ivory, copy full-width beneath. No overlap. */
+/* Phones: a DEDICATED layout, not a scaled-down desktop —
+   Heading/headline/description, THEN the photo below (small, contained,
+   same crop as desktop — just a smaller card), THEN the action cards.
+   Text and photo are still separate flex children stacked in a column:
+   overlap is structurally impossible. Cards are tightened so Featured
+   This Month arrives without excess scrolling. */
 @media (max-width: 720px) {
-  .lx-hero { display: flex; flex-direction: column; min-height: 0; padding: 0 0 1.3rem; justify-content: flex-start; }
+  .lx-hero { flex-direction: column; align-items: stretch; gap: 1.1rem; padding: 1.5rem 1.4rem; }
+  .lx-hero__text { max-width: none; }
+  .lx-hero__title { font-size: clamp(1.9rem, 8vw, 2.3rem); white-space: normal; }
+  .lx-hero__lede { max-width: none; }
   .lx-hero__photo {
-    position: static; order: -1; width: 100%; height: 190px; opacity: .4;
-    background-position: center 55%;
-    -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
-            mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+    flex: none; align-self: stretch; width: 100%; height: 140px; min-height: 0;
+    opacity: .55;
+    -webkit-mask-image: none; mask-image: none;
   }
-  .lx-hero__text { max-width: none; padding: 0 1.3rem; }
-  .lx-hero__title { font-size: clamp(1.9rem, 8vw, 2.4rem); }
+  .lx { gap: 1.1rem; }
+  .lx-paths { gap: .7rem; }
+  .lx-path { padding: .85rem .95rem; gap: .3rem; }
+  .lx-path__icon { width: 34px; height: 34px; font-size: 1rem; margin-bottom: .05rem; }
+  .lx-path__t { font-size: 1rem; }
+  .lx-path__d { font-size: .8rem; line-height: 1.4; }
+  .lx-path .btn { padding: .45rem .8rem; font-size: .82rem; }
 }
 @media (max-width: 560px) {
   .lx-feat { grid-template-columns: repeat(2, 1fr); }
