@@ -45,6 +45,7 @@ export default async function MediaPage({ params }: { params: Promise<{ slug: st
 
         <div className="mp-actions">
           <Link href={`/dashboard/${exp.slug}/studio`} className="btn-gold">Journey Studio ✦</Link>
+          <Link href={`/dashboard/live?slug=${exp.slug}`} className="btn-gold">Go Live ✦</Link>
           <Link href={`/${exp.slug}`} className="btn btn-dark">Preview experience</Link>
           <Link href="/dashboard" className="btn btn-dark">Done</Link>
         </div>
