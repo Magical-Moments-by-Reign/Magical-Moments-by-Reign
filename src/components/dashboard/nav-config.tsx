@@ -64,32 +64,18 @@ export function areaIcon(worldSlug: string, areaSlug: string): string {
 
 export interface NavEntry { id: string; label: string; href: string; icon: string }
 
-// Sidebar menu. Housing is a SINGLE entry — the whole home world (Buy, Build,
-// Rent, Renovate, Vacation, Invest, Move, Maintain, Concierge) lives INSIDE the
-// Housing page as tiles, not as separate sidebar links. Everything else here is
-// an app-level utility, not a housing sub-area.
+// Hub-level navigation only. Occasion categories (birthday, graduation, travel,
+// and the other Journey worlds) belong inside Magical Occasions rather than in
+// the permanent application chrome.
 export const SIDE_NAV: NavEntry[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { id: "housing", label: "Housing", href: "/dashboard/journeys/home", icon: "home" },
-  { id: "relationship", label: "Relationship", href: "/dashboard/journeys/relationship", icon: "relationship" },
-  { id: "baby", label: "Baby", href: "/dashboard/journeys/baby", icon: "baby" },
-  { id: "birthday", label: "Birthday", href: "/dashboard/journeys/birthday", icon: "birthday" },
-  { id: "graduation", label: "Graduation", href: "/dashboard/journeys/graduation", icon: "graduation" },
-  { id: "travel", label: "Travel", href: "/dashboard/journeys/travel", icon: "travel" },
-  { id: "military", label: "Military", href: "/dashboard/journeys/military", icon: "military" },
-  { id: "sports", label: "Sports", href: "/dashboard/journeys/sports", icon: "sports" },
-  { id: "family", label: "Family", href: "/dashboard/journeys/family", icon: "family" },
-  { id: "career", label: "Career", href: "/dashboard/journeys/career", icon: "career" },
-  { id: "celebration-of-life", label: "Celebration of Life", href: "/dashboard/journeys/celebration-of-life", icon: "celebration" },
-  { id: "custom", label: "Custom", href: "/dashboard/journeys/custom", icon: "star" },
-  { id: "create", label: "Events & Celebrations", href: "/dashboard/create", icon: "events" },
+  { id: "occasions", label: "Magical Occasions", href: "/dashboard/journeys", icon: "events" },
   { id: "luxury-services", label: "Luxury Services", href: "/dashboard/luxury-services", icon: "concierge" },
-  { id: "media", label: "My Moments", href: "/dashboard/media", icon: "moments" },
-  { id: "documents", label: "Documents", href: "/dashboard/explore/documents", icon: "documents" },
+  { id: "family", label: "My Magical Family", href: "/dashboard/family-vault", icon: "family" },
+  { id: "journey", label: "Journey", href: "/dashboard/home", icon: "travel" },
+  { id: "memories", label: "Memories Vault", href: "/dashboard/vault", icon: "moments" },
   { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "messages" },
-  { id: "active-projects", label: "Active Projects", href: "/dashboard/explore/active-projects", icon: "projects" },
-  { id: "favorites", label: "Favorites", href: "/dashboard/explore/favorites", icon: "favorites" },
-  { id: "resources", label: "Resources", href: "/dashboard/explore/resources", icon: "resources" },
+  { id: "notifications", label: "Notifications", href: "/notifications", icon: "birthday" },
   { id: "settings", label: "Settings", href: "/dashboard/settings", icon: "settings" },
 ];
 

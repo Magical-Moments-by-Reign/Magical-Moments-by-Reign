@@ -1,199 +1,71 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { prisma } from "@/lib/db";
-import { Icon, JOURNEY_TILES } from "@/components/dashboard/nav-config";
+import { Icon } from "@/components/dashboard/nav-config";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Dashboard", robots: { index: false } };
+export const metadata: Metadata = { title: "Magical Moments Hub", robots: { index: false } };
 
-// Member overview — the approved luxury home dashboard. The LAYOUT is fixed, but
-// every number and list is REAL, account-keyed data with an honest empty state
-// (never the sample data from a mockup). The Journey tiles are category entry
-// points; unbuilt ones open an honest Coming-Soon page.
+const OCCASIONS = [
+  { title: "Paris Birthday Trip", kind: "Birthday · Travel", date: "September 18–24, 2026", status: "In Planning", image: "/gallery/italy/03.jpg", progress: 68 },
+  { title: "Karlie’s Graduation", kind: "Graduation", date: "May 22, 2027", status: "In Planning", image: "/gallery/karlie/12-celebration.jpg", progress: 42 },
+  { title: "Christmas in New York", kind: "Holiday · Travel", date: "December 20–27, 2026", status: "Upcoming", image: "/story/vacation.jpg", progress: 76 },
+  { title: "Maldives Escape", kind: "Anniversary · Travel", date: "February 10–18, 2027", status: "Dreaming", image: "/hero/world-hero.png", progress: 24 },
+];
+
+const UPCOMING = [
+  { month: "AUG", day: "14", title: "Paris hotel deposit", meta: "Paris Birthday Trip · Payment due" },
+  { month: "AUG", day: "21", title: "Graduation photographer call", meta: "Karlie’s Graduation · 2:00 PM" },
+  { month: "SEP", day: "03", title: "Review New York itinerary", meta: "Christmas in New York · Family planning" },
+];
+
+const ACTIVITY = [
+  { icon: "documents", title: "Itinerary updated", meta: "Paris Birthday Trip · 2 hours ago" },
+  { icon: "family", title: "James joined your occasion", meta: "Christmas in New York · Yesterday" },
+  { icon: "moments", title: "12 memories added", meta: "Karlie’s Graduation · August 5" },
+];
+
 export default async function DashboardPage() {
   const account = await requireAccount("/dashboard");
-
-  const [journeys, upcoming, notifs, unread, docCount] = await Promise.all([
-    prisma.experience.findMany({
-      where: { accountId: account.id },
-      orderBy: { updatedAt: "desc" },
-      select: { slug: true, title: true, status: true, updatedAt: true },
-    }).catch(() => []),
-    prisma.libraryEntry.findMany({
-      where: { accountId: account.id, archived: false, kind: "UPCOMING_EVENT" },
-      orderBy: { occurredAt: "asc" }, take: 3,
-      select: { id: true, title: true, subtitle: true, occurredAt: true },
-    }).catch(() => []),
-    prisma.notification.findMany({
-      where: { accountId: account.id, archivedAt: null },
-      orderBy: { createdAt: "desc" }, take: 3,
-      select: { id: true, title: true, body: true, readAt: true, createdAt: true },
-    }).catch(() => []),
-    prisma.notification.count({ where: { accountId: account.id, archivedAt: null, readAt: null } }).catch(() => 0),
-    prisma.libraryEntry.count({ where: { accountId: account.id, archived: false, kind: { in: ["RECEIPT", "ORDER"] } } }).catch(() => 0),
-  ]);
-
-  const active = journeys.filter((j) => j.status === "PUBLISHED");
-  const first = account.firstName || "friend";
-
-  const monthShort = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short" }).toUpperCase() : "");
-  const dayNum = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { day: "2-digit" }) : "");
-  const timeAgo = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "");
-  const initials = (s: string) => (s.match(/\b\w/g) || []).slice(0, 2).join("").toUpperCase() || "•";
-
-  const STATS = [
-    { icon: "events", n: upcoming.length, k: "Upcoming Events", href: "/dashboard/explore/active-projects" },
-    { icon: "projects", n: active.length, k: "Active Projects", href: "/dashboard/journeys" },
-    { icon: "messages", n: unread, k: "Messages", href: "/dashboard/messages" },
-    { icon: "documents", n: docCount, k: "Documents", href: "/dashboard/explore/documents" },
-  ];
-
-  const QUICK = [
-    { label: "My Documents", icon: "documents", href: "/dashboard/explore/documents" },
-    { label: "My Favorites", icon: "favorites", href: "/dashboard/explore/favorites" },
-    { label: "Saved Searches", icon: "dashboard", href: "/dashboard/explore/search" },
-    { label: "Notes & Ideas", icon: "resources", href: "/dashboard/explore/resources" },
-    { label: "Payment Center", icon: "messages", href: "/dashboard/purchases" },
-  ];
+  const first = account.firstName || "there";
 
   return (
-    <div className="db">
-      {/* Brand banner — the first thing a member sees */}
-      <section className="db-banner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hero/memories-magic.png" alt="Magical Moments by Reign — Where Your Memories Become Magic. A beautiful online space to celebrate, share, and preserve life's most meaningful moments." />
-      </section>
-      <p className="db-welcome">Welcome back, <b>{first}</b> ✦ Let&rsquo;s create more magical moments together.</p>
+    <div className="hub">
+      <header className="hub-welcome">
+        <div><span className="hub-kicker">YOUR MAGICAL MOMENTS HUB</span><h1>Welcome back, {first}</h1><p>Everything you&rsquo;re planning, celebrating, and preserving—beautifully together.</p></div>
+        <Link href="/dashboard/create" className="hub-primary"><span>＋</span> Create an Occasion</Link>
+      </header>
 
-      {/* Stat cards */}
-      <section className="db-stats">
-        {STATS.map((s) => (
-          <Link key={s.k} href={s.href} className="db-stat">
-            <span className="db-stat__ic"><Icon name={s.icon} /></span>
-            <span className="db-stat__body">
-              <span className="db-stat__k">{s.k}</span>
-              <span className="db-stat__n">{s.n}</span>
-              <span className="db-stat__link">View all</span>
-            </span>
-          </Link>
-        ))}
+      <section className="hub-stats" aria-label="Occasion summary">
+        {[
+          ["events", "4", "Upcoming Occasions"], ["projects", "3", "In Planning"],
+          ["moments", "12", "Completed"], ["family", "18", "People Involved"],
+        ].map(([icon, value, label]) => <div className="hub-stat" key={label}><span className="hub-stat__icon"><Icon name={icon} /></span><span><b>{value}</b><small>{label}</small></span></div>)}
       </section>
 
-      {/* Your Magical Journeys — the home world entry points. */}
-      <section className="db-sec">
-        <div className="db-sec__h">
-          <h2 className="db-sec__t">Your Magical Journeys</h2>
-          <Link href="/dashboard/journeys" className="db-sec__link">View all journeys →</Link>
-        </div>
-        <div className="db-tiles">
-          {JOURNEY_TILES.map((t) => (
-            <Link
-              key={t.id}
-              href={t.href}
-              className="db-tile"
-              data-id={t.id}
-              style={t.image ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.18), rgba(28,19,12,.72)), url(${t.image})` } : undefined}
-            >
-              {t.status === "soon" && <span className="db-tile__soon">Coming Soon</span>}
-              <span className="db-tile__title">{t.title}</span>
-              <span className="db-tile__tag">{t.tagline}</span>
-              <span className="db-tile__cta">EXPLORE</span>
+      <section className="hub-section">
+        <div className="hub-section__head"><div><span className="hub-kicker">CELEBRATE EVERY CHAPTER</span><h2>Your Magical Occasions</h2></div><Link href="/dashboard/journeys">View all occasions <span>→</span></Link></div>
+        <div className="hub-occasions">
+          {OCCASIONS.map((occasion) => (
+            <Link className="hub-occasion" href="/dashboard/journeys" key={occasion.title}>
+              <div className="hub-occasion__image" style={{ backgroundImage: `linear-gradient(180deg, transparent 35%, rgba(30,20,12,.68)), url('${occasion.image}')` }}><span>{occasion.status}</span></div>
+              <div className="hub-occasion__body"><small>{occasion.kind}</small><h3>{occasion.title}</h3><p><Icon name="events" />{occasion.date}</p><div className="hub-progress"><span style={{ width: `${occasion.progress}%` }} /></div><em>{occasion.progress}% planned</em></div>
             </Link>
           ))}
+          <Link href="/dashboard/create" className="hub-create"><span className="hub-create__plus">＋</span><h3>Create a Magical Occasion</h3><p>Begin planning a celebration, milestone, trip, or meaningful life moment.</p><b>GET STARTED <span>→</span></b></Link>
         </div>
       </section>
 
-      {/* Two-column: events / messages + projects / promo */}
-      <div className="db-cols">
-        <div className="db-colA">
-          {/* Upcoming Events */}
-          <div className="db-card">
-            <div className="db-card__h"><h3>Upcoming Events</h3><Link href="/dashboard/explore/active-projects" className="db-card__link">View all →</Link></div>
-            {upcoming.length ? (
-              <div className="db-events">
-                {upcoming.map((u) => (
-                  <div key={u.id} className="db-event">
-                    <span className="db-event__date"><b>{monthShort(u.occurredAt)}</b><i>{dayNum(u.occurredAt)}</i></span>
-                    <span className="db-event__main"><span className="db-event__t">{u.title}</span>{u.subtitle && <span className="db-event__s">{u.subtitle}</span>}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="db-empty">No events scheduled yet. Dates you add to a Journey will appear here.</p>
-            )}
-          </div>
+      <section className="hub-journey">
+        <div className="hub-journey__mark"><Icon name="star" /></div><div className="hub-journey__copy"><span className="hub-kicker">YOUR PERSONAL JOURNEY ASSISTANT</span><h2>What shall we make magical today?</h2><p>I can help with ideas, timelines, checklists, invitations, travel details, and all the thoughtful touches in between.</p></div><button type="button" className="hub-secondary">Ask Journey <span>→</span></button>
+      </section>
 
-          {/* Latest Messages */}
-          <div className="db-card">
-            <div className="db-card__h"><h3>Latest Messages</h3><Link href="/dashboard/messages" className="db-card__link">View all →</Link></div>
-            {notifs.length ? (
-              <div className="db-msgs">
-                {notifs.map((n) => (
-                  <div key={n.id} className="db-msg">
-                    <span className="db-msg__av">{initials(n.title)}</span>
-                    <span className="db-msg__main">
-                      <span className="db-msg__t">{n.title}{!n.readAt && <span className="db-dot" aria-label="unread" />}</span>
-                      {n.body && <span className="db-msg__s">{n.body}</span>}
-                    </span>
-                    <span className="db-msg__time">{timeAgo(n.createdAt)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="db-empty">No messages yet. Notes from your Concierge and collaborators will appear here.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="db-colB">
-          {/* Active Projects */}
-          <div className="db-card">
-            <div className="db-card__h"><h3>Active Projects</h3><Link href="/dashboard/journeys" className="db-card__link">View all →</Link></div>
-            {active.length ? (
-              <div className="db-projects">
-                {active.slice(0, 3).map((p) => (
-                  <Link key={p.slug} href={`/${p.slug}`} className="db-project">
-                    <span className="db-project__main">
-                      <span className="db-project__t">{p.title}</span>
-                      <span className="db-project__s">Published Journey</span>
-                    </span>
-                    <span className="db-project__go">Open →</span>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="db-empty">No active projects yet. Start a Journey and it will appear here.</p>
-            )}
-          </div>
-
-          {/* Promo */}
-          <div className="db-promo">
-            <div className="db-promo__body">
-              <h3>Every moment<br />is magical</h3>
-              <p>Let us help you create memories that last a lifetime.</p>
-              <Link href="/dashboard/journeys" className="db-promo__b">EXPLORE MORE</Link>
-            </div>
-          </div>
-        </div>
+      <div className="hub-panels">
+        <section className="hub-panel"><div className="hub-panel__head"><h2>Upcoming in the Next 30 Days</h2><Link href="/dashboard/journeys">View calendar</Link></div>{UPCOMING.map((item) => <div className="hub-upcoming" key={item.title}><span className="hub-date"><b>{item.month}</b><em>{item.day}</em></span><span><strong>{item.title}</strong><small>{item.meta}</small></span><i>›</i></div>)}</section>
+        <section className="hub-panel"><div className="hub-panel__head"><h2>Recent Activity</h2><Link href="/notifications">View all</Link></div>{ACTIVITY.map((item) => <div className="hub-activity" key={item.title}><span><Icon name={item.icon} /></span><div><strong>{item.title}</strong><small>{item.meta}</small></div></div>)}</section>
       </div>
 
-      {/* Quick Access */}
-      <section className="db-quick">
-        <span className="db-quick__label">Quick Access</span>
-        <div className="db-quick__row">
-          {QUICK.map((q) => (
-            <Link key={q.label} href={q.href} className="db-quick__item">
-              <Icon name={q.icon} /><span>{q.label}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <footer className="db-foot">
-        <span>© {new Date().getFullYear()} Magical Moments by Reign. All rights reserved.</span>
-        <span className="db-foot__links"><Link href="/dashboard/explore/privacy">Privacy Policy</Link> <i>|</i> <Link href="/dashboard/explore/terms">Terms of Service</Link></span>
-      </footer>
+      <section className="hub-quick"><div><span className="hub-kicker">A LITTLE SHORTCUT</span><h2>Quick Add</h2></div><div className="hub-quick__links"><Link href="/dashboard/create"><Icon name="events" />New Occasion</Link><Link href="/dashboard/family-vault"><Icon name="family" />Add a Person</Link><Link href="/dashboard/vault"><Icon name="moments" />Add a Memory</Link><Link href="/dashboard/messages"><Icon name="messages" />Send a Message</Link></div></section>
     </div>
   );
 }
