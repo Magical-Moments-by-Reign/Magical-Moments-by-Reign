@@ -10,6 +10,7 @@ import { sendEmail } from "@/lib/email";
 import { preflight } from "@/lib/email-delivery";
 import { buildInviteEmail, buildInviteSms, buildReminderEmail, type InviteContent } from "./invite-email";
 import { recordDelivery } from "./invites";
+import { isOptedOut } from "./sms-consent";
 import type { LiveInviteRecord } from "./invites";
 import type { LiveRoomRecord } from "./rooms";
 import type { ReminderKey } from "./invite-core";
@@ -104,23 +105,25 @@ export async function deliverInvite(room: LiveRoomRecord, invite: LiveInviteReco
     if (!emailConfigured()) return finish(invite.id, false, "email_not_connected");
     const msg = reminder ? buildReminderEmail(reminder, content) : buildInviteEmail(content);
     const res = await sendEmail({ to: invite.email, subject: msg.subject, html: msg.html });
-    return finish(invite.id, res.sent, res.sent ? undefined : (res.error || (res.skipped ? "email_skipped" : "email_failed")));
+    return finish(invite.id, res.sent, res.sent ? undefined : (res.error || (res.skipped ? "email_skipped" : "email_failed")), res.id);
   }
 
   if (invite.channel === "sms") {
     if (!invite.phone) return finish(invite.id, false, "no_phone");
     if (!smsConfigured()) return finish(invite.id, false, "sms_not_connected");
-    // Real send via Twilio. U.S. compliance: include an opt-out instruction.
+    // U.S. compliance: never message a number that has opted out.
+    if (await isOptedOut(invite.phone)) return finish(invite.id, false, "opted_out");
+    // Real send via Twilio, with a required opt-out instruction.
     const body = `${buildInviteSms(content)} Reply STOP to opt out.`;
     const res = await sendSms(invite.phone, body);
-    return finish(invite.id, res.sent, res.sent ? undefined : (res.error || "sms_failed"));
+    return finish(invite.id, res.sent, res.sent ? undefined : (res.error || "sms_failed"), res.id);
   }
 
   return finish(invite.id, false, "unknown_channel");
 }
 
-async function finish(inviteId: string, ok: boolean, reason?: string): Promise<DeliveryOutcome> {
-  await recordDelivery(inviteId, ok, reason ?? null);
+async function finish(inviteId: string, ok: boolean, reason?: string, messageId?: string): Promise<DeliveryOutcome> {
+  await recordDelivery(inviteId, ok, reason ?? null, messageId);
   return { inviteId, ok, skipped: !ok && reason === "sms_not_connected", reason };
 }
 

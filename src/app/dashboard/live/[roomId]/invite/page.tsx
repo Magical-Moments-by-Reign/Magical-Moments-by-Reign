@@ -11,7 +11,7 @@ import { recordingConfigured } from "@/lib/live/recording";
 import { INVITE_STATUS } from "@/lib/live/invite-core";
 import { agoraConfigured } from "@/lib/live/agora";
 import CopyField from "@/components/live/CopyField";
-import { addInvitesAction, resendInviteAction, revokeInviteAction, sendReminderAction, startLiveAction, switchInviteChannelAction } from "../../actions";
+import { addInvitesAction, resendInviteAction, revokeInviteAction, sendReminderAction, startLiveAction, switchInviteChannelAction, sendPendingAction } from "../../actions";
 
 const METHOD_LABEL: Record<string, string> = { sms: "Text", email: "Email", both: "Both", ask: "Ask each time" };
 import "../../live.css";
@@ -31,6 +31,7 @@ export default async function InvitePage({ params }: { params: Promise<{ roomId:
     listContacts(account.id),
   ]);
   const counts = countInvites(invites);
+  const pending = invites.filter((i) => !i.sentAt && i.status !== "REVOKED");
   const emailOk = emailConfigured();
   const smsOk = smsConfigured();
   const whenText = whenTextFor(room);
@@ -110,6 +111,42 @@ export default async function InvitePage({ params }: { params: Promise<{ roomId:
           </div>
         </form>
       </section>
+
+      {/* Delivery review — confirm how each guest is reached, then send */}
+      {pending.length > 0 && (
+        <section className="sec" id="review">
+          <div className="sec__h"><h2 className="sec__t">Review &amp; send ({pending.length})</h2></div>
+          <p className="lv-hint">Confirm how each guest receives their invitation — we use each saved contact&apos;s preference automatically. Change any below, then send.</p>
+          <form action={sendPendingAction}>
+            <input type="hidden" name="roomId" value={room.id} />
+            <div className="lv-guests">
+              {pending.map((inv) => (
+                <div key={inv.id} className="lv-guest">
+                  <span className="lv-guest__main">
+                    <span className="lv-guest__name">{inv.name || inv.email || inv.phone}</span>
+                    <span className="lv-guest__contact">{[inv.email, inv.phone].filter(Boolean).join(" · ")}</span>
+                  </span>
+                  <span className="lv-guest__actions">
+                    <label className="lv-review__how">How to send:
+                      <select name={`ch_${inv.id}`} defaultValue={inv.channel}>
+                        <option value="email" disabled={!inv.email}>Email</option>
+                        <option value="sms" disabled={!inv.phone}>Text message</option>
+                        <option value="both" disabled={!(inv.email && inv.phone)}>Both</option>
+                      </select>
+                    </label>
+                    {inv.email && inv.phone && (
+                      <label className="lv-review__rem"><input type="checkbox" name={`remember_${inv.id}`} /> Remember for {inv.name?.split(" ")[0] || "them"}</label>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="lv-form__actions" style={{ marginTop: ".9rem" }}>
+              <button type="submit" className="btn btn--gold">Send {pending.length} invitation{pending.length > 1 ? "s" : ""}</button>
+            </div>
+          </form>
+        </section>
+      )}
 
       {/* Secure link to share manually */}
       <section className="sec">

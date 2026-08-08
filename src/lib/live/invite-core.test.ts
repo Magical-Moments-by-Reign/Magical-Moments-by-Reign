@@ -3,8 +3,18 @@ import assert from "node:assert/strict";
 import {
   shouldAdvanceInvite, normalizeEmail, normalizePhone, normalizeRecipient,
   dedupeRecipients, dueReminders, isWellFormedInviteToken, inviteTokenMatches,
-  evaluateGuestGate, resolveDelivery,
+  evaluateGuestGate, resolveDelivery, parseSmsKeyword,
 } from "./invite-core";
+
+test("SMS consent keywords are recognized (case/space insensitive)", () => {
+  assert.equal(parseSmsKeyword("STOP"), "stop");
+  assert.equal(parseSmsKeyword(" Stop "), "stop");
+  assert.equal(parseSmsKeyword("unsubscribe"), "stop");
+  assert.equal(parseSmsKeyword("START"), "start");
+  assert.equal(parseSmsKeyword("yes"), "start");
+  assert.equal(parseSmsKeyword("hello there"), null);
+  assert.equal(parseSmsKeyword(null), null);
+});
 
 test("invite status only advances by rank; joined never downgrades", () => {
   assert.ok(shouldAdvanceInvite("SENT", "DELIVERED"));

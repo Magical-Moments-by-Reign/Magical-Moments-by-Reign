@@ -183,14 +183,22 @@ export async function getOwnedInvite(accountId: string, inviteId: string): Promi
 }
 
 /** Record delivery outcome from invite-delivery. */
-export async function recordDelivery(inviteId: string, ok: boolean, error: string | null): Promise<void> {
+export async function recordDelivery(inviteId: string, ok: boolean, error: string | null, messageId?: string | null): Promise<void> {
   if (ok) {
     await advanceInviteStatus(inviteId, "SENT");
-    await prisma.liveInvite.update({ where: { id: inviteId }, data: { lastError: null } }).catch(() => {});
+    await prisma.liveInvite.update({ where: { id: inviteId }, data: { lastError: null, ...(messageId ? { providerMessageId: messageId } : {}) } }).catch(() => {});
   } else {
     await advanceInviteStatus(inviteId, "FAILED");
     await prisma.liveInvite.update({ where: { id: inviteId }, data: { lastError: error ?? "delivery_failed" } }).catch(() => {});
   }
+}
+
+/** Advance an invite located by its provider message id (delivery/open
+ *  webhooks). No-op if the id isn't ours or the transition isn't allowed. */
+export async function advanceInviteByProviderId(messageId: string, to: LiveInviteStatus): Promise<void> {
+  if (!messageId) return;
+  const row = await prisma.liveInvite.findFirst({ where: { providerMessageId: messageId }, select: { id: true } });
+  if (row) await advanceInviteStatus(row.id, to);
 }
 
 /** Mark a reminder key as sent for an invite (dedup of reminders). */

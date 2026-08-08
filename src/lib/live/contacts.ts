@@ -98,6 +98,20 @@ export async function deleteContact(accountId: string, id: string): Promise<bool
   return true;
 }
 
+// Remember a delivery-method choice back onto the matching saved contact
+// (by email or phone). No-op if the person isn't in My Magical Family.
+export async function rememberPreferenceForContact(
+  accountId: string,
+  match: { email?: string | null; phone?: string | null },
+  method: "sms" | "email" | "both",
+): Promise<void> {
+  const or: { email?: string; phone?: string }[] = [];
+  if (match.email) or.push({ email: match.email });
+  if (match.phone) or.push({ phone: match.phone });
+  if (!or.length) return;
+  await prisma.magicalContact.updateMany({ where: { accountId, OR: or }, data: { preferredMethod: method } });
+}
+
 export async function toggleFavorite(accountId: string, id: string): Promise<void> {
   const c = await prisma.magicalContact.findFirst({ where: { id, accountId }, select: { id: true, favorite: true } });
   if (!c) return;

@@ -25,6 +25,10 @@
 .lv-field input:focus, .lv-field textarea:focus, .lv-field select:focus { outline: none; border-color: #c9a24b; }
 .lv-note--warn { border-left-color: #9a4a3a; background: #f7ecea; color: #7a3a2c; }
 .lv-microcopy { color: #8a7a63; font-size: .78rem; line-height: 1.5; margin: .4rem 0 0; }
+.lv-review__how { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: #6b5744; }
+.lv-review__how select { font: inherit; padding: .3rem .5rem; border: 1px solid #e7dcc9; border-radius: 8px; background: #fffdf9; }
+.lv-review__rem { display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: #6b5744; }
+.lv-review__rem input { accent-color: #a67c2e; }
 .lv-quicklinks { margin: .2rem 0 1rem; }
 .lv-quicklink { color: #a67c2e; font-weight: 600; font-size: .88rem; text-decoration: none; }
 .lv-quicklink:hover { text-decoration: underline; }

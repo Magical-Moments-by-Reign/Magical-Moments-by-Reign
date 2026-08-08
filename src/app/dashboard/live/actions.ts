@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { createRoom, getOwnedRoom, activeRoomForExperience, setStatus } from "@/lib/live/rooms";
 import { addInvites, listInvites, getOwnedInvite, revokeInvite, recordReminderSent, switchInviteChannel } from "@/lib/live/invites";
 import { deliverInvite, deliverPending } from "@/lib/live/invite-delivery";
+import { rememberPreferenceForContact } from "@/lib/live/contacts";
 import { parseContactPaste } from "@/lib/live/guest-sources";
 import type { RawRecipient, ReminderKey, InviteChannel } from "@/lib/live/invite-core";
 
@@ -114,11 +115,42 @@ export async function addInvitesAction(formData: FormData): Promise<void> {
     try { recipients.push(JSON.parse(String(raw))); } catch { /* skip malformed */ }
   }
 
-  const created = await addInvites(account.id, roomId, recipients);
-  if (created.length) {
-    const room = await getOwnedRoom(account.id, roomId);
-    if (room) await deliverPending(room, created); // Magical Moments sends the invitations
+  // Create as PENDING (not sent). The host confirms channels on the
+  // delivery-review step, then Magical Moments sends.
+  await addInvites(account.id, roomId, recipients);
+  revalidatePath(`/dashboard/live/${roomId}/invite`);
+  redirect(`/dashboard/live/${roomId}/invite?review=1#review`);
+}
+
+/** Delivery review → confirm & send. Applies each guest's chosen channel
+ *  (Text / Email / Both), optionally remembers it on their saved contact,
+ *  then sends every not-yet-sent invitation. */
+export async function sendPendingAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/live");
+  const roomId = String(formData.get("roomId") || "");
+  const room = await getOwnedRoom(account.id, roomId);
+  if (!room) return;
+
+  const invites = await listInvites(account.id, roomId);
+  const pending = invites.filter((i) => !i.sentAt && i.status !== "REVOKED");
+
+  for (const inv of pending) {
+    const choice = (String(formData.get(`ch_${inv.id}`) || inv.channel)) as "email" | "sms" | "both";
+    const remember = formData.get(`remember_${inv.id}`) != null;
+
+    if (choice === "both") {
+      // Ensure a twin invite exists on the other channel (addInvites dedupes
+      // by identity+channel, so it only adds the missing one).
+      await addInvites(account.id, roomId, [{ name: inv.name, email: inv.email, phone: inv.phone, preferredMethod: "both" }]);
+    } else if ((choice === "email" || choice === "sms") && choice !== inv.channel) {
+      await switchInviteChannel(account.id, inv.id, choice);
+    }
+    if (remember) await rememberPreferenceForContact(account.id, { email: inv.email, phone: inv.phone }, choice);
   }
+
+  // Send everything still unsent (includes any twins created above).
+  const refreshed = await listInvites(account.id, roomId);
+  await deliverPending(room, refreshed.filter((i) => !i.sentAt && i.status !== "REVOKED"));
   revalidatePath(`/dashboard/live/${roomId}/invite`);
 }
 

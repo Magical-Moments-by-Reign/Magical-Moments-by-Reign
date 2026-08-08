@@ -176,6 +176,19 @@ export function dueReminders(args: {
   return due;
 }
 
+/* ── SMS consent keywords (U.S. compliance) ───────────────────── */
+// Standard opt-out/opt-in keywords a guest can text back. Case/space
+// insensitive. Returns the consent action, or null for anything else.
+const STOP_WORDS = new Set(["stop", "stopall", "unsubscribe", "cancel", "end", "quit"]);
+const START_WORDS = new Set(["start", "yes", "unstop"]);
+export function parseSmsKeyword(body: string | null | undefined): "stop" | "start" | null {
+  if (!body) return null;
+  const word = body.trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (STOP_WORDS.has(word)) return "stop";
+  if (START_WORDS.has(word)) return "start";
+  return null;
+}
+
 /* ── Secure invite token format ───────────────────────────────── */
 // The RANDOM token itself is minted server-side with crypto; here we only
 // validate shape. Tokens are URL-safe hex, long enough to be unguessable.

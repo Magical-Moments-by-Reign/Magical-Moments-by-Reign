@@ -2569,9 +2569,10 @@ model LiveInvite {
   phone         String?
   channel       String   // "email" | "sms"
   token         String   @unique // secure per-guest invite token
-  status        String   @default("PENDING") // PENDING|SENT|DELIVERED|OPENED|JOINED|DECLINED|REVOKED
+  status        String   @default("PENDING") // PENDING|QUEUED|SENT|DELIVERED|OPENED|JOINED|DECLINED|FAILED|REVOKED
   remindersSent String   @default("[]")      // JSON array of ReminderKey already sent
   lastError     String?  // honest delivery error (e.g. "sms_not_connected")
+  providerMessageId String? // Resend/Twilio message id → maps delivery/open webhooks back
   sentAt        DateTime?
   deliveredAt   DateTime?
   openedAt      DateTime?
@@ -2584,6 +2585,15 @@ model LiveInvite {
   @@index([roomId, status])
   @@index([token])
   @@index([accountId])
+  @@index([providerMessageId])
+}
+
+// SMS consent suppression list. A phone that texts STOP is added here and
+// never receives another SMS until it texts START. U.S. carrier compliance.
+model SmsOptOut {
+  id        String   @id @default(cuid())
+  phone     String   @unique // E.164
+  createdAt DateTime @default(now())
 }
 
 // My Magical Family — a member's persistent, reusable contact book. Saved
