@@ -230,6 +230,11 @@
 .lxp-card__p { color: var(--ink-soft, #6b5744); font-size: .9rem; line-height: 1.55; margin: 0 0 1.1rem; }
 .lxp-cardlink { margin: 1rem 0 0; }
 
+/* Saved-preferences banner */
+.lxp-prefs { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; background: #fbf4e3; border: 1px solid var(--line, #e7dcc9); border-left: 3px solid var(--gold, #c9a24b); border-radius: 10px; padding: .7rem 1rem; margin-bottom: 1rem; }
+.lxp-prefs__t { font-weight: 700; color: var(--gold-deep, #a67c2e); font-size: .84rem; white-space: nowrap; }
+.lxp-prefs__d { color: var(--ink-soft, #6b5744); font-size: .82rem; flex: 1; min-width: 200px; }
+
 /* Trust bar */
 .lxp-trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem; margin-top: 1.6rem; padding: 1.3rem 1.5rem; background: linear-gradient(135deg, #fbf4e3, #fffdf9); border: 1px solid var(--line, #e7dcc9); border-radius: 16px; }
 .lxp-trust__item { display: flex; gap: .7rem; align-items: flex-start; }
