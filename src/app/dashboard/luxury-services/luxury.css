@@ -204,6 +204,19 @@
   .lx-feat { grid-template-columns: repeat(3, 1fr); }
   .lx-colgrid { grid-template-columns: repeat(2, 1fr); }
 }
+/* Phones: stack the hero — photo as a full-width band on top that fades
+   downward into the ivory, copy full-width beneath. No overlap. */
+@media (max-width: 720px) {
+  .lx-hero { display: flex; flex-direction: column; min-height: 0; padding: 0 0 1.3rem; justify-content: flex-start; }
+  .lx-hero__photo {
+    position: static; order: -1; width: 100%; height: 190px;
+    background-position: center 55%;
+    -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+            mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+  }
+  .lx-hero__text { max-width: none; padding: 0 1.3rem; }
+  .lx-hero__title { font-size: clamp(1.9rem, 8vw, 2.4rem); }
+}
 @media (max-width: 560px) {
   .lx-feat { grid-template-columns: repeat(2, 1fr); }
   .lx-colgrid { grid-template-columns: 1fr; }
