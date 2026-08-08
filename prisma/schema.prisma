@@ -2542,12 +2542,46 @@ model LiveRoom {
   recordingSid  String?
   recordingResourceId String?
 
-  settings      String   @default("{}") // JSON: allowChat, allowReactions, allowScreenShare…
+  settings      String   @default("{}") // JSON: privacy, timezone, reminderPrefs, gate, hostName, message, allowChat/Reactions/ScreenShare…
   startedAt     DateTime?
   endedAt       DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  liveInvites   LiveInvite[]
+
   @@index([accountId, status])
   @@index([experienceId])
+}
+
+// One invited guest for a Live room. The secure per-guest `token` is what
+// travels in the Magical Moments join URL (/live/{roomId}?invite={token});
+// it is validated server-side before any Agora audience token is issued.
+// Guests never see Agora channel data. Delivery/opened timestamps are set
+// ONLY from real provider signals — never fabricated.
+model LiveInvite {
+  id            String   @id @default(cuid())
+  roomId        String
+  room          LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  accountId     String   // host (for scoping/listing)
+  name          String?
+  email         String?
+  phone         String?
+  channel       String   // "email" | "sms"
+  token         String   @unique // secure per-guest invite token
+  status        String   @default("PENDING") // PENDING|SENT|DELIVERED|OPENED|JOINED|DECLINED|REVOKED
+  remindersSent String   @default("[]")      // JSON array of ReminderKey already sent
+  lastError     String?  // honest delivery error (e.g. "sms_not_connected")
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  joinedAt      DateTime?
+  declinedAt    DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([roomId, status])
+  @@index([token])
+  @@index([accountId])
 }

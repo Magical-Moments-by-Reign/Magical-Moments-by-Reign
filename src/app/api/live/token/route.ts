@@ -2,7 +2,8 @@ import { randomInt } from "crypto";
 import { NextResponse } from "next/server";
 import { currentAccount } from "@/lib/auth-session";
 import { getRoom } from "@/lib/live/rooms";
-import { authorizeJoin } from "@/lib/live/core";
+import { authorizeJoin, LIVE_STATUS } from "@/lib/live/core";
+import { getInviteByToken, markInviteJoinedByToken } from "@/lib/live/invites";
 import { agoraConfigured, issueTokens } from "@/lib/live/agora";
 
 export const runtime = "nodejs";
@@ -28,13 +29,20 @@ export async function POST(req: Request) {
 
   const account = await currentAccount().catch(() => null);
   const isHost = !!account && account.id === room.accountId;
+  const provided = body.invite ?? null;
 
-  const decision = authorizeJoin({
-    isHost,
-    status: room.status,
-    expectedInvite: room.inviteCode,
-    providedInvite: body.invite ?? null,
-  });
+  // Two valid audience paths: the room-level invite code, OR a secure
+  // per-guest invite token (validated server-side against LiveInvite).
+  // The per-guest token is what travels in emailed invitations.
+  let decision = authorizeJoin({ isHost, status: room.status, expectedInvite: room.inviteCode, providedInvite: provided });
+  let perGuestToken: string | null = null;
+  if (!decision && !isHost && provided) {
+    const invite = await getInviteByToken(roomId, provided);
+    if (invite && LIVE_STATUS[room.status].joinable) {
+      decision = { role: "audience", agoraRole: "subscriber" };
+      perGuestToken = provided;
+    }
+  }
   if (!decision) {
     return NextResponse.json({ error: "You need a valid invite to join this room." }, { status: 403 });
   }
@@ -44,6 +52,9 @@ export async function POST(req: Request) {
   const uid = randomInt(1, 2 ** 31 - 1);
   const tokens = issueTokens({ channel: room.channelName, uid, role: decision.agoraRole });
   if (!tokens) return NextResponse.json({ error: "Live streaming isn't connected yet." }, { status: 503 });
+
+  // A tracked guest actually joined → advance their invite (never downgrades).
+  if (perGuestToken) await markInviteJoinedByToken(roomId, perGuestToken).catch(() => {});
 
   return NextResponse.json({
     appId: tokens.appId, // public by design

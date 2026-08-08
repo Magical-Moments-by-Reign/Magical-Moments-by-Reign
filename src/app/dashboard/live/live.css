@@ -15,6 +15,72 @@
 .lv-row__meta { color: #6b5744; font-size: .8rem; }
 .lv-badge { font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: .16rem .5rem; border-radius: 6px; }
 .lv-badge--pending { background: #f3e6c8; color: #a67c2e; }
-.lv-badge--active { background: #e0413a; color: #fff; }
+.lv-badge--active { background: #dbe7f0; color: #3a6178; }
 .lv-badge--muted { background: #ece7df; color: #8a7f70; }
 .lv-badge--success { background: #dcecd9; color: #33632f; }
+.lv-badge--warn { background: #f6e5cf; color: #9a5a2a; }
+
+/* Shared field polish */
+.lv-field textarea, .lv-field select { font: inherit; padding: .55rem .7rem; border: 1px solid #e7dcc9; border-radius: 10px; background: #fffdf9; color: #2a1d12; }
+.lv-field input:focus, .lv-field textarea:focus, .lv-field select:focus { outline: none; border-color: #c9a24b; }
+.lv-note--warn { border-left-color: #9a4a3a; background: #f7ecea; color: #7a3a2c; }
+.lv-microcopy { color: #8a7a63; font-size: .78rem; line-height: 1.5; margin: .4rem 0 0; }
+
+/* Two-way start cards */
+.lv-start { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: .4rem 0 1rem; }
+.lv-start__card { display: flex; flex-direction: column; gap: .3rem; background: #fffdf9; border: 1px solid #e7dcc9; border-radius: 16px; padding: 1.3rem 1.4rem; text-decoration: none; transition: transform .12s, box-shadow .12s, border-color .12s; }
+.lv-start__card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(44,33,26,.1); border-color: #e0cfa6; }
+.lv-start__icon { font-size: 1.7rem; }
+.lv-start__t { font-family: var(--font-display, Georgia, serif); font-size: 1.3rem; color: #2a1d12; }
+.lv-start__d { color: #6b5744; font-size: .86rem; line-height: 1.5; flex: 1; }
+.lv-start__cta { color: #a67c2e; font-weight: 700; font-size: .84rem; margin-top: .4rem; }
+
+/* Creation form */
+.lv-form--card { max-width: none; background: #fffdf9; border: 1px solid #e7dcc9; border-radius: 18px; padding: 1.5rem 1.6rem; box-shadow: 0 10px 28px rgba(44,33,26,.06); }
+.lv-fieldrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .8rem; }
+.lv-field--inline { max-width: 320px; }
+.lv-fieldset { border: 1px solid #e7dcc9; border-radius: 12px; padding: .9rem 1.1rem; display: flex; flex-direction: column; gap: .5rem; }
+.lv-fieldset legend { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #a67c2e; padding: 0 .4rem; }
+.lv-radio, .lv-check { display: flex; align-items: center; gap: .5rem; font-size: .88rem; color: #4a3a2c; }
+.lv-radio input, .lv-check input { accent-color: #a67c2e; }
+.lv-form__actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .4rem; align-items: center; }
+.lv-form__actions form { margin: 0; }
+
+/* Invite form + reuse groups */
+.lv-invite-form { display: flex; flex-direction: column; gap: 1rem; background: #fffdf9; border: 1px solid #e7dcc9; border-radius: 16px; padding: 1.3rem 1.4rem; }
+.lv-reuse { border-top: 1px solid #f0e8d8; padding-top: .9rem; }
+.lv-reuse__intro { font-size: .86rem; font-weight: 600; color: #2a1d12; margin: 0 0 .6rem; }
+.lv-reuse__group { border: 1px solid #e7dcc9; border-radius: 10px; padding: .5rem .8rem; margin-bottom: .6rem; }
+.lv-reuse__group summary { cursor: pointer; font-weight: 600; color: #2a1d12; font-size: .9rem; }
+.lv-reuse__hint { color: #8a7a63; font-weight: 400; font-size: .78rem; }
+.lv-reuse__list { display: flex; flex-direction: column; gap: .3rem; margin-top: .6rem; }
+.lv-reuse__item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem; font-size: .85rem; color: #2a1d12; padding: .25rem 0; }
+.lv-reuse__item input { accent-color: #a67c2e; }
+.lv-reuse__contact { color: #8a7a63; font-size: .78rem; }
+
+/* Copy field */
+.lv-copy { display: flex; gap: .5rem; align-items: center; max-width: 640px; }
+.lv-copy input { flex: 1; min-width: 0; font: inherit; font-size: .84rem; padding: .55rem .7rem; border: 1px solid #e7dcc9; border-radius: 10px; background: #f7f1e7; color: #2a1d12; }
+
+/* Host dashboard */
+.lv-stats { display: flex; flex-wrap: wrap; gap: 1.2rem; margin: .4rem 0; }
+.lv-stat { color: #6b5744; font-size: .82rem; }
+.lv-stat b { display: inline-block; color: #2a1d12; font-size: 1.15rem; font-family: var(--font-display, Georgia, serif); margin-right: .25rem; }
+.lv-guests { display: flex; flex-direction: column; gap: .5rem; }
+.lv-guest { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: .8rem; background: #fffdf9; border: 1px solid #e7dcc9; border-radius: 12px; padding: .7rem 1rem; }
+.lv-guest__main { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.lv-guest__name { color: #2a1d12; font-weight: 700; font-size: .92rem; }
+.lv-guest__contact { color: #6b5744; font-size: .78rem; }
+.lv-guest__err { color: #9a4a3a; font-size: .74rem; }
+.lv-guest__actions { display: flex; gap: .4rem; }
+.lv-guest__actions form { margin: 0; }
+
+/* Passcode gate (guest room page) */
+.lr-passform { display: flex; gap: .5rem; margin-top: 1rem; justify-content: center; }
+.lr-passform input { font: inherit; padding: .55rem .7rem; border: 1px solid #e7dcc9; border-radius: 10px; background: #fffdf9; }
+
+@media (max-width: 620px) {
+  .lv-start { grid-template-columns: 1fr; }
+  .lv-guest { grid-template-columns: 1fr; align-items: flex-start; }
+  .lv-guest__actions { flex-wrap: wrap; }
+}

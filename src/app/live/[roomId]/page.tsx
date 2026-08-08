@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentAccount } from "@/lib/auth-session";
 import { getRoom } from "@/lib/live/rooms";
+import { getInviteByToken } from "@/lib/live/invites";
 import { inviteMatches, LIVE_STATUS } from "@/lib/live/core";
 import { agoraConfigured } from "@/lib/live/agora";
 import LiveRoom from "@/components/live/LiveRoom";
@@ -19,17 +20,24 @@ export default async function LiveRoomPage({
   params, searchParams,
 }: {
   params: Promise<{ roomId: string }>;
-  searchParams: Promise<{ invite?: string }>;
+  searchParams: Promise<{ invite?: string; pass?: string }>;
 }) {
   const { roomId } = await params;
-  const { invite } = await searchParams;
+  const { invite, pass } = await searchParams;
   const room = await getRoom(roomId);
   if (!room) notFound();
 
   const account = await currentAccount().catch(() => null);
   const isHost = !!account && account.id === room.accountId;
-  const inviteOk = inviteMatches(room.inviteCode, invite ?? null);
+  // Valid if room code matches OR a secure per-guest token resolves.
+  const perGuest = !isHost && invite ? await getInviteByToken(room.id, invite) : null;
+  const inviteOk = inviteMatches(room.inviteCode, invite ?? null) || !!perGuest;
   const meta = LIVE_STATUS[room.status];
+
+  // Optional host passcode gate (stricter privacy).
+  const gate = (room.settings?.gate ?? {}) as { passcode?: string | null };
+  const needPass = !isHost && !!gate.passcode;
+  const passOk = !needPass || (!!pass && pass === gate.passcode);
 
   // Not the host and no valid invite → don't reveal the room.
   if (!isHost && !inviteOk) {
@@ -40,6 +48,24 @@ export default async function LiveRoomPage({
           <h1>This is a private live room</h1>
           <p>You need a valid invite link to join. Please use the link the host shared with you.</p>
           <Link href="/" className="btn btn--gold">Return home</Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Passcode gate (host opted into stricter privacy).
+  if (!isHost && inviteOk && needPass && !passOk) {
+    return (
+      <div className="lr-shell lr-gate">
+        <div className="lr-gatecard">
+          <span className="lr-eyebrow">✦ Magical Moments Live</span>
+          <h1>{room.title}</h1>
+          <p>This Live is passcode-protected. Please enter the passcode the host shared with you.</p>
+          <form method="GET" className="lr-passform">
+            <input type="hidden" name="invite" value={invite ?? ""} />
+            <input name="pass" placeholder="Passcode" autoComplete="off" aria-label="Passcode" />
+            <button type="submit" className="btn btn--gold">Enter</button>
+          </form>
         </div>
       </div>
     );
