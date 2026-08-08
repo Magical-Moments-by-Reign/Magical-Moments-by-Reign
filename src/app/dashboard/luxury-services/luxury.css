@@ -141,10 +141,13 @@
 .lx-hero__lede { color: #e6d6bd; line-height: 1.75; font-size: .98rem; max-width: 52ch; margin: 0; }
 .lx-hero__media {
   align-self: stretch; border-radius: 16px; min-height: 220px; border: 1px solid rgba(216,178,94,.25);
-  background:
+  background-image:
+    url(/luxury/hero-concierge.jpg),
     radial-gradient(circle at 62% 42%, rgba(216,178,94,.30), rgba(20,12,6,0) 62%),
-    url(/brand/logo-watermark.png) center/58% no-repeat,
     linear-gradient(135deg, #2a1c11, #17100a);
+  background-size: cover, auto, auto;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Three paths */
