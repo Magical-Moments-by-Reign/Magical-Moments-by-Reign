@@ -59,12 +59,17 @@ export default async function DashboardPage() {
 
   return (
     <div className="db">
-      {/* Brand banner — the first thing a member sees */}
-      <section className="db-banner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hero/memories-magic.png" alt="Magical Moments by Reign — Where Your Memories Become Magic. A beautiful online space to celebrate, share, and preserve life's most meaningful moments." />
+      {/* Welcome hero — copy remains primary while the brand artwork softly
+          feathers into the warm dashboard canvas. */}
+      <section className="db-hero">
+        <div className="db-hero__copy">
+          <span className="db-hero__eyebrow">Your Magical Moments Hub</span>
+          <h1 className="db-hero__title">Welcome back, {first}</h1>
+          <p className="db-hero__sub">Let&rsquo;s create more magical moments together.</p>
+          <Link href="/dashboard/create" className="db-hero__cta">Create an Occasion <span aria-hidden="true">→</span></Link>
+        </div>
+        <div className="db-hero__visual" role="img" aria-label="A warm collection of life's magical moments" />
       </section>
-      <p className="db-welcome">Welcome back, <b>{first}</b> ✦ Let&rsquo;s create more magical moments together.</p>
 
       {/* Stat cards */}
       <section className="db-stats">
