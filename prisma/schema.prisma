@@ -70,6 +70,7 @@ model Experience {
   familyId String?
   family   Family?       @relation(fields: [familyId], references: [id])
   media        MediaAsset[]
+  liveRooms    LiveRoom[]
   shares       SocialShare[]
   domains      Domain[]
   tributes     Tribute[]
@@ -1096,6 +1097,7 @@ model Account {
   notifications   Notification[]
   reservations    Reservation[]
   savedServices   SavedService[]
+  liveRooms       LiveRoom[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   authTokens      AuthToken[]
@@ -2513,4 +2515,39 @@ model RateLimitHit {
 
   @@index([bucket, createdAt])
   @@index([expiresAt])
+}
+
+// ── Magical Moments Live (Agora) ────────────────────────────────
+// One isolated live room per occasion "Go Live". Multi-tenant by design:
+// channelName is GLOBALLY UNIQUE, so hundreds of rooms run simultaneously
+// without interfering. Ownership is (accountId host + experienceId occasion).
+// Tokens are generated server-side per join (see src/lib/live) — nothing
+// secret is stored here. Recording/replay fields stay null until real cloud
+// recording is enabled (never fabricated).
+model LiveRoom {
+  id            String   @id @default(cuid())
+  accountId     String   // host / owner
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  experienceId  String?  // the occasion this room belongs to
+  experience    Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+
+  channelName   String   @unique // globally unique Agora channel = isolation
+  title         String
+  status        String   @default("SCHEDULED") // SCHEDULED | LIVE | ENDED | REPLAY
+  inviteCode    String   @unique // required before any audience token is issued
+  scheduledStart DateTime?
+
+  // Populated ONLY from real cloud recording; null until then. Never faked.
+  recordingUrl  String?
+  recordingSid  String?
+  recordingResourceId String?
+
+  settings      String   @default("{}") // JSON: allowChat, allowReactions, allowScreenShare…
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([accountId, status])
+  @@index([experienceId])
 }
