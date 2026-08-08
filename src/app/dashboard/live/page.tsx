@@ -51,6 +51,9 @@ export default async function LiveHubPage({ searchParams }: { searchParams: Prom
 
       {occasion && <p className="lv-hint">Your Live will be linked to <strong>{occasion.title}</strong>.</p>}
 
+      <p className="lv-quicklinks"><Link href="/dashboard/live/contacts" className="lv-quicklink">👪 My Magical Family — saved contacts</Link></p>
+
+
       <section className="sec">
         <div className="sec__h"><h2 className="sec__t">My live rooms</h2></div>
         {rooms.length === 0 ? (

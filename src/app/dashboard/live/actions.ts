@@ -11,10 +11,10 @@ import { revalidatePath } from "next/cache";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { createRoom, getOwnedRoom, activeRoomForExperience, setStatus } from "@/lib/live/rooms";
-import { addInvites, listInvites, getOwnedInvite, revokeInvite, recordReminderSent } from "@/lib/live/invites";
+import { addInvites, listInvites, getOwnedInvite, revokeInvite, recordReminderSent, switchInviteChannel } from "@/lib/live/invites";
 import { deliverInvite, deliverPending } from "@/lib/live/invite-delivery";
 import { parseContactPaste } from "@/lib/live/guest-sources";
-import type { RawRecipient, ReminderKey } from "@/lib/live/invite-core";
+import type { RawRecipient, ReminderKey, InviteChannel } from "@/lib/live/invite-core";
 
 // Convert a wall-clock time entered in a given IANA timezone to a UTC instant.
 function zonedWallTimeToUtc(wall: string, tz: string): Date | null {
@@ -129,6 +129,21 @@ export async function resendInviteAction(formData: FormData): Promise<void> {
   const room = await getOwnedRoom(account.id, roomId);
   const invite = await getOwnedInvite(account.id, inviteId);
   if (room && invite && invite.status !== "REVOKED") await deliverInvite(room, invite);
+  revalidatePath(`/dashboard/live/${roomId}/invite`);
+}
+
+/** Switch a failed invite to the other channel and retry delivery. */
+export async function switchInviteChannelAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/live");
+  const roomId = String(formData.get("roomId") || "");
+  const inviteId = String(formData.get("inviteId") || "");
+  const to = String(formData.get("to") || "") as InviteChannel;
+  if (to !== "email" && to !== "sms") return;
+  const switched = await switchInviteChannel(account.id, inviteId, to);
+  if (switched) {
+    const room = await getOwnedRoom(account.id, roomId);
+    if (room) await deliverInvite(room, switched);
+  }
   revalidatePath(`/dashboard/live/${roomId}/invite`);
 }
 

@@ -2585,3 +2585,25 @@ model LiveInvite {
   @@index([token])
   @@index([accountId])
 }
+
+// My Magical Family — a member's persistent, reusable contact book. Saved
+// once, selectable for every Magical Live invitation so contact details are
+// never re-entered. `preferredMethod` records how this person likes to be
+// reached ("ask" = ask each time when both email + phone exist).
+model MagicalContact {
+  id              String   @id @default(cuid())
+  accountId       String   // owner (the member)
+  firstName       String
+  lastName        String?
+  email           String?
+  phone           String?
+  relationship    String?  // relationship / tag, e.g. "Grandmother"
+  groups          String   @default("[]") // JSON array of group names
+  favorite        Boolean  @default(false)
+  preferredMethod String   @default("ask") // sms | email | both | ask
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([accountId, favorite])
+  @@index([accountId])
+}

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   shouldAdvanceInvite, normalizeEmail, normalizePhone, normalizeRecipient,
   dedupeRecipients, dueReminders, isWellFormedInviteToken, inviteTokenMatches,
-  evaluateGuestGate,
+  evaluateGuestGate, resolveDelivery,
 } from "./invite-core";
 
 test("invite status only advances by rank; joined never downgrades", () => {
@@ -75,6 +75,31 @@ test("invite token shape + constant-time match", () => {
   assert.ok(!inviteTokenMatches("abc123", "abc124"));
   assert.ok(!inviteTokenMatches("abc123", null));
   assert.ok(!inviteTokenMatches("abc123", "abc12"));
+});
+
+test("delivery failure + retry transitions", () => {
+  assert.ok(shouldAdvanceInvite("SENT", "FAILED"));
+  assert.ok(shouldAdvanceInvite("QUEUED", "FAILED"));
+  assert.ok(!shouldAdvanceInvite("DELIVERED", "FAILED"), "can't fail after delivered");
+  assert.ok(shouldAdvanceInvite("FAILED", "SENT"), "retry moves forward");
+  assert.ok(shouldAdvanceInvite("FAILED", "JOINED"), "switch method → joined");
+  assert.ok(!shouldAdvanceInvite("FAILED", "PENDING"));
+});
+
+test("resolveDelivery honors saved preference and reachability", () => {
+  const both = { email: "a@b.com", phone: "3055550142" };
+  // "ask" with both → must prompt
+  assert.deepEqual(resolveDelivery({ ...both, preferredMethod: "ask" }), { channels: [], needsPrompt: true });
+  // saved "both" → both channels, no prompt
+  assert.deepEqual(resolveDelivery({ ...both, preferredMethod: "both" }), { channels: ["email", "sms"], needsPrompt: false });
+  // saved "sms" → sms only
+  assert.deepEqual(resolveDelivery({ ...both, preferredMethod: "sms" }), { channels: ["sms"], needsPrompt: false });
+  // override wins over saved preference
+  assert.deepEqual(resolveDelivery({ ...both, preferredMethod: "sms" }, "email"), { channels: ["email"], needsPrompt: false });
+  // only email on file, pref "ask" → no prompt, email
+  assert.deepEqual(resolveDelivery({ email: "a@b.com", preferredMethod: "ask" }), { channels: ["email"], needsPrompt: false });
+  // only phone on file, pref "email" → falls back to the reachable channel
+  assert.deepEqual(resolveDelivery({ phone: "3055550142", preferredMethod: "email" }), { channels: ["sms"], needsPrompt: false });
 });
 
 test("guest gate: passcode, name, and contact requirements", () => {

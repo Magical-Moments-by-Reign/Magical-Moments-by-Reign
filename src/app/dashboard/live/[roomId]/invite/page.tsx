@@ -5,12 +5,15 @@ import { requireAccount } from "@/lib/guard";
 import { getOwnedRoom } from "@/lib/live/rooms";
 import { listInvites, countInvites } from "@/lib/live/invites";
 import { listReusableGuests } from "@/lib/live/guest-sources";
+import { listContacts } from "@/lib/live/contacts";
 import { emailConfigured, smsConfigured, siteBaseUrl, whenTextFor } from "@/lib/live/invite-delivery";
 import { recordingConfigured } from "@/lib/live/recording";
 import { INVITE_STATUS } from "@/lib/live/invite-core";
 import { agoraConfigured } from "@/lib/live/agora";
 import CopyField from "@/components/live/CopyField";
-import { addInvitesAction, resendInviteAction, revokeInviteAction, sendReminderAction, startLiveAction } from "../../actions";
+import { addInvitesAction, resendInviteAction, revokeInviteAction, sendReminderAction, startLiveAction, switchInviteChannelAction } from "../../actions";
+
+const METHOD_LABEL: Record<string, string> = { sms: "Text", email: "Email", both: "Both", ask: "Ask each time" };
 import "../../live.css";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +25,10 @@ export default async function InvitePage({ params }: { params: Promise<{ roomId:
   const room = await getOwnedRoom(account.id, roomId);
   if (!room) notFound();
 
-  const [invites, groups] = await Promise.all([
+  const [invites, groups, contacts] = await Promise.all([
     listInvites(account.id, roomId),
     listReusableGuests(account.id, roomId),
+    listContacts(account.id),
   ]);
   const counts = countInvites(invites);
   const emailOk = emailConfigured();
@@ -65,6 +69,21 @@ export default async function InvitePage({ params }: { params: Promise<{ roomId:
           <label className="lv-field"><span>Or paste many at once</span>
             <textarea name="paste" rows={3} placeholder="Paste emails and mobile numbers separated by commas, spaces, or new lines." />
           </label>
+
+          {contacts.length > 0 && (
+            <div className="lv-reuse">
+              <p className="lv-reuse__intro">From <strong>My Magical Family</strong> — we&apos;ll reach each person the way they prefer: <Link href="/dashboard/live/contacts" className="ls-link">manage list →</Link></p>
+              <div className="lv-reuse__list">
+                {contacts.map((c) => (
+                  <label key={c.id} className="lv-reuse__item">
+                    <input type="checkbox" name="sel" value={JSON.stringify({ name: `${c.firstName} ${c.lastName ?? ""}`.trim(), email: c.email, phone: c.phone, preferredMethod: c.preferredMethod })} />
+                    <span>{c.favorite ? "★ " : ""}{c.firstName} {c.lastName ?? ""}</span>
+                    <span className="lv-reuse__contact">{(c.email || c.phone) ?? "no contact"} · {METHOD_LABEL[c.preferredMethod]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {groups.length > 0 && (
             <div className="lv-reuse">
@@ -127,6 +146,22 @@ export default async function InvitePage({ params }: { params: Promise<{ roomId:
                   </span>
                   <span className={`lv-badge lv-badge--${meta.tone}`}>{meta.label}</span>
                   <span className="lv-guest__actions">
+                    {inv.status === "FAILED" && inv.channel === "sms" && inv.email && (
+                      <form action={switchInviteChannelAction}>
+                        <input type="hidden" name="roomId" value={room.id} />
+                        <input type="hidden" name="inviteId" value={inv.id} />
+                        <input type="hidden" name="to" value="email" />
+                        <button type="submit" className="btn btn--gold btn--sm">Send by email instead</button>
+                      </form>
+                    )}
+                    {inv.status === "FAILED" && inv.channel === "email" && inv.phone && (
+                      <form action={switchInviteChannelAction}>
+                        <input type="hidden" name="roomId" value={room.id} />
+                        <input type="hidden" name="inviteId" value={inv.id} />
+                        <input type="hidden" name="to" value="sms" />
+                        <button type="submit" className="btn btn--gold btn--sm">Send by text instead</button>
+                      </form>
+                    )}
                     {inv.status !== "REVOKED" && (
                       <form action={resendInviteAction}>
                         <input type="hidden" name="roomId" value={room.id} />

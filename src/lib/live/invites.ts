@@ -9,8 +9,8 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db";
 import { getOwnedRoom } from "./rooms";
 import {
-  normalizeRecipient, dedupeRecipients, recipientKey, shouldAdvanceInvite,
-  type RawRecipient, type LiveInviteStatus, type ReminderKey,
+  normalizeEmail, normalizePhone, resolveDelivery, shouldAdvanceInvite,
+  type RawRecipient, type LiveInviteStatus, type ReminderKey, type InviteChannel, type PreferredMethod,
 } from "./invite-core";
 
 export interface LiveInviteRecord {
@@ -57,31 +57,59 @@ export async function addInvites(accountId: string, roomId: string, raw: RawReci
   const room = await getOwnedRoom(accountId, roomId);
   if (!room) return [];
 
-  const fresh = dedupeRecipients(raw.map(normalizeRecipient));
-  if (fresh.length === 0) return [];
+  // Normalize + dedupe by identity (email, else phone), keeping the name and
+  // the contact's preferred delivery method.
+  const seen = new Set<string>();
+  const people: { name: string | null; email: string | null; phone: string | null; preferred: PreferredMethod }[] = [];
+  for (const r of raw) {
+    const email = normalizeEmail(r.email);
+    const phone = normalizePhone(r.phone);
+    const key = email ?? phone;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    people.push({ name: r.name?.trim() || null, email, phone, preferred: (r.preferredMethod ?? "ask") as PreferredMethod });
+  }
+  if (people.length === 0) return [];
 
-  const existing = await prisma.liveInvite.findMany({ where: { roomId }, select: { email: true, phone: true } });
+  // Existing invites → avoid duplicates per (identity, channel). "Both" yields
+  // two independently-tracked invites (email + sms) for the same person.
+  const existing = await prisma.liveInvite.findMany({ where: { roomId }, select: { email: true, phone: true, channel: true } });
   const taken = new Set<string>();
   for (const e of existing) {
-    const k = e.email ?? e.phone;
-    if (k) taken.add(k);
+    const id = e.email ?? e.phone;
+    if (id) taken.add(`${id}|${e.channel}`);
   }
 
   const created: LiveInviteRecord[] = [];
-  for (const r of fresh) {
-    const key = recipientKey(r);
-    if (!key || taken.has(key) || !r.channel) continue;
-    taken.add(key);
-    const row = await prisma.liveInvite.create({
-      data: {
-        roomId, accountId,
-        name: r.name, email: r.email, phone: r.phone,
-        channel: r.channel, token: newInviteToken(), status: "PENDING",
-      },
-    });
-    created.push(hydrate(row));
+  for (const p of people) {
+    const plan = resolveDelivery({ email: p.email, phone: p.phone, preferredMethod: p.preferred }, null);
+    // Bulk add can't prompt inline; "ask" with both channels defaults to email,
+    // and the host can switch that invite to text from the guest list.
+    const channels: InviteChannel[] = plan.needsPrompt ? ["email"] : plan.channels;
+    const identity = p.email ?? p.phone!;
+    for (const ch of channels) {
+      const contact = ch === "email" ? p.email : p.phone;
+      if (!contact || taken.has(`${identity}|${ch}`)) continue;
+      taken.add(`${identity}|${ch}`);
+      const row = await prisma.liveInvite.create({
+        data: { roomId, accountId, name: p.name, email: p.email, phone: p.phone, channel: ch, token: newInviteToken(), status: "PENDING" },
+      });
+      created.push(hydrate(row));
+    }
   }
   return created;
+}
+
+/** Switch an invite to the other channel (email ↔ sms) and retry delivery.
+ *  Used for the "could not be delivered — send by email instead?" flow. */
+export async function switchInviteChannel(accountId: string, inviteId: string, to: InviteChannel): Promise<LiveInviteRecord | null> {
+  const row = await prisma.liveInvite.findFirst({ where: { id: inviteId, accountId } });
+  if (!row) return null;
+  // Only allow switching to a channel we actually have a contact for.
+  if (to === "email" && !row.email) return null;
+  if (to === "sms" && !row.phone) return null;
+  const updated = await prisma.liveInvite.update({ where: { id: inviteId }, data: { channel: to, status: "PENDING", lastError: null } });
+  return hydrate(updated);
 }
 
 /** All invites for a room the account owns, newest first. */
@@ -160,6 +188,7 @@ export async function recordDelivery(inviteId: string, ok: boolean, error: strin
     await advanceInviteStatus(inviteId, "SENT");
     await prisma.liveInvite.update({ where: { id: inviteId }, data: { lastError: null } }).catch(() => {});
   } else {
+    await advanceInviteStatus(inviteId, "FAILED");
     await prisma.liveInvite.update({ where: { id: inviteId }, data: { lastError: error ?? "delivery_failed" } }).catch(() => {});
   }
 }

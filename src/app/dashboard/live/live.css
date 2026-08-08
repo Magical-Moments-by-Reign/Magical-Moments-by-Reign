@@ -25,6 +25,9 @@
 .lv-field input:focus, .lv-field textarea:focus, .lv-field select:focus { outline: none; border-color: #c9a24b; }
 .lv-note--warn { border-left-color: #9a4a3a; background: #f7ecea; color: #7a3a2c; }
 .lv-microcopy { color: #8a7a63; font-size: .78rem; line-height: 1.5; margin: .4rem 0 0; }
+.lv-quicklinks { margin: .2rem 0 1rem; }
+.lv-quicklink { color: #a67c2e; font-weight: 600; font-size: .88rem; text-decoration: none; }
+.lv-quicklink:hover { text-decoration: underline; }
 
 /* Two-way start cards */
 .lv-start { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: .4rem 0 1rem; }

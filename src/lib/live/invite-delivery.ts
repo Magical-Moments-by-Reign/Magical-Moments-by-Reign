@@ -18,10 +18,43 @@ export function emailConfigured(): boolean {
   return preflight({ RESEND_API_KEY: process.env.RESEND_API_KEY }).canSend;
 }
 
-// SMS has no provider yet. This stays false until real credentials exist;
-// when they do, add the provider and flip this — nothing else changes.
+// SMS is real when Twilio credentials + a sending identity exist. Until then
+// this is false and we never fake a send.
 export function smsConfigured(): boolean {
-  return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER);
+  return Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    (process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID),
+  );
+}
+
+// Send an SMS through Twilio's transactional API. Never sends from a member's
+// personal number — always the account's approved sending identity.
+async function sendSms(to: string, body: string): Promise<{ sent: boolean; error?: string; id?: string }> {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_FROM_NUMBER;
+  const svc = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  if (!sid || !token || (!from && !svc)) return { sent: false, error: "sms_not_connected" };
+  const params = new URLSearchParams();
+  params.set("To", to);
+  if (svc) params.set("MessagingServiceSid", svc); else params.set("From", from!);
+  params.set("Body", body);
+  try {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: "POST",
+      headers: {
+        Authorization: "Basic " + Buffer.from(`${sid}:${token}`).toString("base64"),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+    const data = await res.json().catch(() => ({} as Record<string, unknown>));
+    if (res.ok && (data as { sid?: string }).sid) return { sent: true, id: (data as { sid: string }).sid };
+    return { sent: false, error: `twilio_${res.status}` };
+  } catch {
+    return { sent: false, error: "twilio_network" };
+  }
 }
 
 /** Public site base URL (no trailing slash). */
@@ -77,10 +110,10 @@ export async function deliverInvite(room: LiveRoomRecord, invite: LiveInviteReco
   if (invite.channel === "sms") {
     if (!invite.phone) return finish(invite.id, false, "no_phone");
     if (!smsConfigured()) return finish(invite.id, false, "sms_not_connected");
-    // No SMS provider is wired yet. We NEVER fake a send. When a provider
-    // is added, build the body with buildInviteSms(content) and call it here.
-    void buildInviteSms(content);
-    return finish(invite.id, false, "sms_not_connected");
+    // Real send via Twilio. U.S. compliance: include an opt-out instruction.
+    const body = `${buildInviteSms(content)} Reply STOP to opt out.`;
+    const res = await sendSms(invite.phone, body);
+    return finish(invite.id, res.sent, res.sent ? undefined : (res.error || "sms_failed"));
   }
 
   return finish(invite.id, false, "unknown_channel");

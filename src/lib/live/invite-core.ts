@@ -15,26 +15,32 @@
 // DECLINED : guest declined (only if we offer that)
 // REVOKED  : host removed this guest's access
 export type LiveInviteStatus =
-  | "PENDING" | "SENT" | "DELIVERED" | "OPENED" | "JOINED" | "DECLINED" | "REVOKED";
+  | "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "OPENED" | "JOINED" | "DECLINED" | "FAILED" | "REVOKED";
 
 export const INVITE_STATUS: Record<LiveInviteStatus, { label: string; tone: string; rank: number }> = {
   PENDING:   { label: "Pending",   tone: "muted",   rank: 0 },
-  SENT:      { label: "Sent",      tone: "pending", rank: 1 },
-  DELIVERED: { label: "Delivered", tone: "pending", rank: 2 },
-  OPENED:    { label: "Opened",    tone: "active",  rank: 3 },
-  JOINED:    { label: "Joined",    tone: "success", rank: 4 },
-  DECLINED:  { label: "Declined",  tone: "warn",    rank: 3 },
+  QUEUED:    { label: "Queued",    tone: "pending", rank: 1 },
+  SENT:      { label: "Sent",      tone: "pending", rank: 2 },
+  DELIVERED: { label: "Delivered", tone: "pending", rank: 3 },
+  OPENED:    { label: "Opened",    tone: "active",  rank: 4 },
+  JOINED:    { label: "Joined",    tone: "success", rank: 5 },
+  DECLINED:  { label: "Declined",  tone: "warn",    rank: 4 },
+  FAILED:    { label: "Delivery failed", tone: "warn", rank: 1 },
   REVOKED:   { label: "Access removed", tone: "muted", rank: 0 },
 };
 
 // Progress is monotonic (a guest never "un-joins"), EXCEPT terminal host
-// actions. We never downgrade a higher-rank status to a lower one on a
-// provider webhook — e.g. a late "delivered" ping can't undo "joined".
+// actions and delivery failure/retry. We never downgrade a higher-rank
+// status on a late provider webhook — a "delivered" ping can't undo "joined".
 export function shouldAdvanceInvite(from: LiveInviteStatus, to: LiveInviteStatus): boolean {
   if (from === to) return false;
   if (to === "REVOKED") return from !== "REVOKED";     // host can always revoke
   if (from === "REVOKED") return false;                // revoked is sticky
   if (to === "DECLINED") return from !== "JOINED";     // can't decline after joining
+  // Delivery failure only applies before the message is confirmed delivered.
+  if (to === "FAILED") return from === "PENDING" || from === "QUEUED" || from === "SENT";
+  // Retry / switch-method: a failed invite can move forward again.
+  if (from === "FAILED") return to === "QUEUED" || to === "SENT" || to === "DELIVERED" || to === "OPENED" || to === "JOINED";
   return INVITE_STATUS[to].rank > INVITE_STATUS[from].rank;
 }
 
@@ -65,7 +71,7 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   return null;
 }
 
-export interface RawRecipient { name?: string | null; email?: string | null; phone?: string | null; }
+export interface RawRecipient { name?: string | null; email?: string | null; phone?: string | null; preferredMethod?: PreferredMethod | null; }
 export interface Recipient { name: string | null; email: string | null; phone: string | null; channel: InviteChannel | null; }
 
 // Normalize a raw recipient. `channel` is the channel we CAN reach them on:
@@ -96,6 +102,38 @@ export function dedupeRecipients(list: Recipient[]): Recipient[] {
     out.push(r);
   }
   return out;
+}
+
+/* ── Per-contact delivery preference ──────────────────────────── */
+export type PreferredMethod = "sms" | "email" | "both" | "ask";
+
+export interface DeliveryPlan {
+  channels: InviteChannel[]; // channels we'll actually send on (only reachable ones)
+  needsPrompt: boolean;      // true only when we must ask the host how to send
+}
+
+// Decide how to reach a saved contact. `override` is a host's per-invitation
+// choice (from the "How should we send …?" prompt) and wins over the saved
+// preference. "ask" prompts ONLY when both email and phone exist and no
+// override is given; with a single channel there's nothing to ask.
+export function resolveDelivery(
+  contact: { email?: string | null; phone?: string | null; preferredMethod?: PreferredMethod | null },
+  override?: "sms" | "email" | "both" | null,
+): DeliveryPlan {
+  const hasEmail = !!normalizeEmail(contact.email);
+  const hasPhone = !!normalizePhone(contact.phone);
+  const avail = (want: InviteChannel[]): InviteChannel[] =>
+    want.filter((c) => (c === "email" ? hasEmail : hasPhone));
+
+  const method = override ?? contact.preferredMethod ?? "ask";
+
+  if (method === "email") return { channels: avail(["email"]).length ? avail(["email"]) : avail(["sms"]), needsPrompt: false };
+  if (method === "sms") return { channels: avail(["sms"]).length ? avail(["sms"]) : avail(["email"]), needsPrompt: false };
+  if (method === "both") return { channels: avail(["email", "sms"]), needsPrompt: false };
+
+  // "ask"
+  if (hasEmail && hasPhone) return { channels: [], needsPrompt: true };
+  return { channels: avail(["email", "sms"]), needsPrompt: false };
 }
 
 /* ── Reminders ────────────────────────────────────────────────── */
