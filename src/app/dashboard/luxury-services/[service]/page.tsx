@@ -51,7 +51,9 @@ const TRUST = [
 function Shell({ svc, children }: { svc: Svc; children: ReactNode }) {
   const h = heroFor(svc);
   const [a, b] = h.tint ?? ["#2f2015", "#17100a"];
-  const bg = h.img ? `url(${h.img})` : `linear-gradient(135deg, ${a}, ${b})`;
+  // Per-service hero photo slot (upload to /public/luxury/heroes/{id}.jpg);
+  // a luxury gradient shows through until the photo is uploaded.
+  const bg = `url(/luxury/heroes/${svc.id}.jpg), linear-gradient(135deg, ${a}, ${b})`;
   return (
     <>
       <nav className="lxp-crumb">
