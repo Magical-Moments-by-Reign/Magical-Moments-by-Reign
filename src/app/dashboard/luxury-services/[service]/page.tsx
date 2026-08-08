@@ -5,10 +5,32 @@ import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getServiceCategory, intakeFor, pathsFor, RESTAURANT_FILTERS, type IntakeField, type ServicePath } from "@/lib/reservations/catalog";
 import { restaurantDiscoveryConfigured } from "@/lib/reservations/providers";
+import { getPreferences, type LuxuryPrefs } from "@/lib/luxury/preferences";
 import HotelDestinationInput from "@/components/luxury/HotelDestinationInput";
 import OpenConciergeButton from "@/components/concierge/OpenConciergeButton";
 import { createRequestAction, saveServiceAction } from "../actions";
 import "../luxury.css";
+
+// "Using your saved Luxury Preferences." banner shown above a prefilled search.
+function PrefsBanner({ summary }: { summary: string }) {
+  if (!summary) return null;
+  return (
+    <div className="lxp-prefs">
+      <span className="lxp-prefs__t">✦ Using your saved Luxury Preferences</span>
+      <span className="lxp-prefs__d">{summary} — edit any field below to change for this search only.</span>
+      <Link href="/dashboard/luxury-services/preferences" className="ls-link">Manage preferences →</Link>
+    </div>
+  );
+}
+
+function hotelPrefSummary(p: LuxuryPrefs): string {
+  const bits = [p.hotel.minStar && `${p.hotel.minStar} stars`, p.hotel.brands, p.hotel.budget].filter(Boolean);
+  return bits.length ? bits.join(" · ") : "";
+}
+function restaurantPrefSummary(p: LuxuryPrefs): string {
+  const bits = [p.restaurant.minRating && `${p.restaurant.minRating}★`, p.restaurant.cuisines, p.restaurant.dietary].filter(Boolean);
+  return bits.length ? bits.join(" · ") : "";
+}
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Luxury Services", robots: { index: false } };
@@ -107,9 +129,11 @@ export default async function ServicePage({
 }) {
   const { service } = await params;
   const { path: rawPath } = await searchParams;
-  await requireAccount(`/dashboard/luxury-services/${service}`);
+  const account = await requireAccount(`/dashboard/luxury-services/${service}`);
   const svc = getServiceCategory(service);
   if (!svc) notFound();
+
+  const prefs = await getPreferences(account.id).catch(() => null);
 
   const offered = pathsFor(svc);
   const path = (rawPath && (offered as string[]).includes(rawPath) ? rawPath : undefined) as ServicePath | undefined;
@@ -150,6 +174,7 @@ export default async function ServicePage({
   if (service === "hotels" && path === "search") {
     return (
       <Shell svc={svc}>
+        {prefs?.hasAny && <PrefsBanner summary={hotelPrefSummary(prefs)} />}
         <form action="/dashboard/luxury-services/hotels/results" className="cx-form">
           <div className="cx-form__grid">
             <HotelDestinationInput />
@@ -181,10 +206,12 @@ export default async function ServicePage({
 
       {liveDiscovery && path === "search" ? (
         // Live restaurant discovery (Yelp connected): a real search → results.
+        <>
+        {prefs?.hasAny && <PrefsBanner summary={restaurantPrefSummary(prefs)} />}
         <form action="/dashboard/luxury-services/restaurants/results" className="cx-form">
           <div className="cx-form__grid">
             <label className="cx-field"><span className="cx-field__label">Where are you dining? *</span><input name="location" required placeholder="City, neighborhood, or address" /></label>
-            <label className="cx-field"><span className="cx-field__label">Cuisine or keywords</span><input name="term" placeholder="e.g. Italian, steakhouse, sushi" /></label>
+            <label className="cx-field"><span className="cx-field__label">Cuisine or keywords</span><input name="term" defaultValue={prefs?.restaurant.cuisines ?? ""} placeholder="e.g. Italian, steakhouse, sushi" /></label>
             <label className="cx-field"><span className="cx-field__label">Date</span><input name="date" type="date" /></label>
             <label className="cx-field"><span className="cx-field__label">Time</span><input name="time" type="time" /></label>
             <label className="cx-field"><span className="cx-field__label">Guests</span><input name="guests" type="number" placeholder="2" /></label>
@@ -202,6 +229,7 @@ export default async function ServicePage({
             <Link href="/dashboard/luxury-services/restaurants?path=help" className="btn btn--ghost">Help me choose instead</Link>
           </div>
         </form>
+        </>
       ) : (
         <form action={submit} className="cx-form">
           <div className="cx-form__grid">

@@ -100,6 +100,7 @@ export default async function LuxuryServicesPage() {
       <div className="lx-quicklinks">
         <Link href="/dashboard/luxury-services/saved" className="lx-quicklink">❤️ My Saved{saved.length ? ` (${saved.length})` : ""}</Link>
         <Link href="/dashboard/luxury-services/reservations" className="lx-quicklink">🧾 My Reservations{reservations.length ? ` (${reservations.length})` : ""}</Link>
+        <Link href="/dashboard/luxury-services/preferences" className="lx-quicklink">⚙️ My Luxury Preferences</Link>
       </div>
 
       {/* ── FEATURED THIS MONTH ──────────────────────────────── */}

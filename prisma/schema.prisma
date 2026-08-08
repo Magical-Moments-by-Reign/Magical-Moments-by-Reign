@@ -2404,6 +2404,23 @@ model SavedService {
   @@index([accountId, collection])
 }
 
+// My Luxury Preferences — a member's persistent travel/dining preferences,
+// entered once and applied to every Luxury Services search unless changed
+// for that trip. Each category is a JSON blob (TEXT) per the repo's
+// serialize convention. Additive; one row per account.
+model LuxuryPreferences {
+  id           String   @id @default(cuid())
+  accountId    String   @unique
+  hotel        String   @default("{}") // star, brands, room, budget, smoking, bed, accessibility
+  flight       String   @default("{}") // airlines, seat, cabin, airports, tsa/globalEntry, meal
+  restaurant   String   @default("{}") // minRating, cuisines, dietary, radius
+  rentalCar    String   @default("{}") // vehicleType, companies
+  vacationHome String   @default("{}") // property preferences
+  payment      String   @default("{}") // preferred payment methods
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 // An in-app notification (source of truth) + record of external delivery.
 model Notification {
   id              String   @id @default(cuid())
