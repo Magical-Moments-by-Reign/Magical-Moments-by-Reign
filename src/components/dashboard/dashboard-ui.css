@@ -165,11 +165,18 @@
 /* ══ Approved home dashboard overview ═══════════════════════════ */
 .db { display: flex; flex-direction: column; gap: 1.7rem; }
 
-/* Brand banner (top of dashboard) — clean, borderless, large */
-.db-banner { line-height: 0; }
-.db-banner img { width: 100%; height: auto; display: block; }
-.db-welcome { margin: 0; color: var(--ink-soft); font-size: 1rem; }
-.db-welcome b { color: var(--espresso); }
+/* Welcome hero — copy stays left while the piano fills the former open space.
+   The mask feathers the photograph directly into the cream page: no card,
+   border, shadow, or visible rectangular edge. */
+.db-welcome-hero { position: relative; min-height: 290px; display: grid; grid-template-columns: minmax(0, .92fr) minmax(360px, 1.08fr); overflow: hidden; isolation: isolate; }
+.db-welcome-hero__copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 2.1rem 0 1.1rem; }
+.db-welcome-hero__eyebrow { display: block; color: var(--gold-deep); font-size: .72rem; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+.db-welcome-hero__title { max-width: 10ch; margin: .55rem 0 0; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: clamp(2.3rem, 4.2vw, 3.65rem); font-weight: 500; line-height: .98; letter-spacing: -.02em; }
+.db-welcome-hero__title i { color: var(--gold-deep); font-style: italic; font-weight: 500; }
+.db-welcome-hero__sub { max-width: 35ch; margin: .9rem 0 0; color: var(--ink-soft); font-size: 1rem; line-height: 1.6; }
+.db-welcome-hero__cta { display: inline-flex; align-items: center; justify-content: center; margin-top: 2rem; padding: .75rem 1.35rem; border: 1px solid #b58a34; border-radius: 999px; background: linear-gradient(135deg, #e4c87f, #ba8d34); color: #2a1d12; font-size: .75rem; font-weight: 700; letter-spacing: .11em; text-decoration: none; text-transform: uppercase; transition: transform .16s, filter .16s; }
+.db-welcome-hero__cta:hover { filter: brightness(1.04); transform: translateY(-1px); }
+.db-welcome-hero__image { position: absolute; z-index: 1; inset: 0 0 0 38%; background: url(/hero/world-hero.png) right center / cover no-repeat; -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.18) 15%, rgba(0,0,0,.72) 32%, #000 48%); mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.18) 15%, rgba(0,0,0,.72) 32%, #000 48%); }
 
 /* Hero */
 .db-hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 1.5rem; align-items: center; }
@@ -286,6 +293,8 @@
 /* Responsive */
 @media (max-width: 1100px) { .db-tiles { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 900px) {
+  .db-welcome-hero { grid-template-columns: minmax(0, 1fr) minmax(270px, .8fr); min-height: 270px; }
+  .db-welcome-hero__image { left: 42%; background-position: 78% center; }
   .db-hero { grid-template-columns: 1fr; }
   .db-hero__img { height: 180px; order: -1; }
   .db-stats { grid-template-columns: repeat(2, 1fr); }
@@ -293,7 +302,17 @@
   .db-stat:nth-child(1), .db-stat:nth-child(2) { border-bottom: 1px solid var(--line); }
   .db-cols { grid-template-columns: 1fr; }
 }
-@media (max-width: 540px) { .db-tiles { grid-template-columns: 1fr; } .db-stats { grid-template-columns: 1fr; } .db-stat { border-right: none; border-bottom: 1px solid var(--line); } .db-stat:last-child { border-bottom: none; } }
+@media (max-width: 640px) {
+  .db-welcome-hero { display: flex; flex-direction: column; min-height: 0; overflow: visible; }
+  .db-welcome-hero__copy { min-height: 255px; padding: 1rem 0 1.25rem; }
+  .db-welcome-hero__title { max-width: 12ch; font-size: clamp(2.25rem, 11vw, 3.2rem); }
+  .db-welcome-hero__cta { margin-top: 1.7rem; }
+  .db-welcome-hero__image { position: relative; inset: auto; width: 100%; height: 190px; background-position: 78% center; -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.75) 20%, #000 42%, #000 82%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.75) 20%, #000 42%, #000 82%, transparent 100%); }
+  .db-tiles { grid-template-columns: 1fr; }
+  .db-stats { grid-template-columns: 1fr; }
+  .db-stat { border-right: none; border-bottom: 1px solid var(--line); }
+  .db-stat:last-child { border-bottom: none; }
+}
 
 /* ══ Coming-Soon / explore category page ═══════════════════════ */
 .ex { max-width: 760px; }

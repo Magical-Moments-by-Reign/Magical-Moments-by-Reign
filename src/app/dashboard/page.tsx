@@ -59,12 +59,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="db">
-      {/* Brand banner — the first thing a member sees */}
-      <section className="db-banner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hero/memories-magic.png" alt="Magical Moments by Reign — Where Your Memories Become Magic. A beautiful online space to celebrate, share, and preserve life's most meaningful moments." />
+      {/* Welcome hero — warm editorial copy paired with the Magical Moments piano. */}
+      <section className="db-welcome-hero">
+        <div className="db-welcome-hero__copy">
+          <div>
+            <span className="db-welcome-hero__eyebrow">Your Magical Moments Hub</span>
+            <h1 className="db-welcome-hero__title">Welcome back, <i>{first}</i></h1>
+            <p className="db-welcome-hero__sub">Let&rsquo;s create more magical moments together.</p>
+          </div>
+          <Link href="/dashboard/create" className="db-welcome-hero__cta">Create an Occasion</Link>
+        </div>
+        <div
+          className="db-welcome-hero__image"
+          role="img"
+          aria-label="An elegant ivory baby grand piano in a warm, champagne-gold room"
+        />
       </section>
-      <p className="db-welcome">Welcome back, <b>{first}</b> ✦ Let&rsquo;s create more magical moments together.</p>
 
       {/* Stat cards */}
       <section className="db-stats">
