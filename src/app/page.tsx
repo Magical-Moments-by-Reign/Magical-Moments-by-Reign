@@ -26,7 +26,7 @@ export default async function LandingPage() {
       <section className="lp-hero">
         <nav className="lp-nav" aria-label="Main navigation">
           <Link className="lp-brand" href="/" aria-label="Magical Moments by Reign home">
-            <img src="/brand/logo-mark.png" alt="" width="58" height="58" />
+            <img src="/brand/logo-watermark.png" alt="" width="58" height="58" />
             <span><b>MAGICAL MOMENTS</b><small>BY REIGN</small></span>
           </Link>
           <div className="lp-navlinks">
@@ -46,7 +46,6 @@ export default async function LandingPage() {
             <Link className="lp-text-btn" href="#experience">Explore the experience <span>→</span></Link>
           </div>
         </div>
-        <div className="lp-bell" aria-hidden="true" />
       </section>
 
       <section className="lp-chapters" id="experience">
