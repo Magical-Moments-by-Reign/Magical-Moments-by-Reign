@@ -81,7 +81,7 @@ export default async function LandingPage() {
       <section className="lp-panels">
         <article className="lp-panel lp-date"><div><h3>Date Night</h3><p><b>We plan it.</b> You enjoy it.</p><small>From reservations to<br />the perfect details.</small><Link href="/journeys">Explore experiences →</Link></div></article>
         <article className="lp-panel lp-flight"><div><h3>Book with confidence</h3><p>Flights, hotels, cars and more.<br />We find the best so you don&rsquo;t have to.</p><Link href="/contact">Book your trip →</Link></div></article>
-        <article className="lp-panel lp-checkin"><div className="lp-phone"><b>Journey</b><small>Thursday 9:41 AM</small><p>Early check-in<br />confirmed! 🎉</p><p>Your room is ready.<br />Enjoy your stay!</p></div><Link href="/concierge">Chat with Journey →</Link></article>
+        <article className="lp-panel lp-checkin"><Link href="/concierge">Chat with Journey →</Link></article>
       </section>
 
       <section className="lp-final">
