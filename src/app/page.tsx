@@ -34,13 +34,13 @@ export default async function LandingPage() {
             <Link href="/membership">Memberships</Link><Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
           </div>
-          <Link className="lp-enter" href={spaceHref}><span>♧</span> Enter your space</Link>
+          <Link className="lp-enter" href={spaceHref}>Enter your space</Link>
         </nav>
 
         <div className="lp-hero-copy">
           <h1><small>Life is more</small>magical <em>when it&rsquo;s designed<br />with intention.</em></h1>
           <div className="lp-rule">✦</div>
-          <p>Your private space to plan life&rsquo;s meaningful experiences,<br />enjoy every moment, and preserve the memories<br />that matter most.</p>
+          <p>Your private space to plan life&rsquo;s meaningful experiences, <br />enjoy every moment, and preserve the memories <br />that matter most.</p>
           <div className="lp-actions">
             <Link className="lp-gold-btn" href={spaceHref}>Enter your magical space</Link>
             <Link className="lp-text-btn" href="#experience">Explore the experience <span>→</span></Link>
@@ -51,23 +51,23 @@ export default async function LandingPage() {
       <section className="lp-chapters" id="experience">
         <h2><span />One space. Every part of your story.<span /></h2>
         <div className="lp-chapter-grid">
-          {chapters.map(([icon, name]) => <Link href="/get-started" key={name}><b>{icon}</b><span>{name}</span></Link>)}
+          {chapters.map(([icon, name]) => <Link href="/membership" key={name}><b>{icon}</b><span>{name}</span></Link>)}
         </div>
       </section>
 
       <section className="lp-luxury">
         <h2>Luxury, curated for you</h2>
         <div className="lp-service-grid">
-          <article className="lp-service lp-service--air"><div><h3>Private Air Travel</h3><p>Fly private. Arrive effortlessly.</p><b>Starting at $7,500</b><Link href="/contact">Explore flights →</Link></div></article>
-          <article className="lp-service lp-service--villa"><div><h3>Luxury Villas &amp; Homes</h3><p>Stay somewhere unforgettable.</p><b>Starting at $2,250 / night</b><Link href="/contact">Explore stays →</Link></div></article>
-          <article className="lp-service lp-service--yacht"><div><h3>Yacht Charters</h3><p>Your moment. Your horizon.</p><b>Starting at $12,000</b><Link href="/contact">Explore yachts →</Link></div></article>
+          <Link href="/membership" className="lp-service lp-service--air"><div><h3>Private Air Travel</h3><p>Fly private. Arrive effortlessly.</p><b>Starting at $7,500</b><b>Explore flights →</b></div></Link>
+          <Link href="/membership" className="lp-service lp-service--villa"><div><h3>Luxury Villas &amp; Homes</h3><p>Stay somewhere unforgettable.</p><b>Starting at $2,250 / night</b><b>Explore stays →</b></div></Link>
+          <Link href="/membership" className="lp-service lp-service--yacht"><div><h3>Yacht Charters</h3><p>Your moment. Your horizon.</p><b>Starting at $12,000</b><b>Explore yachts →</b></div></Link>
         </div>
         <Link className="lp-view-all" href="/experiences">View all luxury services →</Link>
       </section>
 
       <section className="lp-mission">
         <div className="lp-mission-copy"><div className="lp-mini-rule">✦</div><h2>We all deserve<br /><em>concierge services.</em></h2>
-          <p>Journey will be here to assist you with yours. Whether it&rsquo;s planning a trip,<br />a relaxing day at the spa or just a girls trip, Journey is at your service.</p>
+          <p>Journey will be here to assist you with yours. Whether it&rsquo;s planning a trip, <br />a relaxing day at the spa or just a girls trip, Journey is at your service.</p>
           <strong>starting at $19.00 per month.</strong>
           <div><Link className="lp-gold-btn" href="/membership">Explore luxury services</Link><Link className="lp-outline-btn" href="/concierge">Ask for assistance</Link></div>
         </div>
@@ -79,9 +79,9 @@ export default async function LandingPage() {
       </section>
 
       <section className="lp-panels">
-        <article className="lp-panel lp-date"><div><h3>Date Night</h3><p><b>We plan it.</b> You enjoy it.</p><small>From reservations to<br />the perfect details.</small><Link href="/journeys">Explore experiences →</Link></div></article>
-        <article className="lp-panel lp-flight"><div><h3>Book with confidence</h3><p>Flights, hotels, cars and more.<br />We find the best so you don&rsquo;t have to.</p><Link href="/contact">Book your trip →</Link></div></article>
-        <article className="lp-panel lp-checkin"><Link href="/concierge">Chat with Journey →</Link></article>
+        <article className="lp-panel lp-date"><div><h3>Date Night</h3><p><b>We plan it.</b> You enjoy it.</p><small>From reservations to<br />the perfect details.</small><Link href="/get-started">Explore experiences →</Link></div></article>
+        <article className="lp-panel lp-flight"><div><h3>Book with confidence</h3><p>Flights, hotels, cars and more.<br />We find the best so you don&rsquo;t have to.</p><Link href="/get-started">Book your trip →</Link></div></article>
+        <article className="lp-panel lp-checkin"><Link href="/get-started">Chat with Journey →</Link></article>
       </section>
 
       <section className="lp-final">
