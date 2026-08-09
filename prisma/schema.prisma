@@ -2514,3 +2514,56 @@ model RateLimitHit {
   @@index([bucket, createdAt])
   @@index([expiresAt])
 }
+
+// ── Magical Discovery ────────────────────────────────────────────
+// Live-provider results and owner-curated content are stored in SEPARATE
+// models per the architecture spec: manual curation must never overwrite or
+// corrupt live provider data, and a provider outage must never blank out
+// owner-authored content. See src/lib/discovery/.
+
+// A cached, mapped response from a live Discovery provider (NewsAPI, TMDB,
+// Apple Music, Ticketmaster, ...). Server-only reads/writes — never fetched
+// from a member's browser. `cacheKey` is a stable hash of the request
+// parameters so repeat queries (e.g. the same city on Near You) reuse a row
+// instead of re-hitting the provider within its TTL.
+model DiscoveryCache {
+  id        String   @id @default(cuid())
+  category  String   // "today" | "watch" | "movies" | "music" | "near_you" | "sports" | "trending"
+  provider  String   // provider slug, e.g. "newsapi" | "tmdb" | "apple_music" | "ticketmaster"
+  cacheKey  String   // stable key for the specific query
+  payload   String   @default("{}") // JSON — the provider's mapped response
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([provider, cacheKey])
+  @@index([category, expiresAt])
+}
+
+// Owner/Admin-curated Discovery content (the Discovery Content Center). Never
+// auto-populated from a provider and never overwritten by a cache refresh —
+// only an owner action touches this table. Doubles as the manual music-chart
+// override (`section: "music_chart"`, ranked songs in `entries`) for when no
+// chart provider is connected or the owner wants a custom Magical Moments list.
+model DiscoveryFeatured {
+  id          String    @id @default(cuid())
+  section     String    // "today" | "watch" | "movie" | "music_chart" | "near_you" | "trending"
+  title       String
+  description String?
+  imageUrl    String?
+  externalUrl String?
+  category    String?   // free-text sub-category, e.g. "Valentine's Day", "R&B"
+  // Manual ranked entries — music_chart section only. JSON array of
+  // { rank, song, artist, url? }. Always labeled "Magical Moments Chart" in the
+  // UI, never presented as an official Billboard/Apple/Spotify ranking.
+  entries     String    @default("[]")
+  startAt     DateTime?
+  endAt       DateTime?
+  featured    Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdById String?   // owner Account.id, loose reference (not FK-enforced)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([section, featured])
+  @@index([section, startAt, endAt])
+}
