@@ -8,9 +8,9 @@ export const metadata: Metadata = { title: "Magical Moments Hub", robots: { inde
 
 const OCCASIONS = [
   { title: "Paris Birthday Trip", kind: "Birthday · Travel", date: "September 18–24, 2026", status: "In Planning", image: "/gallery/italy/03.jpg", progress: 68 },
-  { title: "Karlie’s Graduation", kind: "Graduation", date: "May 22, 2027", status: "In Planning", image: "/gallery/karlie/12-celebration.jpg", progress: 42 },
-  { title: "Christmas in New York", kind: "Holiday · Travel", date: "December 20–27, 2026", status: "Upcoming", image: "/story/vacation.jpg", progress: 76 },
-  { title: "Maldives Escape", kind: "Anniversary · Travel", date: "February 10–18, 2027", status: "Dreaming", image: "/hero/world-hero.png", progress: 24 },
+  { title: "Karlie’s Graduation", kind: "Graduation", date: "May 22, 2027", status: "In Planning", image: "/story/graduation.jpg", progress: 42 },
+  { title: "Christmas in New York", kind: "Holiday · Travel", date: "December 20–27, 2026", status: "Upcoming", image: "/story/newhome.jpg", progress: 76 },
+  { title: "Maldives Escape", kind: "Anniversary · Travel", date: "February 10–18, 2027", status: "Dreaming", image: "/story/vacation.jpg", progress: 24 },
 ];
 
 const UPCOMING = [
@@ -32,8 +32,8 @@ export default async function DashboardPage() {
   return (
     <div className="hub">
       <header className="hub-welcome">
-        <div><span className="hub-kicker">YOUR MAGICAL MOMENTS HUB</span><h1>Welcome back, {first}</h1><p>Everything you&rsquo;re planning, celebrating, and preserving—beautifully together.</p></div>
-        <Link href="/dashboard/create" className="hub-primary"><span>＋</span> Create an Occasion</Link>
+        <div className="hub-welcome__copy"><span className="hub-kicker">YOUR MAGICAL MOMENTS HUB</span><h1>Welcome back, {first}</h1><p>Everything you&rsquo;re planning, celebrating, and preserving—beautifully together.</p><Link href="/dashboard/create" className="hub-primary"><span>＋</span> Create an Occasion</Link></div>
+        <div className="hub-welcome__piano" role="img" aria-label="A white grand piano bearing the Magical Moments name in an elegant, sunlit room" />
       </header>
 
       <section className="hub-stats" aria-label="Occasion summary">
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         <div className="hub-occasions">
           {OCCASIONS.map((occasion) => (
             <Link className="hub-occasion" href="/dashboard/journeys" key={occasion.title}>
-              <div className="hub-occasion__image" style={{ backgroundImage: `linear-gradient(180deg, transparent 35%, rgba(30,20,12,.68)), url('${occasion.image}')` }}><span>{occasion.status}</span></div>
+              <div className="hub-occasion__image" style={{ backgroundImage: `url('${occasion.image}')` }}><span>{occasion.status}</span></div>
               <div className="hub-occasion__body"><small>{occasion.kind}</small><h3>{occasion.title}</h3><p><Icon name="events" />{occasion.date}</p><div className="hub-progress"><span style={{ width: `${occasion.progress}%` }} /></div><em>{occasion.progress}% planned</em></div>
             </Link>
           ))}
