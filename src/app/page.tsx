@@ -23,6 +23,17 @@ export default async function LandingPage() {
 
   return (
     <main className="lp">
+      {/* Recolors the existing logo-watermark.png (a very pale/low-alpha
+          watermark asset) to the site's own gold on render — no new image
+          asset, same file, same position/size. */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+        <filter id="mm-gold-logo" colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+          <feComponentTransfer in="SourceGraphic" result="boosted">
+            <feFuncA type="linear" slope="7" intercept="0" />
+          </feComponentTransfer>
+          <feColorMatrix in="boosted" type="matrix" values="0 0 0 0 0.6784  0 0 0 0 0.4627  0 0 0 0 0.1451  0 0 0 1 0" />
+        </filter>
+      </svg>
       <section className="lp-hero">
         <nav className="lp-nav" aria-label="Main navigation">
           <Link className="lp-brand" href="/" aria-label="Magical Moments by Reign home">
