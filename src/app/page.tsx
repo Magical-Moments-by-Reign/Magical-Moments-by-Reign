@@ -1,279 +1,93 @@
 import Link from "next/link";
 import { currentAccount } from "@/lib/auth-session";
-import { EXPERIENCES } from "@/lib/membership-builder";
-import { LIFETIME_COLLECTIONS, PRICING_CONFIG, formatUSD } from "@/lib/pricing-engine";
 import "./landing.css";
 
 export const dynamic = "force-dynamic";
 
-// ── The public homepage ─────────────────────────────────────────
-// The complete public marketing site: it introduces Magical Moments by Reign
-// to a first-time visitor, explains the vision, shows the Life Estates, how it
-// works, memberships & pricing (real numbers from the pricing engine), and an
-// honest word of trust — before ever asking anyone to sign in. "Your Magical
-// Space" is member language and appears only after authentication. Auth-aware:
-// a signed-in member is warmly invited into their Space, but the page a visitor
-// lands on is always the full public homepage. Every figure is real; nothing
-// (prices, estates, testimonials) is invented.
+const chapters = [
+  ["♢", "Wedding"], ["♧", "Baby"], ["◇", "Graduation"], ["✈", "Travel"],
+  ["⌂", "New Home"], ["♙", "Family"], ["✦", "Celebrations"], ["♧", "Legacy"],
+];
+
+const promises = [
+  ["♢", "Private by design", "Your moments, your data, always protected."],
+  ["▣", "Plan beautifully", "Smart tools to help you plan with ease."],
+  ["♡", "Experience fully", "Live in the moment while we handle the details."],
+  ["▤", "Preserve forever", "Memories organized and saved for generations."],
+  ["♧", "Concierge service", "You ask. We handle the rest."],
+];
+
 export default async function LandingPage() {
-  const account = await currentAccount();
-  const signedIn = Boolean(account);
-
-  // The twelve Journeys — the official occasion catalog, shown here as an
-  // elegant promotional showcase. Names, photos, and order come straight from
-  // the catalog so the homepage, Get Started, pricing, and builder never drift.
-  const JOURNEYS = EXPERIENCES;
-
-  const monthlyFrom = PRICING_CONFIG.firstOccasion.monthly;
-  const lifetimeFrom = LIFETIME_COLLECTIONS[0].price;
+  const signedIn = Boolean(await currentAccount());
+  const spaceHref = signedIn ? "/home" : "/login";
 
   return (
-    <div className="lp">
-      {/* ── Hero — introduce the company ── */}
+    <main className="lp">
       <section className="lp-hero">
-        <div className="lp-hero__bg" aria-hidden="true" />
-        <div className="lp-hero__grad" aria-hidden="true" />
-        <div className="lp-hero__sun" aria-hidden="true" />
-
-        <nav className="lp-nav">
-          <Link href="/" className="lp-nav__l" aria-label="Magical Moments by Reign">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-champagne.png" alt="" width={44} height={44} />
-            <span className="lp-nav__n"><b>MAGICAL MOMENTS</b><span>BY REIGN</span></span>
+        <nav className="lp-nav" aria-label="Main navigation">
+          <Link className="lp-brand" href="/" aria-label="Magical Moments by Reign home">
+            <img src="/brand/logo-watermark.png" alt="" width="58" height="58" />
+            <span><b>MAGICAL MOMENTS</b><small>BY REIGN</small></span>
           </Link>
-          <div className="lp-nav__m">
-            <Link href="/">Home</Link>
-            <Link href="/get-started">Get Started</Link>
-            <Link href="/membership">Memberships</Link>
-            <Link href="/about">About</Link>
+          <div className="lp-navlinks">
+            <Link href="/">Home</Link><Link href="/get-started">Get Started</Link>
+            <Link href="/membership">Memberships</Link><Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
           </div>
-          <div className="lp-nav__r">
-            {signedIn ? (
-              <Link href="/home" className="lp-btn-g">Enter your Space</Link>
-            ) : (
-              <>
-                <Link href="/login" className="lp-btn-o">Sign In</Link>
-                <Link href="/get-started" className="lp-btn-g">Get Started</Link>
-              </>
-            )}
-          </div>
+          <Link className="lp-enter" href={spaceHref}><span>♧</span> Enter your space</Link>
         </nav>
 
-        <div className="lp-hero__in">
-          <h1 className="lp-h1">Life is more magical when it&rsquo;s <i>designed with intention.</i></h1>
-          <p className="lp-hsub">
-            Create, celebrate, and preserve life&rsquo;s most meaningful moments in one beautiful place.
-          </p>
-          <div className="lp-hcta-row">
-            {signedIn ? (
-              <Link href="/home" className="lp-hcta">Enter your Magical Space</Link>
-            ) : (
-              <Link href="/get-started" className="lp-hcta">Get Started</Link>
-            )}
+        <div className="lp-hero-copy">
+          <h1><small>Life is more</small>magical <em>when it&rsquo;s designed<br />with intention.</em></h1>
+          <div className="lp-rule">✦</div>
+          <p>Your private space to plan life&rsquo;s meaningful experiences,<br />enjoy every moment, and preserve the memories<br />that matter most.</p>
+          <div className="lp-actions">
+            <Link className="lp-gold-btn" href={spaceHref}>Enter your magical space</Link>
+            <Link className="lp-text-btn" href="#experience">Explore the experience <span>→</span></Link>
           </div>
         </div>
       </section>
 
-      {/* ── The vision ── */}
-      <section className="lp-vision">
-        <span className="lp-eyebrow">The world&rsquo;s first Luxury Life Operating System</span>
-        <h2 className="lp-vision__t">One home for your family&rsquo;s <i>entire life.</i></h2>
-        <p className="lp-vision__p">
-          We are not an app. Magical Moments by Reign is a luxury lifestyle brand &mdash; a single,
-          beautiful place where every journey you take, every celebration you host, and every memory
-          you make can live together. Guided by a personal concierge. Organized without effort.
-          Preserved for the generations who come after you.
-        </p>
-      </section>
-
-      {/* ── The Journeys ── */}
-      <section className="lp-estates">
-        <div className="lp-estates__head">
-          <span className="lp-eyebrow">The Journeys</span>
-          <h2 className="lp-sec__t">Worlds within <i>your world.</i></h2>
-          <p className="lp-estates__lede">
-            Each Journey is a beautifully designed world for one chapter of life. Choose the ones that
-            matter to you &mdash; and personalize the moments within each.
-          </p>
-        </div>
-        <div className="lp-est-grid lp-est-grid--12">
-          {JOURNEYS.map((j) => (
-            <Link
-              key={j.id}
-              href={signedIn ? `/membership` : "/get-started"}
-              className={`lp-est lp-est--open${j.photo ? " lp-est--photo" : ""}`}
-              style={j.photo ? { backgroundImage: `url(${j.photo})` } : undefined}
-            >
-              <span className="lp-est__meta">
-                <span className="lp-est__name">{j.label}</span>
-                <span className="lp-est__tag">{j.blurb}</span>
-              </span>
-            </Link>
-          ))}
+      <section className="lp-chapters" id="experience">
+        <h2><span />One space. Every part of your story.<span /></h2>
+        <div className="lp-chapter-grid">
+          {chapters.map(([icon, name]) => <Link href="/get-started" key={name}><b>{icon}</b><span>{name}</span></Link>)}
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section className="lp-how">
-        <span className="lp-eyebrow">How it works</span>
-        <h2 className="lp-sec__t" style={{ color: "#f4ecdd" }}>Three steps to a <i>life by design.</i></h2>
-        <div className="lp-steps">
-          <div className="lp-step">
-            <span className="lp-step__n">01</span>
-            <h3 className="lp-step__t">Choose your chapter</h3>
-            <p className="lp-step__p">Tell us the part of life you&rsquo;re in. Begin free &mdash; no pressure, no commitment.</p>
-          </div>
-          <div className="lp-step">
-            <span className="lp-step__n">02</span>
-            <h3 className="lp-step__t">Build your membership</h3>
-            <p className="lp-step__p">Add the occasions that matter and choose your term. One honest price &mdash; never a hidden fee.</p>
-          </div>
-          <div className="lp-step">
-            <span className="lp-step__n">03</span>
-            <h3 className="lp-step__t">Live it, together</h3>
-            <p className="lp-step__p">Your concierge guides you, organizes everything, connects trusted professionals &mdash; and preserves it forever.</p>
-          </div>
+      <section className="lp-luxury">
+        <h2>Luxury, curated for you</h2>
+        <div className="lp-service-grid">
+          <article className="lp-service lp-service--air"><div><h3>Private Air Travel</h3><p>Fly private. Arrive effortlessly.</p><b>Starting at $7,500</b><Link href="/contact">Explore flights →</Link></div></article>
+          <article className="lp-service lp-service--villa"><div><h3>Luxury Villas &amp; Homes</h3><p>Stay somewhere unforgettable.</p><b>Starting at $2,250 / night</b><Link href="/contact">Explore stays →</Link></div></article>
+          <article className="lp-service lp-service--yacht"><div><h3>Yacht Charters</h3><p>Your moment. Your horizon.</p><b>Starting at $12,000</b><Link href="/contact">Explore yachts →</Link></div></article>
+        </div>
+        <Link className="lp-view-all" href="/experiences">View all luxury services →</Link>
+      </section>
+
+      <section className="lp-mission">
+        <div className="lp-mission-copy"><div className="lp-mini-rule">✦</div><h2>We all deserve<br /><em>concierge services.</em></h2>
+          <p>Journey will be here to assist you with yours. Whether it&rsquo;s planning a trip,<br />a relaxing day at the spa or just a girls trip, Journey is at your service.</p>
+          <strong>starting at $19.00 per month.</strong>
+          <div><Link className="lp-gold-btn" href="/membership">Explore luxury services</Link><Link className="lp-outline-btn" href="/concierge">Ask for assistance</Link></div>
         </div>
       </section>
 
-      {/* ── What's inside — honest feature story ── */}
-      <section className="lp-sec">
-        <h2 className="lp-sec__t">Everything you need. <i>All in one place.</i></h2>
-        <div className="lp-sec__d" aria-hidden="true" />
-        <div className="lp-feats">
-          <div className="lp-feat">
-            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 L12 5 L20 12 M6 11V20H18V11" /></svg></span>
-            <span className="lp-feat__t">Your Journeys</span>
-            <span className="lp-feat__s">Buy, build, renovate, invest and more.</span>
-          </div>
-          <span className="lp-feat__div" aria-hidden="true" />
-          <div className="lp-feat">
-            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /><path d="M12 12.3l.85 1.75 1.95.28-1.4 1.37.33 1.94L12 16.9l-1.73.72.33-1.94-1.4-1.37 1.95-.28z" /></svg></span>
-            <span className="lp-feat__t">Special Moments</span>
-            <span className="lp-feat__s">Events, celebrations and memories.</span>
-          </div>
-          <span className="lp-feat__div" aria-hidden="true" />
-          <div className="lp-feat">
-            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M6.5 17a5.5 5.5 0 0 1 11 0M12 6.5V4.6M10.2 4.6h3.6" /></svg></span>
-            <span className="lp-feat__t">Lifestyle Concierge</span>
-            <span className="lp-feat__s">We handle the details so you enjoy the life.</span>
-          </div>
-          <span className="lp-feat__div" aria-hidden="true" />
-          <div className="lp-feat">
-            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /></svg></span>
-            <span className="lp-feat__t">Everything Organized</span>
-            <span className="lp-feat__s">Documents, messages and important details.</span>
-          </div>
-          <span className="lp-feat__div" aria-hidden="true" />
-          <div className="lp-feat">
-            <span className="lp-feat__ic"><svg className="lp-fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8" /><path d="M5 20a7 7 0 0 1 14 0" /></svg></span>
-            <span className="lp-feat__t">Built for You</span>
-            <span className="lp-feat__s">Personalized experiences designed around you.</span>
-          </div>
-        </div>
+      <section className="lp-why">
+        <h2><span />Why choose Magical Moments?<span /></h2>
+        <div className="lp-promise-grid">{promises.map(([icon, title, copy]) => <div key={title}><b>{icon}</b><p><strong>{title}</strong><span>{copy}</span></p></div>)}</div>
       </section>
 
-      {/* ── Memberships & pricing (real numbers from the engine) ── */}
-      <section className="lp-plans">
-        <span className="lp-eyebrow">Memberships &amp; pricing</span>
-        <h2 className="lp-sec__t">Begin free. <i>Stay forever.</i></h2>
-        <div className="lp-sec__d" aria-hidden="true" />
-        <div className="lp-plan-grid">
-          <div className="lp-plan">
-            <span className="lp-plan__k">Free Forever</span>
-            <span className="lp-plan__price">{formatUSD(0)}</span>
-            <span className="lp-plan__note">Our gift to every family. Begin organizing and preserving today.</span>
-          </div>
-          <div className="lp-plan lp-plan--feature">
-            <span className="lp-plan__k">Build Your Membership</span>
-            <span className="lp-plan__price">from {formatUSD(monthlyFrom)}<small>/mo</small></span>
-            <span className="lp-plan__note">Add the occasions you love. Pay monthly, yearly, or for years at a time.</span>
-          </div>
-          <div className="lp-plan">
-            <span className="lp-plan__k">Lifetime Collections</span>
-            <span className="lp-plan__price">from {formatUSD(lifetimeFrom)}</span>
-            <span className="lp-plan__note">Kept for generations &mdash; from Legacy to the complete Magical collection.</span>
-          </div>
-        </div>
-        <Link href="/membership" className="lp-explore">View all memberships &amp; pricing</Link>
+      <section className="lp-panels">
+        <article className="lp-panel lp-date"><div><h3>Date Night</h3><p><b>We plan it.</b> You enjoy it.</p><small>From reservations to<br />the perfect details.</small><Link href="/journeys">Explore experiences →</Link></div></article>
+        <article className="lp-panel lp-flight"><div><h3>Book with confidence</h3><p>Flights, hotels, cars and more.<br />We find the best so you don&rsquo;t have to.</p><Link href="/contact">Book your trip →</Link></div></article>
+        <article className="lp-panel lp-checkin"><div className="lp-phone"><b>Journey</b><small>Thursday 9:41 AM</small><p>Early check-in<br />confirmed! 🎉</p><p>Your room is ready.<br />Enjoy your stay!</p></div><Link href="/concierge">Chat with Journey →</Link></article>
       </section>
 
-      {/* ── A quiet moment ── */}
-      <div className="lp-qband">
-        <div className="lp-qband__wrap">
-          <div className="lp-qband__q" aria-hidden="true">&ldquo;</div>
-          <p className="lp-qband__t">The best things in life aren&rsquo;t things. <i>They&rsquo;re moments we create.</i></p>
-        </div>
-      </div>
-
-      {/* ── A word of trust (honest promises, never invented reviews) ── */}
-      <section className="lp-trust">
-        <span className="lp-eyebrow">Why families trust us</span>
-        <h2 className="lp-sec__t">Luxury you can <i>believe in.</i></h2>
-        <div className="lp-sec__d" aria-hidden="true" />
-        <div className="lp-pillars">
-          <div className="lp-pillar">
-            <h3 className="lp-pillar__t">Honest pricing, always</h3>
-            <p className="lp-pillar__p">You&rsquo;ll only ever see one real price. No hidden fees, no inflated &ldquo;discounts.&rdquo;</p>
-          </div>
-          <div className="lp-pillar">
-            <h3 className="lp-pillar__t">Your privacy is sacred</h3>
-            <p className="lp-pillar__p">Your memories are yours. Private by default, shared only when you choose.</p>
-          </div>
-          <div className="lp-pillar">
-            <h3 className="lp-pillar__t">Real people, real advice</h3>
-            <p className="lp-pillar__p">We connect you only with vetted, genuine professionals &mdash; never paid placements dressed as guidance.</p>
-          </div>
-          <div className="lp-pillar">
-            <h3 className="lp-pillar__t">Built to last generations</h3>
-            <p className="lp-pillar__p">Everything you create is preserved &mdash; so the story outlives the moment.</p>
-          </div>
-        </div>
+      <section className="lp-final">
+        <div><b>♙</b><p><strong>Explore freely</strong>See what&rsquo;s possible.</p></div><div><b>▣</b><p><strong>Pick your plan</strong>Choose what fits your life.</p></div><div><b>✦</b><p><strong>Make it yours</strong>Create your Magical Space.</p></div><div><b>♡</b><p><strong>Keep it forever</strong>Cherish for a lifetime.</p></div>
+        <Link className="lp-gold-btn" href="/get-started">Begin your magical journey</Link>
       </section>
-
-      {/* ── Warm invitation ── */}
-      <section className="lp-cta">
-        <h2 className="lp-cta__t">What beautiful chapter of life are we <i>creating together?</i></h2>
-        <p className="lp-cta__s">Begin free today. Design the rest at your own pace.</p>
-        <Link href={signedIn ? "/home" : "/membership"} className="lp-btn-g" style={{ padding: "1rem 2.2rem", fontSize: "0.76rem" }}>
-          {signedIn ? "Enter your Magical Space" : "Get Started Today"}
-        </Link>
-      </section>
-
-      {/* ── Footer — real, working links only ── */}
-      <footer className="lp-foot">
-        <div className="lp-foot__in">
-          <div className="lp-fb">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-champagne.png" alt="" width={52} height={52} />
-            <div className="fn">MAGICAL MOMENTS</div>
-            <div className="ft">BY REIGN</div>
-            <p>Your lifestyle. Your moments.<br />All in one magical place.</p>
-          </div>
-          <div className="lp-fcol">
-            <h4>Company</h4>
-            <Link href="/about">About Us</Link>
-            <Link href="/membership">How It Works</Link>
-            <Link href="/business">For Business</Link>
-            <Link href="/contact">Contact</Link>
-          </div>
-          <div className="lp-fcol">
-            <h4>Explore</h4>
-            <Link href="/journeys">Journeys</Link>
-            <Link href="/inspiration">Inspiration</Link>
-            <Link href="/vendors">Partners</Link>
-            <Link href="/membership">Membership</Link>
-          </div>
-          <div className="lp-fcol">
-            <h4>Get Started</h4>
-            <Link href="/signup">Create Account</Link>
-            <Link href="/login">Sign In</Link>
-            <Link href="/contact">Support</Link>
-          </div>
-        </div>
-        <div className="lp-fbar">© {new Date().getFullYear()} Magical Moments by Reign. All rights reserved.</div>
-      </footer>
-    </div>
+    </main>
   );
 }
