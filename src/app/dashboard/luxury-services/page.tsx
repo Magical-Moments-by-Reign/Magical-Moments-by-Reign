@@ -43,13 +43,13 @@ export default async function LuxuryServicesPage() {
           <p className="lx-hero__eyebrow">LUXURY, CURATED FOR YOU</p>
           <h1 className="lx-hero__title">Luxury Services</h1>
           <p className="lx-hero__sub">Extraordinary experiences, thoughtfully arranged.</p>
-          <p className="lx-hero__lede">Explore on your own, plan with Journey, or let our concierge handle every detail.</p>
+          <p className="lx-hero__lede">Explore independently, plan with Journey, or let our concierge take care of the details.</p>
         </div>
         <div className="lx-hero__photo" aria-hidden="true" />
       </section>
 
       {/* ── THREE PATHS ──────────────────────────────────────── */}
-      <div className="lx-paths">
+      <nav className="lx-paths" aria-label="Luxury service planning options">
         <div className="lx-path">
           <span className="lx-path__icon" aria-hidden="true">◇</span>
           <span className="lx-path__t">Explore</span>
@@ -63,12 +63,12 @@ export default async function LuxuryServicesPage() {
           <OpenConciergeButton className="lx-path__go" seed="I'd like Journey's help planning something special. Here's what I have in mind:">Start Planning →</OpenConciergeButton>
         </div>
         <div className="lx-path">
-          <span className="lx-path__icon" aria-hidden="true">♢</span>
+          <span className="lx-path__icon" aria-hidden="true">◇</span>
           <span className="lx-path__t">Private Concierge</span>
           <span className="lx-path__d">Let us coordinate every detail for you.</span>
           <OpenConciergeButton className="lx-path__go" seed="I'd like a member of the Concierge team to help me with a Luxury Services request:">Request Concierge →</OpenConciergeButton>
         </div>
-      </div>
+      </nav>
 
       {/* ── CURATED COLLECTIONS ──────────────────────────────── */}
       <section className="lx-collections" id="lx-collections">

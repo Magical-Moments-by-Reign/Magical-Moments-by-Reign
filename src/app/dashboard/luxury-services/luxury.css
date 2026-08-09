@@ -126,7 +126,7 @@
 .ho-filterrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; }
 
 /* ══ Luxury Services HOME — editorial layout (lx-*) ═══════════════ */
-.lx { display: flex; flex-direction: column; gap: 1.5rem; }
+.lx { display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* Hero: compact split banner. Ivory copy on the left; the concierge photo
    fills a right panel and FEATHERS into the ivory via a mask — no box, no
@@ -134,32 +134,33 @@
    proportions. */
 .lx-hero {
   position: relative; overflow: hidden;
-  min-height: 260px; padding: 1.65rem 2rem;
+  min-height: 286px; padding: 1.7rem 1.5rem;
   display: flex; flex-direction: column; justify-content: center;
   background-color: var(--cream, #f7f1e7);
 }
 .lx-hero__photo {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 48%; z-index: 1;
+  position: absolute; top: 0; right: 0; bottom: 0; width: 57%; z-index: 1;
   background-image: url(/luxury/hero-concierge.jpg);
   background-repeat: no-repeat;
-  background-position: center 60%;
+  background-position: center 58%;
   background-size: cover;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.28) 19%, #000 52%);
-          mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.28) 19%, #000 52%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.18) 17%, #000 46%);
+          mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.18) 17%, #000 46%);
 }
-.lx-hero__text { position: relative; z-index: 2; max-width: 48ch; }
-.lx-hero__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.1rem, 4.4vw, 3.1rem); margin: 0; color: var(--espresso, #2a1d12); letter-spacing: .01em; }
+.lx-hero__text { position: relative; z-index: 2; max-width: 43ch; }
+.lx-hero__title { font-family: var(--font-display, Georgia, serif); font-size: clamp(2.5rem, 5vw, 3.65rem); line-height: .96; margin: 0; color: var(--espresso, #2a1d12); letter-spacing: -.015em; }
 .lx-hero__eyebrow { color: var(--gold-deep, #a67c2e); font-weight: 700; letter-spacing: .18em; text-transform: uppercase; font-size: .68rem; margin: 0 0 .55rem; line-height: 1.5; }
-.lx-hero__sub { color: var(--espresso, #2a1d12); font-family: var(--font-display, Georgia, serif); font-size: 1.18rem; margin: .5rem 0 .35rem; }
-.lx-hero__lede { color: var(--ink-soft, #6b5744); line-height: 1.55; font-size: .88rem; max-width: 48ch; margin: 0; }
+.lx-hero__sub { color: var(--espresso, #2a1d12); font-family: var(--font-display, Georgia, serif); font-size: 1.26rem; margin: .72rem 0 .45rem; }
+.lx-hero__lede { color: var(--ink-soft, #6b5744); line-height: 1.55; font-size: .84rem; max-width: 43ch; margin: 0; }
 
-/* Three paths — compact, immediately beneath the hero */
-.lx-paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: .85rem; }
-.lx-path { background: rgba(255,253,249,.72); border: 1px solid rgba(185,148,72,.22); border-radius: 13px; padding: 1rem 1.1rem; display: grid; grid-template-columns: 36px 1fr; column-gap: .75rem; box-shadow: 0 9px 24px rgba(53,38,25,.045); }
-.lx-path__icon { grid-row: 1 / 4; width: 36px; height: 36px; border: 1px solid rgba(166,124,46,.28); border-radius: 50%; color: var(--gold-deep, #a67c2e); display: grid; place-items: center; font: 1.15rem/1 var(--font-display, Georgia, serif); }
-.lx-path__t { font-family: var(--font-display, Georgia, serif); font-size: 1.15rem; line-height: 1.1; color: var(--espresso, #2a1d12); }
-.lx-path__d { color: var(--ink-soft, #6b5744); font-size: .78rem; line-height: 1.45; margin-top: .25rem; }
-.lx-path__go { justify-self: start; border: 0; padding: 0; margin-top: .55rem; background: none; color: var(--gold-deep, #a67c2e); text-decoration: none; cursor: pointer; font: 700 .72rem/1.2 var(--font-body, sans-serif); letter-spacing: .035em; }
+/* Three quiet entry points: a single concierge selector, never dashboard cards. */
+.lx-paths { display: grid; grid-template-columns: repeat(3, 1fr); padding: .35rem 0 .55rem; border-bottom: 1px solid rgba(166,124,46,.2); }
+.lx-path { position: relative; min-width: 0; padding: .55rem clamp(.75rem, 1.6vw, 1.4rem); display: grid; grid-template-columns: 22px 1fr; column-gap: .55rem; }
+.lx-path + .lx-path::before { content: ""; position: absolute; left: 0; top: .35rem; bottom: .35rem; width: 1px; background: rgba(166,124,46,.18); }
+.lx-path__icon { grid-row: 1 / 4; color: var(--gold-deep, #a67c2e); font: 1.05rem/1.15 var(--font-display, Georgia, serif); }
+.lx-path__t { font-family: var(--font-display, Georgia, serif); font-size: 1.05rem; line-height: 1; color: var(--espresso, #2a1d12); }
+.lx-path__d { color: var(--ink-soft, #6b5744); font-size: .69rem; line-height: 1.35; margin-top: .22rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lx-path__go { justify-self: start; border: 0; padding: 0; margin-top: .38rem; background: none; color: var(--gold-deep, #a67c2e); text-decoration: none; cursor: pointer; font: 700 .65rem/1.2 var(--font-body, sans-serif); letter-spacing: .04em; }
 .lx-path__go:hover { text-decoration: underline; }
 
 /* Quick links */
@@ -168,27 +169,22 @@
 .lx-quicklink:hover { text-decoration: underline; }
 
 /* Section headers */
-.lx-sec__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.lx-sec__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.15rem; }
 .lx-sec__eyebrow { font-size: .74rem; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-deep, #a67c2e); font-weight: 700; }
-.lx-sec__title { margin: .3rem 0 0; color: var(--espresso, #2a1d12); font: 500 1.65rem/1.1 var(--font-display, Georgia, serif); }
-
-/* Featured strip */
-.lx-feat { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; }
-.lx-feat__c { text-decoration: none; }
-.lx-feat__img { display: block; height: 112px; border-radius: 12px; background-size: cover; background-position: center; box-shadow: 0 6px 16px rgba(44,33,26,.14); transition: transform .14s, box-shadow .14s; }
-.lx-feat__c:hover .lx-feat__img { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(44,33,26,.2); }
-.lx-feat__cap { display: block; text-align: center; margin-top: .55rem; font-size: .76rem; font-weight: 700; color: var(--espresso, #2a1d12); letter-spacing: .02em; }
+.lx-sec__title { margin: .25rem 0 0; color: var(--espresso, #2a1d12); font: 500 clamp(1.7rem, 3vw, 2.15rem)/1.05 var(--font-display, Georgia, serif); }
 
 /* Curated collections */
-.lx-collections { padding-top: .3rem; }
-.lx-colgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
-.lx-col { display: flex; flex-direction: column; background: rgba(255,253,249,.7); border: 1px solid rgba(185,148,72,.2); border-radius: 14px; overflow: hidden; text-decoration: none; transition: transform .12s, box-shadow .12s; }
-.lx-col:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(44,33,26,.13); }
-.lx-col__img { height: 190px; background-size: cover; background-position: center; display: block; }
-.lx-col__icon { font-size: 2.6rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,.3)); }
-.lx-col__body { padding: 1rem 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .4rem; flex: 1; }
+.lx-collections { padding-top: .15rem; }
+.lx-colgrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem 1.1rem; }
+.lx-col { grid-column: span 4; display: flex; flex-direction: column; text-decoration: none; transition: transform .2s; }
+.lx-col:nth-child(1), .lx-col:nth-child(7) { grid-column: span 7; }
+.lx-col:nth-child(2), .lx-col:nth-child(8) { grid-column: span 5; }
+.lx-col:hover { transform: translateY(-3px); }
+.lx-col__img { height: 215px; border-radius: 13px; background-size: cover; background-position: center; display: block; box-shadow: 0 14px 32px -24px rgba(44,33,26,.55); }
+.lx-col:nth-child(1) .lx-col__img, .lx-col:nth-child(2) .lx-col__img, .lx-col:nth-child(7) .lx-col__img, .lx-col:nth-child(8) .lx-col__img { height: 285px; }
+.lx-col__body { padding: .8rem .2rem 0; display: flex; flex-direction: column; gap: .3rem; flex: 1; }
 .lx-col__category { color: var(--gold-deep, #a67c2e); font-size: .61rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
-.lx-col__t { font-family: var(--font-display, Georgia, serif); font-size: 1.2rem; line-height: 1.15; color: var(--espresso, #2a1d12); }
+.lx-col__t { font-family: var(--font-display, Georgia, serif); font-size: 1.24rem; line-height: 1.12; color: var(--espresso, #2a1d12); }
 .lx-col__d { color: var(--ink-soft, #6b5744); font-size: .78rem; line-height: 1.45; flex: 1; }
 .lx-col__go { color: var(--gold-deep, #a67c2e); font-weight: 700; font-size: .76rem; margin-top: .25rem; }
 
@@ -202,16 +198,18 @@
 
 @media (max-width: 980px) {
   .lx-hero { min-height: 230px; }
-  .lx-hero__photo { width: 46%; -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.4) 34%, #000 60%); mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.4) 34%, #000 60%); }
-  .lx-paths { grid-template-columns: 1fr; }
-  .lx-feat { grid-template-columns: repeat(3, 1fr); }
-  .lx-colgrid { grid-template-columns: repeat(2, 1fr); }
+  .lx-hero__photo { width: 51%; -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.3) 30%, #000 58%); mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.3) 30%, #000 58%); }
+  .lx-col, .lx-col:nth-child(n) { grid-column: span 6; }
+  .lx-col:nth-child(n) .lx-col__img { height: 225px; }
 }
 @media (max-width: 560px) {
   .lx-hero { padding: 1.5rem 1.2rem 12rem; }
   .lx-hero__photo { top: auto; width: 100%; height: 12rem; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 40%); mask-image: linear-gradient(180deg, transparent 0%, #000 40%); }
-  .lx-feat { grid-template-columns: repeat(2, 1fr); }
-  .lx-colgrid { grid-template-columns: 1fr; }
+  .lx-paths { grid-template-columns: 1fr; }
+  .lx-path + .lx-path::before { top: 0; right: .75rem; bottom: auto; width: auto; height: 1px; }
+  .lx-path__d { white-space: normal; }
+  .lx-col, .lx-col:nth-child(n) { grid-column: 1 / -1; }
+  .lx-col:nth-child(n) .lx-col__img { height: 230px; }
   .lx-promise { flex-direction: column; text-align: center; }
   .lx-promise__sig { margin-left: 0; text-align: center; }
 }
