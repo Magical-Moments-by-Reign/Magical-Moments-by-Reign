@@ -70,6 +70,7 @@ model Experience {
   familyId String?
   family   Family?       @relation(fields: [familyId], references: [id])
   media        MediaAsset[]
+  liveRooms    LiveRoom[]
   shares       SocialShare[]
   domains      Domain[]
   tributes     Tribute[]
@@ -1096,6 +1097,7 @@ model Account {
   notifications   Notification[]
   reservations    Reservation[]
   savedServices   SavedService[]
+  liveRooms       LiveRoom[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   authTokens      AuthToken[]
@@ -2513,4 +2515,105 @@ model RateLimitHit {
 
   @@index([bucket, createdAt])
   @@index([expiresAt])
+}
+
+// ── Magical Moments Live (Agora) ────────────────────────────────
+// One isolated live room per occasion "Go Live". Multi-tenant by design:
+// channelName is GLOBALLY UNIQUE, so hundreds of rooms run simultaneously
+// without interfering. Ownership is (accountId host + experienceId occasion).
+// Tokens are generated server-side per join (see src/lib/live) — nothing
+// secret is stored here. Recording/replay fields stay null until real cloud
+// recording is enabled (never fabricated).
+model LiveRoom {
+  id            String   @id @default(cuid())
+  accountId     String   // host / owner
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  experienceId  String?  // the occasion this room belongs to
+  experience    Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+
+  channelName   String   @unique // globally unique Agora channel = isolation
+  title         String
+  status        String   @default("SCHEDULED") // SCHEDULED | LIVE | ENDED | REPLAY
+  inviteCode    String   @unique // required before any audience token is issued
+  scheduledStart DateTime?
+
+  // Populated ONLY from real cloud recording; null until then. Never faked.
+  recordingUrl  String?
+  recordingSid  String?
+  recordingResourceId String?
+
+  settings      String   @default("{}") // JSON: privacy, timezone, reminderPrefs, gate, hostName, message, allowChat/Reactions/ScreenShare…
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  liveInvites   LiveInvite[]
+
+  @@index([accountId, status])
+  @@index([experienceId])
+}
+
+// One invited guest for a Live room. The secure per-guest `token` is what
+// travels in the Magical Moments join URL (/live/{roomId}?invite={token});
+// it is validated server-side before any Agora audience token is issued.
+// Guests never see Agora channel data. Delivery/opened timestamps are set
+// ONLY from real provider signals — never fabricated.
+model LiveInvite {
+  id            String   @id @default(cuid())
+  roomId        String
+  room          LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  accountId     String   // host (for scoping/listing)
+  name          String?
+  email         String?
+  phone         String?
+  channel       String   // "email" | "sms"
+  token         String   @unique // secure per-guest invite token
+  status        String   @default("PENDING") // PENDING|QUEUED|SENT|DELIVERED|OPENED|JOINED|DECLINED|FAILED|REVOKED
+  remindersSent String   @default("[]")      // JSON array of ReminderKey already sent
+  lastError     String?  // honest delivery error (e.g. "sms_not_connected")
+  providerMessageId String? // Resend/Twilio message id → maps delivery/open webhooks back
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  joinedAt      DateTime?
+  declinedAt    DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([roomId, status])
+  @@index([token])
+  @@index([accountId])
+  @@index([providerMessageId])
+}
+
+// SMS consent suppression list. A phone that texts STOP is added here and
+// never receives another SMS until it texts START. U.S. carrier compliance.
+model SmsOptOut {
+  id        String   @id @default(cuid())
+  phone     String   @unique // E.164
+  createdAt DateTime @default(now())
+}
+
+// My Magical Family — a member's persistent, reusable contact book. Saved
+// once, selectable for every Magical Live invitation so contact details are
+// never re-entered. `preferredMethod` records how this person likes to be
+// reached ("ask" = ask each time when both email + phone exist).
+model MagicalContact {
+  id              String   @id @default(cuid())
+  accountId       String   // owner (the member)
+  firstName       String
+  lastName        String?
+  email           String?
+  phone           String?
+  relationship    String?  // relationship / tag, e.g. "Grandmother"
+  groups          String   @default("[]") // JSON array of group names
+  favorite        Boolean  @default(false)
+  preferredMethod String   @default("ask") // sms | email | both | ask
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([accountId, favorite])
+  @@index([accountId])
 }
