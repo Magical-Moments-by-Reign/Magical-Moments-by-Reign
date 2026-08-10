@@ -41,6 +41,6 @@ export async function GET(request: Request) {
   const profile = await fetchSpotifyProfile(tokens.accessToken);
   if (!profile) return redirectTo(`spotify=profile_failed`);
 
-  await completeConnection(account.id, tokens, profile);
-  return redirectTo(`spotify=connected`);
+  const saved = await completeConnection(account.id, tokens, profile);
+  return redirectTo(saved ? `spotify=connected` : `spotify=save_failed`);
 }
