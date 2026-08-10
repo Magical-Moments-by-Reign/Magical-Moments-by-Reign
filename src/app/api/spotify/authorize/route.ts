@@ -13,7 +13,7 @@ import { requireAccount } from "@/lib/guard";
 import { spotifyConfigured, SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
 import { buildAuthorizeUrl } from "@/lib/spotify/oauth";
 
-export async function GET() {
+export async function GET(request: Request) {
   await requireAccount("/dashboard/discovery/music");
 
   if (!spotifyConfigured()) {
@@ -29,6 +29,11 @@ export async function GET() {
     path: "/",
     maxAge: 600, // 10 minutes — only needs to survive the round trip to Spotify and back
   });
+
+  // Safe diagnostic only — never the state value itself.
+  const hostname = new URL(request.url).hostname;
+  const cookieSet = jar.get(SPOTIFY_STATE_COOKIE)?.value === state;
+  console.log(`[spotify authorize] hostname=${hostname} state_cookie_set=${cookieSet}`);
 
   return NextResponse.redirect(buildAuthorizeUrl(state));
 }

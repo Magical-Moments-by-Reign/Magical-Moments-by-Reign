@@ -32,6 +32,17 @@ export async function GET(request: Request) {
   const expectedState = jar.get(SPOTIFY_STATE_COOKIE)?.value;
   jar.delete(SPOTIFY_STATE_COOKIE);
 
+  // Safe diagnostic only — never the state values themselves, just presence
+  // and whether they match. Helps confirm/rule out a host mismatch between
+  // where the flow started (state cookie set) and where it's completing.
+  const hostname = url.hostname;
+  const statePresent = Boolean(state);
+  const stateCookiePresent = Boolean(expectedState);
+  const stateMatches = Boolean(state && expectedState && state === expectedState);
+  console.log(
+    `[spotify callback] hostname=${hostname} state_present=${statePresent} state_cookie_present=${stateCookiePresent} state_matches=${stateMatches}`
+  );
+
   if (error) return redirectTo(`spotify=denied`);
   if (!code || !state || !expectedState || state !== expectedState) return redirectTo(`spotify=invalid_state`);
 
