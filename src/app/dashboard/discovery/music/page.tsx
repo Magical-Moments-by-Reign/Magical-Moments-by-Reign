@@ -24,6 +24,7 @@ const SPOTIFY_STATUS_MESSAGES: Record<string, string> = {
   exchange_failed: "Spotify couldn’t confirm the connection — please try again.",
   profile_failed: "Connected to Spotify, but couldn’t read the profile — please try again.",
   not_configured: "Spotify isn’t configured yet.",
+  save_failed: "Spotify is temporarily unavailable — please try connecting again in a moment.",
 };
 
 export default async function MusicPage({ searchParams }: { searchParams: Promise<{ genre?: string; spotify?: string; q?: string }> }) {
