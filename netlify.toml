@@ -40,3 +40,32 @@
 # and "/" 404s).
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# ── Production schema deploy (deliberate only) ──────────────────
+# A dedicated branch — NOT the production branch, NOT touched by any
+# ordinary deploy, PR preview, or push to main — whose build applies the
+# Prisma schema (npm run db:deploy) before building. This is the ONLY
+# context where that command runs; every other deploy still resolves to
+# the [build] block above and never touches the database.
+#
+# To apply a pending schema change to production, once you've merged the
+# code change to main:
+#   1. Fast-forward the "db-schema-deploy" branch to the latest main and
+#      push it (or, one-time only, create it: `git checkout -b
+#      db-schema-deploy && git push -u origin db-schema-deploy`).
+#   2. In Netlify: Deploys -> Trigger deploy -> Deploy branch ->
+#      db-schema-deploy. (If Netlify already auto-builds every pushed
+#      branch, pushing step 1 alone is enough.)
+#   3. Watch that deploy's log for scripts/prepare-db.mjs's own output —
+#      it reports exactly what it did, and DATABASE_URL's value is never
+#      printed. See DEPLOY.md for verifying success and recovery steps.
+#
+# This reuses whatever DATABASE_URL is already configured for this site —
+# no new credential to add. If DATABASE_URL's environment-variable scope in
+# Netlify is restricted to "Production" only, this branch deploy won't see
+# it; prepare-db.mjs detects that and safely no-ops rather than failing
+# destructively (see scripts/prepare-db.mjs) — if that happens, add
+# "Branch deploys" to DATABASE_URL's deploy contexts in Netlify -> Site
+# configuration -> Environment variables.
+[context.db-schema-deploy]
+  command = "npm run db:deploy && npm run build"

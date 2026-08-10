@@ -17,13 +17,25 @@ export interface SpotifyConnectionView {
 
 const DISCONNECTED_VIEW: SpotifyConnectionView = { connected: false, displayName: null, scope: "", connectedAt: null };
 
+/** Logs only a safe, fixed diagnostic line server-side — the operation name
+ *  and Prisma's error `code` (e.g. "P2021" = table doesn't exist), never the
+ *  raw error object, a stack trace with connection details, or anything that
+ *  could reach a browser or a member-facing message. */
+function logSafeDbFailure(operation: string, err: unknown): void {
+  const code = err && typeof err === "object" && "code" in err ? String((err as { code: unknown }).code) : "unknown";
+  console.error(`[spotify] ${operation} failed (code: ${code}) — degrading to a safe fallback state.`);
+}
+
 /** Never throws — a missing table, a DB outage, or any other lookup failure
  *  degrades to "not connected" rather than crashing the Music page. This is
  *  the only place a Spotify DB error is allowed to become a thrown
  *  exception's dead end; everywhere else treats "not connected" as a normal,
  *  expected state. */
 export async function getConnectionView(accountId: string): Promise<SpotifyConnectionView> {
-  const row = await prisma.spotifyConnection.findUnique({ where: { accountId } }).catch(() => null);
+  const row = await prisma.spotifyConnection.findUnique({ where: { accountId } }).catch((err) => {
+    logSafeDbFailure("getConnectionView", err);
+    return null;
+  });
   if (!row || row.status !== "CONNECTED") return DISCONNECTED_VIEW;
   return { connected: true, displayName: row.displayName, scope: row.scope, connectedAt: row.connectedAt };
 }
@@ -53,14 +65,19 @@ export async function completeConnection(accountId: string, tokens: SpotifyToken
       tokenExpiresAt: tokens.expiresAt,
       status: "CONNECTED",
     },
-  }).catch(() => null);
+  }).catch((err) => {
+    logSafeDbFailure("completeConnection", err);
+    return null;
+  });
   return result !== null;
 }
 
 /** Never throws — used from a server action; a failure here should surface
  *  as "still connected" rather than crash the request. */
 export async function disconnectSpotify(accountId: string): Promise<void> {
-  await prisma.spotifyConnection.updateMany({ where: { accountId }, data: { status: "DISCONNECTED" } }).catch(() => null);
+  await prisma.spotifyConnection.updateMany({ where: { accountId }, data: { status: "DISCONNECTED" } }).catch((err) => {
+    logSafeDbFailure("disconnectSpotify", err);
+  });
 }
 
 /** A valid, unexpired access token for server-side Spotify API calls —
@@ -70,7 +87,10 @@ export async function disconnectSpotify(accountId: string): Promise<void> {
  *  rather than leaving a silently broken one — never lets the caller crash
  *  the page instead). */
 export async function getValidAccessToken(accountId: string): Promise<string | null> {
-  const row = await prisma.spotifyConnection.findUnique({ where: { accountId } }).catch(() => null);
+  const row = await prisma.spotifyConnection.findUnique({ where: { accountId } }).catch((err) => {
+    logSafeDbFailure("getValidAccessToken (lookup)", err);
+    return null;
+  });
   if (!row || row.status !== "CONNECTED") return null;
 
   try {
@@ -78,12 +98,12 @@ export async function getValidAccessToken(accountId: string): Promise<string | n
       return decryptSecret(row.accessTokenEnc);
     }
     if (!row.refreshTokenEnc) {
-      await prisma.spotifyConnection.update({ where: { accountId }, data: { status: "EXPIRED" } }).catch(() => null);
+      await prisma.spotifyConnection.update({ where: { accountId }, data: { status: "EXPIRED" } }).catch((err) => logSafeDbFailure("getValidAccessToken (mark expired)", err));
       return null;
     }
     const refreshed = await refreshAccessToken(decryptSecret(row.refreshTokenEnc));
     if (!refreshed) {
-      await prisma.spotifyConnection.update({ where: { accountId }, data: { status: "EXPIRED" } }).catch(() => null);
+      await prisma.spotifyConnection.update({ where: { accountId }, data: { status: "EXPIRED" } }).catch((err) => logSafeDbFailure("getValidAccessToken (mark expired)", err));
       return null;
     }
     await prisma.spotifyConnection.update({
@@ -93,9 +113,10 @@ export async function getValidAccessToken(accountId: string): Promise<string | n
         refreshTokenEnc: encryptSecret(refreshed.refreshToken ?? decryptSecret(row.refreshTokenEnc)),
         tokenExpiresAt: refreshed.expiresAt,
       },
-    }).catch(() => null);
+    }).catch((err) => logSafeDbFailure("getValidAccessToken (persist refresh)", err));
     return refreshed.accessToken;
-  } catch {
+  } catch (err) {
+    logSafeDbFailure("getValidAccessToken (unexpected)", err);
     return null;
   }
 }
