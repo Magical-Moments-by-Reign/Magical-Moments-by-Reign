@@ -28,3 +28,8 @@ export function spotifyRedirectUri(): string {
 /** Scopes requested for the member-facing Spotify connection. Kept minimal —
  *  read-only profile + listening data, no playback/library-modifying scopes. */
 export const SPOTIFY_SCOPES = ["user-read-email", "user-read-private", "user-top-read"];
+
+/** CSRF state cookie name, shared between the authorize and callback routes.
+ *  Lives here (not in either route.ts) — a Next.js Route Handler file should
+ *  only export its HTTP method handlers and route-segment config. */
+export const SPOTIFY_STATE_COOKIE = "mmr_spotify_state";

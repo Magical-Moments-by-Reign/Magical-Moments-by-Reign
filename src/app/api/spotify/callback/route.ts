@@ -12,7 +12,7 @@ import { cookies } from "next/headers";
 import { requireAccount } from "@/lib/guard";
 import { exchangeCodeForTokens, fetchSpotifyProfile } from "@/lib/spotify/oauth";
 import { completeConnection } from "@/lib/spotify/connection";
-import { SPOTIFY_STATE_COOKIE } from "../authorize/route";
+import { SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
 
 const RETURN_PATH = "/dashboard/discovery/music";
 
