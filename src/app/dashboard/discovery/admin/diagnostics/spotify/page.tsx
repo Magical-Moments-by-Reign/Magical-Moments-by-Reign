@@ -62,6 +62,29 @@ export default async function SpotifyDiagnosticPage() {
     dbError = e instanceof Error ? e.message : "Unknown database error";
   }
 
+  // ── 4b. Every other new table from recent Discovery work — checked the
+  //      same way (a live count(), never assumed) so this page answers
+  //      "what's actually missing from production" for all of them at once. */
+  const TABLE_CHECKS: { label: string; check: () => Promise<number> }[] = [
+    { label: "SportsFollow", check: () => prisma.sportsFollow.count() },
+    { label: "SportsGame", check: () => prisma.sportsGame.count() },
+    { label: "SportsPick", check: () => prisma.sportsPick.count() },
+    { label: "SportsBadgeEarned", check: () => prisma.sportsBadgeEarned.count() },
+    { label: "DiscoveryCache", check: () => prisma.discoveryCache.count() },
+    { label: "DiscoveryFeatured", check: () => prisma.discoveryFeatured.count() },
+  ];
+  const tableResults = await Promise.all(
+    TABLE_CHECKS.map(async (t) => {
+      try {
+        const count = await t.check();
+        return { label: t.label, exists: true, count };
+      } catch {
+        return { label: t.label, exists: false, count: null as number | null };
+      }
+    })
+  );
+  const anyTableMissing = !dbApplied || tableResults.some((t) => !t.exists);
+
   // ── 5. Catalog/search test (only meaningful if step 2 succeeded) ──
   const searchResult = authSuccess && appToken?.accessToken ? await searchCatalog(appToken.accessToken, "Beyoncé") : null;
   const searchAttempted = authSuccess && !!appToken?.accessToken;
@@ -80,9 +103,10 @@ export default async function SpotifyDiagnosticPage() {
   } else if (!authSuccess) {
     rootCause = `Spotify rejected the client_id/client_secret pair itself (HTTP ${appToken?.status ?? "—"}) — independent of any user or redirect URI. This means the values stored in Netlify don't match what's registered in the Spotify Developer Dashboard for this app.`;
     fix = "Re-copy SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET directly from the Spotify Developer Dashboard → Magical Moments By Reign → Settings, with no extra whitespace, and re-save them in Netlify. If the secret was ever regenerated in the Spotify dashboard, the old one in Netlify is now invalid.";
-  } else if (!dbApplied) {
-    rootCause = `Credentials and callback URL are correct, but the production database doesn't have the SpotifyConnection table yet (${dbError}).`;
-    fix = "Run the production database migration/push (the same prepare-db step used for every other schema change) against the production DATABASE_URL, then redeploy.";
+  } else if (anyTableMissing) {
+    const missingList = [!dbApplied ? "SpotifyConnection" : null, ...tableResults.filter((t) => !t.exists).map((t) => t.label)].filter(Boolean).join(", ");
+    rootCause = `Credentials and callback URL are correct, but the production database is missing one or more required tables: ${missingList}.`;
+    fix = "Run npm run db:deploy (or trigger the dedicated db-schema-deploy Netlify context — see DEPLOY.md) against production. This only creates missing tables; it never touches existing data.";
   } else if (!searchSuccess) {
     rootCause = "Authentication succeeds and the database is ready, but a real Spotify catalog request still failed — check the error detail above; this points at something in the request itself (host, headers, or a transient Spotify-side issue) rather than credentials.";
     fix = "Re-run this diagnostic in a few minutes to rule out a transient issue. If it persists, the search request construction itself needs review.";
@@ -120,11 +144,14 @@ export default async function SpotifyDiagnosticPage() {
       <p>3. Spotify consent screen → 4. /api/spotify/callback → 5. state validation → 6. code exchange → 7. profile retrieved → 8. SpotifyConnection saved → 9. redirect to /dashboard/discovery/music: <strong>requires a live click-through — see &ldquo;How to test the real flow&rdquo; below</strong></p>
 
       <hr />
-      <h2>4. Database Check</h2>
-      <Row label="SpotifyConnection table reachable" value={dbApplied ? "YES" : "NO"} warn={!dbApplied} />
+      <h2>4. Database Check — every new table from recent Discovery work</h2>
+      <Row label="SpotifyConnection" value={dbApplied ? "EXISTS" : "MISSING"} warn={!dbApplied} />
       {dbApplied
         ? <Row label="Existing connections in production" value={String(dbConnectionCount)} />
         : <Row label="Error" value={dbError ?? "unknown"} warn />}
+      {tableResults.map((t) => (
+        <Row key={t.label} label={t.label} value={t.exists ? `EXISTS (${t.count} row${t.count === 1 ? "" : "s"})` : "MISSING"} warn={!t.exists} />
+      ))}
 
       <hr />
       <h2>5. Spotify Catalog/Search Test</h2>
@@ -153,7 +180,7 @@ export default async function SpotifyDiagnosticPage() {
       <Row label="Spotify authentication" value={authSuccess ? "SUCCESS" : "FAILED"} />
       <Row label="OAuth authorization" value={callbackMatches && authSuccess ? "SUCCESS (code-verified; live click-through still required)" : "BLOCKED"} />
       <Row label="Callback" value="Requires live click-through — see section 3" />
-      <Row label="Production DB migration" value={dbApplied ? "APPLIED" : "NOT APPLIED"} />
+      <Row label="Production DB migration" value={!anyTableMissing ? "APPLIED" : "NOT APPLIED"} />
       <Row label="SpotifyConnection saved" value={dbApplied && (dbConnectionCount ?? 0) > 0 ? "YES" : "NO"} />
       <Row label="Spotify API catalog/search request" value={searchSuccess ? "SUCCESS" : "FAILED"} />
       <Row label="Music UI" value="See /dashboard/discovery/music directly — Connect/Connected status and search now live" />
