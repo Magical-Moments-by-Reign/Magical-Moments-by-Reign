@@ -1098,6 +1098,7 @@ model Account {
   savedServices   SavedService[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
+  spotifyConnection SpotifyConnection?
   authTokens      AuthToken[]
   guardianApprovals GuardianApproval[] // approval records where this account is the minor
   // Bridged legacy dashboard ownership (nullable during transition).
@@ -2566,4 +2567,27 @@ model DiscoveryFeatured {
 
   @@index([section, featured])
   @@index([section, startAt, endAt])
+}
+
+// A member's connected Spotify account (OAuth Authorization Code flow).
+// Tokens are encrypted at rest with the same encryptSecret/decryptSecret
+// utility Social Studio uses for platform tokens (src/lib/crypto.ts) and are
+// never returned to the browser. Keyed by Account (canonical identity), not
+// the legacy User-keyed SocialConnection table — Spotify is a fresh
+// integration, not a carryover, so it starts on the current identity model.
+model SpotifyConnection {
+  id              String    @id @default(cuid())
+  accountId       String    @unique
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  spotifyUserId   String // Spotify's own user id
+  displayName     String?
+  scope           String    @default("")
+  accessTokenEnc  String // encrypted; server-side only
+  refreshTokenEnc String? // encrypted; server-side only
+  tokenExpiresAt  DateTime
+  status          String    @default("CONNECTED") // CONNECTED | EXPIRED | DISCONNECTED
+  connectedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([accountId])
 }
