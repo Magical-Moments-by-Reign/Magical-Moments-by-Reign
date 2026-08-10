@@ -16,7 +16,9 @@ export type NotificationType =
   | "celebration_reminder" | "task_reminder" | "appointment_reminder"
   | "education_deadline" | "scholarship_deadline" | "vendor_compliance"
   | "trial_billing" | "domain_renewal" | "message" | "invitation"
-  | "achievement" | "rsvp" | "reservation_update" | "general";
+  | "achievement" | "rsvp" | "reservation_update" | "general"
+  | "sports_team_playing_soon" | "sports_game_final" | "sports_prediction_result"
+  | "sports_new_matchup" | "sports_streak_achievement";
 
 export interface NotificationTypeDef {
   id: NotificationType;
@@ -40,6 +42,11 @@ export const NOTIFICATION_TYPES: NotificationTypeDef[] = [
   { id: "rsvp", label: "RSVP updates", category: "family", defaultChannels: ["in_app"] },
   { id: "reservation_update", label: "Concierge & reservation updates", category: "organization", defaultChannels: ["in_app", "email"] },
   { id: "general", label: "General", category: "system", defaultChannels: ["in_app"] },
+  { id: "sports_team_playing_soon", label: "Your team plays soon", category: "family", defaultChannels: ["in_app"] },
+  { id: "sports_game_final", label: "Followed game final", category: "family", defaultChannels: ["in_app"] },
+  { id: "sports_prediction_result", label: "Prediction results", category: "family", defaultChannels: ["in_app"] },
+  { id: "sports_new_matchup", label: "New matchups available", category: "family", defaultChannels: ["in_app"] },
+  { id: "sports_streak_achievement", label: "Streak & badge achievements", category: "family", defaultChannels: ["in_app"] },
 ];
 
 export function notificationType(id: NotificationType): NotificationTypeDef | undefined {

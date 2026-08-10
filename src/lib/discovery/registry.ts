@@ -9,7 +9,7 @@ import { NewsApiProvider } from "./providers/news";
 import { TmdbMovieProvider, TmdbWatchProvider } from "./providers/tmdb";
 import { AppleMusicProvider } from "./providers/music";
 import { TicketmasterProvider } from "./providers/events";
-import { SportsPendingProvider } from "./providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider } from "./providers/sports";
 import type { DiscoveryCategory, ProviderStatusReport } from "./types";
 
 interface RegistryEntry {
@@ -28,7 +28,7 @@ const REGISTRY: RegistryEntry[] = [
   { category: "movies", slug: TmdbMovieProvider.slug, name: TmdbMovieProvider.name, isConfigured: () => TmdbMovieProvider.isConfigured() },
   { category: "music", slug: AppleMusicProvider.slug, name: AppleMusicProvider.name, isConfigured: () => AppleMusicProvider.isConfigured() },
   { category: "near_you", slug: TicketmasterProvider.slug, name: TicketmasterProvider.name, isConfigured: () => TicketmasterProvider.isConfigured() },
-  { category: "sports", slug: SportsPendingProvider.slug, name: SportsPendingProvider.name, isConfigured: () => SportsPendingProvider.isConfigured() },
+  { category: "sports", slug: ApiSportsProvider.slug, name: ApiSportsProvider.name, isConfigured: () => ApiSportsProvider.isConfigured("nfl") },
 ];
 
 /**
@@ -60,7 +60,7 @@ export async function discoveryProviderStatuses(): Promise<ProviderStatusReport[
       status: !configured ? "not_connected" : "connected",
       detail: !configured
         ? entry.category === "sports"
-          ? "Live sports integration pending. No provider selected yet."
+          ? "API_SPORTS_KEY not set. NFL, NCAAF, NBA, MLB, Soccer, NHL, Rugby, and Volleyball activate once it's configured; MMA and F1 aren't mapped by this provider."
           : "No API key configured for this provider."
         : lastRow
           ? "Credentials present; serving from cache/live fetch."
@@ -69,6 +69,17 @@ export async function discoveryProviderStatuses(): Promise<ProviderStatusReport[
       lastUpdatedAt: lastRow?.fetchedAt.toISOString(),
     });
   }
+
+  // High School sports — always pending until a licensed data partner is
+  // connected; never reads live data, so no cache lookup needed.
+  reports.push({
+    category: "sports",
+    providerSlug: HighSchoolPendingProvider.slug,
+    providerName: "High School Sports",
+    status: "not_connected",
+    detail: "No licensed high-school sports data partner connected yet — a separate integration, tracked apart from the main Sports providers above.",
+    lastCheckedAt: now,
+  });
 
   // Trending has no live provider — always reported as owner-curated.
   reports.push({

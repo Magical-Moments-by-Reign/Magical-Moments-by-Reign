@@ -1,0 +1,318 @@
+// ── Magical Discovery — Sports service layer (SERVER ONLY) ────────
+// The only place Sports pages talk to the provider/cache/DB. Live provider
+// results are cached in the existing DiscoveryCache (category "sports") and
+// then synced into SportsGame — our stable local copy that picks/votes
+// reference — so a matchup keeps working even if a later provider refetch
+// reshapes or briefly fails.
+
+import { prisma } from "@/lib/db";
+import { withCache, cacheKeyFor } from "../cache";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
+import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, type VoteTally, type PicksSummary } from "./picks";
+import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
+import { dispatchNotification } from "@/lib/notify";
+
+const TTL_GAMES_UPCOMING = 180; // 3h — schedules barely move
+const TTL_GAMES_LIVE = 3; // 3m — live games refresh often
+const TTL_STANDINGS = 720; // 12h
+
+export const SPORT_CATALOG: { slug: SportSlug; label: string }[] = [
+  { slug: "nfl", label: "NFL" },
+  { slug: "ncaaf", label: "College Football" },
+  { slug: "nba", label: "NBA" },
+  { slug: "mlb", label: "MLB" },
+  { slug: "soccer", label: "Soccer" },
+  { slug: "nhl", label: "NHL" },
+  { slug: "mma", label: "MMA" },
+  { slug: "rugby", label: "Rugby" },
+  { slug: "volleyball", label: "Volleyball" },
+  { slug: "f1", label: "Formula 1" },
+];
+
+function sportLabel(sport: SportSlug): string {
+  return SPORT_CATALOG.find((s) => s.slug === sport)?.label ?? sport;
+}
+
+// ── Follows (favorite sports / leagues / teams) ────────────────────
+
+export async function getFollows(accountId: string) {
+  return prisma.sportsFollow.findMany({ where: { accountId }, orderBy: { createdAt: "desc" } });
+}
+
+export async function followSport(accountId: string, sport: SportSlug) {
+  const existing = await prisma.sportsFollow.findFirst({ where: { accountId, kind: "sport", sport } });
+  if (existing) return existing;
+  return prisma.sportsFollow.create({ data: { accountId, kind: "sport", sport } });
+}
+
+export async function followTeam(accountId: string, sport: SportSlug, league: string, teamExternalId: string, teamName: string, teamLogoUrl?: string) {
+  const existing = await prisma.sportsFollow.findFirst({ where: { accountId, kind: "team", sport, teamExternalId } });
+  if (existing) return existing;
+  return prisma.sportsFollow.create({ data: { accountId, kind: "team", sport, league, teamExternalId, teamName, teamLogoUrl } });
+}
+
+export async function unfollow(accountId: string, followId: string) {
+  await prisma.sportsFollow.deleteMany({ where: { id: followId, accountId } });
+}
+
+// ── Games: fetch (cached) → sync to local SportsGame → return local rows ──
+
+async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsGameSummary[]) {
+  const rows = await Promise.all(
+    games.map((g) =>
+      prisma.sportsGame.upsert({
+        where: { sport_externalId: { sport, externalId: g.externalId } },
+        create: {
+          sport, league, externalId: g.externalId,
+          homeTeamId: g.homeTeam.id || null, homeTeamName: g.homeTeam.name, homeTeamLogoUrl: g.homeTeam.logoUrl,
+          awayTeamId: g.awayTeam.id || null, awayTeamName: g.awayTeam.name, awayTeamLogoUrl: g.awayTeam.logoUrl,
+          startsAt: new Date(g.startsAt), status: g.status, period: g.period,
+          homeScore: g.homeScore, awayScore: g.awayScore, source: "provider", lastSyncedAt: new Date(),
+        },
+        update: {
+          status: g.status, period: g.period, homeScore: g.homeScore, awayScore: g.awayScore, lastSyncedAt: new Date(),
+        },
+      }).catch(() => null)
+    )
+  );
+  const synced = rows.filter((r): r is NonNullable<typeof r> => r !== null);
+  // Grade any game the provider now reports final — automatic once a real
+  // provider is connected; gradeGameAction remains available for an
+  // Owner-entered game or a provider outage.
+  await Promise.all(synced.filter((r) => r.status === "final").map((r) => gradeGame(r.id)));
+  return synced;
+}
+
+/** Games for a sport on a given date (YYYY-MM-DD). Upcoming schedules cache
+ *  for hours; anything already live/today refreshes every few minutes so
+ *  scores stay current without hammering the provider on every page view. */
+export async function getGamesByDate(sport: SportSlug, dateISO: string, league?: string) {
+  const isToday = dateISO === new Date().toISOString().slice(0, 10);
+  const ttl = isToday ? TTL_GAMES_LIVE : TTL_GAMES_UPCOMING;
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league }), ttl, () =>
+    ApiSportsProvider.gamesByDate(sport, dateISO, league));
+  if (!cached) {
+    // Not connected/unreachable — still surface anything already synced locally
+    // (e.g. an Owner-entered game) rather than an empty page.
+    return prisma.sportsGame.findMany({
+      where: { sport, startsAt: { gte: new Date(dateISO), lt: new Date(new Date(dateISO).getTime() + 86_400_000) } },
+      orderBy: { startsAt: "asc" },
+    });
+  }
+  return syncGamesToLocal(sport, league || cached.data[0]?.league || "", cached.data);
+}
+
+export interface MatchupCardContext {
+  game: Awaited<ReturnType<typeof getGamesByDate>>[number];
+  tally: VoteTally;
+  myPick: "home" | "away" | null;
+  myPickCorrect: boolean | null;
+  locked: boolean;
+}
+
+/** Games for a date, each paired with its vote tally and the viewer's own
+ *  pick — what MatchupCard needs to render, in one call. */
+export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string, accountId: string, limit = 6): Promise<MatchupCardContext[]> {
+  const games = (await getGamesByDate(sport, dateISO)).slice(0, limit);
+  return Promise.all(
+    games.map(async (game) => {
+      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id }, select: { teamPick: true, accountId: true, isCorrect: true } });
+      const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
+      const mine = typed.find((p) => p.accountId === accountId);
+      return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+    })
+  );
+}
+
+export async function getMatchup(gameId: string, accountId?: string): Promise<{
+  game: NonNullable<Awaited<ReturnType<typeof prisma.sportsGame.findUnique>>>;
+  tally: VoteTally;
+  myPick: "home" | "away" | null;
+  myPickCorrect: boolean | null;
+  locked: boolean;
+} | null> {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  if (!game) return null;
+  const picks = await prisma.sportsPick.findMany({ where: { gameId }, select: { teamPick: true, accountId: true, isCorrect: true } });
+  const typedPicks = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
+  const tally = tallyVotes(typedPicks);
+  const mine = accountId ? typedPicks.find((p) => p.accountId === accountId) : undefined;
+  return { game, tally, myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+}
+
+// ── My Teams / My Sports ────────────────────────────────────────────
+
+export async function getMyTeams(accountId: string) {
+  const follows = await prisma.sportsFollow.findMany({ where: { accountId, kind: "team" } });
+  const withGames = await Promise.all(
+    follows.map(async (f) => {
+      const sport = f.sport as SportSlug;
+      let upcoming: SportsGameSummary | null = null;
+      let recent: SportsGameSummary | null = null;
+      let localRows: Awaited<ReturnType<typeof syncGamesToLocal>> = [];
+      if (f.teamExternalId && ApiSportsProvider.isConfigured(sport)) {
+        const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, team: f.teamExternalId, kind: "team_games" }), TTL_GAMES_UPCOMING, () =>
+          ApiSportsProvider.gamesForTeam(sport, f.teamExternalId!, { league: f.league || undefined }));
+        const games = cached?.data ?? [];
+        const now = Date.now();
+        upcoming = games.filter((g) => new Date(g.startsAt).getTime() >= now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0] ?? null;
+        recent = games.filter((g) => g.status === "final").sort((a, b) => +new Date(b.startsAt) - +new Date(a.startsAt))[0] ?? null;
+        if (games.length) localRows = await syncGamesToLocal(sport, f.league || "", games);
+      }
+      const localIdFor = (g: SportsGameSummary | null) => (g ? localRows.find((r) => r.externalId === g.externalId)?.id ?? null : null);
+      return { follow: f, upcoming, upcomingLocalId: localIdFor(upcoming), recent, recentLocalId: localIdFor(recent) };
+    })
+  );
+  return withGames;
+}
+
+export async function getMySportsFollows(accountId: string) {
+  const follows = await prisma.sportsFollow.findMany({ where: { accountId, kind: { in: ["sport", "league"] } } });
+  return follows.map((f) => ({ ...f, label: sportLabel(f.sport as SportSlug) }));
+}
+
+// ── Standings ────────────────────────────────────────────────────
+
+export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<SportsStanding[]> {
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings" }), TTL_STANDINGS, () =>
+    ApiSportsProvider.standings(sport, league, season));
+  return cached?.data ?? [];
+}
+
+// ── Picks / voting ───────────────────────────────────────────────
+
+export async function submitPick(accountId: string, gameId: string, teamPick: "home" | "away") {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  if (!game) throw new Error("Matchup not found");
+  if (isPickLocked(game)) throw new Error("Picks are locked for this matchup");
+  return prisma.sportsPick.upsert({
+    where: { gameId_accountId: { gameId, accountId } },
+    create: { gameId, accountId, teamPick },
+    update: { teamPick },
+  });
+}
+
+/** Grades every un-graded pick for one final game, then re-evaluates badges
+ *  for every affected account. Called from the grading action (Owner-run or
+ *  scheduled) — never guesses a result on its own. */
+export async function gradeGame(gameId: string): Promise<number> {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  if (!game) return 0;
+  const picks = await prisma.sportsPick.findMany({ where: { gameId, isCorrect: null } });
+  const graded = gradeGamePicks(game, picks.map((p) => ({ id: p.id, teamPick: p.teamPick as "home" | "away" })));
+  if (!graded) return 0;
+  await Promise.all(graded.map((g) => prisma.sportsPick.update({ where: { id: g.id }, data: { isCorrect: g.isCorrect } })));
+  await Promise.all(
+    picks.map(async (p) => {
+      const result = graded.find((g) => g.id === p.id);
+      await dispatchNotification({
+        accountId: p.accountId,
+        type: "sports_prediction_result",
+        title: result?.isCorrect ? "✓ You called it!" : "Not this time — next matchup!",
+        body: `${game.awayTeamName} @ ${game.homeTeamName} — final ${game.awayScore}-${game.homeScore}.`,
+        actionUrl: `/dashboard/discovery/sports/game/${gameId}`,
+        relatedLabel: `${game.awayTeamName} @ ${game.homeTeamName}`,
+      }).catch(() => null);
+      await refreshBadges(p.accountId);
+    })
+  );
+  return graded.length;
+}
+
+// ── Owner-entered games (rivalry/exhibition matchups with no provider id) ──
+
+export async function createOwnerGame(input: {
+  sport: SportSlug; league: string; homeTeamName: string; awayTeamName: string;
+  homeTeamLogoUrl?: string; awayTeamLogoUrl?: string; startsAt: Date;
+}) {
+  return prisma.sportsGame.create({
+    data: {
+      sport: input.sport, league: input.league, externalId: null,
+      homeTeamName: input.homeTeamName, homeTeamLogoUrl: input.homeTeamLogoUrl,
+      awayTeamName: input.awayTeamName, awayTeamLogoUrl: input.awayTeamLogoUrl,
+      startsAt: input.startsAt, status: "scheduled", source: "owner",
+    },
+  });
+}
+
+/** Owner manually enters a final score — for an owner-entered game, or as a
+ *  fallback if the live provider is unreachable. Grades immediately after. */
+export async function setFinalScore(gameId: string, homeScore: number, awayScore: number): Promise<number> {
+  await prisma.sportsGame.update({ where: { id: gameId }, data: { status: "final", homeScore, awayScore } });
+  return gradeGame(gameId);
+}
+
+// ── Magical Picks profile + badges ──────────────────────────────
+
+export async function getMagicalPicksProfile(accountId: string): Promise<PicksSummary & { badges: { id: BadgeId; label: string; description: string; icon: string; earnedAt: Date }[] }> {
+  const picks = await prisma.sportsPick.findMany({ where: { accountId }, include: { game: { select: { sport: true, startsAt: true } } } });
+  const summary = summarizePicks(picks.map((p) => ({ gameId: p.gameId, sport: p.game.sport, isCorrect: p.isCorrect, gameStartsAt: p.game.startsAt })));
+  const earnedRows = await prisma.sportsBadgeEarned.findMany({ where: { accountId } });
+  const badges = earnedRows
+    .map((r) => {
+      const def = SPORTS_BADGES.find((b) => b.id === r.badgeId);
+      return def ? { ...def, id: def.id, earnedAt: r.earnedAt } : null;
+    })
+    .filter((b): b is NonNullable<typeof b> => b !== null);
+  return { ...summary, badges };
+}
+
+async function refreshBadges(accountId: string): Promise<void> {
+  const [picks, teamFollows, sportFollows, alreadyEarned] = await Promise.all([
+    prisma.sportsPick.findMany({ where: { accountId }, include: { game: { select: { sport: true, startsAt: true } } } }),
+    prisma.sportsFollow.count({ where: { accountId, kind: "team" } }),
+    prisma.sportsFollow.groupBy({ by: ["sport"], where: { accountId } }),
+    prisma.sportsBadgeEarned.findMany({ where: { accountId }, select: { badgeId: true } }),
+  ]);
+  const earned = evaluateEarnedBadges({
+    picks: picks.map((p) => ({ gameId: p.gameId, sport: p.game.sport, isCorrect: p.isCorrect, gameStartsAt: p.game.startsAt })),
+    followedTeamCount: teamFollows,
+    followedSportsCount: sportFollows.length,
+  });
+  const alreadyIds = new Set(alreadyEarned.map((b) => b.badgeId));
+  const newlyEarned = earned.filter((id) => !alreadyIds.has(id));
+  if (!newlyEarned.length) return;
+
+  await Promise.all(
+    newlyEarned.map((badgeId) =>
+      prisma.sportsBadgeEarned.upsert({
+        where: { accountId_badgeId: { accountId, badgeId } },
+        create: { accountId, badgeId },
+        update: {},
+      }).catch(() => null)
+    )
+  );
+  await Promise.all(
+    newlyEarned.map((badgeId) => {
+      const def = SPORTS_BADGES.find((b) => b.id === badgeId);
+      if (!def) return null;
+      return dispatchNotification({
+        accountId,
+        type: "sports_streak_achievement",
+        title: `${def.icon} Badge earned: ${def.label}`,
+        body: def.description,
+        actionUrl: "/dashboard/discovery/sports/picks",
+        relatedLabel: "Magical Picks",
+      }).catch(() => null);
+    })
+  );
+}
+
+// ── Search (sports / leagues / teams) ───────────────────────────
+
+export async function searchSports(query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return { sports: [], teams: [] };
+  const sports = SPORT_CATALOG.filter((s) => s.label.toLowerCase().includes(q) || s.slug.includes(q));
+  const teamMatches = await Promise.all(
+    MATCHUP_SPORTS.filter((sport) => ApiSportsProvider.isConfigured(sport)).map(async (sport) => {
+      const teams = await ApiSportsProvider.searchTeams(sport, query);
+      return (teams ?? []).map((t) => ({ ...t, sport }));
+    })
+  );
+  return { sports, teams: teamMatches.flat() };
+}
+
+export function isHighSchoolConnected(): boolean {
+  return HighSchoolPendingProvider.isConfigured();
+}

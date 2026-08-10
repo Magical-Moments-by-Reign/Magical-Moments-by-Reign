@@ -1104,6 +1104,9 @@ model Account {
   // Bridged legacy dashboard ownership (nullable during transition).
   dashboardExperiences Experience[]
   socialConnections    SocialConnection[]
+  sportsFollows        SportsFollow[]
+  sportsPicks          SportsPick[]
+  sportsBadgesEarned   SportsBadgeEarned[]
   socialShares         SocialShare[]
   // Vendor Portal: the marketplace business record(s) this account manages
   // (one-to-one enforced in application logic; see src/lib/vendor-auth.ts).
@@ -2567,6 +2570,101 @@ model DiscoveryFeatured {
 
   @@index([section, featured])
   @@index([section, startAt, endAt])
+}
+
+// ── Magical Discovery — Sports (Discover → Follow → Predict → Play → React → Return) ──
+// Live game/team data is fetched through the SportsProvider abstraction
+// (src/lib/discovery/providers/sports.ts) and cached in the existing
+// DiscoveryCache table (category "sports") — no separate cache table here.
+// These four models hold only what's ours: explicit follows, a stable local
+// copy of each game/matchup (so picks and grading survive a provider
+// refetch), community picks, and earned badges.
+
+// A member's explicit follow of a sport, a league, or a specific team.
+// kind discriminates which fields apply; "sport"/"league" leave the team
+// fields null, "team" fills all three so the row is self-describing without
+// a join back to the provider.
+model SportsFollow {
+  id            String   @id @default(cuid())
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind          String   // "sport" | "league" | "team"
+  sport         String   // e.g. "football" | "basketball" | "soccer" | "hockey" | ...
+  league        String?  // provider league id/slug, when kind is "league" or "team"
+  teamExternalId String? // provider team id, when kind is "team"
+  teamName      String?
+  teamLogoUrl   String?
+  createdAt     DateTime @default(now())
+
+  @@index([accountId, kind])
+  @@index([accountId, sport])
+}
+
+// A local, stable copy of one game/matchup — either synced from a live
+// SportsProvider or entered by the Owner (Trending/featured games). Picks
+// and votes reference this row, not the provider directly, so a matchup
+// keeps working (and grades correctly) even if a later provider refetch
+// changes shape or the provider is temporarily unavailable.
+model SportsGame {
+  id            String    @id @default(cuid())
+  sport         String
+  league        String
+  externalId    String?   // provider's game id; null for a hand-entered exhibition/admin game
+  homeTeamId    String?   // provider team id, when known
+  homeTeamName  String
+  homeTeamLogoUrl String?
+  awayTeamId    String?
+  awayTeamName  String
+  awayTeamLogoUrl String?
+  startsAt      DateTime
+  status        String    @default("scheduled") // "scheduled" | "live" | "final"
+  period        String?   // provider's clock/period label when live, e.g. "3rd Quarter"
+  homeScore     Int?
+  awayScore     Int?
+  locksAt       DateTime? // picks close at this time; defaults to startsAt when unset
+  source        String    @default("provider") // "provider" | "owner"
+  lastSyncedAt  DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  picks         SportsPick[]
+
+  @@unique([sport, externalId])
+  @@index([sport, league, startsAt])
+  @@index([status, startsAt])
+}
+
+// One member's pick for one matchup — doubles as their prediction (graded
+// after the game goes final) and as a ballot in the community vote tally
+// (aggregated live by teamPick). One row per member per game.
+model SportsPick {
+  id         String    @id @default(cuid())
+  gameId     String
+  game       SportsGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  teamPick   String    // "home" | "away"
+  isCorrect  Boolean?  // null until the game is graded final
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([gameId, accountId])
+  @@index([accountId, isCorrect])
+  @@index([gameId, teamPick])
+}
+
+// A badge a member has actually earned (the catalog of badge definitions is
+// static, see src/lib/discovery/sports/badges.ts) — persisted so an earned
+// badge is permanent even if later stats/streaks change.
+model SportsBadgeEarned {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  badgeId   String   // key into the static badge catalog
+  earnedAt  DateTime @default(now())
+  note      String?  // optional context, e.g. which team/streak triggered it
+
+  @@unique([accountId, badgeId])
+  @@index([accountId])
 }
 
 // A member's connected Spotify account (OAuth Authorization Code flow).
