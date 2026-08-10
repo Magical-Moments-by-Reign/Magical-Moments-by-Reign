@@ -172,41 +172,42 @@ script (see the file itself for full detail):
 
 ### How to trigger it (no terminal, no pasting `DATABASE_URL` anywhere)
 
-A dedicated Netlify **deploy context** — `db-schema-deploy` — runs
-`npm run db:deploy && npm run build` instead of the ordinary build
-command. It is defined in `netlify.toml` and only activates for a
-deploy whose branch is named exactly `db-schema-deploy` — never for
-`main`, never for a PR preview, never for any other branch.
+**Every** Netlify deploy — production, PR previews, everything — now
+runs the same build command: `prisma generate && node
+scripts/prepare-db.mjs && next build`. Whether that middle step actually
+touches the database is controlled entirely by one environment variable,
+`RUN_DATABASE_PUSH`, which is **not set** by default — so ordinary
+deploys behave exactly as before (one log line, no DB connection, `next
+build` proceeds).
 
-1. **One-time setup** (already done once this branch exists): create
-   the branch — `git checkout -b db-schema-deploy && git push -u origin
-   db-schema-deploy` — so Netlify has it in the repo.
-2. **Whenever a schema change needs to reach production:** fast-forward
-   that branch to the latest `main` and push it —
-   ```
-   git checkout db-schema-deploy
-   git merge --ff-only main
-   git push origin db-schema-deploy
-   ```
-3. In Netlify: **Deploys → Trigger deploy → Deploy branch →
-   `db-schema-deploy`** (if the site doesn't already auto-build every
-   pushed branch, do this manually). This reuses the site's existing
-   `DATABASE_URL` — nothing new to configure.
-4. Read that deploy's build log for `scripts/prepare-db.mjs`'s own
-   output (prefixed `[db]`) — it reports exactly what it did.
+> This replaced an earlier attempt at a separate `db-schema-deploy`
+> branch/Netlify context. That relied on correctly picking that branch in
+> Netlify's "Trigger deploy" UI — a plain "Trigger deploy" redeploys the
+> **production** branch instead, which is exactly what happened the first
+> time this was tried (the build log showed `Context: production` and ran
+> the ordinary command — the special branch was never actually built).
+> This mechanism has no branch-selection step to get wrong.
 
-> **If `DATABASE_URL` is scoped to "Production" only** in Netlify's
-> environment variable settings, this branch deploy won't see it —
-> `prepare-db.mjs` detects a missing `DATABASE_URL` and safely no-ops
-> rather than failing destructively. If that happens, add "Branch
-> deploys" to `DATABASE_URL`'s deploy contexts (Netlify → Site
-> configuration → Environment variables → click the variable → Edit
-> scopes).
+1. In Netlify: **Site configuration → Environment variables**, add
+   `RUN_DATABASE_PUSH` = `true`.
+2. Click the **exact same "Trigger deploy" button** you'd use for any
+   ordinary deploy (Deploys → Trigger deploy → Deploy site). No branch
+   picker, no special option.
+3. Watch that deploy's build log for lines prefixed `[db]` — see "How to
+   verify success" below.
+4. **Immediately after it finishes, remove `RUN_DATABASE_PUSH`** (delete
+   the variable, or set it to anything other than `true`). Since `prisma
+   db push` is idempotent, leaving it on wouldn't corrupt anything on the
+   *next* deploy — but every subsequent deploy would needlessly open a
+   database connection to re-check the schema, which is the exact
+   Session-pooler load this whole design exists to avoid.
 
 ### How to verify success
 
-- The `db-schema-deploy` build log ends with `[db] Production database
-  ready. ✦` on success.
+- The build log ends with `[db] Production database ready. ✦` on
+  success — that line, not just "Deploy succeeded," is what proves the
+  database was actually touched. A build can pass while never reaching
+  that line if `RUN_DATABASE_PUSH` wasn't actually set when it ran.
 - Owner-only diagnostic page (temporary, remove once no longer needed):
   `/dashboard/discovery/admin/diagnostics/spotify` — lists every recent
   new table (`SpotifyConnection`, `SportsFollow`, `SportsGame`,
@@ -241,7 +242,7 @@ checks the same thing live, per table, from inside the deployed app.
 - **Transient connection error** (`EMAXCONNSESSION`, pool timeout): the
   script already retries automatically; if it still fails after 4
   attempts, wait a minute (let other connections close) and re-trigger
-  the `db-schema-deploy` branch deploy.
+  re-trigger the deploy (steps above).
 - **Data-loss guard blocked it**: nothing was changed — the guard stops
   *before* applying anything destructive. Fix the schema change in
   `prisma/schema.prisma` to be additive (a new nullable/defaulted field
