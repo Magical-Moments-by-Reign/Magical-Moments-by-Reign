@@ -60,6 +60,10 @@ export default async function DashboardPage() {
         <div className="hub-journey__mark"><Icon name="star" /></div><div className="hub-journey__copy"><span className="hub-kicker">YOUR PERSONAL JOURNEY ASSISTANT</span><h2>What shall we make magical today?</h2><p>I can help with ideas, timelines, checklists, invitations, travel details, and all the thoughtful touches in between.</p></div><button type="button" className="hub-secondary">Ask Journey <span>→</span></button>
       </section>
 
+      <section className="hub-journey">
+        <div className="hub-journey__mark"><Icon name="favorites" /></div><div className="hub-journey__copy"><span className="hub-kicker">A DAILY REASON TO RETURN</span><h2>Magical Discovery</h2><p>Today&rsquo;s headlines, what to watch, what&rsquo;s hot in music, and what&rsquo;s happening near you — curated, never overwhelming.</p></div><Link href="/dashboard/discovery" className="hub-secondary">Explore Discovery <span>→</span></Link>
+      </section>
+
       <div className="hub-panels">
         <section className="hub-panel"><div className="hub-panel__head"><h2>Upcoming in the Next 30 Days</h2><Link href="/dashboard/journeys">View calendar</Link></div>{UPCOMING.map((item) => <div className="hub-upcoming" key={item.title}><span className="hub-date"><b>{item.month}</b><em>{item.day}</em></span><span><strong>{item.title}</strong><small>{item.meta}</small></span><i>›</i></div>)}</section>
         <section className="hub-panel"><div className="hub-panel__head"><h2>Recent Activity</h2><Link href="/notifications">View all</Link></div>{ACTIVITY.map((item) => <div className="hub-activity" key={item.title}><span><Icon name={item.icon} /></span><div><strong>{item.title}</strong><small>{item.meta}</small></div></div>)}</section>
