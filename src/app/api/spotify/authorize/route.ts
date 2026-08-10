@@ -10,10 +10,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { requireAccount } from "@/lib/guard";
-import { spotifyConfigured } from "@/lib/spotify/config";
+import { spotifyConfigured, SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
 import { buildAuthorizeUrl } from "@/lib/spotify/oauth";
-
-export const SPOTIFY_STATE_COOKIE = "mmr_spotify_state";
 
 export async function GET() {
   await requireAccount("/dashboard/discovery/music");

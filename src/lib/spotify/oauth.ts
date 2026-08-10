@@ -38,6 +38,35 @@ function basicAuthHeader(): string {
   return "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 }
 
+export interface AppTokenResult {
+  status: number | null;
+  ok: boolean;
+  accessToken: string | null;
+  /** Spotify's own {error, error_description} body on failure — safe to
+   *  display, contains no credential material. */
+  errorBody: unknown;
+}
+
+/**
+ * Client Credentials Flow (grant_type=client_credentials) — validates
+ * SPOTIFY_CLIENT_ID/SECRET directly against Spotify with NO user consent
+ * required. This is the cleanest live proof that the credentials themselves
+ * are correct: a 200 here means Spotify recognizes the app; a 400/401 means
+ * the id/secret pair itself is wrong, independent of anything about the
+ * OAuth Authorization Code flow or any member's connection.
+ */
+export async function getAppAccessToken(): Promise<AppTokenResult> {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basicAuthHeader() },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+  }).catch(() => null);
+  if (!res) return { status: null, ok: false, accessToken: null, errorBody: { error: "network_error", error_description: "Could not reach accounts.spotify.com" } };
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.access_token) return { status: res.status, ok: false, accessToken: null, errorBody: json };
+  return { status: res.status, ok: true, accessToken: json.access_token, errorBody: null };
+}
+
 export interface SpotifyTokens {
   accessToken: string;
   refreshToken?: string;
