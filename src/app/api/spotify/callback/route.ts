@@ -1,0 +1,46 @@
+// GET /api/spotify/callback
+// The registered Spotify redirect URI — must match spotifyRedirectUri()
+// (src/lib/spotify/config.ts) and whatever's entered in the Spotify
+// Developer Dashboard's "Redirect URIs" field EXACTLY, including scheme and
+// trailing-slash. Verifies the CSRF state cookie, exchanges the code for
+// tokens server-side (client secret never leaves oauth.ts), fetches the
+// member's Spotify profile id/display name, and stores the connection.
+// Never returns a token to the browser — only a redirect.
+
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { requireAccount } from "@/lib/guard";
+import { exchangeCodeForTokens, fetchSpotifyProfile } from "@/lib/spotify/oauth";
+import { completeConnection } from "@/lib/spotify/connection";
+import { SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
+
+const RETURN_PATH = "/dashboard/discovery/music";
+
+function redirectTo(query: string) {
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
+  return NextResponse.redirect(new URL(`${RETURN_PATH}?${query}`, base));
+}
+
+export async function GET(request: Request) {
+  const account = await requireAccount(RETURN_PATH);
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const error = url.searchParams.get("error");
+
+  const jar = await cookies();
+  const expectedState = jar.get(SPOTIFY_STATE_COOKIE)?.value;
+  jar.delete(SPOTIFY_STATE_COOKIE);
+
+  if (error) return redirectTo(`spotify=denied`);
+  if (!code || !state || !expectedState || state !== expectedState) return redirectTo(`spotify=invalid_state`);
+
+  const tokens = await exchangeCodeForTokens(code);
+  if (!tokens) return redirectTo(`spotify=exchange_failed`);
+
+  const profile = await fetchSpotifyProfile(tokens.accessToken);
+  if (!profile) return redirectTo(`spotify=profile_failed`);
+
+  await completeConnection(account.id, tokens, profile);
+  return redirectTo(`spotify=connected`);
+}

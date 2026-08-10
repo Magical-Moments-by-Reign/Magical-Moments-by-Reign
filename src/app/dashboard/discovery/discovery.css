@@ -125,6 +125,10 @@
 .sports-badge b { display: block; font-size: .82rem; color: var(--espresso); }
 .sports-badge span { display: block; font-size: .68rem; color: var(--ink-soft); margin-top: .25rem; }
 
+.disc-connect { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; background: linear-gradient(135deg, #fbf6ee, var(--ivory)); }
+.disc-connect h2 { margin: 0 0 .3rem; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }
+.disc-connect p { margin: 0; color: var(--ink-soft); font-size: .84rem; }
+
 @media (max-width: 680px) {
   .disc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .disc-detail__hero { min-height: 200px; }
