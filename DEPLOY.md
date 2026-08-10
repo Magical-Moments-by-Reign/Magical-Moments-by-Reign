@@ -90,10 +90,25 @@ In Netlify → **Site settings → Environment variables**, add:
 | --- | --- |
 | `DATABASE_URL` | your Neon **pooled** connection string |
 | `SOCIAL_TOKEN_KEY` | run `openssl rand -hex 32` and paste the result |
-| `NEXT_PUBLIC_BASE_URL` | your live URL, e.g. `https://magical-m.netlify.app` |
+| `NEXT_PUBLIC_BASE_URL` | your **custom domain**, e.g. `https://magicalmomentsbyreign.com` — see the warning below |
 
 > `SOCIAL_TOKEN_KEY` encrypts social access tokens. Keep it secret and
 > **don't change it** once set, or existing connections can't be read.
+
+> ⚠️ **`NEXT_PUBLIC_BASE_URL` must be the real custom domain, never the**
+> **Netlify default subdomain** (`magical-m.netlify.app`). Setting it to the
+> Netlify subdomain — even temporarily, before the custom domain is added —
+> is exactly what caused Spotify OAuth to fail with `redirect_uri: Not
+> matching configuration` in production: the Spotify Developer Dashboard has
+> only `https://magicalmomentsbyreign.com/api/spotify/callback` registered,
+> so any other value here breaks the Connect Spotify flow at the very first
+> step, before a member ever sees Spotify's consent screen. (Since this
+> incident, `spotifyRedirectUri()` in `src/lib/spotify/config.ts` no longer
+> depends on this variable in production — it's a hardcoded constant — so a
+> misconfigured `NEXT_PUBLIC_BASE_URL` can no longer break Spotify
+> specifically. But it still affects other absolute links in the app —
+> shared/social links, the canonical `<link>` tag, Square webhook URLs — so
+> it should always be set correctly regardless.)
 
 ## Step 5 — Deploy
 

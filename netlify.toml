@@ -18,7 +18,9 @@
 # variables) — see DEPLOY.md:
 #   DATABASE_URL          Postgres connection string (Supabase Session pooler)
 #   SOCIAL_TOKEN_KEY      openssl rand -hex 32
-#   NEXT_PUBLIC_BASE_URL  your live URL (e.g. https://magical-m.netlify.app)
+#   NEXT_PUBLIC_BASE_URL  your custom domain, e.g. https://magicalmomentsbyreign.com
+#                         (NEVER the magical-m.netlify.app subdomain — see the
+#                         warning in DEPLOY.md's "Add environment variables" step)
 
 [build]
   # Every deploy — production, PR previews, everything — runs this SAME

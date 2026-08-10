@@ -17,11 +17,23 @@ export function spotifyConfigured(): boolean {
   return Boolean(spotifyClientId() && spotifyClientSecret());
 }
 
-/** The exact redirect URI to register in the Spotify Developer Dashboard —
- *  derived from NEXT_PUBLIC_BASE_URL, the same base-URL convention every
- *  other absolute link in this app uses (see src/lib/auth-shared.ts). */
+/** The exact production redirect URI registered in the Spotify Developer
+ *  Dashboard. Spotify rejects the entire authorize request if the
+ *  redirect_uri it receives isn't byte-for-byte identical to this — so in
+ *  production this is a fixed constant, NOT derived from NEXT_PUBLIC_BASE_URL,
+ *  a request hostname, or any Netlify-provided value (URL/DEPLOY_URL/etc).
+ *  Those can be misconfigured (e.g. NEXT_PUBLIC_BASE_URL pointed at the
+ *  Netlify default subdomain) without breaking anything else in the app, but
+ *  Spotify OAuth would silently break — this constant makes that class of
+ *  misconfiguration impossible for Spotify specifically. */
+const PRODUCTION_SPOTIFY_CALLBACK = "https://magicalmomentsbyreign.com/api/spotify/callback";
+
 export function spotifyRedirectUri(): string {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
+  if (process.env.NODE_ENV === "production") return PRODUCTION_SPOTIFY_CALLBACK;
+  // Local development only — never reached in a deployed environment, since
+  // Next.js production builds (including every Netlify context) set
+  // NODE_ENV=production.
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   return `${base.replace(/\/$/, "")}/api/spotify/callback`;
 }
 
