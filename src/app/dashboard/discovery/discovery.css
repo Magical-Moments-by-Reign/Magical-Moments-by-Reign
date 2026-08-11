@@ -2,7 +2,22 @@
    Scoped to /dashboard/discovery routes. Reuses the shared pg- and btn
    tokens from dashboard-ui.css (espresso, gold, ivory palette) rather
    than inventing a new look — Discovery lives inside the existing Hub,
-   not a redesign of it. */
+   not a redesign of it.
+
+   ── MAGICAL DISCOVERY DESIGN FREEZE ──────────────────────────────
+   The current approved Magical Discovery visual system (the .disc-lux*
+   editorial layer on the main Discovery landing page, plus the .disc-card/
+   .disc-badge/.disc-grid/.disc-nav/.disc-pending system shared by every
+   Discovery subpage, including Near You) must NOT be redesigned or
+   replaced while provider/integration debugging is in progress.
+
+   Provider work — Spotify, Ticketmaster, Sports, TMDB, or any future
+   integration — must render through this existing UI. Add fields inside
+   existing card/section markup and existing classes; don't introduce a new
+   layout, card shape, nav, or typographic system to "improve" a page while
+   fixing its data source. If a real visual change is wanted, that's a
+   separate, explicit request from the owner, not a side effect of a
+   provider fix. */
 
 .disc-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.1rem 0 1.6rem; }
 .disc-nav a { display: inline-flex; align-items: center; padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--ivory); color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; transition: transform .12s, box-shadow .12s; }
