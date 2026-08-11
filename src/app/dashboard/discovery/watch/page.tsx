@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getWatchItems, getFeaturedItem } from "@/lib/discovery/service";
+import { getWatchItems, getWatchDetails, getFeaturedItem } from "@/lib/discovery/service";
 import type { WatchSection } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
@@ -34,6 +34,14 @@ export default async function WatchPage({ searchParams }: { searchParams: Promis
   const section = (SECTIONS.some((s) => s.id === raw) ? raw : "trending") as WatchSection;
 
   const [result, featured] = await Promise.all([getWatchItems(section), getFeaturedItem("watch")]);
+
+  // Streaming availability comes from TMDB's per-title details endpoint, not
+  // the listing endpoint — fetched in parallel here. Each result is cached
+  // 6h (see getWatchDetails/service.ts), so this only hits TMDB live on a
+  // cold cache; every page view inside that window is a DB read.
+  const availableOnById = new Map(
+    (await Promise.all(result.items.map(async (w) => [w.id, (await getWatchDetails(w.id))?.availableOn ?? []] as const))),
+  );
 
   return (
     <div className="disc">
@@ -70,6 +78,17 @@ export default async function WatchPage({ searchParams }: { searchParams: Promis
                   {formatDate(w.firstAirDate) && <span>{formatDate(w.firstAirDate)}</span>}
                 </div>
                 {w.overview && <p>{w.overview}</p>}
+                {availableOnById.get(w.id)?.length ? (
+                  <div className="disc-card__stream">
+                    {availableOnById.get(w.id)!.slice(0, 4).map((p) => (
+                      <span key={p.name}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {p.logoUrl && <img src={p.logoUrl} alt="" />}
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </Link>
           ))}

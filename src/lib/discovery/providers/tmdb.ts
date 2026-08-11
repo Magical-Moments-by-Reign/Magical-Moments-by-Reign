@@ -53,6 +53,7 @@ export interface WatchDetails extends WatchItem {
 export interface MovieDetails extends MovieItem {
   trailerUrl?: string; // YouTube, from TMDB's official videos endpoint
   externalUrl?: string;
+  availableOn: WatchProviderAvailability[];
 }
 
 export interface WatchProvider {
@@ -244,9 +245,10 @@ export const TmdbMovieProvider: MovieProvider = {
   async details(id: string): Promise<MovieDetails | null> {
     if (!tmdbKey() || !id) return null;
     try {
-      const [movieRes, videosRes] = await Promise.all([
+      const [movieRes, videosRes, providersRes] = await Promise.all([
         authedFetch(`/movie/${encodeURIComponent(id)}`),
         authedFetch(`/movie/${encodeURIComponent(id)}/videos`),
+        authedFetch(`/movie/${encodeURIComponent(id)}/watch/providers`),
       ]);
       if (!movieRes.ok) return null;
       const movie = await movieRes.json();
@@ -262,7 +264,17 @@ export const TmdbMovieProvider: MovieProvider = {
         if (trailer?.key) trailerUrl = `https://www.youtube.com/watch?v=${trailer.key}`;
       }
 
-      return { ...base, trailerUrl, externalUrl: movie?.id ? `https://www.themoviedb.org/movie/${movie.id}` : undefined };
+      let availableOn: WatchProviderAvailability[] = [];
+      if (providersRes.ok) {
+        const pdata = await providersRes.json();
+        const us = pdata?.results?.US;
+        const flat = [...(us?.flatrate ?? []), ...(us?.ads ?? [])];
+        availableOn = flat
+          .filter((p: any) => typeof p?.provider_name === "string")
+          .map((p: any) => ({ name: p.provider_name, logoUrl: poster(p.logo_path, "w342"), link: typeof us?.link === "string" ? us.link : undefined }));
+      }
+
+      return { ...base, trailerUrl, availableOn, externalUrl: movie?.id ? `https://www.themoviedb.org/movie/${movie.id}` : undefined };
     } catch {
       return null;
     }

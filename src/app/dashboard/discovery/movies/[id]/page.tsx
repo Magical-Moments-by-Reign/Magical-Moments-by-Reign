@@ -34,6 +34,23 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
 
       {movie.overview && <p className="disc-detail__body">{movie.overview}</p>}
 
+      {movie.availableOn.length > 0 ? (
+        <>
+          <h2 style={{ fontFamily: "var(--font-display, Georgia, serif)", color: "var(--espresso)", fontSize: "1.05rem", margin: "1.4rem 0 .5rem" }}>Where to Watch</h2>
+          <div className="disc-detail__providers">
+            {movie.availableOn.map((p) => (
+              <a key={p.name} className="disc-detail__provider" href={p.link ?? movie.externalUrl ?? "#"} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {p.logoUrl && <img src={p.logoUrl} alt="" />}
+                {p.name}
+              </a>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="disc-empty">Streaming availability isn&rsquo;t listed for this title right now.</p>
+      )}
+
       <div className="pg-actions">
         {movie.externalUrl && <a className="btn btn--gold" href={movie.externalUrl} target="_blank" rel="noopener noreferrer">View Details →</a>}
         {movie.trailerUrl && <a className="btn btn--ghost" href={movie.trailerUrl} target="_blank" rel="noopener noreferrer">Watch Trailer →</a>}
