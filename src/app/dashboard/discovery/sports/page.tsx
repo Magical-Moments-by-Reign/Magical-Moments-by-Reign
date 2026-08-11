@@ -36,24 +36,6 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
       </div>
       <DiscoveryNav active="/dashboard/discovery/sports" />
 
-      <div className="sports-hero">
-        <div>
-          <h2>My Sports</h2>
-          <p>{myFollows.length ? myFollows.map((f) => f.label).join(" · ") : "Follow a sport to personalize your Discovery feed."}</p>
-        </div>
-        <div style={{ display: "flex", gap: ".6rem" }}>
-          <Link href="/dashboard/discovery/sports/my-teams" className="btn btn--sm">My Teams</Link>
-          <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm btn--gold">Magical Picks</Link>
-        </div>
-      </div>
-
-      <div className="disc-filters">
-        {SPORT_CATALOG.map((s) => (
-          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}>{s.label}</Link>
-        ))}
-        <Link href="/dashboard/discovery/sports?sport=high_school" aria-current={sportParam === "high_school"}>High School</Link>
-      </div>
-
       <form className="disc-form" method="get">
         <input type="hidden" name="sport" value={sport} />
         <input type="text" name="q" placeholder="Search sports, leagues, or teams" defaultValue={q ?? ""} aria-label="Search sports, leagues, or teams" />
@@ -82,6 +64,24 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
           )}
         </div>
       )}
+
+      <div className="sports-hero">
+        <div>
+          <h2>My Sports</h2>
+          <p>{myFollows.length ? myFollows.map((f) => f.label).join(" · ") : "Follow a sport to personalize your Discovery feed."}</p>
+        </div>
+        <div style={{ display: "flex", gap: ".6rem" }}>
+          <Link href="/dashboard/discovery/sports/my-teams" className="btn btn--sm">My Teams</Link>
+          <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm btn--gold">Magical Picks</Link>
+        </div>
+      </div>
+
+      <div className="disc-filters">
+        {SPORT_CATALOG.map((s) => (
+          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}>{s.label}</Link>
+        ))}
+        <Link href="/dashboard/discovery/sports?sport=high_school" aria-current={sportParam === "high_school"}>High School</Link>
+      </div>
 
       {sportParam === "high_school" ? (
         <div className="disc-pending">
