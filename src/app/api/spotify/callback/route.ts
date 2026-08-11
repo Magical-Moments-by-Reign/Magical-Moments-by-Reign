@@ -13,18 +13,8 @@ import { requireAccount } from "@/lib/guard";
 import { exchangeCodeForTokens, fetchSpotifyProfile } from "@/lib/spotify/oauth";
 import { completeConnection } from "@/lib/spotify/connection";
 import { SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
-import { prisma } from "@/lib/db";
 
 const RETURN_PATH = "/dashboard/discovery/music";
-const PROFILE_DIAGNOSTIC_KEY = "spotify.profile.last_diagnostic";
-
-async function persistProfileDiagnostic(value: unknown) {
-  await prisma.systemConfig.upsert({
-    where: { key: PROFILE_DIAGNOSTIC_KEY },
-    create: { key: PROFILE_DIAGNOSTIC_KEY, value: JSON.stringify(value) },
-    update: { value: JSON.stringify(value) },
-  }).catch(() => null);
-}
 
 function redirectTo(query: string) {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
@@ -59,12 +49,9 @@ export async function GET(request: Request) {
   const tokens = await exchangeCodeForTokens(code);
   if (!tokens) return redirectTo(`spotify=exchange_failed`);
 
-  const profileResult = await fetchSpotifyProfile(tokens.accessToken);
-  const diagnostic = { ...profileResult.diagnostic, recordedAt: new Date().toISOString() };
-  console.info(`[spotify profile] attempted=${diagnostic.attempted} status=${diagnostic.httpStatus ?? "network"} content_type=${diagnostic.contentType ?? "none"} json_parse=${diagnostic.jsonParse} safe_error_code=${diagnostic.safeErrorCode ?? "none"} safe_error_message=${diagnostic.safeErrorMessage ?? "none"} contains_id=${diagnostic.containsId}`);
-  await persistProfileDiagnostic(diagnostic);
-  if (!profileResult.profile) return redirectTo(`spotify=profile_failed`);
+  const profile = await fetchSpotifyProfile(tokens.accessToken);
+  if (!profile) return redirectTo(`spotify=profile_failed`);
 
-  const saved = await completeConnection(account.id, tokens, profileResult.profile);
+  const saved = await completeConnection(account.id, tokens, profile);
   return redirectTo(saved ? `spotify=connected` : `spotify=save_failed`);
 }

@@ -29,19 +29,6 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Spotify Diagnostic (Temporary)", robots: { index: false } };
 
 const EXPECTED_CALLBACK = "https://magicalmomentsbyreign.com/api/spotify/callback";
-const PROFILE_DIAGNOSTIC_KEY = "spotify.profile.last_diagnostic";
-
-interface StoredProfileDiagnostic {
-  attempted?: boolean;
-  httpStatus?: number | null;
-  contentType?: string | null;
-  jsonParse?: "PASS" | "FAIL";
-  safeErrorCode?: string | null;
-  safeErrorMessage?: string | null;
-  errorCategory?: string;
-  containsId?: boolean;
-  recordedAt?: string;
-}
 
 function Row({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return <p style={{ color: warn ? "#a63a2e" : undefined }}><strong>{label}:</strong> {value}</p>;
@@ -58,14 +45,6 @@ export default async function SpotifyDiagnosticPage() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "(not set — falling back to hardcoded default)";
   const computedRedirect = spotifyRedirectUri();
   const callbackMatches = computedRedirect === EXPECTED_CALLBACK;
-
-  const storedProfileRow = await prisma.systemConfig.findUnique({ where: { key: PROFILE_DIAGNOSTIC_KEY } }).catch(() => null);
-  let profileDiagnostic: StoredProfileDiagnostic | null = null;
-  try {
-    profileDiagnostic = storedProfileRow ? JSON.parse(storedProfileRow.value) as StoredProfileDiagnostic : null;
-  } catch {
-    profileDiagnostic = null;
-  }
 
   // ── 2. Spotify auth test (Client Credentials Flow — validates the
   //      id/secret pair directly, no user consent needed) ──
@@ -163,17 +142,6 @@ export default async function SpotifyDiagnosticPage() {
       <p>1. Member clicks CONNECT SPOTIFY → builds the authorize URL: <strong>{callbackMatches ? "verified correct" : "BLOCKED — see redirect URI mismatch above"}</strong></p>
       <p>2. Credentials recognized by Spotify: <strong>{authSuccess ? "verified live above" : "BLOCKED — see auth test above"}</strong></p>
       <p>3. Spotify consent screen → 4. /api/spotify/callback → 5. state validation → 6. code exchange → 7. profile retrieved → 8. SpotifyConnection saved → 9. redirect to /dashboard/discovery/music: <strong>requires a live click-through — see &ldquo;How to test the real flow&rdquo; below</strong></p>
-
-      <h3>Latest safe /v1/me diagnostic</h3>
-      <p>Populated by the most recent real callback attempt. Tokens, authorization codes, OAuth state, and the profile response are never stored here.</p>
-      <Row label="Profile request attempted" value={profileDiagnostic ? (profileDiagnostic.attempted ? "YES" : "NO") : "NO DIAGNOSTIC RECORDED"} />
-      <Row label="Profile HTTP status" value={profileDiagnostic?.httpStatus != null ? String(profileDiagnostic.httpStatus) : "—"} warn={Boolean(profileDiagnostic && profileDiagnostic.httpStatus !== 200)} />
-      <Row label="Response content type" value={profileDiagnostic?.contentType ?? "—"} />
-      <Row label="JSON parse" value={profileDiagnostic?.jsonParse ?? "—"} warn={profileDiagnostic?.jsonParse === "FAIL"} />
-      <Row label="Spotify safe error" value={[profileDiagnostic?.safeErrorCode, profileDiagnostic?.safeErrorMessage].filter(Boolean).join(": ") || "—"} warn={Boolean(profileDiagnostic?.safeErrorCode || profileDiagnostic?.safeErrorMessage)} />
-      <Row label="Safe error category" value={profileDiagnostic?.errorCategory ?? "—"} warn={Boolean(profileDiagnostic?.errorCategory && profileDiagnostic.errorCategory !== "none")} />
-      <Row label="Response contains id" value={profileDiagnostic ? (profileDiagnostic.containsId ? "YES" : "NO") : "—"} warn={Boolean(profileDiagnostic && !profileDiagnostic.containsId)} />
-      <Row label="Recorded at" value={profileDiagnostic?.recordedAt ?? "—"} />
 
       <hr />
       <h2>4. Database Check — every new table from recent Discovery work</h2>
