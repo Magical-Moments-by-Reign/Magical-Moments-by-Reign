@@ -74,13 +74,13 @@ export default async function DiscoveryPage() {
   } : undefined;
   const secondary: Feature[] = [
     watch.items[1] && { label: "Tonight's Watch", title: watch.items[1].title, image: watch.items[1].backdropUrl ?? watch.items[1].posterUrl, href: `/dashboard/discovery/watch/${watch.items[1].id}` },
-    trending[0] && { label: "Trending Now", title: trending[0].title, description: trending[0].subtitle ?? undefined, image: trending[0].imageUrl ?? undefined, href: trending[0].externalUrl ?? "/dashboard/discovery/trending", external: Boolean(trending[0].externalUrl) },
+    trending[0] && { label: "Trending Now", title: trending[0].title, description: trending[0].description ?? undefined, image: trending[0].imageUrl ?? undefined, href: trending[0].externalUrl ?? "/dashboard/discovery/trending", external: Boolean(trending[0].externalUrl) },
   ].filter(Boolean) as Feature[];
 
   const curated: Feature[] = [
     watch.items[2] && { label: "Watch", title: watch.items[2].title, description: watch.items[2].overview, image: watch.items[2].backdropUrl ?? watch.items[2].posterUrl, href: `/dashboard/discovery/watch/${watch.items[2].id}` },
     movies.items[1] && { label: "Movie", title: movies.items[1].title, description: movies.items[1].overview, image: movies.items[1].backdropUrl ?? movies.items[1].posterUrl, href: `/dashboard/discovery/movies/${movies.items[1].id}` },
-    trending[1] && { label: "Trending", title: trending[1].title, description: trending[1].subtitle ?? undefined, image: trending[1].imageUrl ?? undefined, href: trending[1].externalUrl ?? "/dashboard/discovery/trending", external: Boolean(trending[1].externalUrl) },
+    trending[1] && { label: "Trending", title: trending[1].title, description: trending[1].description ?? undefined, image: trending[1].imageUrl ?? undefined, href: trending[1].externalUrl ?? "/dashboard/discovery/trending", external: Boolean(trending[1].externalUrl) },
     today.items[1] && { label: "Today", title: today.items[1].headline, description: today.items[1].snippet, image: today.items[1].imageUrl, href: today.items[1].url, external: true },
   ].filter(Boolean) as Feature[];
 
