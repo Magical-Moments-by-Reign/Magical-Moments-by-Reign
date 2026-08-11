@@ -14,6 +14,20 @@ const SECTIONS: { id: WatchSection; label: string }[] = [
   { id: "popular", label: "Popular TV" }, { id: "airing_today", label: "Airing Today" },
 ];
 
+// What the section itself tells us honestly — no extra API call needed, and
+// never a claim about a specific streaming service (that only ever comes
+// from TMDB's own watch-provider data on the detail page).
+const SECTION_STATUS: Record<WatchSection, string> = {
+  trending: "Trending Now", new_this_week: "New This Week",
+  popular: "Popular TV", airing_today: "Airing Today",
+};
+
+function formatDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
 export default async function WatchPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   await requireAccount("/dashboard/discovery/watch");
   const { section: raw } = await searchParams;
@@ -49,8 +63,13 @@ export default async function WatchPage({ searchParams }: { searchParams: Promis
             <Link key={w.id} className="disc-card" href={`/dashboard/discovery/watch/${w.id}`}>
               <div className="disc-card__img" style={w.posterUrl ? { backgroundImage: `url(${w.posterUrl})` } : undefined} />
               <div className="disc-card__body">
+                <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
                 <h3>{w.title}</h3>
-                {w.voteAverage ? <div className="disc-card__meta"><span>★ {w.voteAverage.toFixed(1)}</span></div> : null}
+                <div className="disc-card__meta">
+                  {w.voteAverage ? <span>★ {w.voteAverage.toFixed(1)}</span> : null}
+                  {formatDate(w.firstAirDate) && <span>{formatDate(w.firstAirDate)}</span>}
+                </div>
+                {w.overview && <p>{w.overview}</p>}
               </div>
             </Link>
           ))}
