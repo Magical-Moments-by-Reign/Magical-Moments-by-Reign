@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireAccount } from "@/lib/guard";
 import { getNearYouEvents } from "@/lib/discovery/service";
-import type { EventCategory } from "@/lib/discovery/providers/events";
+import { normalizeTicketmasterLocation, type EventCategory } from "@/lib/discovery/providers/events";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
@@ -19,7 +19,9 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
   await requireAccount("/dashboard/discovery/near-you");
   const { location, category: rawCategory } = await searchParams;
   const category = CATEGORIES.some((c) => c.id === rawCategory) ? (rawCategory as EventCategory) : undefined;
-  const result = location?.trim() ? await getNearYouEvents({ location: location.trim(), category }) : null;
+  const normalizedLocation = location?.trim() ? normalizeTicketmasterLocation(location) : null;
+  const invalidLocation = normalizedLocation?.kind === "invalid";
+  const result = location?.trim() && !invalidLocation ? await getNearYouEvents({ location: location.trim(), category, radiusMiles: 25 }) : null;
 
   return (
     <div className="disc">
@@ -27,22 +29,22 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
       <DiscoveryNav active="/dashboard/discovery/near-you" />
 
       <form className="disc-form" method="get">
-        <input type="text" name="location" placeholder="City or ZIP code" defaultValue={location ?? ""} aria-label="City or ZIP code" />
+        <input type="text" name="location" placeholder="Address, city, state, or ZIP" defaultValue={location ?? ""} aria-label="Address, city, state, or ZIP" autoComplete="street-address" />
         {category && <input type="hidden" name="category" value={category} />}
         <button type="submit" className="btn btn--gold">Find Events</button>
       </form>
 
-      {location?.trim() && (
-        <div className="disc-filters">
-          <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location)}`} aria-current={!category ? "true" : undefined}>All</a>
-          {CATEGORIES.map((c) => (
-            <a key={c.id} href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location)}&category=${c.id}`} aria-current={category === c.id ? "true" : undefined}>{c.label}</a>
-          ))}
-        </div>
-      )}
+      <div className="disc-filters">
+        <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}`} aria-current={!category ? "true" : undefined}>All</a>
+        {CATEGORIES.map((c) => (
+          <a key={c.id} href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&category=${c.id}`} aria-current={category === c.id ? "true" : undefined}>{c.label}</a>
+        ))}
+      </div>
 
       {!location?.trim() ? (
-        <p className="disc-empty">Enter a city or ZIP code above to see what&rsquo;s happening nearby.</p>
+        <DiscoveryEmptyState title="Where should we look?">Enter an address, city and state, or ZIP code to discover real events within 25 miles.</DiscoveryEmptyState>
+      ) : invalidLocation ? (
+        <DiscoveryEmptyState title="We couldn’t recognize that location.">Try a ZIP code, a city such as Atlanta, GA, or a street address that includes its city and state.</DiscoveryEmptyState>
       ) : result && result.items.length ? (
         <div className="disc-grid">
           {result.items.map((e) => (
@@ -51,16 +53,20 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
               <div className="disc-card__body">
                 <span className="disc-card__eyebrow">{e.category.replace("_", " & ")}</span><h3>{e.name}</h3>
                 <div className="disc-card__meta">
-                  {e.startsAt && <span>{new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                  {(e.localDate || e.startsAt) && <span>{new Date(`${e.localDate ?? e.startsAt?.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+                  {e.localTime && <span>· {new Date(`2000-01-01T${e.localTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>}
                   {e.venueName && <span>· {e.venueName}</span>}
                 </div>
+                {(e.city || e.state || e.distanceMiles != null) && <div className="disc-card__meta"><span>{[e.city, e.state].filter(Boolean).join(", ")}</span>{e.distanceMiles != null && <span>· {e.distanceMiles.toFixed(1)} mi</span>}</div>}
+                <span className="disc-card__action">View Tickets →</span>
               </div>
             </a>
           ))}
         </div>
       ) : (
-        <DiscoveryEmptyState title={result ? "No events found for that search." : "Events aren’t connected yet."}>{result ? "Try a nearby city or a different category." : "Once an events provider is configured, nearby concerts, festivals, and things to do will appear here."}</DiscoveryEmptyState>
+        <DiscoveryEmptyState title={result ? (category ? "Nothing in this category nearby yet ✦" : "Nothing nearby yet ✦") : "Events are temporarily unavailable."}>{result ? "Try another location or category. Your search covers a 25-mile radius." : "The event provider could not be reached. Please try again shortly."}</DiscoveryEmptyState>
       )}
+      {result?.providerName && <p className="disc-empty">{result.attribution}</p>}
     </div>
   );
 }
