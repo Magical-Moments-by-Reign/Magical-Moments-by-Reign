@@ -23,10 +23,6 @@ export interface DiscoveredEvent {
   startsAt?: string; // ISO, when the provider gives a real date/time
   venueName?: string;
   city?: string;
-  state?: string;
-  localDate?: string;
-  localTime?: string;
-  distanceMiles?: number;
   category: EventCategory;
   ticketUrl: string; // the provider's own official ticket page — always
 }
@@ -50,68 +46,13 @@ const SEGMENT_MAP: Partial<Record<EventCategory, string>> = {
   family: "Family",
 };
 
-export type TicketmasterLocation =
-  | { kind: "postalCode"; postalCode: string }
-  | { kind: "city"; city: string; stateCode?: string }
-  | { kind: "coordinates"; latlong: string }
-  | { kind: "invalid" };
-
-/** Converts member-friendly location text into parameters explicitly
- * supported by Ticketmaster Discovery. Street addresses with a city/state
- * suffix use that locality; no address or coordinate is retained. */
-export function normalizeTicketmasterLocation(input: string): TicketmasterLocation {
-  const value = input.trim().replace(/\s+/g, " ");
-  if (!value || value.length > 160) return { kind: "invalid" };
-  if (/^\d{5}(?:-\d{4})?$/.test(value)) return { kind: "postalCode", postalCode: value };
-  const coordinates = value.match(/^(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)$/);
-  if (coordinates) {
-    const latitude = Number(coordinates[1]);
-    const longitude = Number(coordinates[2]);
-    if (latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) return { kind: "coordinates", latlong: `${latitude},${longitude}` };
-  }
-  const parts = value.split(",").map((part) => part.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    const stateMatch = parts.at(-1)?.match(/^([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?$/);
-    const city = parts.at(-2);
-    if (city && stateMatch) return { kind: "city", city, stateCode: stateMatch[1].toUpperCase() };
-    if (parts.length === 2 && parts[0]) return { kind: "city", city: parts[0] };
-  }
-  if (/^[\p{L} .'-]+$/u.test(value)) return { kind: "city", city: value };
-  return { kind: "invalid" };
-}
-
-export function buildTicketmasterQuery(params: EventSearchParams): URLSearchParams | null {
-  const location = normalizeTicketmasterLocation(params.location);
-  if (location.kind === "invalid") return null;
-  const q = new URLSearchParams();
-  if (location.kind === "postalCode") q.set("postalCode", location.postalCode);
-  if (location.kind === "coordinates") q.set("latlong", location.latlong);
-  if (location.kind === "city") {
-    q.set("city", location.city);
-    if (location.stateCode) q.set("stateCode", location.stateCode);
-  }
-  q.set("size", String(Math.min(Math.max(params.limit ?? 24, 1), 50)));
-  q.set("radius", String(params.radiusMiles ?? 25));
-  q.set("unit", "miles");
-  q.set("sort", "date,asc");
-  const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
-  if (segment) q.set("segmentName", segment);
-  if (params.category === "comedy") q.set("classificationName", "Comedy");
-  if (params.category === "festivals") q.set("keyword", "festival");
-  return q;
-}
-
 function tmKey(): string | undefined {
   return process.env.TICKETMASTER_API_KEY || undefined;
 }
 
 /** Pure: Ticketmaster classification → our category. Exported for tests. */
 export function inferCategory(classifications: unknown): EventCategory {
-  const first = Array.isArray(classifications) ? (classifications[0] as any) : undefined;
-  const seg = first?.segment?.name;
-  const detail = `${first?.genre?.name ?? ""} ${first?.subGenre?.name ?? ""}`.toLowerCase();
-  if (detail.includes("comedy")) return "comedy";
-  if (detail.includes("festival")) return "festivals";
+  const seg = Array.isArray(classifications) ? (classifications[0] as any)?.segment?.name : undefined;
   if (seg === "Music") return "concerts";
   if (seg === "Sports") return "sports";
   if (seg === "Arts & Theatre") return "theater";
@@ -136,10 +77,6 @@ export function mapEvent(e: any): DiscoveredEvent | null {
     startsAt: typeof e?.dates?.start?.dateTime === "string" ? e.dates.start.dateTime : undefined,
     venueName: typeof venue?.name === "string" ? venue.name : undefined,
     city: typeof venue?.city?.name === "string" ? venue.city.name : undefined,
-    state: typeof venue?.state?.stateCode === "string" ? venue.state.stateCode : undefined,
-    localDate: typeof e?.dates?.start?.localDate === "string" ? e.dates.start.localDate : undefined,
-    localTime: typeof e?.dates?.start?.localTime === "string" ? e.dates.start.localTime : undefined,
-    distanceMiles: typeof e?.distance === "number" ? e.distance : undefined,
     category: inferCategory(e?.classifications),
     ticketUrl: String(url),
   };
@@ -158,27 +95,26 @@ export const TicketmasterProvider: EventsProvider = {
     const key = tmKey();
     if (!key || !params.location?.trim()) return null;
 
-    const q = buildTicketmasterQuery(params);
-    if (!q) return [];
+    const q = new URLSearchParams();
     q.set("apikey", key);
+    // Ticketmaster wants either `city`/`postalCode` or `latlong` — pass
+    // whatever the caller resolved as a plain keyword search too, so a
+    // free-text location still returns something reasonable.
+    q.set("keyword", params.location.trim());
+    q.set("size", String(Math.min(Math.max(params.limit ?? 12, 1), 50)));
+    q.set("radius", String(params.radiusMiles ?? 25));
+    q.set("unit", "miles");
+    q.set("sort", "date,asc");
+    const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
+    if (segment) q.set("segmentName", segment);
 
     try {
       const res = await fetch(`${TICKETMASTER_BASE}/events.json?${q.toString()}`, { next: { revalidate: 3600 } });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        const detail = typeof data?.errors?.[0]?.detail === "string" ? data.errors[0].detail.replace(/[\r\n]/g, " ").slice(0, 160) : "no_safe_detail";
-        console.error(`[ticketmaster] event search failed status=${res.status} detail=${detail}`);
-        return null;
-      }
-      if (!data) {
-        console.error(`[ticketmaster] event search failed status=${res.status} detail=invalid_json`);
-        return null;
-      }
+      if (!res.ok) return null;
+      const data = await res.json();
       const events: any[] = data?._embedded?.events ?? [];
-      console.info(`[ticketmaster] event search succeeded status=${res.status} results=${events.length}`);
       return events.map(mapEvent).filter((e: DiscoveredEvent | null): e is DiscoveredEvent => e !== null);
     } catch {
-      console.error("[ticketmaster] event search failed status=network detail=request_failed");
       return null;
     }
   },

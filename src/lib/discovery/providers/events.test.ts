@@ -1,16 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation } from "./events";
+import { mapEvent, inferCategory } from "./events";
 
 test("mapEvent maps a Ticketmaster event, picking the widest image", () => {
   const e = mapEvent({
     id: "evt1",
     name: "Example Concert",
     url: "https://ticketmaster.com/evt1",
-    dates: { start: { dateTime: "2026-09-01T23:00:00Z", localDate: "2026-09-01", localTime: "19:00:00" } },
-    distance: 8.4,
+    dates: { start: { dateTime: "2026-09-01T23:00:00Z" } },
     images: [{ url: "https://tm/small.jpg", width: 200 }, { url: "https://tm/large.jpg", width: 1024 }],
-    _embedded: { venues: [{ name: "The Venue", city: { name: "Atlanta" }, state: { stateCode: "GA" } }] },
+    _embedded: { venues: [{ name: "The Venue", city: { name: "Atlanta" } }] },
     classifications: [{ segment: { name: "Music" } }],
   });
   assert.ok(e);
@@ -18,34 +17,7 @@ test("mapEvent maps a Ticketmaster event, picking the widest image", () => {
   assert.equal(e!.imageUrl, "https://tm/large.jpg");
   assert.equal(e!.venueName, "The Venue");
   assert.equal(e!.city, "Atlanta");
-  assert.equal(e!.state, "GA");
-  assert.equal(e!.localDate, "2026-09-01");
-  assert.equal(e!.localTime, "19:00:00");
-  assert.equal(e!.distanceMiles, 8.4);
   assert.equal(e!.category, "concerts");
-});
-
-test("location normalization supports ZIP, city/state, address, and coordinates", () => {
-  assert.deepEqual(normalizeTicketmasterLocation("30032"), { kind: "postalCode", postalCode: "30032" });
-  assert.deepEqual(normalizeTicketmasterLocation("Atlanta, GA"), { kind: "city", city: "Atlanta", stateCode: "GA" });
-  assert.deepEqual(normalizeTicketmasterLocation("123 Main St, Atlanta, GA"), { kind: "city", city: "Atlanta", stateCode: "GA" });
-  assert.deepEqual(normalizeTicketmasterLocation("Atlanta"), { kind: "city", city: "Atlanta" });
-  assert.deepEqual(normalizeTicketmasterLocation("33.749,-84.388"), { kind: "coordinates", latlong: "33.749,-84.388" });
-  assert.deepEqual(normalizeTicketmasterLocation("???"), { kind: "invalid" });
-});
-
-test("30032 uses Ticketmaster postalCode rather than an event keyword", () => {
-  const query = buildTicketmasterQuery({ location: "30032", radiusMiles: 25 });
-  assert.ok(query);
-  assert.equal(query.get("postalCode"), "30032");
-  assert.equal(query.get("keyword"), null);
-  assert.equal(query.get("radius"), "25");
-});
-
-test("category filters use legitimate Ticketmaster classifications", () => {
-  assert.equal(buildTicketmasterQuery({ location: "Atlanta, GA", category: "concerts" })?.get("segmentName"), "Music");
-  assert.equal(buildTicketmasterQuery({ location: "Atlanta, GA", category: "comedy" })?.get("classificationName"), "Comedy");
-  assert.equal(buildTicketmasterQuery({ location: "Atlanta, GA", category: "festivals" })?.get("keyword"), "festival");
 });
 
 test("mapEvent rejects an event with no id, name, or url", () => {

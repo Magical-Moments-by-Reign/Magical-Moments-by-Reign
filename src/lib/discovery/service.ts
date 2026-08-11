@@ -87,9 +87,7 @@ export async function getMusicChart(genre: MusicGenre): Promise<MusicChartResult
 
 export async function getNearYouEvents(params: { location: string; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
   if (!params.location?.trim()) return { items: [], source: "unavailable" };
-  // queryVersion invalidates empty cache rows produced by the former
-  // `keyword=<location>` request, which was not a geographic search.
-  const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor({ ...params, queryVersion: 2 }), TTL.events, () =>
+  const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor(params), TTL.events, () =>
     TicketmasterProvider.search(params));
   if (!cached) return { items: [], source: "unavailable" };
   return { items: cached.data, source: cached.source, providerName: TicketmasterProvider.name, attribution: TicketmasterProvider.attribution, fetchedAt: cached.fetchedAt.toISOString() };
