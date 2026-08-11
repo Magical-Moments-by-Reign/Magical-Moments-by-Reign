@@ -28,13 +28,13 @@ const SESSION_COOKIE = "mmr_session";
 // deploy-preview subdomain (a different string) is never caught by this.
 const NETLIFY_DEFAULT_HOST = "magical-m.netlify.app";
 
-function canonicalHost(): string {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com").host;
-  } catch {
-    return "magicalmomentsbyreign.com";
-  }
-}
+// Hardcoded, not derived from NEXT_PUBLIC_BASE_URL: that variable has
+// repeatedly been found set to NETLIFY_DEFAULT_HOST itself in this app's
+// actual Netlify environment, which would make this redirect a no-op —
+// "escaping" the Netlify subdomain by sending the browser right back to it.
+// This check exists specifically to redirect AWAY from that one host, so
+// its target can't be sourced from a variable that might equal it.
+const CANONICAL_PRODUCTION_HOST = "magicalmomentsbyreign.com";
 
 // Authenticated, Account-based areas activated by the platform foundation.
 // /dashboard and /create now require a real Account session (bridged to the
@@ -51,7 +51,7 @@ function middlewareImpl(req: NextRequest): NextResponse {
   if (process.env.NODE_ENV === "production" && req.nextUrl.hostname === NETLIFY_DEFAULT_HOST) {
     const canonical = req.nextUrl.clone();
     canonical.protocol = "https";
-    canonical.host = canonicalHost();
+    canonical.host = CANONICAL_PRODUCTION_HOST;
     canonical.port = "";
     return NextResponse.redirect(canonical, 308); // preserves method + path + query
   }

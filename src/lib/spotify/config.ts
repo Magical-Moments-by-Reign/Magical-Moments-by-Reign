@@ -17,24 +17,31 @@ export function spotifyConfigured(): boolean {
   return Boolean(spotifyClientId() && spotifyClientSecret());
 }
 
-/** The exact production redirect URI registered in the Spotify Developer
- *  Dashboard. Spotify rejects the entire authorize request if the
- *  redirect_uri it receives isn't byte-for-byte identical to this — so in
- *  production this is a fixed constant, NOT derived from NEXT_PUBLIC_BASE_URL,
- *  a request hostname, or any Netlify-provided value (URL/DEPLOY_URL/etc).
- *  Those can be misconfigured (e.g. NEXT_PUBLIC_BASE_URL pointed at the
- *  Netlify default subdomain) without breaking anything else in the app, but
- *  Spotify OAuth would silently break — this constant makes that class of
- *  misconfiguration impossible for Spotify specifically. */
-const PRODUCTION_SPOTIFY_CALLBACK = "https://magicalmomentsbyreign.com/api/spotify/callback";
+/** The one production origin every Spotify redirect — outbound to Spotify
+ *  AND the return trip back to the Music page, success or failure — must
+ *  use. Deliberately NOT derived from NEXT_PUBLIC_BASE_URL: that variable
+ *  has repeatedly been found set to the Netlify default subdomain
+ *  (magical-m.netlify.app) in this app's actual Netlify environment, which
+ *  broke Spotify OAuth in more than one place before this was hardcoded —
+ *  the redirect_uri sent to Spotify, and separately the callback route's
+ *  own outgoing redirect back to /dashboard/discovery/music. A single
+ *  shared constant closes both at once, and any future Spotify redirect
+ *  should be built from spotifyCanonicalBase() rather than reading
+ *  NEXT_PUBLIC_BASE_URL directly. Local development still falls back to
+ *  NEXT_PUBLIC_BASE_URL/localhost, since that path never talks to the real
+ *  Spotify API and isn't registered with Spotify at all. */
+const PRODUCTION_ORIGIN = "https://magicalmomentsbyreign.com";
 
+export function spotifyCanonicalBase(): string {
+  if (process.env.NODE_ENV === "production") return PRODUCTION_ORIGIN;
+  return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+}
+
+/** The exact redirect URI registered in the Spotify Developer Dashboard —
+ *  Spotify rejects the entire authorize request if the value it receives
+ *  isn't byte-for-byte identical to this. */
 export function spotifyRedirectUri(): string {
-  if (process.env.NODE_ENV === "production") return PRODUCTION_SPOTIFY_CALLBACK;
-  // Local development only — never reached in a deployed environment, since
-  // Next.js production builds (including every Netlify context) set
-  // NODE_ENV=production.
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  return `${base.replace(/\/$/, "")}/api/spotify/callback`;
+  return `${spotifyCanonicalBase()}/api/spotify/callback`;
 }
 
 /** Scopes requested for the member-facing Spotify connection. Kept minimal —
