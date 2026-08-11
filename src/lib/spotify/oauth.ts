@@ -125,10 +125,70 @@ export interface SpotifyProfile {
   displayName: string | null;
 }
 
-export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyProfile | null> {
-  const res = await fetch(PROFILE_URL, { headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => null);
-  if (!res || !res.ok) return null;
+export interface SpotifyProfileDiagnostic {
+  attempted: boolean;
+  httpStatus: number | null;
+  contentType: string | null;
+  jsonParse: "PASS" | "FAIL";
+  safeErrorCode: string | null;
+  safeErrorMessage: string | null;
+  errorCategory: "none" | "network" | "unauthorized" | "forbidden" | "rate_limited" | "spotify_error" | "invalid_json" | "missing_id";
+  containsId: boolean;
+}
+
+export interface SpotifyProfileResult {
+  profile: SpotifyProfile | null;
+  diagnostic: SpotifyProfileDiagnostic;
+}
+
+function safeSpotifyError(value: unknown): { code: string | null; message: string | null } {
+  if (!value || typeof value !== "object") return { code: null, message: null };
+  const body = value as { error?: unknown };
+  const error = body.error;
+  if (!error || typeof error !== "object") return { code: null, message: null };
+  const detail = error as { status?: unknown; code?: unknown; message?: unknown };
+  const rawCode = detail.status ?? detail.code;
+  const code = typeof rawCode === "string" || typeof rawCode === "number" ? String(rawCode).slice(0, 40) : null;
+  const message = typeof detail.message === "string" ? detail.message.replace(/[\r\n]/g, " ").slice(0, 180) : null;
+  return { code, message };
+}
+
+/** Calls Spotify's current-user endpoint and returns only the two profile
+ * fields the app needs plus a credential-free diagnostic summary. The body,
+ * bearer token, and personal profile fields are never logged or persisted. */
+export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyProfileResult> {
+  const res = await fetch(PROFILE_URL, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+    cache: "no-store",
+  }).catch(() => null);
+  if (!res) {
+    return { profile: null, diagnostic: { attempted: true, httpStatus: null, contentType: null, jsonParse: "FAIL", safeErrorCode: "network_error", safeErrorMessage: "Spotify profile request could not be completed", errorCategory: "network", containsId: false } };
+  }
+
+  const contentType = res.headers.get("content-type");
   const json = await res.json().catch(() => null);
-  if (!json?.id) return null;
-  return { id: json.id, displayName: json.display_name ?? null };
+  const parsed = json !== null;
+  const containsId = Boolean(json && typeof json === "object" && "id" in json && typeof (json as { id?: unknown }).id === "string" && (json as { id: string }).id);
+  const safeError = safeSpotifyError(json);
+  const errorCategory = res.status === 401 ? "unauthorized"
+    : res.status === 403 ? "forbidden"
+      : res.status === 429 ? "rate_limited"
+        : !parsed ? "invalid_json"
+          : !res.ok ? "spotify_error"
+            : !containsId ? "missing_id"
+              : "none";
+  const diagnostic: SpotifyProfileDiagnostic = {
+    attempted: true,
+    httpStatus: res.status,
+    contentType,
+    jsonParse: parsed ? "PASS" : "FAIL",
+    safeErrorCode: safeError.code,
+    safeErrorMessage: safeError.message,
+    errorCategory,
+    containsId,
+  };
+  if (!res.ok || !containsId) return { profile: null, diagnostic };
+  const body = json as { id: string; display_name?: unknown };
+  return { profile: { id: body.id, displayName: typeof body.display_name === "string" ? body.display_name : null }, diagnostic };
 }
