@@ -164,11 +164,21 @@ export const TicketmasterProvider: EventsProvider = {
 
     try {
       const res = await fetch(`${TICKETMASTER_BASE}/events.json?${q.toString()}`, { next: { revalidate: 3600 } });
-      if (!res.ok) return null;
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const detail = typeof data?.errors?.[0]?.detail === "string" ? data.errors[0].detail.replace(/[\r\n]/g, " ").slice(0, 160) : "no_safe_detail";
+        console.error(`[ticketmaster] event search failed status=${res.status} detail=${detail}`);
+        return null;
+      }
+      if (!data) {
+        console.error(`[ticketmaster] event search failed status=${res.status} detail=invalid_json`);
+        return null;
+      }
       const events: any[] = data?._embedded?.events ?? [];
+      console.info(`[ticketmaster] event search succeeded status=${res.status} results=${events.length}`);
       return events.map(mapEvent).filter((e: DiscoveredEvent | null): e is DiscoveredEvent => e !== null);
     } catch {
+      console.error("[ticketmaster] event search failed status=network detail=request_failed");
       return null;
     }
   },

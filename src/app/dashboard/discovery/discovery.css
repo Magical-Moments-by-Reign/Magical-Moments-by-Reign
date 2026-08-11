@@ -34,6 +34,20 @@
 .disc-card__meta { display: flex; align-items: center; gap: .4rem; margin-top: .5rem; color: var(--ink-soft); font-size: .68rem; }
 .disc-card__action { display: inline-block; margin-top: .8rem; color: var(--gold-deep); font-size: .72rem; font-weight: 800; }
 
+.near-partner { margin-bottom: 1.25rem; padding: clamp(1.5rem, 3vw, 2.4rem); border: 1px solid #d7c6a7; border-radius: 18px; background: radial-gradient(circle at 90% 10%, rgba(205,170,91,.2), transparent 34%), linear-gradient(135deg, #fffaf1, #f3e8d5); box-shadow: 0 12px 30px rgba(55,39,23,.08); }
+.near-partner__brands { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.15rem; color: #8b6a2b; }
+.near-partner__brands > span { color: #b49a68; font-family: var(--font-display, Georgia, serif); font-size: 1.35rem; }
+.near-partner__brands strong { color: #026cdf; font-size: clamp(1.15rem, 2.5vw, 1.65rem); font-weight: 800; letter-spacing: -.04em; }
+.near-partner__logo { width: auto; height: 48px; object-fit: contain; }
+.near-partner__eyebrow { color: var(--gold-deep); font-size: .66rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.near-partner h2 { margin: .45rem 0 .55rem; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 500; letter-spacing: -.025em; }
+.near-partner p { max-width: 68ch; margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.6; }
+.near-search { margin-bottom: 1rem; padding: 1.15rem; border: 1px solid var(--line); border-radius: 14px; background: var(--ivory); }
+.near-search > label { display: block; margin-bottom: .6rem; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: 1.1rem; font-weight: 600; }
+.near-search__row { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: .65rem; }
+.near-search input, .near-search select { min-width: 0; padding: .7rem .85rem; border: 1px solid var(--line); border-radius: 10px; background: #fffdf8; color: var(--ink); font: inherit; }
+.near-empty { display: grid; gap: .8rem; justify-items: center; }
+
 .disc-badge { display: inline-flex; align-items: center; padding: .18rem .55rem; border-radius: 999px; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f1e8d6; color: var(--gold-deep); border: 1px solid var(--line); }
 .disc-badge--live { background: #e7f3ea; color: #2f7a45; border-color: #cfe8d5; }
 .disc-badge--manual { background: #f1e8d6; color: var(--gold-deep); }
@@ -144,6 +158,9 @@
   .disc-nav a, .disc-filters a { flex: 0 0 auto; }
   .disc-detail__hero { min-height: 200px; }
   .sports-matchup__team img { width: 34px; height: 34px; }
+  .near-partner__brands { gap: .7rem; }
+  .near-partner__logo { height: 38px; max-width: 48%; }
+  .near-search__row { grid-template-columns: 1fr; }
 }
 
 /* ── Discovery landing: luxury editorial edition ─────────────── */
