@@ -48,29 +48,8 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
       </div>
       <DiscoveryNav active="/dashboard/discovery/music" />
 
-      {spotifyStatus && SPOTIFY_STATUS_MESSAGES[spotifyStatus] && (
-        <div className={`disc-pending`} style={{ marginBottom: "1.4rem" }}>
-          <b>{SPOTIFY_STATUS_MESSAGES[spotifyStatus]}</b>
-        </div>
-      )}
-
-      <div className="disc-connect" style={{ marginBottom: "1.4rem" }}>
-        <div>
-          <h2>Spotify</h2>
-          <p>{spotify.connected ? `Connected as ${spotify.displayName ?? "your Spotify account"}.` : "Connect your Spotify account to search artists, albums, and tracks, and to personalize Magical Discovery Music."}</p>
-        </div>
-        {spotify.connected ? (
-          <form action={disconnectSpotifyAction}>
-            <button type="submit" className="btn btn--sm btn--warn">Disconnect Spotify</button>
-          </form>
-        ) : (
-          <a href="/api/spotify/authorize" className="btn btn--sm btn--gold">Connect Spotify</a>
-        )}
-      </div>
-
       {spotify.connected && (
         <div className="disc-section">
-          <div className="disc-section__head"><h2>Search Spotify</h2></div>
           <form className="disc-form" method="get">
             <input type="hidden" name="genre" value={genre} />
             <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label="Search Spotify" />
@@ -129,6 +108,26 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
           )}
         </div>
       )}
+
+      {spotifyStatus && SPOTIFY_STATUS_MESSAGES[spotifyStatus] && (
+        <div className={`disc-pending`} style={{ marginBottom: "1.4rem" }}>
+          <b>{SPOTIFY_STATUS_MESSAGES[spotifyStatus]}</b>
+        </div>
+      )}
+
+      <div className="disc-connect" style={{ marginBottom: "1.4rem" }}>
+        <div>
+          <h2>Spotify</h2>
+          <p>{spotify.connected ? `Connected as ${spotify.displayName ?? "your Spotify account"}.` : "Connect your Spotify account to search artists, albums, and tracks, and to personalize Magical Discovery Music."}</p>
+        </div>
+        {spotify.connected ? (
+          <form action={disconnectSpotifyAction}>
+            <button type="submit" className="btn btn--sm btn--warn">Disconnect Spotify</button>
+          </form>
+        ) : (
+          <a href="/api/spotify/authorize" className="btn btn--sm btn--gold">Connect Spotify</a>
+        )}
+      </div>
 
       <div className="disc-filters">
         {GENRES.map((g) => (
