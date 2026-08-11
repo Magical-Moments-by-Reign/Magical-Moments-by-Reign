@@ -3,6 +3,7 @@ import { requireAccount } from "@/lib/guard";
 import { getNearYouEvents } from "@/lib/discovery/service";
 import type { EventCategory } from "@/lib/discovery/providers/events";
 import DiscoveryNav from "../_nav";
+import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +23,7 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Near You</h1>
-        <p className="pg-sub">Things you can actually go do — concerts, festivals, theater, and more, near a city you choose. We only look up events where you tell us to.</p>
-      </div>
+      <DiscoveryPageHeader title="Near You" description={<>Things you can actually go do — concerts, festivals, theater, and more, near a city you choose. We only look up events where you tell us to.</>} />
       <DiscoveryNav active="/dashboard/discovery/near-you" />
 
       <form className="disc-form" method="get">
@@ -52,7 +49,7 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
             <a key={e.id} className="disc-card" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
               <div className="disc-card__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
               <div className="disc-card__body">
-                <h3>{e.name}</h3>
+                <span className="disc-card__eyebrow">{e.category.replace("_", " & ")}</span><h3>{e.name}</h3>
                 <div className="disc-card__meta">
                   {e.startsAt && <span>{new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                   {e.venueName && <span>· {e.venueName}</span>}
@@ -62,10 +59,7 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
           ))}
         </div>
       ) : (
-        <div className="disc-pending">
-          <b>{result ? "No events found for that search." : "Events aren’t connected yet."}</b>
-          {result ? "Try a nearby city or a different category." : "Once an events provider is configured, nearby concerts, festivals, and things to do will appear here."}
-        </div>
+        <DiscoveryEmptyState title={result ? "No events found for that search." : "Events aren’t connected yet."}>{result ? "Try a nearby city or a different category." : "Once an events provider is configured, nearby concerts, festivals, and things to do will appear here."}</DiscoveryEmptyState>
       )}
     </div>
   );

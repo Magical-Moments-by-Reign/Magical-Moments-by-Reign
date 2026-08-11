@@ -4,7 +4,12 @@
    than inventing a new look — Discovery lives inside the existing Hub,
    not a redesign of it. */
 
-.disc-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.1rem 0 1.6rem; }
+.disc { width: 100%; color: var(--ink); }
+.disc-page-head { max-width: 760px; margin: 0 0 1.25rem; }
+.disc-page-head__eyebrow { display: block; margin-bottom: .45rem; color: var(--gold-deep); font-size: .64rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+.disc-page-head h1 { margin: 0 0 .55rem; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: clamp(2.2rem, 4.5vw, 3.8rem); font-weight: 500; letter-spacing: -.03em; line-height: 1; }
+.disc-page-head p { max-width: 66ch; margin: 0; color: var(--ink-soft); font-size: .88rem; line-height: 1.65; }
+.disc-nav { display: flex; flex-wrap: nowrap; gap: .65rem; margin: 1.1rem 0 .9rem; padding-bottom: .7rem; overflow-x: auto; scrollbar-width: thin; }
 .disc-nav a { display: inline-flex; align-items: center; padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--ivory); color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; transition: transform .12s, box-shadow .12s; }
 .disc-nav a:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(44,33,26,.1); }
 .disc-nav a[aria-current="page"] { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: var(--gold-deep); }
@@ -14,16 +19,18 @@
 .disc-section__head h2 { font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.25rem; margin: 0; }
 .disc-section__head a { color: var(--gold-deep); font-size: .78rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
 
-.disc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.disc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.1rem; }
 .disc-grid--wide { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
 .disc-card { min-width: 0; overflow: hidden; text-decoration: none; color: inherit; background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 9px 26px rgba(44,33,26,.07); transition: transform .16s, box-shadow .16s; display: block; }
 .disc-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(44,33,26,.12); }
-.disc-card__img { height: 150px; background-size: cover; background-position: center; background-color: #efe6d5; }
-.disc-card__body { padding: .75rem .85rem .9rem; }
+.disc-card__img { aspect-ratio: 16 / 10; background-size: cover; background-position: center; background-color: #efe6d5; }
+.disc-card--portrait .disc-card__img { aspect-ratio: 2 / 2.8; }
+.disc-card--square .disc-card__img { aspect-ratio: 1; }
+.disc-card__body { padding: 1rem 1.05rem 1.1rem; }
 .disc-card__eyebrow { display: block; color: var(--gold-deep); text-transform: uppercase; letter-spacing: .08em; font-size: .58rem; font-weight: 700; margin-bottom: .25rem; }
-.disc-card h3 { font-size: .96rem; line-height: 1.25; margin: 0 0 .3rem; color: var(--espresso); }
-.disc-card p { color: var(--ink-soft); font-size: .74rem; line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.disc-card h3 { font-family: var(--font-display, Georgia, serif); font-size: 1.08rem; font-weight: 500; line-height: 1.25; margin: 0 0 .4rem; color: var(--espresso); }
+.disc-card p { color: var(--ink-soft); font-size: .78rem; line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .disc-card__meta { display: flex; align-items: center; gap: .4rem; margin-top: .5rem; color: var(--ink-soft); font-size: .68rem; }
 
 .disc-badge { display: inline-flex; align-items: center; padding: .18rem .55rem; border-radius: 999px; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f1e8d6; color: var(--gold-deep); border: 1px solid var(--line); }
@@ -49,10 +56,12 @@
 .disc-admin__list-row .grow b { display: block; font-size: .86rem; color: var(--espresso); }
 .disc-admin__list-row .grow span { display: block; font-size: .72rem; color: var(--ink-soft); }
 
-.disc-pending { border: 1px dashed var(--line); border-radius: 14px; padding: 1.4rem 1.2rem; text-align: center; color: var(--ink-soft); background: #fbf6ee; }
+.disc-pending { display: flex; align-items: center; justify-content: center; gap: .85rem; min-height: 130px; border: 1px dashed #d5c7af; border-radius: 14px; padding: 1.4rem 1.2rem; text-align: left; color: var(--ink-soft); background: linear-gradient(135deg, #fdf9f1, #f7efe2); }
+.disc-pending__mark { flex: none; color: var(--gold-deep); font-size: 1.15rem; }
 .disc-pending b { display: block; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: 1.05rem; margin-bottom: .35rem; }
+.disc-pending p { max-width: 58ch; margin: 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.5; }
 
-.disc-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.3rem; }
+.disc-filters { display: flex; flex-wrap: nowrap; gap: .5rem; margin-bottom: 1.5rem; padding: .15rem 0 .5rem; overflow-x: auto; scrollbar-width: thin; }
 .disc-filters a { padding: .4rem .85rem; border-radius: 999px; border: 1px solid var(--line); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; color: var(--ink-soft); background: var(--ivory); }
 .disc-filters a[aria-current="true"] { background: var(--espresso); color: #fff9ed; border-color: var(--espresso); }
 
@@ -130,7 +139,8 @@
 .disc-connect p { margin: 0; color: var(--ink-soft); font-size: .84rem; }
 
 @media (max-width: 680px) {
-  .disc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .disc-grid, .disc-grid--wide { grid-template-columns: 1fr; }
+  .disc-nav a, .disc-filters a { flex: 0 0 auto; }
   .disc-detail__hero { min-height: 200px; }
   .sports-matchup__team img { width: 34px; height: 34px; }
 }
