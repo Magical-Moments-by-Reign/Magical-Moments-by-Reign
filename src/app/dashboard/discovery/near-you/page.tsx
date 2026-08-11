@@ -13,6 +13,7 @@ const CATEGORIES: { id: EventCategory; label: string }[] = [
   { id: "theater", label: "Theater" }, { id: "sports", label: "Sports Events" }, { id: "family", label: "Family Activities" },
   { id: "arts_culture", label: "Arts & Culture" }, { id: "other", label: "Other" },
 ];
+const CATEGORY_LABEL: Record<EventCategory, string> = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label])) as Record<EventCategory, string>;
 
 export default async function NearYouPage({ searchParams }: { searchParams: Promise<{ location?: string; category?: string }> }) {
   await requireAccount("/dashboard/discovery/near-you");
@@ -49,22 +50,36 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
       ) : result && result.items.length ? (
         <div className="disc-grid">
           {result.items.map((e) => (
-            <a key={e.id} className="disc-card" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
+            <a key={e.id} className="disc-card disc-card--event" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
               <div className="disc-card__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
               <div className="disc-card__body">
+                <span className="disc-badge">{CATEGORY_LABEL[e.category]}</span>
                 <h3>{e.name}</h3>
                 <div className="disc-card__meta">
-                  {e.startsAt && <span>{new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-                  {e.venueName && <span>· {e.venueName}</span>}
+                  {e.startsAt && (
+                    <span>
+                      {new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      {" · "}
+                      {new Date(e.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  )}
                 </div>
+                {e.venueName && <div className="disc-card__meta">{e.venueName}</div>}
+                {(e.city || e.state) && <div className="disc-card__meta">{[e.city, e.state].filter(Boolean).join(", ")}</div>}
+                <span className="disc-card__cta">View Tickets →</span>
               </div>
             </a>
           ))}
         </div>
+      ) : result?.source === "unavailable" ? (
+        <div className="disc-pending">
+          <b>We couldn&rsquo;t load nearby events right now.</b>
+          Ticketmaster didn&rsquo;t respond successfully to that search — try again in a moment.
+        </div>
       ) : (
         <div className="disc-pending">
-          <b>{result ? "No events found for that search." : "Events aren’t connected yet."}</b>
-          {result ? "Try a nearby city or a different category." : "Once an events provider is configured, nearby concerts, festivals, and things to do will appear here."}
+          <b>No events found for that search.</b>
+          Try a nearby city, a wider area, or a different category.
         </div>
       )}
     </div>
