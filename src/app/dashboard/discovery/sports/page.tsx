@@ -7,6 +7,7 @@ import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discove
 import { followSportAction, followTeamAction } from "./actions";
 import { MatchupCard } from "./MatchupCard";
 import DiscoveryNav from "../_nav";
+import { DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +30,15 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Sports</h1>
-        <p className="pg-sub">Discover, follow, predict, and play — a Magical Moments take on game day, never a betting product.</p>
-      </div>
+      <DiscoveryPageHeader title="Sports" description={<>Discover, follow, predict, and play — a Magical Moments take on game day, never a betting product.</>} />
       <DiscoveryNav active="/dashboard/discovery/sports" />
+
+      <div className="disc-filters">
+        {SPORT_CATALOG.map((s) => (
+          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}>{s.label}</Link>
+        ))}
+        <Link href="/dashboard/discovery/sports?sport=high_school" aria-current={sportParam === "high_school"}>High School</Link>
+      </div>
 
       <div className="sports-hero">
         <div>
@@ -45,13 +49,6 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
           <Link href="/dashboard/discovery/sports/my-teams" className="btn btn--sm">My Teams</Link>
           <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm btn--gold">Magical Picks</Link>
         </div>
-      </div>
-
-      <div className="disc-filters">
-        {SPORT_CATALOG.map((s) => (
-          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}>{s.label}</Link>
-        ))}
-        <Link href="/dashboard/discovery/sports?sport=high_school" aria-current={sportParam === "high_school"}>High School</Link>
       </div>
 
       <form className="disc-form" method="get">
@@ -127,7 +124,7 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
                 <a key={e.id} className="disc-card" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
                   <div className="disc-card__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
                   <div className="disc-card__body">
-                    <h3>{e.name}</h3>
+                    <span className="disc-card__eyebrow">Sporting Event</span><h3>{e.name}</h3>
                     <div className="disc-card__meta">
                       {e.startsAt && <span>{new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                       {e.venueName && <span>· {e.venueName}</span>}
