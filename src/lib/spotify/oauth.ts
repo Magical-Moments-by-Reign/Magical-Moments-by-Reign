@@ -125,10 +125,31 @@ export interface SpotifyProfile {
   displayName: string | null;
 }
 
+/** GET /v1/me — Spotify's "Get Current User's Profile" endpoint. Requires no
+ *  scope for the fields this app reads (id, display_name); user-read-private
+ *  and user-read-email (both already requested — see SPOTIFY_SCOPES) only
+ *  unlock additional fields (country, product, email) this app doesn't use.
+ *  Logs safe diagnostics only — HTTP status and Spotify's {error} body
+ *  (a short code + human message, never a credential) — never the access
+ *  token itself or any other response field. */
 export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyProfile | null> {
+  console.log("[spotify] profile request started");
   const res = await fetch(PROFILE_URL, { headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => null);
-  if (!res || !res.ok) return null;
+  if (!res) {
+    console.error("[spotify] profile HTTP status: none (network error reaching api.spotify.com)");
+    return null;
+  }
+  console.log(`[spotify] profile HTTP status: ${res.status}`);
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    console.error(`[spotify] profile failure category: ${JSON.stringify(errorBody?.error ?? "unparseable error body")}`);
+    return null;
+  }
   const json = await res.json().catch(() => null);
-  if (!json?.id) return null;
+  if (!json?.id) {
+    console.error(`[spotify] profile response valid: no (200 OK but missing id field) keys=${json ? Object.keys(json).join(",") : "none"}`);
+    return null;
+  }
+  console.log("[spotify] profile response valid: yes");
   return { id: json.id, displayName: json.display_name ?? null };
 }
