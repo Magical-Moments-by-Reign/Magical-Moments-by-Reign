@@ -6,6 +6,7 @@
 // body, a redirect URL, or client-side code.
 
 import { spotifyClientId, spotifyClientSecret, spotifyRedirectUri, SPOTIFY_SCOPES } from "./config";
+import { writeProfileDiagnostic, type ProfileDiagnostic } from "./diagnostics";
 
 const AUTHORIZE_URL = "https://accounts.spotify.com/authorize";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
@@ -129,27 +130,75 @@ export interface SpotifyProfile {
  *  scope for the fields this app reads (id, display_name); user-read-private
  *  and user-read-email (both already requested — see SPOTIFY_SCOPES) only
  *  unlock additional fields (country, product, email) this app doesn't use.
- *  Logs safe diagnostics only — HTTP status and Spotify's {error} body
- *  (a short code + human message, never a credential) — never the access
- *  token itself or any other response field. */
+ *  Makes exactly ONE request to Spotify. Records exactly one safe diagnostic
+ *  (see ./diagnostics.ts) — HTTP status, content type, whether the body
+ *  parsed as JSON, Spotify's {error.status, error.message} if present, and
+ *  whether an id field came back — never the access token, the full
+ *  response body, or any personal field (email, display name, images). */
 export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyProfile | null> {
-  console.log("[spotify] profile request started");
+  const diag: ProfileDiagnostic = {
+    requestAttempted: true,
+    httpStatus: null,
+    contentType: null,
+    jsonParsed: false,
+    spotifyErrorCode: null,
+    spotifyErrorMessage: null,
+    category: "none",
+    containsId: false,
+    recordedAt: new Date().toISOString(),
+  };
+
   const res = await fetch(PROFILE_URL, { headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => null);
   if (!res) {
-    console.error("[spotify] profile HTTP status: none (network error reaching api.spotify.com)");
+    diag.category = "network";
+    await writeProfileDiagnostic(diag);
     return null;
   }
-  console.log(`[spotify] profile HTTP status: ${res.status}`);
-  if (!res.ok) {
-    const errorBody = await res.json().catch(() => null);
-    console.error(`[spotify] profile failure category: ${JSON.stringify(errorBody?.error ?? "unparseable error body")}`);
-    return null;
-  }
+
+  diag.httpStatus = res.status;
+  diag.contentType = res.headers.get("content-type");
+
+  // Read the body exactly once, regardless of status — needed either way to
+  // extract Spotify's {error} on failure or {id, display_name} on success.
   const json = await res.json().catch(() => null);
-  if (!json?.id) {
-    console.error(`[spotify] profile response valid: no (200 OK but missing id field) keys=${json ? Object.keys(json).join(",") : "none"}`);
+  diag.jsonParsed = json !== null && typeof json === "object";
+
+  if (!res.ok) {
+    const errObj = diag.jsonParsed ? (json as { error?: unknown }).error : null;
+    if (errObj && typeof errObj === "object") {
+      const e = errObj as { status?: unknown; message?: unknown };
+      diag.spotifyErrorCode = e.status != null ? String(e.status) : null;
+      diag.spotifyErrorMessage = e.message != null ? String(e.message).slice(0, 200) : null;
+    } else if (typeof errObj === "string") {
+      diag.spotifyErrorCode = errObj.slice(0, 100);
+    }
+    diag.category = !diag.jsonParsed
+      ? "invalid_json"
+      : res.status === 401
+        ? "unauthorized"
+        : res.status === 403
+          ? "forbidden"
+          : res.status === 429
+            ? "rate_limited"
+            : "spotify_error";
+    await writeProfileDiagnostic(diag);
     return null;
   }
-  console.log("[spotify] profile response valid: yes");
-  return { id: json.id, displayName: json.display_name ?? null };
+
+  if (!diag.jsonParsed) {
+    diag.category = "invalid_json";
+    await writeProfileDiagnostic(diag);
+    return null;
+  }
+
+  diag.containsId = Boolean((json as { id?: unknown }).id);
+  if (!diag.containsId) {
+    diag.category = "missing_id";
+    await writeProfileDiagnostic(diag);
+    return null;
+  }
+
+  await writeProfileDiagnostic(diag);
+  const profile = json as { id: string; display_name?: string | null };
+  return { id: profile.id, displayName: profile.display_name ?? null };
 }
