@@ -13,6 +13,7 @@
 import { prisma } from "@/lib/db";
 
 const DIAGNOSTIC_KEY = "spotify.profile.last_diagnostic";
+const TOKEN_DIAGNOSTIC_KEY = "spotify.token.last_diagnostic";
 
 export type ProfileErrorCategory =
   | "none"
@@ -33,7 +34,32 @@ export interface ProfileDiagnostic {
   spotifyErrorMessage: string | null;
   category: ProfileErrorCategory;
   containsId: boolean;
+  /** Whether the raw response body had any bytes at all — set even when
+   *  jsonParsed is false, since a 403 can come back with an empty body
+   *  (no JSON to parse) rather than a malformed one. */
+  bodyPresent: boolean;
+  bodyLength: number;
+  /** First ~200 chars of the raw body, ONLY when it did NOT parse as JSON
+   *  (the JSON case already has spotifyErrorMessage/Code extracted
+   *  structurally). This is Spotify's own platform-generated text, not
+   *  anything a member typed or any personal data — safe to keep short and
+   *  visible for diagnosing a non-JSON 403 (e.g. an edge/WAF-level block
+   *  vs. Spotify's own {error:{...}} format). */
+  rawBodyPreview: string | null;
   recordedAt: string; // ISO timestamp
+}
+
+export interface TokenDiagnostic {
+  /** Always true when this was recorded — exchangeCodeForTokens() only
+   *  writes this diagnostic after a successful code exchange. */
+  accessTokenPresent: boolean;
+  tokenType: string | null;
+  expiresIn: number | null;
+  /** The scope string Spotify's token response actually granted — compared
+   *  against SPOTIFY_SCOPES (what was requested) on the diagnostics page.
+   *  Scope names only ("user-read-email" etc.) — never a credential. */
+  scopeReturned: string | null;
+  recordedAt: string;
 }
 
 /** Never throws — a failure to persist the diagnostic must never affect the
@@ -56,6 +82,28 @@ export async function readProfileDiagnostic(): Promise<ProfileDiagnostic | null>
   if (!row) return null;
   try {
     return JSON.parse(row.value) as ProfileDiagnostic;
+  } catch {
+    return null;
+  }
+}
+
+/** Never throws — see writeProfileDiagnostic. */
+export async function writeTokenDiagnostic(diag: TokenDiagnostic): Promise<void> {
+  const value = JSON.stringify(diag);
+  await prisma.systemConfig
+    .upsert({ where: { key: TOKEN_DIAGNOSTIC_KEY }, update: { value }, create: { key: TOKEN_DIAGNOSTIC_KEY, value } })
+    .catch((err) => {
+      const code = err && typeof err === "object" && "code" in err ? String((err as { code: unknown }).code) : "unknown";
+      console.error(`[spotify] failed to persist token diagnostic (code: ${code}) — continuing without it`);
+    });
+}
+
+/** Never throws — see readProfileDiagnostic. */
+export async function readTokenDiagnostic(): Promise<TokenDiagnostic | null> {
+  const row = await prisma.systemConfig.findUnique({ where: { key: TOKEN_DIAGNOSTIC_KEY } }).catch(() => null);
+  if (!row) return null;
+  try {
+    return JSON.parse(row.value) as TokenDiagnostic;
   } catch {
     return null;
   }

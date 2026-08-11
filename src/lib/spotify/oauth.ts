@@ -6,7 +6,7 @@
 // body, a redirect URL, or client-side code.
 
 import { spotifyClientId, spotifyClientSecret, spotifyRedirectUri, SPOTIFY_SCOPES } from "./config";
-import { writeProfileDiagnostic, type ProfileDiagnostic } from "./diagnostics";
+import { writeProfileDiagnostic, type ProfileDiagnostic, type ProfileErrorCategory, writeTokenDiagnostic } from "./diagnostics";
 
 const AUTHORIZE_URL = "https://accounts.spotify.com/authorize";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
@@ -76,7 +76,10 @@ export interface SpotifyTokens {
 }
 
 /** Exchanges an authorization code for tokens. Server-only — the request
- *  carries the client secret in a Basic auth header, never in the URL. */
+ *  carries the client secret in a Basic auth header, never in the URL.
+ *  Records a safe token diagnostic (never the token itself) so the
+ *  diagnostics page can confirm whether Spotify actually granted the
+ *  scopes SPOTIFY_SCOPES requested. */
 export async function exchangeCodeForTokens(code: string): Promise<SpotifyTokens | null> {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
@@ -90,9 +93,22 @@ export async function exchangeCodeForTokens(code: string): Promise<SpotifyTokens
       redirect_uri: spotifyRedirectUri(),
     }),
   }).catch(() => null);
-  if (!res || !res.ok) return null;
+  if (!res || !res.ok) {
+    await writeTokenDiagnostic({ accessTokenPresent: false, tokenType: null, expiresIn: null, scopeReturned: null, recordedAt: new Date().toISOString() });
+    return null;
+  }
   const json = (await res.json().catch(() => null)) as SpotifyTokenResponse | null;
-  if (!json?.access_token) return null;
+  if (!json?.access_token) {
+    await writeTokenDiagnostic({ accessTokenPresent: false, tokenType: json?.token_type ?? null, expiresIn: json?.expires_in ?? null, scopeReturned: json?.scope ?? null, recordedAt: new Date().toISOString() });
+    return null;
+  }
+  await writeTokenDiagnostic({
+    accessTokenPresent: true,
+    tokenType: json.token_type ?? null,
+    expiresIn: json.expires_in ?? null,
+    scopeReturned: json.scope ?? null,
+    recordedAt: new Date().toISOString(),
+  });
   return {
     accessToken: json.access_token,
     refreshToken: json.refresh_token,
@@ -145,10 +161,13 @@ export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyP
     spotifyErrorMessage: null,
     category: "none",
     containsId: false,
+    bodyPresent: false,
+    bodyLength: 0,
+    rawBodyPreview: null,
     recordedAt: new Date().toISOString(),
   };
 
-  const res = await fetch(PROFILE_URL, { headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => null);
+  const res = await fetch(PROFILE_URL, { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" } }).catch(() => null);
   if (!res) {
     diag.category = "network";
     await writeProfileDiagnostic(diag);
@@ -158,9 +177,27 @@ export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyP
   diag.httpStatus = res.status;
   diag.contentType = res.headers.get("content-type");
 
-  // Read the body exactly once, regardless of status — needed either way to
-  // extract Spotify's {error} on failure or {id, display_name} on success.
-  const json = await res.json().catch(() => null);
+  // Read the body as TEXT exactly once — a Response body stream can only be
+  // consumed a single time, so calling res.json() directly (as before) would
+  // silently discard the raw bytes whenever parsing failed, leaving no way
+  // to tell an empty 403 body apart from a malformed one. Parse the text
+  // ourselves instead, so both cases stay distinguishable.
+  const bodyText = await res.text().catch(() => null);
+  diag.bodyPresent = Boolean(bodyText && bodyText.length > 0);
+  diag.bodyLength = bodyText?.length ?? 0;
+
+  let json: unknown = null;
+  if (bodyText) {
+    try {
+      json = JSON.parse(bodyText);
+    } catch {
+      json = null;
+      // Not JSON — keep a short, safe preview. This is Spotify's own
+      // platform-generated response text, never anything a member typed or
+      // any personal profile data, so a short excerpt is safe to persist.
+      diag.rawBodyPreview = bodyText.slice(0, 200);
+    }
+  }
   diag.jsonParsed = json !== null && typeof json === "object";
 
   if (!res.ok) {
@@ -172,15 +209,12 @@ export async function fetchSpotifyProfile(accessToken: string): Promise<SpotifyP
     } else if (typeof errObj === "string") {
       diag.spotifyErrorCode = errObj.slice(0, 100);
     }
-    diag.category = !diag.jsonParsed
-      ? "invalid_json"
-      : res.status === 401
-        ? "unauthorized"
-        : res.status === 403
-          ? "forbidden"
-          : res.status === 429
-            ? "rate_limited"
-            : "spotify_error";
+    // A truly empty body is categorized by status code, same as a body that
+    // parsed as valid JSON — "invalid_json" is reserved for a body that HAD
+    // bytes but wasn't parseable, a genuinely different, unexpected shape.
+    const categoryByStatus: ProfileErrorCategory =
+      res.status === 401 ? "unauthorized" : res.status === 403 ? "forbidden" : res.status === 429 ? "rate_limited" : "spotify_error";
+    diag.category = diag.bodyPresent && !diag.jsonParsed ? "invalid_json" : categoryByStatus;
     await writeProfileDiagnostic(diag);
     return null;
   }
