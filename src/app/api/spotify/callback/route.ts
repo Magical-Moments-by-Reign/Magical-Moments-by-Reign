@@ -55,6 +55,8 @@ export async function GET(request: Request) {
   if (!code || !state || !expectedState || state !== expectedState) return redirectTo(`spotify=invalid_state`);
 
   const tokens = await exchangeCodeForTokens(code);
+  console.log(`[spotify] token exchange: ${tokens ? "success" : "failure"}`);
+  console.log(`[spotify] access token present: ${tokens?.accessToken ? "yes" : "no"}`);
   if (!tokens) return redirectTo(`spotify=exchange_failed`);
 
   const profile = await fetchSpotifyProfile(tokens.accessToken);
