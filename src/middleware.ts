@@ -44,7 +44,7 @@ function canonicalHost(): string {
 // mmr_admin password cookie during transition; requireAdmin handles both.
 const PROTECTED_PREFIXES = ["/home", "/estate", "/account", "/notifications", "/dashboard", "/create", "/vendors/dashboard"];
 
-export function middleware(req: NextRequest) {
+function middlewareImpl(req: NextRequest): NextResponse {
   const { pathname, search } = req.nextUrl;
 
   // 1. Canonical domain — exact match only, production only.
@@ -69,9 +69,33 @@ export function middleware(req: NextRequest) {
   return NextResponse.redirect(loginUrl);
 }
 
+/** Middleware runs as a single Netlify Edge Function in front of every
+ *  matched request — an uncaught exception here doesn't just fail one
+ *  route, it surfaces to the visitor as Netlify's generic "This edge
+ *  function has crashed" for whatever they were doing (this happened live:
+ *  a request to /api/spotify/authorize never even reached the route
+ *  handler). Route protection is explicitly documented above as a UX
+ *  convenience, not the security boundary — every protected page/action
+ *  re-checks server-side via src/lib/guard.ts — so failing OPEN here
+ *  (falling through to next()) trades an already-non-authoritative check
+ *  for never taking the whole site down over an unexpected input. */
+export function middleware(req: NextRequest): NextResponse {
+  try {
+    return middlewareImpl(req);
+  } catch (err) {
+    console.error(`[middleware] unexpected error on ${req.nextUrl.pathname} — failing open`, err);
+    return NextResponse.next();
+  }
+}
+
 export const config = {
-  // Runs on everything except static assets/images/favicon, so the
-  // canonical-domain check applies site-wide — not just the protected
-  // prefixes route protection cares about.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Two patterns: (a) every page/non-API route except static assets, so the
+  // canonical-domain check and route protection apply site-wide for normal
+  // navigation; (b) /api/spotify/* specifically, so a member landing there
+  // directly (e.g. a stale bookmark on the Netlify subdomain) still gets
+  // bounced to the canonical domain. Deliberately NOT all of /api/* — other
+  // API routes include webhooks (e.g. /api/square/webhook) that must never
+  // receive a 3xx redirect, since webhook callers generally don't follow
+  // redirects the way a browser does.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)", "/api/spotify/:path*"],
 };
