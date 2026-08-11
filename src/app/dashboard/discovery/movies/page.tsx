@@ -14,6 +14,20 @@ const SECTIONS: { id: MovieSection; label: string }[] = [
   { id: "coming_soon", label: "Coming Soon" }, { id: "popular", label: "Popular Movies" },
 ];
 
+// What the section itself tells us honestly — no extra API call needed, and
+// never a claim about a specific streaming service (that only ever comes
+// from TMDB's own watch-provider data on the detail page).
+const SECTION_STATUS: Record<MovieSection, string> = {
+  now_playing: "In Theaters", opening_this_week: "Opening This Week",
+  coming_soon: "Coming Soon", popular: "Popular Now",
+};
+
+function formatDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
 export default async function MoviesPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   await requireAccount("/dashboard/discovery/movies");
   const { section: raw } = await searchParams;
@@ -41,8 +55,14 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
             <Link key={m.id} className="disc-card" href={`/dashboard/discovery/movies/${m.id}`}>
               <div className="disc-card__img" style={m.posterUrl ? { backgroundImage: `url(${m.posterUrl})` } : undefined} />
               <div className="disc-card__body">
+                <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
                 <h3>{m.title}</h3>
-                {m.genres?.length ? <div className="disc-card__meta"><span>{m.genres.slice(0, 2).join(", ")}</span></div> : null}
+                <div className="disc-card__meta">
+                  {m.voteAverage ? <span>★ {m.voteAverage.toFixed(1)}</span> : null}
+                  {formatDate(m.releaseDate) && <span>{formatDate(m.releaseDate)}</span>}
+                  {m.genres?.length ? <span>{m.genres.slice(0, 2).join(", ")}</span> : null}
+                </div>
+                {m.overview && <p>{m.overview}</p>}
               </div>
             </Link>
           ))}
