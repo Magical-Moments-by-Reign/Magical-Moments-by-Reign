@@ -21,7 +21,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { requireAccount } from "@/lib/guard";
-import { spotifyConfigured, SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
+import { spotifyConfigured, spotifyCanonicalBase, spotifyRedirectUri, SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
 import { buildAuthorizeUrl } from "@/lib/spotify/oauth";
 
 export async function GET(request: Request) {
@@ -31,11 +31,14 @@ export async function GET(request: Request) {
   // configuration error.
   await requireAccount("/dashboard/discovery/music");
 
-  const fallbackBase = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
+  // Every redirect this route issues — including this early bail-out — uses
+  // the same canonical base as spotifyRedirectUri(), never NEXT_PUBLIC_BASE_URL
+  // directly. See the comment on spotifyCanonicalBase() in config.ts.
+  const canonicalBase = spotifyCanonicalBase();
 
   try {
     if (!spotifyConfigured()) {
-      return NextResponse.redirect(new URL("/dashboard/discovery/music?spotify=not_configured", fallbackBase));
+      return NextResponse.redirect(new URL("/dashboard/discovery/music?spotify=not_configured", canonicalBase));
     }
 
     const state = crypto.randomBytes(24).toString("base64url");
@@ -51,7 +54,9 @@ export async function GET(request: Request) {
     // Safe diagnostic only — never the state value itself.
     const hostname = new URL(request.url).hostname;
     const cookieSet = response.cookies.get(SPOTIFY_STATE_COOKIE)?.value === state;
-    console.log(`[spotify authorize] hostname=${hostname} state_cookie_set=${cookieSet}`);
+    console.log(`[spotify] authorize incoming host: ${hostname}`);
+    console.log(`[spotify] authorize canonical callback host: ${new URL(spotifyRedirectUri()).host}`);
+    console.log(`[spotify] state cookie set: ${cookieSet ? "yes" : "no"}`);
 
     return response;
   } catch (err) {
@@ -60,6 +65,6 @@ export async function GET(request: Request) {
     // the error object's message/stack in case it ever contained anything
     // sensitive; the operation name is enough to locate this in the logs.
     console.error("[spotify authorize] unexpected error building the authorize redirect — degrading to a safe fallback");
-    return NextResponse.redirect(new URL("/dashboard/discovery/music?spotify=configuration_error", fallbackBase));
+    return NextResponse.redirect(new URL("/dashboard/discovery/music?spotify=configuration_error", canonicalBase));
   }
 }

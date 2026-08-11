@@ -12,13 +12,21 @@ import { cookies } from "next/headers";
 import { requireAccount } from "@/lib/guard";
 import { exchangeCodeForTokens, fetchSpotifyProfile } from "@/lib/spotify/oauth";
 import { completeConnection } from "@/lib/spotify/connection";
-import { SPOTIFY_STATE_COOKIE } from "@/lib/spotify/config";
+import { SPOTIFY_STATE_COOKIE, spotifyCanonicalBase } from "@/lib/spotify/config";
 
 const RETURN_PATH = "/dashboard/discovery/music";
 
+// Every outcome — success or any failure code — returns to the SAME
+// canonical origin the authorize route used to build redirect_uri
+// (spotifyCanonicalBase(), never NEXT_PUBLIC_BASE_URL directly). Building
+// this from request.url or NEXT_PUBLIC_BASE_URL would let the return trip
+// land on whatever host happened to receive the request, or on a
+// misconfigured env var — either way, potentially not
+// magicalmomentsbyreign.com.
 function redirectTo(query: string) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://magicalmomentsbyreign.com";
-  return NextResponse.redirect(new URL(`${RETURN_PATH}?${query}`, base));
+  const target = new URL(`${RETURN_PATH}?${query}`, spotifyCanonicalBase());
+  console.log(`[spotify] final redirect host: ${target.host}`);
+  return NextResponse.redirect(target);
 }
 
 export async function GET(request: Request) {
@@ -35,13 +43,13 @@ export async function GET(request: Request) {
   // Safe diagnostic only — never the state values themselves, just presence
   // and whether they match. Helps confirm/rule out a host mismatch between
   // where the flow started (state cookie set) and where it's completing.
-  const hostname = url.hostname;
   const statePresent = Boolean(state);
   const stateCookiePresent = Boolean(expectedState);
   const stateMatches = Boolean(state && expectedState && state === expectedState);
-  console.log(
-    `[spotify callback] hostname=${hostname} state_present=${statePresent} state_cookie_present=${stateCookiePresent} state_matches=${stateMatches}`
-  );
+  console.log(`[spotify] callback incoming host: ${url.hostname}`);
+  console.log(`[spotify] state query present: ${statePresent ? "yes" : "no"}`);
+  console.log(`[spotify] state cookie present: ${stateCookiePresent ? "yes" : "no"}`);
+  console.log(`[spotify] state match: ${stateMatches ? "yes" : "no"}`);
 
   if (error) return redirectTo(`spotify=denied`);
   if (!code || !state || !expectedState || state !== expectedState) return redirectTo(`spotify=invalid_state`);
