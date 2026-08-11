@@ -6,6 +6,7 @@ import { getConnectionView, getValidAccessToken } from "@/lib/spotify/connection
 import { searchCatalog } from "@/lib/spotify/catalog";
 import { disconnectSpotifyAction } from "./actions";
 import DiscoveryNav from "../_nav";
+import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -41,12 +42,14 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Music — Top Songs &amp; Charts</h1>
-        <p className="pg-sub">What&rsquo;s hot in music today, by genre.</p>
-      </div>
+      <DiscoveryPageHeader title="Music" description={<>What&rsquo;s hot in music today — charts, artists, albums, and tracks by genre.</>} />
       <DiscoveryNav active="/dashboard/discovery/music" />
+
+      <div className="disc-filters">
+        {GENRES.map((g) => (
+          <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
+        ))}
+      </div>
 
       {spotifyStatus && SPOTIFY_STATUS_MESSAGES[spotifyStatus] && (
         <div className={`disc-pending`} style={{ marginBottom: "1.4rem" }}>
@@ -89,7 +92,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                   <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Artists</h3>
                   <div className="disc-grid">
                     {searchResults.artists.map((a) => (
-                      <a key={a.id} className="disc-card" href={a.externalUrl} target="_blank" rel="noopener noreferrer">
+                      <a key={a.id} className="disc-card disc-card--square" href={a.externalUrl} target="_blank" rel="noopener noreferrer">
                         <div className="disc-card__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
                         <div className="disc-card__body"><h3>{a.name}</h3><p>Open in Spotify →</p></div>
                       </a>
@@ -102,7 +105,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                   <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Albums</h3>
                   <div className="disc-grid">
                     {searchResults.albums.map((a) => (
-                      <a key={a.id} className="disc-card" href={a.externalUrl} target="_blank" rel="noopener noreferrer">
+                      <a key={a.id} className="disc-card disc-card--square" href={a.externalUrl} target="_blank" rel="noopener noreferrer">
                         <div className="disc-card__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
                         <div className="disc-card__body"><h3>{a.name}</h3><p>{a.artistNames}</p></div>
                       </a>
@@ -130,12 +133,6 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         </div>
       )}
 
-      <div className="disc-filters">
-        {GENRES.map((g) => (
-          <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
-        ))}
-      </div>
-
       {chart.entries.length ? (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: ".6rem", marginBottom: ".8rem" }}>
@@ -156,10 +153,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
           </div>
         </>
       ) : (
-        <div className="disc-pending">
-          <b>No chart connected yet.</b>
-          Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.
-        </div>
+        <DiscoveryEmptyState title="No chart connected yet.">Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.</DiscoveryEmptyState>
       )}
     </div>
   );

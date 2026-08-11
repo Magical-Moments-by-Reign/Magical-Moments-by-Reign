@@ -18,14 +18,24 @@ function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string
 }
 
 function FeatureCard({ item, large = false }: { item: Feature; large?: boolean }) {
-  const body = (
+  const body = large ? (
     <>
       <Artwork src={item.image} alt={`${item.title} artwork`} sizes={large ? "(max-width: 800px) 100vw, 55vw" : "(max-width: 800px) 100vw, 30vw"} />
       <div className="disc-lux__shade" />
       <div className="disc-lux__feature-copy">
         <span className="disc-lux__label">{item.label}</span>
         <h2>{item.title}</h2>
-        {large && item.description && <p>{item.description}</p>}
+        {item.description && <p>{item.description}</p>}
+        <span className="disc-lux__explore">Explore <span aria-hidden="true">→</span></span>
+      </div>
+    </>
+  ) : (
+    <>
+      <div className="disc-lux__card-art"><Artwork src={item.image} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, (max-width: 1100px) 44vw, 30vw" /></div>
+      <div className="disc-lux__card-body">
+        <span className="disc-lux__label">{item.label}</span>
+        <h2>{item.title}</h2>
+        {item.description && <p>{item.description}</p>}
         <span className="disc-lux__explore">Explore <span aria-hidden="true">→</span></span>
       </div>
     </>
@@ -40,15 +50,15 @@ function SectionHeader({ title, subtitle, href, action }: { title: string; subti
 
 function WatchCard({ item }: { item: WatchItem }) {
   return <Link className="disc-lux__landscape" href={`/dashboard/discovery/watch/${item.id}`}>
-    <Artwork src={item.backdropUrl ?? item.posterUrl} alt={`${item.title} artwork`} sizes="(max-width: 700px) 78vw, 24vw" />
-    <div className="disc-lux__shade" /><div className="disc-lux__overlay-copy"><h3>{item.title}</h3>{item.firstAirDate && <span>{item.firstAirDate.slice(0, 4)}</span>}</div>
+    <div className="disc-lux__landscape-art"><Artwork src={item.backdropUrl ?? item.posterUrl} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, 31vw" /></div>
+    <div className="disc-lux__landscape-copy"><span className="disc-lux__label">Watch</span><h3>{item.title}</h3>{item.firstAirDate && <p>{item.firstAirDate.slice(0, 4)}</p>}<span className="disc-lux__explore">Explore <span aria-hidden="true">→</span></span></div>
   </Link>;
 }
 
 function MovieCard({ item }: { item: MovieItem }) {
   return <Link className="disc-lux__portrait" href={`/dashboard/discovery/movies/${item.id}`}>
-    <div className="disc-lux__portrait-art"><Artwork src={item.posterUrl ?? item.backdropUrl} alt={`${item.title} poster`} sizes="(max-width: 700px) 48vw, 18vw" /><div className="disc-lux__shade" /></div>
-    <div className="disc-lux__portrait-copy"><h3>{item.title}</h3>{item.releaseDate && <span>{item.releaseDate.slice(0, 4)}</span>}</div>
+    <div className="disc-lux__portrait-art"><Artwork src={item.posterUrl ?? item.backdropUrl} alt={`${item.title} poster`} sizes="(max-width: 700px) 72vw, 23vw" /></div>
+    <div className="disc-lux__portrait-copy"><span className="disc-lux__label">Movie</span><h3>{item.title}</h3>{item.releaseDate && <p>{item.releaseDate.slice(0, 4)}</p>}<span className="disc-lux__explore">Explore <span aria-hidden="true">→</span></span></div>
   </Link>;
 }
 
@@ -86,9 +96,11 @@ export default async function DiscoveryPage() {
 
   return <main className="disc disc-lux">
     <header className="disc-lux__intro">
-      <span className="disc-lux__kicker">Magical Discovery</span>
-      <h1>Discover Something<br />Magical Today <em aria-hidden="true">✦</em></h1>
-      <p>A curated look at what&rsquo;s happening, what to watch, what to hear, where to go, and what&rsquo;s worth discovering.</p>
+      <div><span className="disc-lux__kicker">Magical Discovery</span>
+        <h1>Discover Something<br />Magical Today <em aria-hidden="true">✦</em></h1>
+        <p>A curated look at what&rsquo;s happening, what to watch, what to hear, where to go, and what&rsquo;s worth discovering.</p>
+      </div>
+      <Link className="disc-lux__explore-all" href="/dashboard/discovery/trending">Explore All <span aria-hidden="true">→</span></Link>
     </header>
 
     {primary ? <section className="disc-lux__hero" aria-label="Featured discoveries">
