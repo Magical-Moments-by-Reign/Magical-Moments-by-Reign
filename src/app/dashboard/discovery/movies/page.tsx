@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getMovieItems } from "@/lib/discovery/service";
+import { getMovieItems, getMovieDetails } from "@/lib/discovery/service";
 import type { MovieSection } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
@@ -34,6 +34,14 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
   const section = (SECTIONS.some((s) => s.id === raw) ? raw : "now_playing") as MovieSection;
   const result = await getMovieItems(section);
 
+  // Streaming availability comes from TMDB's per-title details endpoint, not
+  // the listing endpoint — fetched in parallel here. Each result is cached
+  // 6h (see getMovieDetails/service.ts), so this only hits TMDB live on a
+  // cold cache; every page view inside that window is a DB read.
+  const availableOnById = new Map(
+    (await Promise.all(result.items.map(async (m) => [m.id, (await getMovieDetails(m.id))?.availableOn ?? []] as const))),
+  );
+
   return (
     <div className="disc">
       <div className="pg-head">
@@ -63,6 +71,17 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
                   {m.genres?.length ? <span>{m.genres.slice(0, 2).join(", ")}</span> : null}
                 </div>
                 {m.overview && <p>{m.overview}</p>}
+                {availableOnById.get(m.id)?.length ? (
+                  <div className="disc-card__stream">
+                    {availableOnById.get(m.id)!.slice(0, 4).map((p) => (
+                      <span key={p.name}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {p.logoUrl && <img src={p.logoUrl} alt="" />}
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </Link>
           ))}

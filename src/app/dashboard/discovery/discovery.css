@@ -40,6 +40,9 @@
 .disc-card h3 { font-family: var(--font-display, Georgia, serif); font-size: 1.1rem; line-height: 1.3; margin: 0 0 .35rem; color: var(--espresso); }
 .disc-card p { color: #5c4529; font-size: .82rem; line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .disc-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; margin: .3rem 0 .55rem; color: #6b5029; font-size: .74rem; font-weight: 600; }
+.disc-card__stream { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .65rem; }
+.disc-card__stream span { display: inline-flex; align-items: center; gap: .32rem; padding: .28rem .65rem; border-radius: 999px; background: #fff; border: 1px solid var(--gold); color: var(--gold-deep); font-size: .68rem; font-weight: 700; }
+.disc-card__stream img { width: 16px; height: 16px; border-radius: 3px; object-fit: cover; }
 
 /* Near You event cards: category badge above the title, and an explicit
    "View Tickets" affordance below the venue/city meta rows — additive to
