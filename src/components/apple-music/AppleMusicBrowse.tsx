@@ -24,22 +24,50 @@ interface Props {
   genres: { id: MusicGenre; label: string }[];
 }
 
-type View = "all" | "songs" | "albums" | "playlists";
+type View = "all" | "songs" | "albums" | "artists" | "playlists";
+type AlbumsPill = "new" | "albums";
+
+interface ArtistTile {
+  name: string;
+  artworkUrl?: string;
+}
 
 function toPlayable(e: MusicChartEntry): PlayableSong {
   return { id: e.catalogId ?? "", name: e.song, artistName: e.artist, artworkUrl: e.artworkUrl, previewUrl: e.previewUrl };
+}
+
+// Apple's catalog API has no "artists chart" endpoint — this derives a
+// real, honest list of artists from the real chart data already on the
+// page (top songs + new releases), rather than fabricating one.
+function deriveArtists(topSongs: MusicChartEntry[], albums: AppleMusicAlbumResult[]): ArtistTile[] {
+  const byName = new Map<string, ArtistTile>();
+  for (const s of topSongs) {
+    if (s.artist && !byName.has(s.artist)) byName.set(s.artist, { name: s.artist, artworkUrl: s.artworkUrl });
+  }
+  for (const a of albums) {
+    if (a.artistName && !byName.has(a.artistName)) byName.set(a.artistName, { name: a.artistName, artworkUrl: a.artworkUrl });
+  }
+  return Array.from(byName.values()).slice(0, 12);
 }
 
 export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle, albums, playlistsTitle, playlists, genre, genres }: Props) {
   const router = useRouter();
   const { nowPlaying, isPlaying, playSong, playCollection } = useAppleMusicKit();
   const [view, setView] = useState<View>("all");
+  const [albumsPill, setAlbumsPill] = useState<AlbumsPill>("new");
 
   const playableSongs = topSongs.filter((e) => e.catalogId);
   const queue = playableSongs.map(toPlayable);
+  const artists = deriveArtists(topSongs, albums);
   const showSongs = (view === "all" || view === "songs") && playableSongs.length > 0;
   const showAlbums = (view === "all" || view === "albums") && albums.length > 0;
+  const showArtists = (view === "all" || view === "artists") && artists.length > 0;
   const showPlaylists = (view === "all" || view === "playlists") && playlists.length > 0;
+
+  function goToAlbums(pill: AlbumsPill) {
+    setAlbumsPill(pill);
+    setView("albums");
+  }
 
   return (
     <>
@@ -62,7 +90,9 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
       <div className="amk-pills" role="group" aria-label="Browse Apple Music">
         <button type="button" aria-current={view === "all" ? "true" : undefined} onClick={() => setView("all")}>All</button>
         {playableSongs.length > 0 && <button type="button" aria-current={view === "songs" ? "true" : undefined} onClick={() => setView("songs")}>Top Songs</button>}
-        {albums.length > 0 && <button type="button" aria-current={view === "albums" ? "true" : undefined} onClick={() => setView("albums")}>New Releases</button>}
+        {albums.length > 0 && <button type="button" aria-current={view === "albums" && albumsPill === "new" ? "true" : undefined} onClick={() => goToAlbums("new")}>New Releases</button>}
+        {albums.length > 0 && <button type="button" aria-current={view === "albums" && albumsPill === "albums" ? "true" : undefined} onClick={() => goToAlbums("albums")}>Albums</button>}
+        {artists.length > 0 && <button type="button" aria-current={view === "artists" ? "true" : undefined} onClick={() => setView("artists")}>Artists</button>}
         {playlists.length > 0 && <button type="button" aria-current={view === "playlists" ? "true" : undefined} onClick={() => setView("playlists")}>Playlists</button>}
         <select
           value={genre}
@@ -104,7 +134,7 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
 
         {showAlbums && (
           <div className="amk-row" id="amk-new-releases">
-            <div className="amk-row__head"><h2>{albumsTitle}</h2></div>
+            <div className="amk-row__head"><h2>{albumsPill === "albums" ? "Albums" : albumsTitle}</h2></div>
             <div className="amk-row__scroll">
               {albums.map((a) => (
                 <a key={a.id} className="amk-tile" href={a.url ?? "#"} target={a.url ? "_blank" : undefined} rel="noopener noreferrer">
@@ -118,6 +148,24 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
                   </div>
                   <span className="amk-tile__title">{a.name}</span>
                   <span className="amk-tile__subtitle">{a.artistName}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {showArtists && (
+          <div className="amk-row" id="amk-artists">
+            <div className="amk-row__head"><h2>Artists</h2></div>
+            <div className="amk-row__scroll">
+              {artists.map((ar) => (
+                <a
+                  key={ar.name}
+                  className="amk-tile amk-tile--artist"
+                  href={`/dashboard/discovery/music?source=apple_music&q=${encodeURIComponent(ar.name)}&genre=${genre}`}
+                >
+                  <div className="amk-tile__art amk-tile__art--round" style={ar.artworkUrl ? { backgroundImage: `url(${ar.artworkUrl})` } : undefined} />
+                  <span className="amk-tile__title">{ar.name}</span>
                 </a>
               ))}
             </div>
@@ -146,7 +194,7 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
           </div>
         )}
 
-        {!showSongs && !showAlbums && !showPlaylists && (
+        {!showSongs && !showAlbums && !showArtists && !showPlaylists && (
           <p className="disc-empty">Nothing to show in this view right now.</p>
         )}
       </div>
