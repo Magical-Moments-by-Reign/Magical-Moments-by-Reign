@@ -2,13 +2,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mapArtist, mapAlbum, mapCatalogSong } from "./catalog";
 
-test("mapArtist maps a catalog artist", () => {
-  const a = mapArtist({ id: "123", attributes: { name: "Beyoncé", genreNames: ["R&B/Soul"], url: "https://music.apple.com/us/artist/beyonce/123" } });
+test("mapArtist maps a catalog artist, including artwork when Apple returns one", () => {
+  const a = mapArtist({ id: "123", attributes: { name: "Beyoncé", genreNames: ["R&B/Soul"], url: "https://music.apple.com/us/artist/beyonce/123", artwork: { url: "https://a/{w}x{h}bb.jpg" } } });
   assert.ok(a);
   assert.equal(a!.id, "123");
   assert.equal(a!.name, "Beyoncé");
   assert.deepEqual(a!.genreNames, ["R&B/Soul"]);
   assert.equal(a!.url, "https://music.apple.com/us/artist/beyonce/123");
+  assert.equal(a!.artworkUrl, "https://a/300x300bb.jpg");
+});
+
+test("mapArtist leaves artworkUrl undefined when Apple doesn't return one", () => {
+  const a = mapArtist({ id: "123", attributes: { name: "Beyoncé" } });
+  assert.ok(a);
+  assert.equal(a!.artworkUrl, undefined);
 });
 
 test("mapArtist rejects a resource missing an id or name", () => {
