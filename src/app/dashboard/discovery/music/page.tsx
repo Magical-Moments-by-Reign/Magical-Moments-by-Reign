@@ -99,19 +99,15 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                       <>
                         <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Artists</h3>
                         <div className="disc-grid">
-                          {appleResults.artists.map((a) => (
-                            a.url ? (
-                              <a key={a.id} className="disc-card" href={a.url} target="_blank" rel="noopener noreferrer">
-                                <div className="disc-card__img" />
-                                <div className="disc-card__body"><span className="disc-card__eyebrow">Apple Music</span><h3>{a.name}</h3><p className="disc-card__cta">Open in Apple Music →</p></div>
-                              </a>
-                            ) : (
-                              <div key={a.id} className="disc-card">
-                                <div className="disc-card__img" />
-                                <div className="disc-card__body"><span className="disc-card__eyebrow">Apple Music</span><h3>{a.name}</h3></div>
-                              </div>
-                            )
-                          ))}
+                          {appleResults.artists.map((a) => {
+                            const body = <>
+                              <div className="disc-card__img" style={a.artworkUrl ? { backgroundImage: `url(${a.artworkUrl})` } : undefined} />
+                              <div className="disc-card__body"><span className="disc-card__eyebrow">Apple Music</span><h3>{a.name}</h3>{a.url && <p className="disc-card__cta">Open in Apple Music →</p>}</div>
+                            </>;
+                            return a.url
+                              ? <a key={a.id} className="disc-card" href={a.url} target="_blank" rel="noopener noreferrer">{body}</a>
+                              : <div key={a.id} className="disc-card">{body}</div>;
+                          })}
                         </div>
                       </>
                     )}

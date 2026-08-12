@@ -7,6 +7,7 @@
 export interface AppleMusicArtistResult {
   id: string;
   name: string;
+  artworkUrl?: string; // not every artist has one — Apple omits it when unavailable
   url?: string; // Apple Music web page for the artist, when Apple returns one
   genreNames?: string[];
 }

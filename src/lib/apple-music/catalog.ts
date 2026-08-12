@@ -37,6 +37,7 @@ export function mapArtist(a: any): AppleMusicArtistResult | null {
   return {
     id: String(a.id),
     name: String(attrs.name),
+    artworkUrl: resolveArtwork(attrs?.artwork?.url),
     url: typeof attrs.url === "string" ? attrs.url : undefined,
     genreNames: Array.isArray(attrs.genreNames) ? attrs.genreNames.filter((g: unknown) => typeof g === "string") : undefined,
   };
