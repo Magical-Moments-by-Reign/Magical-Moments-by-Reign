@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getMovieItems, getMovieDetails } from "@/lib/discovery/service";
+import { getMovieItems, getMovieDetails, getFeaturedItem } from "@/lib/discovery/service";
 import type { MovieSection } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
@@ -32,7 +32,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
   await requireAccount("/dashboard/discovery/movies");
   const { section: raw } = await searchParams;
   const section = (SECTIONS.some((s) => s.id === raw) ? raw : "now_playing") as MovieSection;
-  const result = await getMovieItems(section);
+  const [result, featured] = await Promise.all([getMovieItems(section), getFeaturedItem("movie")]);
 
   // Streaming availability comes from TMDB's per-title details endpoint, not
   // the listing endpoint — fetched in parallel here. Each result is cached
@@ -56,6 +56,26 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
           <a key={s.id} href={`/dashboard/discovery/movies?section=${s.id}`} aria-current={section === s.id ? "true" : undefined}>{s.label}</a>
         ))}
       </div>
+
+      {featured ? (
+        <a className="disc-card disc-card--feature" href={featured.externalUrl ?? "#"} target={featured.externalUrl ? "_blank" : undefined} rel="noopener noreferrer">
+          <div className="disc-card__img" style={featured.imageUrl ? { backgroundImage: `url(${featured.imageUrl})` } : undefined} />
+          <div className="disc-card__body">
+            <span className="disc-card__eyebrow">Because It&rsquo;s Hot</span>
+            <h3>{featured.title}</h3>
+            {featured.description && <p>{featured.description}</p>}
+          </div>
+        </a>
+      ) : result.items[0] && (
+        <Link className="disc-card disc-card--feature" href={`/dashboard/discovery/movies/${result.items[0].id}`}>
+          <div className="disc-card__img" style={(result.items[0].backdropUrl ?? result.items[0].posterUrl) ? { backgroundImage: `url(${result.items[0].backdropUrl ?? result.items[0].posterUrl})` } : undefined} />
+          <div className="disc-card__body">
+            <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
+            <h3>{result.items[0].title}</h3>
+            {result.items[0].overview && <p>{result.items[0].overview}</p>}
+          </div>
+        </Link>
+      )}
 
       {result.items.length ? (
         <div className="disc-grid">

@@ -48,6 +48,21 @@
 .disc-card__stream span { display: inline-flex; align-items: center; gap: .32rem; padding: .28rem .65rem; border-radius: 999px; background: #fff; border: 1px solid var(--gold); color: var(--gold-deep); font-size: .68rem; font-weight: 700; }
 .disc-card__stream img { width: 16px; height: 16px; border-radius: 3px; object-fit: cover; }
 
+/* The large "feature" header card — one enlarged item (the newest, or an
+   Owner-curated pick) leading each Discovery category page, in the same
+   gold-tinted card as the grid below it, just bigger, with the title
+   underneath the artwork rather than overlaid on it. */
+.disc-card--feature { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(240px, 1fr); align-items: stretch; margin-bottom: 1.6rem; border: 1px solid var(--gold); box-shadow: 0 14px 32px rgba(44,33,26,.18); }
+.disc-card--feature .disc-card__img { height: auto; min-height: 280px; margin: 0; border-radius: 17px 0 0 17px; background-size: cover; }
+.disc-card--feature .disc-card__body { display: flex; flex-direction: column; justify-content: center; padding: 1.5rem 1.9rem; }
+.disc-card--feature .disc-card__eyebrow { color: var(--gold-deep); font-size: .7rem; }
+.disc-card--feature h3 { font-size: clamp(1.4rem, 2.6vw, 2.1rem); line-height: 1.12; margin-bottom: .55rem; }
+.disc-card--feature p { -webkit-line-clamp: 4; font-size: .88rem; }
+@media (max-width: 780px) {
+  .disc-card--feature { grid-template-columns: 1fr; }
+  .disc-card--feature .disc-card__img { min-height: 220px; border-radius: 17px 17px 0 0; }
+}
+
 /* Near You event cards: category badge above the title, and an explicit
    "View Tickets" affordance below the venue/city meta rows — additive to
    the existing .disc-card shape, not a new card design. */
@@ -249,7 +264,7 @@
 .disc-lux__feature:hover, .disc-lux__landscape:hover, .disc-lux__portrait:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(44,33,26,.14); }
 .disc-lux__feature:focus-visible, .disc-lux a:focus-visible { outline: 3px solid #c6a04f; outline-offset: 3px; }
 .disc-lux__feature--quiet { align-items: center; justify-content: center; padding: 1rem; color: #d9c9ac; font-family: var(--font-display, Georgia, serif); text-align: center; }
-.disc-lux > .disc-nav { flex-wrap: nowrap; gap: .75rem; margin: 1.35rem 0 0; padding: 0 0 1rem; overflow-x: auto; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
+.disc-lux > .disc-nav { flex-wrap: nowrap; gap: .75rem; margin: 0 0 1.4rem; padding: 0 0 1rem; overflow-x: auto; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
 .disc-lux > .disc-nav a { flex: 1 0 105px; justify-content: center; background: #fdf9f1; border-color: #d9cdbb; box-shadow: none; color: #30271f; }
 .disc-lux > .disc-nav a:first-child { background: linear-gradient(180deg, #d9bd78, #c5a04e); border-color: #c09a45; }
 .disc-lux__section { margin-top: 2rem; }

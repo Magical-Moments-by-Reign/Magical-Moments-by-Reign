@@ -20,6 +20,17 @@ export default async function TrendingPage() {
       </div>
       <DiscoveryNav active="/dashboard/discovery/trending" />
 
+      {items[0] && (
+        <a className="disc-card disc-card--feature" href={items[0].externalUrl ?? "#"} target={items[0].externalUrl ? "_blank" : undefined} rel="noopener noreferrer">
+          <div className="disc-card__img" style={items[0].imageUrl ? { backgroundImage: `url(${items[0].imageUrl})` } : undefined} />
+          <div className="disc-card__body">
+            {items[0].category && <span className="disc-card__eyebrow">{items[0].category}</span>}
+            <h3>{items[0].title}</h3>
+            {items[0].description && <p>{items[0].description}</p>}
+          </div>
+        </a>
+      )}
+
       {items.length ? (
         <div className="disc-grid disc-grid--wide">
           {items.map((t) => (
