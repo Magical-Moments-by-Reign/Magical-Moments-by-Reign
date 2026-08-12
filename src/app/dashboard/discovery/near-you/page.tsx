@@ -48,6 +48,15 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
       {!location?.trim() ? (
         <p className="disc-empty">Enter a city or ZIP code above to see what&rsquo;s happening nearby.</p>
       ) : result && result.items.length ? (
+        <>
+          <a className="disc-card disc-card--feature" href={result.items[0].ticketUrl} target="_blank" rel="noopener noreferrer">
+            <div className="disc-card__img" style={result.items[0].imageUrl ? { backgroundImage: `url(${result.items[0].imageUrl})` } : undefined} />
+            <div className="disc-card__body">
+              <span className="disc-card__eyebrow">{CATEGORY_LABEL[result.items[0].category]}</span>
+              <h3>{result.items[0].name}</h3>
+              {(result.items[0].venueName || result.items[0].city) && <p>{[result.items[0].venueName, result.items[0].city].filter(Boolean).join(", ")}</p>}
+            </div>
+          </a>
         <div className="disc-grid">
           {result.items.map((e) => (
             <a key={e.id} className="disc-card disc-card--event" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
@@ -70,7 +79,8 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
               </div>
             </a>
           ))}
-        </div>
+          </div>
+        </>
       ) : result?.source === "unavailable" ? (
         <div className="disc-pending">
           <b>We couldn&rsquo;t load nearby events right now.</b>

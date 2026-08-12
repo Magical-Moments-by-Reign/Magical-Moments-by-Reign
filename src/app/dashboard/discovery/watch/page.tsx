@@ -59,11 +59,24 @@ export default async function WatchPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
-      {featured && (
-        <a className="disc-card" href={featured.externalUrl ?? "#"} target={featured.externalUrl ? "_blank" : undefined} rel="noopener noreferrer" style={{ marginBottom: "1.4rem", display: "block", maxWidth: 260 }}>
+      {featured ? (
+        <a className="disc-card disc-card--feature" href={featured.externalUrl ?? "#"} target={featured.externalUrl ? "_blank" : undefined} rel="noopener noreferrer">
           <div className="disc-card__img" style={featured.imageUrl ? { backgroundImage: `url(${featured.imageUrl})` } : undefined} />
-          <div className="disc-card__body"><span className="disc-card__eyebrow">Because It&rsquo;s Hot</span><h3>{featured.title}</h3></div>
+          <div className="disc-card__body">
+            <span className="disc-card__eyebrow">Because It&rsquo;s Hot</span>
+            <h3>{featured.title}</h3>
+            {featured.description && <p>{featured.description}</p>}
+          </div>
         </a>
+      ) : result.items[0] && (
+        <Link className="disc-card disc-card--feature" href={`/dashboard/discovery/watch/${result.items[0].id}`}>
+          <div className="disc-card__img" style={(result.items[0].backdropUrl ?? result.items[0].posterUrl) ? { backgroundImage: `url(${result.items[0].backdropUrl ?? result.items[0].posterUrl})` } : undefined} />
+          <div className="disc-card__body">
+            <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
+            <h3>{result.items[0].title}</h3>
+            {result.items[0].overview && <p>{result.items[0].overview}</p>}
+          </div>
+        </Link>
       )}
 
       {result.items.length ? (

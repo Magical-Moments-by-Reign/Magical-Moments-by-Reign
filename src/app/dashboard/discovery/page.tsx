@@ -95,6 +95,8 @@ export default async function DiscoveryPage() {
   ].filter(Boolean) as Feature[];
 
   return <main className="disc disc-lux">
+    <DiscoveryNav active="" />
+
     <header className="disc-lux__intro">
       <span className="disc-lux__kicker">Magical Discovery</span>
       <h1>Discover Something<br />Magical Today <em aria-hidden="true">✦</em></h1>
@@ -108,8 +110,6 @@ export default async function DiscoveryPage() {
         {secondary.length < 2 && <div className="disc-lux__feature disc-lux__feature--quiet"><span>More discoveries are being curated.</span></div>}
       </div>
     </section> : <EmptyState title="Today’s edit is being curated">Real discoveries will appear here as soon as the connected providers return them.</EmptyState>}
-
-    <DiscoveryNav active="" />
 
     <section className="disc-lux__section">
       <SectionHeader title="Curated For You" subtitle="A little of everything, chosen for your day." href="/dashboard/discovery/trending" action="View All" />
