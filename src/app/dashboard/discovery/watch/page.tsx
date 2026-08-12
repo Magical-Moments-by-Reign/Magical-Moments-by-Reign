@@ -35,12 +35,13 @@ export default async function WatchPage({ searchParams }: { searchParams: Promis
 
   const [result, featured] = await Promise.all([getWatchItems(section), getFeaturedItem("watch")]);
 
-  // Streaming availability comes from TMDB's per-title details endpoint, not
-  // the listing endpoint — fetched in parallel here. Each result is cached
-  // 6h (see getWatchDetails/service.ts), so this only hits TMDB live on a
-  // cold cache; every page view inside that window is a DB read.
-  const availableOnById = new Map(
-    (await Promise.all(result.items.map(async (w) => [w.id, (await getWatchDetails(w.id))?.availableOn ?? []] as const))),
+  // Streaming availability + next-episode/new-season air date both come from
+  // TMDB's per-title details endpoint, not the listing endpoint — fetched
+  // in parallel here. Each result is cached 6h (see getWatchDetails/
+  // service.ts), so this only hits TMDB live on a cold cache; every page
+  // view inside that window is a DB read.
+  const detailsById = new Map(
+    (await Promise.all(result.items.map(async (w) => [w.id, await getWatchDetails(w.id)] as const))),
   );
 
   return (
@@ -67,31 +68,42 @@ export default async function WatchPage({ searchParams }: { searchParams: Promis
 
       {result.items.length ? (
         <div className="disc-grid">
-          {result.items.map((w) => (
-            <Link key={w.id} className="disc-card" href={`/dashboard/discovery/watch/${w.id}`}>
-              <div className="disc-card__img" style={w.posterUrl ? { backgroundImage: `url(${w.posterUrl})` } : undefined} />
-              <div className="disc-card__body">
-                <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
-                <h3>{w.title}</h3>
-                <div className="disc-card__meta">
-                  {w.voteAverage ? <span>★ {w.voteAverage.toFixed(1)}</span> : null}
-                  {formatDate(w.firstAirDate) && <span>{formatDate(w.firstAirDate)}</span>}
-                </div>
-                {w.overview && <p>{w.overview}</p>}
-                {availableOnById.get(w.id)?.length ? (
-                  <div className="disc-card__stream">
-                    {availableOnById.get(w.id)!.slice(0, 4).map((p) => (
-                      <span key={p.name}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {p.logoUrl && <img src={p.logoUrl} alt="" />}
-                        {p.name}
-                      </span>
-                    ))}
+          {result.items.map((w) => {
+            const details = detailsById.get(w.id);
+            const nextEpDate = formatDate(details?.nextEpisodeDate);
+            return (
+              <Link key={w.id} className="disc-card" href={`/dashboard/discovery/watch/${w.id}`}>
+                <div className="disc-card__img" style={w.posterUrl ? { backgroundImage: `url(${w.posterUrl})` } : undefined} />
+                <div className="disc-card__body">
+                  <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
+                  <h3>{w.title}</h3>
+                  <div className="disc-card__meta">
+                    {w.voteAverage ? <span>★ {w.voteAverage.toFixed(1)}</span> : null}
+                    {formatDate(w.firstAirDate) && <span>{formatDate(w.firstAirDate)}</span>}
                   </div>
-                ) : null}
-              </div>
-            </Link>
-          ))}
+                  {nextEpDate && (
+                    <div className="disc-card__meta">
+                      <span className="disc-badge disc-badge--live">
+                        {details?.nextEpisodeIsSeasonPremiere ? `New Season${details.nextEpisodeSeasonNumber ? ` ${details.nextEpisodeSeasonNumber}` : ""}` : "New Episode"}: {nextEpDate}
+                      </span>
+                    </div>
+                  )}
+                  {w.overview && <p>{w.overview}</p>}
+                  {details?.availableOn.length ? (
+                    <div className="disc-card__stream">
+                      {details.availableOn.slice(0, 4).map((p) => (
+                        <span key={p.name}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          {p.logoUrl && <img src={p.logoUrl} alt="" />}
+                          {p.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="disc-pending">

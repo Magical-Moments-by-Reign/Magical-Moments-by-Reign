@@ -48,6 +48,13 @@ export interface WatchDetails extends WatchItem {
   status?: string; // "Returning Series" | "Ended" | ...
   availableOn: WatchProviderAvailability[];
   externalUrl?: string; // TMDB's own page (always safe to link to)
+  /** TMDB's own next_episode_to_air, when the show has a confirmed one —
+   *  never guessed or estimated. */
+  nextEpisodeDate?: string; // ISO date
+  nextEpisodeSeasonNumber?: number;
+  /** true when the upcoming episode is episode 1 of its season (a season
+   *  premiere) rather than just the next episode of an already-airing one. */
+  nextEpisodeIsSeasonPremiere?: boolean;
 }
 
 export interface MovieDetails extends MovieItem {
@@ -205,6 +212,8 @@ export const TmdbWatchProvider: WatchProvider = {
           .map((p: any) => ({ name: p.provider_name, logoUrl: poster(p.logo_path, "w342"), link: typeof us?.link === "string" ? us.link : undefined }));
       }
 
+      const nextEp = show?.next_episode_to_air;
+
       return {
         ...base,
         seasons: typeof show?.number_of_seasons === "number" ? show.number_of_seasons : undefined,
@@ -212,6 +221,9 @@ export const TmdbWatchProvider: WatchProvider = {
         status: typeof show?.status === "string" ? show.status : undefined,
         availableOn,
         externalUrl: show?.id ? `https://www.themoviedb.org/tv/${show.id}` : undefined,
+        nextEpisodeDate: typeof nextEp?.air_date === "string" ? nextEp.air_date : undefined,
+        nextEpisodeSeasonNumber: typeof nextEp?.season_number === "number" ? nextEp.season_number : undefined,
+        nextEpisodeIsSeasonPremiere: nextEp?.episode_number === 1,
       };
     } catch {
       return null;
