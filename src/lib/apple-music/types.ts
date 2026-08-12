@@ -36,10 +36,28 @@ export interface AppleMusicSongResult {
   previewUrl?: string;
 }
 
+export interface AppleMusicPlaylistResult {
+  id: string;
+  name: string;
+  curatorName?: string;
+  description?: string;
+  artworkUrl?: string;
+  url?: string;
+}
+
 export type AppleMusicSearchType = "artists" | "albums" | "songs";
 
 export interface AppleMusicSearchResults {
   artists: AppleMusicArtistResult[];
   albums: AppleMusicAlbumResult[];
   songs: AppleMusicSongResult[];
+}
+
+export interface AppleMusicFeaturedCharts {
+  songsTitle: string;
+  songs: AppleMusicSongResult[];
+  albumsTitle: string;
+  albums: AppleMusicAlbumResult[];
+  playlistsTitle: string;
+  playlists: AppleMusicPlaylistResult[];
 }

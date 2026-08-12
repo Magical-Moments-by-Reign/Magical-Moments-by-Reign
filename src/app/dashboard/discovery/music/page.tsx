@@ -6,12 +6,14 @@ import { getConnectionView, getValidAccessToken } from "@/lib/spotify/connection
 import { searchCatalog as searchSpotifyCatalog } from "@/lib/spotify/catalog";
 import { appleMusicConfigured } from "@/lib/apple-music/token";
 import { searchCatalog as searchAppleMusicCatalog } from "@/lib/apple-music/catalog";
+import { getAlbumsAndPlaylistsCharts } from "@/lib/apple-music/charts";
 import { disconnectSpotifyAction } from "./actions";
 import DiscoveryNav from "../_nav";
 import { AppleMusicKitProvider } from "@/components/apple-music/AppleMusicKitProvider";
 import ConnectAppleMusicButton from "@/components/apple-music/ConnectAppleMusicButton";
 import PlaySongButton from "@/components/apple-music/PlaySongButton";
 import NowPlayingBar from "@/components/apple-music/NowPlayingBar";
+import AppleMusicBrowse from "@/components/apple-music/AppleMusicBrowse";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +57,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
 
   const appleConfigured = appleMusicConfigured();
   const appleResults = source === "apple_music" && appleConfigured && query ? await searchAppleMusicCatalog(query) : null;
+  const featuredCharts = source === "apple_music" && appleConfigured && !query ? await getAlbumsAndPlaylistsCharts() : null;
 
   return (
     <AppleMusicKitProvider>
@@ -93,7 +96,20 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                   <button type="submit" className="btn btn--gold">Search</button>
                 </form>
 
-                <ConnectAppleMusicButton />
+                {query && <ConnectAppleMusicButton />}
+
+                {!query && (
+                  <AppleMusicBrowse
+                    topSongsTitle={chart.chartTitle}
+                    topSongs={chart.entries}
+                    albumsTitle={featuredCharts?.albumsTitle ?? "New Releases"}
+                    albums={featuredCharts?.albums ?? []}
+                    playlistsTitle={featuredCharts?.playlistsTitle ?? "Playlists For You"}
+                    playlists={featuredCharts?.playlists ?? []}
+                    genre={genre}
+                    genres={GENRES}
+                  />
+                )}
 
                 {query && !appleResults && <p className="disc-empty">Apple Music is temporarily unavailable. Please try again shortly.</p>}
 
@@ -246,36 +262,40 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         )}
       </div>
 
-      <div className="disc-filters">
-        {GENRES.map((g) => (
-          <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
-        ))}
-      </div>
-
-      {chart.entries.length ? (
+      {source === "spotify" && (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: ".6rem", marginBottom: ".8rem" }}>
-            <h2 style={{ fontFamily: "var(--font-display, Georgia, serif)", color: "var(--espresso)", fontSize: "1.1rem", margin: 0 }}>{chart.chartTitle}</h2>
-            <span className={`disc-badge ${chart.isOfficial ? "disc-badge--live" : "disc-badge--manual"}`}>
-              {chart.isOfficial ? "Official Chart" : "Magical Moments Chart"}
-            </span>
-          </div>
-          <div className="disc-chart">
-            {chart.entries.map((e) => (
-              <div className="disc-chart__row" key={e.rank}>
-                <span className="disc-chart__rank">{e.rank}</span>
-                <div className="disc-chart__art" style={e.artworkUrl ? { backgroundImage: `url(${e.artworkUrl})` } : undefined} />
-                <div className="disc-chart__song"><b>{e.song}</b><span>{e.artist}</span></div>
-                {e.listenUrl && <a className="btn btn--sm btn--ghost" href={e.listenUrl} target="_blank" rel="noopener noreferrer">Listen →</a>}
-              </div>
+          <div className="disc-filters">
+            {GENRES.map((g) => (
+              <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}&source=spotify`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
             ))}
           </div>
+
+          {chart.entries.length ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: ".6rem", marginBottom: ".8rem" }}>
+                <h2 style={{ fontFamily: "var(--font-display, Georgia, serif)", color: "var(--espresso)", fontSize: "1.1rem", margin: 0 }}>{chart.chartTitle}</h2>
+                <span className={`disc-badge ${chart.isOfficial ? "disc-badge--live" : "disc-badge--manual"}`}>
+                  {chart.isOfficial ? "Official Chart" : "Magical Moments Chart"}
+                </span>
+              </div>
+              <div className="disc-chart">
+                {chart.entries.map((e) => (
+                  <div className="disc-chart__row" key={e.rank}>
+                    <span className="disc-chart__rank">{e.rank}</span>
+                    <div className="disc-chart__art" style={e.artworkUrl ? { backgroundImage: `url(${e.artworkUrl})` } : undefined} />
+                    <div className="disc-chart__song"><b>{e.song}</b><span>{e.artist}</span></div>
+                    {e.listenUrl && <a className="btn btn--sm btn--ghost" href={e.listenUrl} target="_blank" rel="noopener noreferrer">Listen →</a>}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="disc-pending">
+              <b>No chart connected yet.</b>
+              Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.
+            </div>
+          )}
         </>
-      ) : (
-        <div className="disc-pending">
-          <b>No chart connected yet.</b>
-          Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.
-        </div>
       )}
     </div>
     <NowPlayingBar />
