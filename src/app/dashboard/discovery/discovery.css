@@ -164,6 +164,14 @@
 .disc-music__brand h2 { margin: 0; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }
 .disc-music__brand p { margin: .15rem 0 0; color: var(--ink-soft); font-size: .8rem; }
 
+/* Apple Music vs. Spotify — two fully separate rooms within Music, styled
+   as real sub-tabs (same connected-tab metaphor as .disc-nav, one level
+   down) so it reads unmistakably as "pick one," never a merged view. */
+.amk-provider-tabs { display: flex; gap: .3rem; margin: 0 0 1.4rem; border-bottom: 1px solid var(--line); }
+.amk-provider-tabs a { display: inline-flex; align-items: center; padding: .55rem 1.2rem; border-radius: 8px 8px 0 0; border: 1px solid var(--line); border-bottom: none; background: #f4ecda; color: var(--ink-soft); font-size: .8rem; font-weight: 700; letter-spacing: .02em; text-decoration: none; margin-bottom: -1px; transition: background .15s, color .15s; }
+.amk-provider-tabs a:hover { background: #f9f2e2; color: var(--espresso); }
+.amk-provider-tabs a[aria-current="true"] { background: var(--ivory); color: var(--espresso); border-color: var(--gold); border-bottom: 1px solid var(--ivory); position: relative; z-index: 1; }
+
 /* ── Apple MusicKit: connect banner, inline play buttons, now-playing bar ── */
 .amk-connect { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; justify-content: space-between; margin: .9rem 0 1.1rem; padding: .85rem 1.1rem; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(135deg, #fbf6ee, var(--ivory)); }
 .amk-connect__status { color: var(--ink-soft); font-size: .82rem; flex: 1; min-width: 220px; }
