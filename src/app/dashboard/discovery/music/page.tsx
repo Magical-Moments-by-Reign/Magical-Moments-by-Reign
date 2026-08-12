@@ -75,11 +75,11 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
           <img src="/brand/logo-mark.png" alt="Magical Moments by Reign" width={34} height={34} />
           <div>
             <h2>Search the Catalog</h2>
-            <p>Apple Music and Spotify, both inside Magical Moments.</p>
+            <p>Two separate rooms, both inside Magical Moments — pick one.</p>
           </div>
         </div>
 
-        <div className="disc-filters" role="group" aria-label="Choose a music provider">
+        <div className="amk-provider-tabs" role="group" aria-label="Choose a music provider">
           {SOURCES.map((s) => (
             <a key={s.id} href={`/dashboard/discovery/music?genre=${genre}&source=${s.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`} aria-current={source === s.id ? "true" : undefined}>{s.label}</a>
           ))}
