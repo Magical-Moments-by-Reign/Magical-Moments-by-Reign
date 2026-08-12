@@ -32,14 +32,44 @@ function b64url(input: Buffer | string): string {
   return Buffer.from(input).toString("base64url");
 }
 
+// Pasting a multi-line .p8 file into a Netlify (or any) env-var field is
+// error-prone — this repairs the failure modes seen in practice, in order,
+// without ever needing to see or log the actual key content:
+//   1. surrounding quotes some UIs add when saving a multi-line paste
+//   2. a UTF-8 BOM some editors write when saving the .p8 file
+//   3. real newlines collapsed into literal "\n" by a single-line field
+//   4. Windows CRLF line endings
+//   5. only the base64 body was pasted, BEGIN/END PRIVATE KEY lines dropped
+//      — Apple's .p8 keys are PKCS8, so we rewrap with the standard header
+// A well-formed key passes through unchanged; this only helps malformed
+// input, never silently substitutes different key material.
+export function normalizePrivateKey(raw: string): string {
+  let key = raw.trim();
+
+  if (key.length > 1 && ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'")))) {
+    key = key.slice(1, -1).trim();
+  }
+
+  if (key.charCodeAt(0) === 0xfeff) key = key.slice(1);
+
+  if (key.includes("\\n")) key = key.replace(/\\n/g, "\n");
+  key = key.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+
+  if (!key.includes("-----BEGIN")) {
+    const body = key.replace(/\s+/g, "");
+    const lines = body.match(/.{1,64}/g) ?? [];
+    key = `-----BEGIN PRIVATE KEY-----\n${lines.join("\n")}\n-----END PRIVATE KEY-----`;
+  }
+
+  return `${key.trim()}\n`;
+}
+
 function creds(): { teamId: string; keyId: string; privateKey: string } | null {
   const teamId = appleMusicTeamId();
   const keyId = appleMusicKeyId();
   const rawKey = appleMusicPrivateKeyRaw();
   if (!teamId || !keyId || !rawKey) return null;
-  // Env vars often carry literal "\n" instead of real newlines — normalize.
-  const privateKey = rawKey.includes("\\n") ? rawKey.replace(/\\n/g, "\n") : rawKey;
-  return { teamId, keyId, privateKey };
+  return { teamId, keyId, privateKey: normalizePrivateKey(rawKey) };
 }
 
 let cached: { token: string; expiresAt: number } | null = null;

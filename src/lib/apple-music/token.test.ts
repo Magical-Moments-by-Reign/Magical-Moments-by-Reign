@@ -53,3 +53,36 @@ test("appleMusicDeveloperToken signs a well-formed ES256 JWT with a real test ke
   delete process.env.APPLE_MUSIC_KEY_ID;
   delete process.env.APPLE_MUSIC_PRIVATE_KEY;
 });
+
+test("normalizePrivateKey repairs common env-var paste artifacts", async () => {
+  const { normalizePrivateKey } = await import("./token");
+  const { generateKeyPairSync } = await import("node:crypto");
+  const { privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const clean = privateKey.export({ type: "pkcs8", format: "pem" }).toString().trim();
+  const bodyOnly = clean.split("\n").slice(1, -1).join("");
+
+  assert.equal(normalizePrivateKey(clean), `${clean}\n`, "a well-formed key passes through unchanged");
+  assert.equal(normalizePrivateKey(`"${clean}"`), `${clean}\n`, "surrounding double quotes are stripped");
+  assert.equal(normalizePrivateKey(clean.replace(/\n/g, "\\n")), `${clean}\n`, "literal \\n is restored to real newlines");
+  assert.equal(normalizePrivateKey(clean.replace(/\n/g, "\r\n")), `${clean}\n`, "CRLF line endings are normalized to LF");
+  assert.equal(normalizePrivateKey(`﻿${clean}`), `${clean}\n`, "a leading UTF-8 BOM is stripped");
+  assert.equal(normalizePrivateKey(bodyOnly), `${clean}\n`, "a bare base64 body is rewrapped with BEGIN/END PRIVATE KEY");
+});
+
+test("appleMusicDeveloperToken signs successfully even when the env var only carries the quoted base64 body", async () => {
+  const { generateKeyPairSync } = await import("node:crypto");
+  const { privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString().trim();
+  const bodyOnly = pem.split("\n").slice(1, -1).join("");
+
+  process.env.APPLE_MUSIC_TEAM_ID = "TEAM123456";
+  process.env.APPLE_MUSIC_KEY_ID = "KEY1234567";
+  process.env.APPLE_MUSIC_PRIVATE_KEY = `  "${bodyOnly}"  `; // quoted + padded, as a paste mistake might leave it
+
+  const { appleMusicDeveloperToken } = await import("./token");
+  assert.ok(appleMusicDeveloperToken(), "signing must recover from a quoted, BEGIN/END-stripped paste");
+
+  delete process.env.APPLE_MUSIC_TEAM_ID;
+  delete process.env.APPLE_MUSIC_KEY_ID;
+  delete process.env.APPLE_MUSIC_PRIVATE_KEY;
+});

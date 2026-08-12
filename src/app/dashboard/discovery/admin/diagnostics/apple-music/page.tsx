@@ -59,8 +59,8 @@ export default async function AppleMusicDiagnosticPage() {
     rootCause = `Missing from this deployment's runtime environment: ${missing}.`;
     fix = "Confirm all three are set in Netlify → Site configuration → Environment variables for THIS deploy context (production vs. deploy-preview scoping can differ), then trigger a fresh deploy.";
   } else if (!tokenGenerated) {
-    rootCause = "All three credentials are present, but ES256 signing failed — the private key content is likely malformed (not a valid MusicKit .p8 key, or newlines were not preserved when set in Netlify).";
-    fix = "Re-copy the full .p8 file contents (including the BEGIN/END PRIVATE KEY lines) into APPLE_MUSIC_PRIVATE_KEY. If Netlify's editor collapses newlines into literal \\n, that's already handled automatically — but a truncated or re-encoded key is not.";
+    rootCause = "All three credentials are present, but ES256 signing still failed. The signer already auto-repairs the most common paste mistakes (quoted value, literal \\n instead of real newlines, CRLF line endings, a UTF-8 BOM, and a base64 body pasted without the BEGIN/END PRIVATE KEY lines) — signing failing after all of that means the key content itself doesn't match, or was truncated/corrupted during copy.";
+    fix = "Re-download the .p8 file fresh from Apple Developer → Certificates, Identifiers & Profiles → Keys (a key can only be downloaded once, but you can revoke and generate a new one if the original is lost), open it in a plain text editor, select all, and re-paste the entire contents into APPLE_MUSIC_PRIVATE_KEY in Netlify. Confirm APPLE_MUSIC_KEY_ID matches that same key's Key ID exactly.";
   } else if (!test.requestAttempted || test.httpStatus === null) {
     rootCause = "The developer token generated successfully, but the request to Apple's servers never completed (network-level failure).";
     fix = "Check outbound network access from this deploy context to api.music.apple.com. Retry — this can be transient.";
