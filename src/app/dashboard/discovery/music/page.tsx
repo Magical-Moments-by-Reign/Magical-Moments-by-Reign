@@ -79,6 +79,17 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
 
+        {((source === "apple_music" && appleConfigured) || (source === "spotify" && spotify.connected)) && (
+          <div className="disc-music__search-row">
+            <form className="disc-form disc-form--compact" method="get">
+              <input type="hidden" name="genre" value={genre} />
+              <input type="hidden" name="source" value={source} />
+              <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label={`Search ${source === "apple_music" ? "Apple Music" : "Spotify"}`} />
+              <button type="submit" className="btn btn--gold">Search</button>
+            </form>
+          </div>
+        )}
+
         <div className="amk-provider-tabs" role="group" aria-label="Choose a music provider">
           {SOURCES.map((s) => (
             <a key={s.id} href={`/dashboard/discovery/music?genre=${genre}&source=${s.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`} aria-current={source === s.id ? "true" : undefined}>{s.label}</a>
@@ -89,13 +100,6 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
           <>
             {appleConfigured ? (
               <>
-                <form className="disc-form" method="get">
-                  <input type="hidden" name="genre" value={genre} />
-                  <input type="hidden" name="source" value="apple_music" />
-                  <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label="Search Apple Music" />
-                  <button type="submit" className="btn btn--gold">Search</button>
-                </form>
-
                 {query && <ConnectAppleMusicButton />}
 
                 {!query && (
@@ -177,13 +181,6 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
 
         {source === "spotify" && spotify.connected && (
           <>
-            <form className="disc-form" method="get">
-              <input type="hidden" name="genre" value={genre} />
-              <input type="hidden" name="source" value="spotify" />
-              <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label="Search Spotify" />
-              <button type="submit" className="btn btn--gold">Search</button>
-            </form>
-
             {query && !spotifyResults && <p className="disc-empty">Spotify search is temporarily unavailable — please try again.</p>}
 
             {spotifyResults && (

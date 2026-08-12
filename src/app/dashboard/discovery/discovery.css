@@ -53,7 +53,7 @@
    gold-tinted card as the grid below it, just bigger, with the title
    underneath the artwork rather than overlaid on it. */
 .disc-card--feature { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(240px, 1fr); align-items: stretch; margin-bottom: 1.6rem; border: 1px solid var(--gold); box-shadow: 0 14px 32px rgba(44,33,26,.18); }
-.disc-card--feature .disc-card__img { height: auto; min-height: 280px; margin: 0; border-radius: 17px 0 0 17px; background-size: cover; }
+.disc-card--feature .disc-card__img { height: auto; min-height: 280px; margin: 0; border-radius: 17px 0 0 17px; background-size: contain; background-repeat: no-repeat; background-color: var(--espresso); }
 .disc-card--feature .disc-card__body { display: flex; flex-direction: column; justify-content: center; padding: 1.5rem 1.9rem; }
 .disc-card--feature .disc-card__eyebrow { color: var(--gold-deep); font-size: .7rem; }
 .disc-card--feature h3 { font-size: clamp(1.4rem, 2.6vw, 2.1rem); line-height: 1.12; margin-bottom: .55rem; }
@@ -178,6 +178,11 @@
 .disc-music__brand img { border-radius: 9px; flex-shrink: 0; }
 .disc-music__brand h2 { margin: 0; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }
 .disc-music__brand p { margin: .15rem 0 0; color: var(--ink-soft); font-size: .8rem; }
+
+.disc-music__search-row { display: flex; justify-content: flex-end; margin: 0 0 1rem; }
+.disc-form--compact { max-width: 340px; width: 100%; padding: .5rem .6rem; gap: .5rem; margin-bottom: 0; border-radius: 14px; }
+.disc-form--compact input[type="text"] { min-width: 0; padding: .55rem .8rem; font-size: .82rem; border-radius: 9px; }
+.disc-form--compact .btn, .disc-form--compact button { padding: .55rem 1.05rem; font-size: .72rem; }
 
 /* Apple Music vs. Spotify — two fully separate rooms within Music, styled
    as real sub-tabs (same connected-tab metaphor as .disc-nav, one level
@@ -353,14 +358,14 @@
    Music and Spotify as providers inside it — not a copy of either
    company's site. */
 .amk-hero {
-  position: relative; border-radius: 20px; overflow: hidden; min-height: 300px; display: flex; align-items: flex-end; padding: 2rem 2.2rem; margin: 0 0 1.6rem; color: #fff9ed;
-  background-image: linear-gradient(90deg, #1c130b 0%, rgba(28,19,11,.82) 34%, rgba(28,19,11,.28) 62%, rgba(28,19,11,.05) 85%), url(/discovery/apple-music-hero.jpg);
+  position: relative; border-radius: 20px; overflow: hidden; min-height: 210px; display: flex; align-items: flex-end; padding: 1.5rem 2rem; margin: 0 0 1.6rem; color: #fff9ed;
+  background-image: linear-gradient(90deg, #1c130b 0%, rgba(28,19,11,.68) 34%, rgba(28,19,11,.16) 60%, rgba(28,19,11,0) 82%), url(/discovery/apple-music-hero.jpg);
   background-size: cover, cover;
   background-position: left center, 78% center;
   background-repeat: no-repeat, no-repeat;
 }
 .amk-hero__badge { position: absolute; top: 1.6rem; left: 2.2rem; display: flex; align-items: center; gap: .5rem; font-family: var(--font-display, Georgia, serif); font-size: 1.05rem; }
-.amk-hero__badge img { border-radius: 8px; }
+.amk-hero__badge svg { flex-shrink: 0; }
 .amk-hero__body { max-width: 560px; }
 .amk-hero__body h1 { font-family: var(--font-display, Georgia, serif); font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.15; margin: 0 0 .5rem; }
 .amk-hero__body p { margin: 0 0 1.2rem; color: #e9dcc4; font-size: .95rem; }
@@ -397,7 +402,9 @@
 .amk-tile--song .amk-tile__body { min-width: 0; flex: 1; }
 
 @media (max-width: 680px) {
-  .amk-hero { min-height: 240px; padding: 1.4rem 1.4rem; }
+  .disc-music__search-row { justify-content: stretch; }
+  .disc-form--compact { max-width: none; }
+  .amk-hero { min-height: 190px; padding: 1.4rem 1.4rem; }
   .amk-tile { flex-basis: 120px; }
   .amk-tile__art { width: 120px; height: 120px; }
 }
