@@ -70,6 +70,7 @@ export function mapCatalogSong(s: any): AppleMusicSongResult | null {
     artworkUrl: resolveArtwork(attrs?.artwork?.url),
     url: typeof attrs.url === "string" ? attrs.url : undefined,
     durationMs: typeof attrs.durationInMillis === "number" ? attrs.durationInMillis : undefined,
+    previewUrl: Array.isArray(attrs?.previews) && typeof attrs.previews[0]?.url === "string" ? attrs.previews[0].url : undefined,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
