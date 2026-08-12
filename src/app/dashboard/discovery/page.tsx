@@ -17,8 +17,18 @@ function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string
   return src ? <Image src={src} alt={alt} fill sizes={sizes} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
 }
 
-function FeatureCard({ item, large = false }: { item: Feature; large?: boolean }) {
-  const body = (
+function FeatureCard({ item, large = false, boxed = false }: { item: Feature; large?: boolean; boxed?: boolean }) {
+  const body = boxed ? (
+    <>
+      <div className="disc-lux__feature-art"><Artwork src={item.image} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, (max-width: 1100px) 44vw, 30vw" /></div>
+      <div className="disc-lux__feature-copy">
+        <span className="disc-lux__label">{item.label}</span>
+        <h2>{item.title}</h2>
+        {item.description && <p>{item.description}</p>}
+        <span className="disc-lux__explore">Explore <span aria-hidden="true">→</span></span>
+      </div>
+    </>
+  ) : (
     <>
       <Artwork src={item.image} alt={`${item.title} artwork`} sizes={large ? "(max-width: 800px) 100vw, 55vw" : "(max-width: 800px) 100vw, 30vw"} />
       <div className="disc-lux__shade" />
@@ -30,7 +40,7 @@ function FeatureCard({ item, large = false }: { item: Feature; large?: boolean }
       </div>
     </>
   );
-  const classes = `disc-lux__feature${large ? " disc-lux__feature--large" : ""}`;
+  const classes = `disc-lux__feature${large ? " disc-lux__feature--large" : ""}${boxed ? " disc-lux__feature--boxed" : ""}`;
   return item.external ? <a className={classes} href={item.href} target="_blank" rel="noopener noreferrer">{body}</a> : <Link className={classes} href={item.href}>{body}</Link>;
 }
 
@@ -40,8 +50,8 @@ function SectionHeader({ title, subtitle, href, action }: { title: string; subti
 
 function WatchCard({ item }: { item: WatchItem }) {
   return <Link className="disc-lux__landscape" href={`/dashboard/discovery/watch/${item.id}`}>
-    <Artwork src={item.backdropUrl ?? item.posterUrl} alt={`${item.title} artwork`} sizes="(max-width: 700px) 78vw, 24vw" />
-    <div className="disc-lux__shade" /><div className="disc-lux__overlay-copy"><h3>{item.title}</h3>{item.firstAirDate && <span>{item.firstAirDate.slice(0, 4)}</span>}</div>
+    <div className="disc-lux__landscape-art"><Artwork src={item.backdropUrl ?? item.posterUrl} alt={`${item.title} artwork`} sizes="(max-width: 700px) 78vw, 24vw" /></div>
+    <div className="disc-lux__landscape-copy"><h3>{item.title}</h3>{item.firstAirDate && <span>{item.firstAirDate.slice(0, 4)}</span>}</div>
   </Link>;
 }
 
@@ -103,7 +113,7 @@ export default async function DiscoveryPage() {
 
     <section className="disc-lux__section">
       <SectionHeader title="Curated For You" subtitle="A little of everything, chosen for your day." href="/dashboard/discovery/trending" action="View All" />
-      {curated.length ? <div className="disc-lux__curated">{curated.map((item) => <FeatureCard key={`${item.label}-${item.title}`} item={item} />)}</div> : <EmptyState title="Your edit is taking shape">Connected, real-time recommendations will appear here when available.</EmptyState>}
+      {curated.length ? <div className="disc-lux__curated">{curated.map((item) => <FeatureCard key={`${item.label}-${item.title}`} item={item} boxed />)}</div> : <EmptyState title="Your edit is taking shape">Connected, real-time recommendations will appear here when available.</EmptyState>}
     </section>
 
     <section className="disc-lux__section">
