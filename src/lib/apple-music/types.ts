@@ -30,6 +30,10 @@ export interface AppleMusicSongResult {
   artworkUrl?: string;
   url?: string;
   durationMs?: number;
+  // A real, Apple-hosted 30-second preview clip — plays via plain HTML5
+  // audio, no MusicKit authorization needed. Undefined when Apple doesn't
+  // return one for this song.
+  previewUrl?: string;
 }
 
 export type AppleMusicSearchType = "artists" | "albums" | "songs";

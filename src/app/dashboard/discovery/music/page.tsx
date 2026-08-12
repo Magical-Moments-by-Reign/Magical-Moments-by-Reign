@@ -8,6 +8,10 @@ import { appleMusicConfigured } from "@/lib/apple-music/token";
 import { searchCatalog as searchAppleMusicCatalog } from "@/lib/apple-music/catalog";
 import { disconnectSpotifyAction } from "./actions";
 import DiscoveryNav from "../_nav";
+import { AppleMusicKitProvider } from "@/components/apple-music/AppleMusicKitProvider";
+import ConnectAppleMusicButton from "@/components/apple-music/ConnectAppleMusicButton";
+import PlaySongButton from "@/components/apple-music/PlaySongButton";
+import NowPlayingBar from "@/components/apple-music/NowPlayingBar";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +57,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
   const appleResults = source === "apple_music" && appleConfigured && query ? await searchAppleMusicCatalog(query) : null;
 
   return (
+    <AppleMusicKitProvider>
     <div className="disc">
       <div className="pg-head">
         <span className="pg-eyebrow">Magical Discovery</span>
@@ -87,6 +92,8 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                   <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label="Search Apple Music" />
                   <button type="submit" className="btn btn--gold">Search</button>
                 </form>
+
+                <ConnectAppleMusicButton />
 
                 {query && !appleResults && <p className="disc-empty">Apple Music is temporarily unavailable. Please try again shortly.</p>}
 
@@ -135,6 +142,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                             <div className="disc-chart__row" key={t.id}>
                               <div className="disc-chart__art" style={t.artworkUrl ? { backgroundImage: `url(${t.artworkUrl})` } : undefined} />
                               <div className="disc-chart__song"><b>{t.name}</b><span>{t.artistName}{t.albumName ? ` · ${t.albumName}` : ""}</span></div>
+                              <PlaySongButton song={{ id: t.id, name: t.name, artistName: t.artistName, albumName: t.albumName, artworkUrl: t.artworkUrl, previewUrl: t.previewUrl }} />
                               {t.url && <a className="btn btn--sm btn--ghost" href={t.url} target="_blank" rel="noopener noreferrer">Open in Apple Music →</a>}
                             </div>
                           ))}
@@ -270,5 +278,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         </div>
       )}
     </div>
+    <NowPlayingBar />
+    </AppleMusicKitProvider>
   );
 }
