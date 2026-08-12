@@ -154,6 +154,12 @@
 .disc-connect h2 { margin: 0 0 .3rem; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }
 .disc-connect p { margin: 0; color: var(--ink-soft); font-size: .84rem; }
 
+/* ── Music: Magical Moments brand row above the provider selector ── */
+.disc-music__brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.disc-music__brand img { border-radius: 9px; flex-shrink: 0; }
+.disc-music__brand h2 { margin: 0; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }
+.disc-music__brand p { margin: .15rem 0 0; color: var(--ink-soft); font-size: .8rem; }
+
 @media (max-width: 680px) {
   .disc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .disc-detail__hero { min-height: 200px; }
