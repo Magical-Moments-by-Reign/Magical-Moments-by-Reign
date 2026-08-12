@@ -19,10 +19,14 @@
    separate, explicit request from the owner, not a side effect of a
    provider fix. */
 
-.disc-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.1rem 0 1.6rem; }
-.disc-nav a { display: inline-flex; align-items: center; padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--ivory); color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; transition: transform .12s, box-shadow .12s; }
-.disc-nav a:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(44,33,26,.1); }
-.disc-nav a[aria-current="page"] { background: linear-gradient(135deg, #d8b25e, #a67c2e); color: #2a1d12; border-color: var(--gold-deep); }
+/* Real browser/folder-tab metaphor: connected, flat-topped tabs sharing one
+   baseline, with the active tab "lifted" — its bottom edge merges into the
+   page background so it reads as the page you're standing on, exactly like
+   switching tabs in a browser or laptop app. */
+.disc-nav { display: flex; flex-wrap: wrap; gap: .3rem; margin: 1.1rem 0 1.6rem; border-bottom: 2px solid var(--gold); }
+.disc-nav a { display: inline-flex; align-items: center; padding: .65rem 1.15rem; border-radius: 10px 10px 0 0; border: 1px solid var(--line); border-bottom: none; background: #efe3c8; color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; margin-bottom: -2px; transition: background .15s, color .15s; }
+.disc-nav a:hover { background: #f7f0dc; color: var(--espresso); }
+.disc-nav a[aria-current="page"] { background: var(--ivory); color: var(--espresso); border-color: var(--gold); border-bottom: 2px solid var(--ivory); position: relative; z-index: 1; }
 
 .disc-section { margin-top: 2.2rem; }
 .disc-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
@@ -160,6 +164,33 @@
 .disc-music__brand h2 { margin: 0; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }
 .disc-music__brand p { margin: .15rem 0 0; color: var(--ink-soft); font-size: .8rem; }
 
+/* Apple Music vs. Spotify — two fully separate rooms within Music, styled
+   as real sub-tabs (same connected-tab metaphor as .disc-nav, one level
+   down) so it reads unmistakably as "pick one," never a merged view. */
+.amk-provider-tabs { display: flex; gap: .3rem; margin: 0 0 1.4rem; border-bottom: 1px solid var(--line); }
+.amk-provider-tabs a { display: inline-flex; align-items: center; padding: .55rem 1.2rem; border-radius: 8px 8px 0 0; border: 1px solid var(--line); border-bottom: none; background: #f4ecda; color: var(--ink-soft); font-size: .8rem; font-weight: 700; letter-spacing: .02em; text-decoration: none; margin-bottom: -1px; transition: background .15s, color .15s; }
+.amk-provider-tabs a:hover { background: #f9f2e2; color: var(--espresso); }
+.amk-provider-tabs a[aria-current="true"] { background: var(--ivory); color: var(--espresso); border-color: var(--gold); border-bottom: 1px solid var(--ivory); position: relative; z-index: 1; }
+
+/* ── Apple MusicKit: connect banner, inline play buttons, now-playing bar ── */
+.amk-connect { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; justify-content: space-between; margin: .9rem 0 1.1rem; padding: .85rem 1.1rem; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(135deg, #fbf6ee, var(--ivory)); }
+.amk-connect__status { color: var(--ink-soft); font-size: .82rem; flex: 1; min-width: 220px; }
+.amk-connect__message { flex-basis: 100%; margin: .4rem 0 0; color: var(--gold-deep); font-size: .78rem; }
+
+.amk-play-btn { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--gold); background: #fff; color: var(--gold-deep); font-size: .78rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s, color .15s; }
+.amk-play-btn:hover { background: var(--gold); color: #fff9ed; }
+
+.amk-now-playing { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: .75rem; padding: .6rem .9rem .6rem .6rem; border-radius: 999px; background: var(--espresso); color: #fff9ed; box-shadow: 0 14px 30px rgba(20,14,8,.35); max-width: 90vw; }
+.amk-now-playing__art { width: 42px; height: 42px; border-radius: 10px; background-size: cover; background-position: center; background-color: #4a3a26; flex-shrink: 0; }
+.amk-now-playing__info { display: flex; flex-direction: column; min-width: 0; max-width: 220px; }
+.amk-now-playing__info b { font-size: .84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+.amk-now-playing__info span { font-size: .7rem; color: var(--gold-soft, #d9bd82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amk-now-playing__toggle { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--gold); color: var(--espresso); font-size: .8rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+
+@media (max-width: 680px) {
+  .amk-now-playing { bottom: .8rem; left: 1rem; right: 1rem; transform: none; max-width: none; }
+}
+
 @media (max-width: 680px) {
   .disc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .disc-detail__hero { min-height: 200px; }
@@ -270,4 +301,49 @@
   .disc-lux__mini-section:last-child { grid-column: auto; }
   .disc-lux__section-head { align-items: baseline; }
   .disc-lux__section-head > a { font-size: .65rem; }
+}
+
+/* ── Apple Music browse: hero, pills, horizontal tile rows ────────
+   Reuses the app's espresso/gold/ivory palette (not Apple's own black/
+   white look) so this reads as Magical Moments' own room, with Apple
+   Music and Spotify as providers inside it — not a copy of either
+   company's site. */
+.amk-hero { position: relative; border-radius: 20px; overflow: hidden; min-height: 300px; display: flex; align-items: flex-end; padding: 2rem 2.2rem; margin: 0 0 1.6rem; background: linear-gradient(135deg, #241a10, #3a2915 55%, #4a3420); color: #fff9ed; }
+.amk-hero__badge { position: absolute; top: 1.6rem; left: 2.2rem; display: flex; align-items: center; gap: .5rem; font-family: var(--font-display, Georgia, serif); font-size: 1.05rem; }
+.amk-hero__badge img { border-radius: 8px; }
+.amk-hero__body { max-width: 560px; }
+.amk-hero__body h1 { font-family: var(--font-display, Georgia, serif); font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.15; margin: 0 0 .5rem; }
+.amk-hero__body p { margin: 0 0 1.2rem; color: #e9dcc4; font-size: .95rem; }
+.amk-hero__actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.amk-hero__learn { color: #fff9ed; font-size: .84rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; }
+
+.amk-connect--compact { margin: 0; padding: 0; border: none; background: none; flex-wrap: nowrap; }
+.amk-connect--compact .amk-connect__message { color: #f2d99a; }
+
+.amk-pills { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.4rem; }
+.amk-pills a, .amk-pills button { display: inline-flex; align-items: center; gap: .35rem; padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--ivory); color: var(--ink-soft); font-size: .78rem; font-weight: 700; letter-spacing: .02em; text-decoration: none; cursor: pointer; }
+.amk-pills a[aria-current="true"], .amk-pills button[aria-current="true"] { background: var(--espresso); color: #fff9ed; border-color: var(--espresso); }
+.amk-pills select { border: 1px solid var(--line); border-radius: 999px; padding: .5rem 1rem; background: var(--ivory); color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
+
+.amk-row { margin-bottom: 1.8rem; }
+.amk-row__head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+.amk-row__head h2 { font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.1rem; margin: 0; }
+.amk-row__scroll { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: .4rem; scrollbar-width: thin; }
+
+.amk-tile { flex: 0 0 150px; text-decoration: none; color: inherit; }
+.amk-tile__art { position: relative; width: 150px; height: 150px; border-radius: 12px; background-size: cover; background-position: center; background-color: #efe3c8; margin-bottom: .55rem; overflow: hidden; }
+.amk-tile__playover { position: absolute; right: .5rem; bottom: .5rem; width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--gold); color: var(--espresso); font-size: .78rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(20,14,8,.35); }
+.amk-tile__title { display: block; font-size: .84rem; font-weight: 700; color: var(--espresso); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amk-tile__subtitle { display: block; font-size: .74rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.amk-tile--song { flex-basis: 260px; display: flex; align-items: center; gap: .7rem; }
+.amk-tile--song .amk-tile__art { width: 56px; height: 56px; flex-shrink: 0; margin-bottom: 0; }
+.amk-tile--song .amk-tile__rank { width: 1.4rem; text-align: center; font-family: var(--font-display, Georgia, serif); color: var(--gold-deep); flex-shrink: 0; }
+.amk-tile--song .amk-tile__playover { position: static; width: 30px; height: 30px; margin-left: auto; flex-shrink: 0; }
+.amk-tile--song .amk-tile__body { min-width: 0; flex: 1; }
+
+@media (max-width: 680px) {
+  .amk-hero { min-height: 240px; padding: 1.4rem 1.4rem; }
+  .amk-tile { flex-basis: 120px; }
+  .amk-tile__art { width: 120px; height: 120px; }
 }

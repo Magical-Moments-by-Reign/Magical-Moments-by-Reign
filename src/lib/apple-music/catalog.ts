@@ -37,6 +37,7 @@ export function mapArtist(a: any): AppleMusicArtistResult | null {
   return {
     id: String(a.id),
     name: String(attrs.name),
+    artworkUrl: resolveArtwork(attrs?.artwork?.url),
     url: typeof attrs.url === "string" ? attrs.url : undefined,
     genreNames: Array.isArray(attrs.genreNames) ? attrs.genreNames.filter((g: unknown) => typeof g === "string") : undefined,
   };
@@ -69,6 +70,7 @@ export function mapCatalogSong(s: any): AppleMusicSongResult | null {
     artworkUrl: resolveArtwork(attrs?.artwork?.url),
     url: typeof attrs.url === "string" ? attrs.url : undefined,
     durationMs: typeof attrs.durationInMillis === "number" ? attrs.durationInMillis : undefined,
+    previewUrl: Array.isArray(attrs?.previews) && typeof attrs.previews[0]?.url === "string" ? attrs.previews[0].url : undefined,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

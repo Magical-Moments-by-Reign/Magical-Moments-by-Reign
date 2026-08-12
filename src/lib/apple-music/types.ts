@@ -7,6 +7,7 @@
 export interface AppleMusicArtistResult {
   id: string;
   name: string;
+  artworkUrl?: string; // not every artist has one — Apple omits it when unavailable
   url?: string; // Apple Music web page for the artist, when Apple returns one
   genreNames?: string[];
 }
@@ -29,6 +30,19 @@ export interface AppleMusicSongResult {
   artworkUrl?: string;
   url?: string;
   durationMs?: number;
+  // A real, Apple-hosted 30-second preview clip — plays via plain HTML5
+  // audio, no MusicKit authorization needed. Undefined when Apple doesn't
+  // return one for this song.
+  previewUrl?: string;
+}
+
+export interface AppleMusicPlaylistResult {
+  id: string;
+  name: string;
+  curatorName?: string;
+  description?: string;
+  artworkUrl?: string;
+  url?: string;
 }
 
 export type AppleMusicSearchType = "artists" | "albums" | "songs";
@@ -37,4 +51,13 @@ export interface AppleMusicSearchResults {
   artists: AppleMusicArtistResult[];
   albums: AppleMusicAlbumResult[];
   songs: AppleMusicSongResult[];
+}
+
+export interface AppleMusicFeaturedCharts {
+  songsTitle: string;
+  songs: AppleMusicSongResult[];
+  albumsTitle: string;
+  albums: AppleMusicAlbumResult[];
+  playlistsTitle: string;
+  playlists: AppleMusicPlaylistResult[];
 }
