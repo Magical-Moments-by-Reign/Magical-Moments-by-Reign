@@ -236,7 +236,12 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
 
   const playSong = useCallback(async (song: PlayableSong, queue?: PlayableSong[]) => {
     setStatusMessage(null);
-    if (authorized && musicRef.current) {
+    // Read isAuthorized fresh off the MusicKit instance rather than the
+    // React `authorized` state — the state is updated via an event
+    // listener + explicit setters, so there's a window right after
+    // authorize() resolves (or after a remount) where it could lag behind
+    // what MusicKit itself already knows.
+    if (musicRef.current?.isAuthorized) {
       try {
         const list = queue && queue.length > 1 ? queue : [song];
         await musicRef.current.setQueue(list.length > 1 ? { songs: list.map((s) => s.id) } : { song: song.id });
@@ -244,18 +249,18 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
         await musicRef.current.play();
         return;
       } catch {
-        setStatusMessage("Full playback needs an active Apple Music subscription — playing the preview instead.");
+        setStatusMessage("Full playback didn't start — this usually means the signed-in Apple ID doesn't have an active Apple Music subscription. Playing the preview instead.");
       }
     }
     const list = queue && queue.length > 1 ? queue : [song];
     previewQueueRef.current.songs = list;
     hasQueueRef.current = list.length > 1;
     playPreviewAt(list.findIndex((s) => s.id === song.id));
-  }, [authorized, playPreviewAt]);
+  }, [playPreviewAt]);
 
   const playCollection = useCallback(async (id: string, kind: "album" | "playlist", label: string) => {
     setStatusMessage(null);
-    if (!authorized || !musicRef.current) {
+    if (!musicRef.current?.isAuthorized) {
       setStatusMessage(`Connect Apple Music to play ${label} — song previews are available from Top Songs.`);
       return;
     }
@@ -264,9 +269,9 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
       hasQueueRef.current = true;
       await musicRef.current.play();
     } catch {
-      setStatusMessage(`Couldn't start ${label} — please try again.`);
+      setStatusMessage(`Couldn't start ${label} — this usually means the signed-in Apple ID doesn't have an active Apple Music subscription.`);
     }
-  }, [authorized]);
+  }, []);
 
   const togglePlayPause = useCallback(() => {
     if (nowPlaying?.mode === "musickit" && musicRef.current) {
