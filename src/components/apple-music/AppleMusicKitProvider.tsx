@@ -7,14 +7,16 @@
 //   - authorize()/unauthorize() — the member signs in with their own Apple
 //     ID via Apple's own popup; Magical Moments never sees Apple
 //     credentials, only the resulting authorization state
-//   - real full-track playback for authorized members with an active
-//     Apple Music subscription, via MusicKit's own player
+//   - real full-track/album/playlist playback for authorized members with
+//     an active Apple Music subscription, via MusicKit's own player, with
+//     next/previous through whatever list the member started playing from
 //   - a real 30-second preview fallback (plain HTML5 audio, Apple's own
 //     preview clip URL) for everyone else, or if full playback fails for
-//     any reason (no subscription, a revoked authorization, etc.)
+//     any reason — playback always does something honest, never fails
+//     silently
 // Entirely independent of Spotify — no shared code, no shared state, no
 // shared credentials. MusicKit JS manages its own per-browser
-// authorization session; nothing here is persisted server-side.
+// authorization session; nothing is persisted server-side in this pass.
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
@@ -41,10 +43,19 @@ interface AppleMusicKitContextValue {
   statusMessage: string | null;
   nowPlaying: NowPlaying | null;
   isPlaying: boolean;
+  progress: { current: number; duration: number };
+  volume: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
-  playSong: (song: PlayableSong) => Promise<void>;
+  playSong: (song: PlayableSong, queue?: PlayableSong[]) => Promise<void>;
+  playCollection: (id: string, kind: "album" | "playlist", label: string) => Promise<void>;
   togglePlayPause: () => void;
+  skipNext: () => void;
+  skipPrevious: () => void;
+  seek: (seconds: number) => void;
+  setVolume: (level: number) => void;
 }
 
 const AppleMusicKitContext = createContext<AppleMusicKitContextValue | null>(null);
@@ -55,25 +66,26 @@ export function useAppleMusicKit(): AppleMusicKitContextValue {
   return ctx;
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
   interface Window {
     MusicKit?: {
       configure: (config: { developerToken: string; app: { name: string; build: string } }) => Promise<AppleMusicKitInstance>;
-      getInstance?: () => AppleMusicKitInstance;
     };
   }
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 interface AppleMusicKitInstance {
   isAuthorized: boolean;
-  musicUserToken: string;
   authorize: () => Promise<string>;
   unauthorize: () => Promise<void>;
-  setQueue: (descriptor: { song: string }) => Promise<any>;
+  setQueue: (descriptor: { song: string } | { songs: string[] } | { album: string } | { playlist: string }) => Promise<any>;
   play: () => Promise<void>;
   pause: () => void;
-  player?: { isPlaying?: boolean };
+  skipToNextItem?: () => Promise<void>;
+  skipToPreviousItem?: () => Promise<void>;
+  seekToTime?: (seconds: number) => Promise<void>;
+  player?: { isPlaying?: boolean; currentPlaybackTime?: number; currentPlaybackDuration?: number; volume?: number };
   nowPlayingItem?: { title?: string; artistName?: string; artworkURL?: string } | null;
   addEventListener: (event: string, handler: (...args: any[]) => void) => void;
 }
@@ -89,9 +101,13 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
+  const [progress, setProgress] = useState({ current: 0, duration: 0 });
+  const [volume, setVolumeState] = useState(1);
 
   const musicRef = useRef<AppleMusicKitInstance | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewQueueRef = useRef<{ songs: PlayableSong[]; index: number }>({ songs: [], index: -1 });
+  const hasQueueRef = useRef(false); // whether MusicKit currently has a multi-item queue (album/playlist/song-list)
 
   useEffect(() => {
     let cancelled = false;
@@ -104,7 +120,7 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
           return;
         }
         const { token } = (await res.json()) as { token: string };
-        if (!window.MusicKit) return; // script not loaded yet — musickitloaded listener will retry
+        if (!window.MusicKit) return;
 
         const instance = await window.MusicKit.configure({
           developerToken: token,
@@ -149,6 +165,23 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
+  // Progress polling — MusicKit JS's own player state doesn't reliably fire
+  // an event per second, so this is the same "poll while playing" pattern
+  // any MusicKit JS integration uses for a progress bar.
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      if (nowPlaying?.mode === "musickit" && musicRef.current?.player) {
+        const p = musicRef.current.player;
+        setProgress({ current: p.currentPlaybackTime ?? 0, duration: p.currentPlaybackDuration ?? 0 });
+      } else if (nowPlaying?.mode === "preview" && previewAudioRef.current) {
+        const a = previewAudioRef.current;
+        setProgress({ current: a.currentTime, duration: Number.isFinite(a.duration) ? a.duration : 0 });
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [isPlaying, nowPlaying?.mode]);
+
   const connect = useCallback(async () => {
     if (!musicRef.current) return;
     setConnecting(true);
@@ -172,37 +205,68 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
     }
     setAuthorized(false);
     setNowPlaying(null);
+    hasQueueRef.current = false;
   }, []);
 
-  const playPreview = useCallback((song: PlayableSong) => {
-    if (!song.previewUrl) {
+  const playPreviewAt = useCallback((index: number) => {
+    const { songs } = previewQueueRef.current;
+    const song = songs[index];
+    if (!song?.previewUrl) {
       setStatusMessage("No preview is available for this track.");
       return;
     }
-    if (!previewAudioRef.current) previewAudioRef.current = new Audio();
+    previewQueueRef.current.index = index;
+    if (!previewAudioRef.current) {
+      const audio = new Audio();
+      audio.onpause = () => setIsPlaying(false);
+      audio.onplay = () => setIsPlaying(true);
+      audio.onended = () => {
+        const q = previewQueueRef.current;
+        if (q.index + 1 < q.songs.length) playPreviewAt(q.index + 1);
+        else setIsPlaying(false);
+      };
+      previewAudioRef.current = audio;
+    }
     const audio = previewAudioRef.current;
     audio.src = song.previewUrl;
+    audio.volume = volume;
     audio.play().catch(() => setStatusMessage("Playback couldn't start — please try again."));
     setNowPlaying({ title: song.name, artist: song.artistName, artworkUrl: song.artworkUrl, mode: "preview" });
-    setIsPlaying(true);
-    audio.onpause = () => setIsPlaying(false);
-    audio.onplay = () => setIsPlaying(true);
-    audio.onended = () => setIsPlaying(false);
-  }, []);
+  }, [volume]);
 
-  const playSong = useCallback(async (song: PlayableSong) => {
+  const playSong = useCallback(async (song: PlayableSong, queue?: PlayableSong[]) => {
     setStatusMessage(null);
     if (authorized && musicRef.current) {
       try {
-        await musicRef.current.setQueue({ song: song.id });
+        const list = queue && queue.length > 1 ? queue : [song];
+        await musicRef.current.setQueue(list.length > 1 ? { songs: list.map((s) => s.id) } : { song: song.id });
+        hasQueueRef.current = list.length > 1;
         await musicRef.current.play();
         return;
       } catch {
         setStatusMessage("Full playback needs an active Apple Music subscription — playing the preview instead.");
       }
     }
-    playPreview(song);
-  }, [authorized, playPreview]);
+    const list = queue && queue.length > 1 ? queue : [song];
+    previewQueueRef.current.songs = list;
+    hasQueueRef.current = list.length > 1;
+    playPreviewAt(list.findIndex((s) => s.id === song.id));
+  }, [authorized, playPreviewAt]);
+
+  const playCollection = useCallback(async (id: string, kind: "album" | "playlist", label: string) => {
+    setStatusMessage(null);
+    if (!authorized || !musicRef.current) {
+      setStatusMessage(`Connect Apple Music to play ${label} — song previews are available from Top Songs.`);
+      return;
+    }
+    try {
+      await musicRef.current.setQueue(kind === "album" ? { album: id } : { playlist: id });
+      hasQueueRef.current = true;
+      await musicRef.current.play();
+    } catch {
+      setStatusMessage(`Couldn't start ${label} — please try again.`);
+    }
+  }, [authorized]);
 
   const togglePlayPause = useCallback(() => {
     if (nowPlaying?.mode === "musickit" && musicRef.current) {
@@ -216,8 +280,45 @@ export function AppleMusicKitProvider({ children }: { children: React.ReactNode 
     else audio.pause();
   }, [nowPlaying]);
 
+  const skipNext = useCallback(() => {
+    if (nowPlaying?.mode === "musickit" && musicRef.current?.skipToNextItem) {
+      musicRef.current.skipToNextItem().catch(() => {});
+      return;
+    }
+    const q = previewQueueRef.current;
+    if (q.index + 1 < q.songs.length) playPreviewAt(q.index + 1);
+  }, [nowPlaying, playPreviewAt]);
+
+  const skipPrevious = useCallback(() => {
+    if (nowPlaying?.mode === "musickit" && musicRef.current?.skipToPreviousItem) {
+      musicRef.current.skipToPreviousItem().catch(() => {});
+      return;
+    }
+    const q = previewQueueRef.current;
+    if (q.index > 0) playPreviewAt(q.index - 1);
+  }, [nowPlaying, playPreviewAt]);
+
+  const seek = useCallback((seconds: number) => {
+    if (nowPlaying?.mode === "musickit" && musicRef.current?.seekToTime) {
+      musicRef.current.seekToTime(seconds).catch(() => {});
+      return;
+    }
+    if (previewAudioRef.current) previewAudioRef.current.currentTime = seconds;
+  }, [nowPlaying]);
+
+  const setVolume = useCallback((level: number) => {
+    const clamped = Math.min(1, Math.max(0, level));
+    setVolumeState(clamped);
+    if (musicRef.current?.player) musicRef.current.player.volume = clamped;
+    if (previewAudioRef.current) previewAudioRef.current.volume = clamped;
+  }, []);
+
+  const q = previewQueueRef.current;
+  const hasNext = nowPlaying?.mode === "musickit" ? hasQueueRef.current : q.index + 1 < q.songs.length;
+  const hasPrevious = nowPlaying?.mode === "musickit" ? hasQueueRef.current : q.index > 0;
+
   return (
-    <AppleMusicKitContext.Provider value={{ ready, authorized, connecting, statusMessage, nowPlaying, isPlaying, connect, disconnect, playSong, togglePlayPause }}>
+    <AppleMusicKitContext.Provider value={{ ready, authorized, connecting, statusMessage, nowPlaying, isPlaying, progress, volume, hasNext, hasPrevious, connect, disconnect, playSong, playCollection, togglePlayPause, skipNext, skipPrevious, seek, setVolume }}>
       {children}
     </AppleMusicKitContext.Provider>
   );
