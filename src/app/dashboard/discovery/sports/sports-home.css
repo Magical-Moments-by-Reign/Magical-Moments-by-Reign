@@ -1,0 +1,136 @@
+/* ── Sports Home — Owner-approved redesign ─────────────────────────
+   Scoped to the Sports section only (.sph-* prefix) — does NOT touch or
+   reuse the frozen .disc-* system from discovery.css (see the DESIGN FREEZE
+   note there); Sports Home is a deliberate, explicit visual redesign the
+   Owner asked for, everything else in Discovery stays as-is.
+
+   This nests INSIDE the existing global dashboard sidebar/top bar
+   (DashboardChrome) rather than replacing it — this file only adds a
+   second, Sports-section-scoped left nav + the page content, reusing the
+   same ink/gold/ivory tokens as the rest of the dashboard for consistency. */
+
+.sph { display: flex; align-items: flex-start; gap: 1.6rem; max-width: 1320px; margin: 0 auto; padding: 1.4rem 1.6rem 3rem; }
+
+/* ── Sports section sidebar ── */
+.sph-side { flex: 0 0 240px; position: sticky; top: 1.4rem; background: var(--espresso); border-radius: 16px; padding: 1.2rem .9rem; display: flex; flex-direction: column; gap: 1.2rem; }
+.sph-side__nav { display: flex; flex-direction: column; gap: .15rem; }
+.sph-side__i { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 10px; color: #d9cdb8; text-decoration: none; font-size: .86rem; font-weight: 600; transition: background .15s, color .15s; }
+.sph-side__i svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sph-side__i:hover { background: rgba(255,255,255,.06); color: var(--ivory); }
+.sph-side__i.is-on { background: var(--gold); color: var(--espresso); }
+.sph-side__live { margin-left: auto; background: #b3392c; color: #fff; font-size: .58rem; font-weight: 800; letter-spacing: .04em; padding: .15rem .4rem; border-radius: 5px; }
+.sph-side__promo { background: rgba(201,162,75,.12); border: 1px solid rgba(201,162,75,.35); border-radius: 12px; padding: 1rem; }
+.sph-side__promo b { display: block; color: var(--ivory); font-size: .86rem; margin-bottom: .35rem; }
+.sph-side__promo p { color: #c9bda6; font-size: .78rem; line-height: 1.5; margin: 0 0 .8rem; }
+.sph-side__promo-btn { display: inline-flex; background: var(--gold); color: var(--espresso); font-size: .78rem; font-weight: 700; padding: .5rem .8rem; border-radius: 8px; text-decoration: none; }
+
+/* ── Main column ── */
+.sph-main { flex: 1 1 0; min-width: 0; }
+
+.sph-hero { position: relative; border-radius: 18px; overflow: hidden; min-height: 300px; background-size: cover; background-position: center 30%; display: flex; align-items: center; margin-bottom: 1.6rem; }
+.sph-hero__scrim { position: relative; z-index: 1; width: 100%; padding: 2rem 2.2rem; background: linear-gradient(90deg, rgba(20,14,9,.88) 0%, rgba(20,14,9,.62) 55%, rgba(20,14,9,.15) 100%); }
+.sph-hero__eyebrow { display: block; color: var(--gold); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; }
+.sph-hero__scrim h1 { color: #fff; font-size: clamp(1.6rem, 3.4vw, 2.5rem); line-height: 1.12; margin: 0 0 .7rem; font-weight: 800; max-width: 13ch; }
+.sph-hero__scrim p { color: #e9e2d4; font-size: .92rem; max-width: 34ch; margin: 0 0 1.2rem; }
+.sph-hero__cta { display: inline-flex; align-items: center; gap: .4rem; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; padding: .65rem 1.1rem; border-radius: 999px; text-decoration: none; }
+
+.sph-section { margin-bottom: 1.8rem; }
+.sph-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
+.sph-section__head h2 { font-size: 1.06rem; margin: 0; color: var(--ink); }
+.sph-section__head > a { font-size: .8rem; font-weight: 700; color: var(--gold-deep); text-decoration: none; white-space: nowrap; }
+.sph-section__head > a:hover { text-decoration: underline; }
+
+/* Favorite Teams */
+.sph-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .9rem; }
+.sph-team-card { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; position: relative; }
+.sph-team-card__head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+.sph-team-card__head img { width: 40px; height: 40px; object-fit: contain; }
+.sph-team-card__logo-ph { width: 40px; height: 40px; border-radius: 8px; background: var(--cream); flex: 0 0 auto; }
+.sph-team-card__logo-ph--sm { width: 26px; height: 26px; border-radius: 6px; }
+.sph-team-card__head b { display: block; font-size: .92rem; color: var(--ink); }
+.sph-team-card__head span { font-size: .72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .03em; }
+.sph-team-card__label { font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.sph-team-card p { margin: .15rem 0; font-size: .84rem; color: var(--ink); }
+.sph-team-card__when { color: var(--ink-soft); font-size: .78rem; }
+.sph-team-card__btn { display: block; text-align: center; margin-top: .8rem; padding: .5rem; border-radius: 8px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); font-size: .78rem; font-weight: 700; text-decoration: none; }
+.sph-team-card__btn:hover { background: var(--gold); border-color: var(--gold); color: var(--espresso); }
+
+/* Two-column layout: Game Day / Upcoming (left) + Picks / Leaderboard (right) */
+.sph-cols { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 1.8rem; align-items: start; }
+
+/* Game Day Live */
+.sph-live-badge { background: #b3392c; color: #fff; font-size: .62rem; font-weight: 800; letter-spacing: .05em; padding: .18rem .5rem; border-radius: 5px; }
+.sph-gameday { background: var(--espresso); border-radius: 16px; padding: 1.3rem; color: #fff; }
+.sph-gameday__meta { color: #c9bda6; font-size: .74rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: .9rem; }
+.sph-gameday__score { display: grid; grid-template-columns: 44px auto auto auto 44px; align-items: center; justify-content: center; gap: .9rem; }
+.sph-gameday__score img { width: 44px; height: 44px; object-fit: contain; }
+.sph-gameday__score b { font-size: 2.1rem; font-weight: 800; }
+.sph-gameday__clock { font-size: .78rem; color: var(--gold); font-weight: 700; text-align: center; }
+.sph-gameday__names { display: flex; justify-content: space-between; font-size: .82rem; color: #d9cdb8; margin-top: .6rem; padding: 0 2px; }
+.sph-tabs { display: flex; gap: 1.2rem; margin-top: 1.1rem; padding-top: .9rem; border-top: 1px solid rgba(255,255,255,.12); }
+.sph-tabs span { font-size: .78rem; font-weight: 700; color: #a9987e; cursor: default; }
+.sph-tabs span.is-on { color: var(--gold); border-bottom: 2px solid var(--gold); padding-bottom: .5rem; margin-bottom: -.6rem; }
+.sph-gameday .disc-pending { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #e3d9c6; }
+.sph-gameday .disc-pending b { color: #fff; }
+.sph-gameday__cta { display: inline-block; margin-top: 1rem; color: var(--gold); font-size: .82rem; font-weight: 700; text-decoration: none; }
+
+/* Upcoming Games — horizontal strip */
+.sph-upcoming { display: flex; gap: .8rem; overflow-x: auto; padding-bottom: .3rem; }
+.sph-upcoming__card { flex: 0 0 150px; background: var(--ivory); border: 1px solid var(--line); border-radius: 12px; padding: .8rem; text-decoration: none; color: var(--ink); }
+.sph-upcoming__league { font-size: .64rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--gold-deep); }
+.sph-upcoming__teams { display: flex; align-items: center; gap: .4rem; margin: .5rem 0; }
+.sph-upcoming__teams img { width: 26px; height: 26px; object-fit: contain; }
+.sph-upcoming__teams span { font-size: .7rem; color: var(--ink-soft); }
+.sph-upcoming__when { font-size: .72rem; color: var(--ink-soft); line-height: 1.4; }
+
+/* Magical Picks poll */
+.sph-poll { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem; }
+.sph-poll > b { display: block; font-size: .96rem; color: var(--ink); }
+.sph-poll > span { display: block; font-size: .76rem; color: var(--ink-soft); margin-bottom: .9rem; }
+.sph-poll__option { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .7rem; margin-bottom: .5rem; }
+.sph-poll__option[data-picked="true"] { border-color: var(--gold); background: rgba(201,162,75,.08); }
+.sph-poll__option > span:first-child { font-weight: 700; font-size: .82rem; color: var(--ink); }
+.sph-poll__option > span:last-child { float: right; font-size: .74rem; color: var(--ink-soft); }
+.sph-poll__bar { clear: both; margin-top: .4rem; height: 6px; border-radius: 4px; background: var(--cream); overflow: hidden; }
+.sph-poll__bar span { display: block; height: 100%; background: var(--gold); }
+.sph-poll__foot { display: flex; justify-content: space-between; font-size: .72rem; color: var(--ink-soft); margin: .7rem 0; }
+.sph-poll__actions { display: flex; gap: .5rem; }
+.sph-poll__actions button { flex: 1; }
+.sph-poll__actions button[data-picked="true"] { background: var(--gold); border-color: var(--gold); color: var(--espresso); }
+.sph-poll__share { width: 100%; margin-top: .8rem; padding: .55rem; border-radius: 8px; border: none; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .8rem; cursor: pointer; }
+
+/* Family Leaderboard */
+.sph-range { display: flex; gap: .4rem; }
+.sph-range a { font-size: .72rem; font-weight: 700; padding: .3rem .6rem; border-radius: 6px; color: var(--ink-soft); text-decoration: none; }
+.sph-range a[aria-current="true"] { background: var(--cream); color: var(--ink); }
+.sph-leaderboard { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: .4rem .9rem; }
+.sph-leaderboard__row { display: flex; align-items: center; gap: .7rem; padding: .65rem 0; border-bottom: 1px solid var(--line); font-size: .86rem; color: var(--ink); }
+.sph-leaderboard__row:last-child { border-bottom: none; }
+.sph-leaderboard__rank { width: 22px; height: 22px; border-radius: 50%; background: var(--cream); color: var(--ink-soft); font-size: .74rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.sph-leaderboard__rank[data-rank="1"] { background: var(--gold); color: var(--espresso); }
+.sph-leaderboard__rank[data-rank="2"] { background: #cfd3d8; color: var(--ink); }
+.sph-leaderboard__rank[data-rank="3"] { background: #d8b48a; color: var(--espresso); }
+
+/* Feature tiles */
+.sph-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.8rem; }
+.sph-tile { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem; text-align: center; }
+.sph-tile__icon { font-size: 1.5rem; margin-bottom: .5rem; }
+.sph-tile b { display: block; font-size: .88rem; color: var(--ink); margin-bottom: .35rem; }
+.sph-tile p { font-size: .76rem; color: var(--ink-soft); line-height: 1.4; margin: 0 0 .9rem; }
+
+/* Ticket banner */
+.sph-tickets { background: var(--espresso); border-radius: 16px; padding: 1.6rem 2rem; margin-bottom: 1.8rem; }
+.sph-tickets b { display: block; color: #fff; font-size: 1.1rem; margin-bottom: .3rem; }
+.sph-tickets p { color: #c9bda6; font-size: .82rem; margin: 0 0 1rem; }
+.sph-tickets form { display: flex; gap: .6rem; max-width: 420px; }
+.sph-tickets input { flex: 1; padding: .6rem .8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; font-size: .84rem; }
+.sph-tickets input::placeholder { color: #a9987e; }
+.sph-tickets__cta { padding: .6rem 1.1rem; border-radius: 8px; border: none; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; cursor: pointer; white-space: nowrap; }
+
+@media (max-width: 980px) {
+  .sph-cols { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .sph { flex-direction: column; }
+  .sph-side { position: static; width: 100%; flex: none; }
+}

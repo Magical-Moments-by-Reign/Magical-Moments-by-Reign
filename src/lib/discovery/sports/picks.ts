@@ -102,3 +102,12 @@ export function isPickLocked(game: { status: string; locksAt: Date | null; start
   const lockTime = game.locksAt ?? game.startsAt;
   return Date.now() >= lockTime.getTime();
 }
+
+/** Midnight, the most recent Sunday on/before `date`, in local time — the
+ *  start of the "This Week" window for the Family Leaderboard. Pure, no
+ *  Date.now() call of its own so it's deterministic in tests. */
+export function startOfWeek(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
