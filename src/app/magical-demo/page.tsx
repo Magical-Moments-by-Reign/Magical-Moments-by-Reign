@@ -2,8 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { currentAccount } from "@/lib/auth-session";
 import { PublicNav, PublicFooter } from "@/components/site/PublicChrome";
+import { Icon } from "@/components/dashboard/nav-config";
 import "../get-started/get-started.css";
 import "./magical-demo.css";
+
+// Same example occasions the real dashboard shows (src/app/dashboard/page.tsx)
+// — reused verbatim here for fidelity, not invented for the demo.
+const DEMO_OCCASIONS = [
+  { title: "Paris Birthday Trip", kind: "Birthday · Travel", date: "September 18–24, 2026", status: "In Planning", image: "/gallery/italy/03.jpg", progress: 68 },
+  { title: "Karlie’s Graduation", kind: "Graduation", date: "May 22, 2027", status: "In Planning", image: "/story/graduation.jpg", progress: 42 },
+  { title: "Christmas in New York", kind: "Holiday · Travel", date: "December 20–27, 2026", status: "Upcoming", image: "/story/newhome.jpg", progress: 76 },
+  { title: "Maldives Escape", kind: "Anniversary · Travel", date: "February 10–18, 2027", status: "Dreaming", image: "/story/vacation.jpg", progress: 24 },
+];
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -27,11 +37,81 @@ export default async function MagicalDemoPage() {
       <div className="md">
         <p className="md-note"><b>Illustrative preview</b> — the screens below use example content. Your real Space connects to real flights, real Apple Music charts, real sports scores, real TV &amp; movie listings, and real Ticketmaster events.</p>
 
-        <section className="md-feature">
-          <div className="md-feature__copy">
+        <section className="md-primary">
+          <div className="md-primary__copy">
             <span className="md-feature__eyebrow">Journey Concierge</span>
             <h2>Ask, and it&rsquo;s handled.</h2>
-            <p>Tell Journey what you have in mind and it searches real flights, remembers who&rsquo;s coming, and brings you its best pick to approve. Nothing ever books itself — you always say yes first.</p>
+            <p>This is your Magical Space — your occasions, always in view — with your personal Concierge open right alongside it. Tell it what you have in mind, and it gets to work.</p>
+            <ul className="md-feature__list">
+              <li>Your occasions, front and center, the moment you arrive</li>
+              <li>Concierge is always one click away, never in the way</li>
+              <li>Ask a question or hand off a whole trip — it remembers the difference</li>
+            </ul>
+          </div>
+
+          <div className="md-app-frame">
+            <div className="md-app-frame__bar" aria-hidden="true">
+              <span className="md-app-frame__dot" /><span className="md-app-frame__dot" /><span className="md-app-frame__dot" />
+              <span className="md-app-frame__url">magicalmomentsbyreign.com/dashboard</span>
+            </div>
+            <div className="md-app-frame__stage">
+              <div className="hub md-app-hub" aria-hidden="true">
+                <div className="hub-stats">
+                  {[["events", "4", "Upcoming Occasions"], ["moments", "12", "Completed"]].map(([icon, value, label]) => (
+                    <div className="hub-stat" key={label}><span className="hub-stat__icon"><Icon name={icon} /></span><span><b>{value}</b><small>{label}</small></span></div>
+                  ))}
+                </div>
+                <div className="hub-occasions">
+                  {DEMO_OCCASIONS.slice(0, 4).map((occasion) => (
+                    <div className="hub-occasion" key={occasion.title}>
+                      <div className="hub-occasion__image" style={{ backgroundImage: `url('${occasion.image}')` }}><span>{occasion.status}</span></div>
+                      <div className="hub-occasion__body">
+                        <small>{occasion.kind}</small>
+                        <h3>{occasion.title}</h3>
+                        <p><Icon name="events" />{occasion.date}</p>
+                        <div className="hub-progress"><span style={{ width: `${occasion.progress}%` }} /></div>
+                        <em>{occasion.progress}% planned</em>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="cc-panel md-cc-overlay" aria-hidden="true">
+                <header className="cc-head">
+                  <div className="cc-head__title">
+                    <span className="cc-head__mark">✦</span>
+                    <span>Magical <i>Concierge</i><small>Your personal luxury assistant</small></span>
+                  </div>
+                  <div className="cc-head__ctrls">
+                    <button type="button" className="cc-ctrl" tabIndex={-1}>?</button>
+                    <button type="button" className="cc-ctrl" tabIndex={-1}>–</button>
+                    <button type="button" className="cc-ctrl" tabIndex={-1}>×</button>
+                  </div>
+                </header>
+                <div className="cc-body">
+                  <div className="cc-msg cc-msg--assistant"><span className="cc-ava">✦</span><div className="cc-bubble">Hi! I can see everything you have planned. What can I help with today?</div></div>
+                  <div className="cc-msg cc-msg--user"><div className="cc-bubble">Can you help with our Paris trip?</div></div>
+                  <div className="cc-msg cc-msg--assistant"><span className="cc-ava">✦</span><div className="cc-bubble">Of course — I can search flights, hold a hotel, and keep everyone in the loop. Want me to start with flights?</div></div>
+                </div>
+                <div className="cc-sugs">
+                  <button type="button" className="cc-sug" tabIndex={-1}>Help me plan a trip</button>
+                  <button type="button" className="cc-sug" tabIndex={-1}>Find ideas for my celebration</button>
+                </div>
+                <div className="cc-input">
+                  <textarea rows={1} placeholder="Tell me what you&rsquo;re planning…" readOnly tabIndex={-1} />
+                  <button type="button" className="cc-send" tabIndex={-1}>↑</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="md-feature">
+          <div className="md-feature__copy">
+            <span className="md-feature__eyebrow">Ask For Anything — Like a Flight</span>
+            <h2>Say the word, and it searches for real.</h2>
+            <p>Ask Concierge for a flight and it comes back with real prices from real airlines — not a placeholder, an actual fare it found for you to approve.</p>
             <ul className="md-feature__list">
               <li>Understands the whole trip, not just one flight</li>
               <li>Shows you real prices from real airlines</li>
@@ -41,7 +121,7 @@ export default async function MagicalDemoPage() {
           <div className="md-feature__visual">
             <div className="cc-panel md-chat-frame">
               <div className="cc-head">
-                <div className="cc-head__title"><span className="cc-head__mark">✦</span><span><i>Journey</i><small>Your Concierge</small></span></div>
+                <div className="cc-head__title"><span className="cc-head__mark">✦</span><span>Magical <i>Concierge</i><small>Your personal luxury assistant</small></span></div>
               </div>
               <div className="cc-body">
                 <div className="cc-msg cc-msg--user"><div className="cc-bubble">Book us a flight to Orlando for the Whitfield reunion, first week of December</div></div>
