@@ -24,6 +24,9 @@ export interface EventSearchParams {
    *  before this reaches the cache key, so nearby requests share a cache
    *  entry instead of each exact coordinate pair missing every time. */
   coords?: { lat: number; lng: number };
+  /** Free-text artist/team/venue search — sent straight through to
+   *  Ticketmaster's own `keyword` param, no local matching/guessing. */
+  keyword?: string;
   category?: EventCategory;
   radiusMiles?: number;
   limit?: number;
@@ -204,6 +207,7 @@ export const TicketmasterProvider: EventsProvider = {
     q.set("radius", String(radiusMiles));
     q.set("unit", "miles");
     q.set("sort", "date,asc");
+    if (params.keyword?.trim()) q.set("keyword", params.keyword.trim());
     if (segment) q.set("segmentName", segment);
     else if (classificationName) q.set("classificationName", classificationName);
 

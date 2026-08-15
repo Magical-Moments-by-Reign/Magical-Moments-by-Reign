@@ -5,13 +5,16 @@ import { getSportsFeed } from "@/lib/discovery/service";
 import { SPORT_CATALOG, getMyTeams, getGamesWithVoteContext, getMatchup, getFamilyPicksLeaderboard, type MatchupCardContext } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { submitPickAction } from "./actions";
-import SportsSidebar from "./SportsSidebar";
+import MagicalSidebar from "../MagicalSidebar";
 import PollCountdown from "./PollCountdown";
 import "../discovery.css";
+import "../discovery-shell.css";
 import "./sports-home.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sports Home — Magical Moments by Reign", robots: { index: false } };
+
+const SPORTS_PROMO = { title: "Bring the magic to game day!", body: "Create polls, invite your people, and make every game more memorable.", ctaLabel: "+ Create a Poll", ctaHref: "/dashboard/discovery/sports/picks" };
 
 type MyTeams = Awaited<ReturnType<typeof getMyTeams>>;
 
@@ -58,9 +61,9 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
 
   if (sportParam === "high_school") {
     return (
-      <div className="disc sph">
-        <SportsSidebar active="High School Sports" />
-        <div className="sph-main">
+      <div className="disc mm-shell">
+        <MagicalSidebar active="High School Sports" promo={SPORTS_PROMO} />
+        <div className="mm-main">
           <div className="pg-head">
             <span className="pg-eyebrow">Magical Discovery · Sports</span>
             <h1 className="pg-title">High School Sports</h1>
@@ -94,35 +97,35 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
   const upcomingGames = [...upcomingByGameId.values()].sort((a, b) => +a.startsAt - +b.startsAt);
 
   return (
-    <div className="disc sph">
-      <SportsSidebar active="Sports Home" />
+    <div className="disc mm-shell">
+      <MagicalSidebar active="Game Day" promo={SPORTS_PROMO} />
 
-      <div className="sph-main">
-        <section className="sph-hero" style={{ backgroundImage: "url(/story/sports.jpg)" }}>
-          <div className="sph-hero__scrim">
-            <span className="sph-hero__eyebrow">Sports, Together.</span>
+      <div className="mm-main">
+        <section className="mm-hero" style={{ backgroundImage: "url(/story/sports.jpg)" }}>
+          <div className="mm-hero__scrim">
+            <span className="mm-hero__eyebrow">Sports, Together.</span>
             <h1>Your teams.<br />Your people.<br />Every game-day moment.</h1>
             <p>Stay close to the action and even closer to the people who matter.</p>
-            <Link href="/dashboard/discovery/sports/my-teams" className="sph-hero__cta">+ Add Favorite Team</Link>
+            <Link href="/dashboard/discovery/sports/my-teams" className="mm-hero__cta">+ Add Favorite Team</Link>
           </div>
         </section>
 
-        <section className="sph-section">
-          <div className="sph-section__head">
+        <section className="mm-section">
+          <div className="mm-section__head">
             <h2>My Favorite Teams</h2>
             <Link href="/dashboard/discovery/sports/my-teams">View All Teams →</Link>
           </div>
           {myTeams.length === 0 ? (
             <p className="disc-empty">You haven&rsquo;t followed any teams yet. <Link href="/dashboard/discovery/sports/my-teams">Add your first favorite team</Link> to see it here.</p>
           ) : (
-            <div className="sph-teams">
+            <div className="mm-cards">
               {myTeams.map(({ follow, upcoming }) => {
                 const opponent = upcoming ? (upcoming.awayTeam.name === follow.teamName ? upcoming.homeTeam.name : upcoming.awayTeam.name) : null;
                 return (
-                  <div className="sph-team-card" key={follow.id}>
-                    <div className="sph-team-card__head">
+                  <div className="mm-card" key={follow.id}>
+                    <div className="mm-card__head">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div className="sph-team-card__logo-ph" />}
+                      {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div className="mm-card__logo-ph" />}
                       <div>
                         <b>{follow.teamName}</b>
                         <span>{SPORT_CATALOG.find((s) => s.slug === follow.sport)?.label ?? follow.sport}</span>
@@ -130,14 +133,14 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
                     </div>
                     {upcoming ? (
                       <>
-                        <span className="sph-team-card__label">Next Game</span>
+                        <span className="mm-card__label">Next Game</span>
                         <p>vs {opponent}</p>
-                        <p className="sph-team-card__when">{new Date(upcoming.startsAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {new Date(upcoming.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
+                        <p className="mm-card__when">{new Date(upcoming.startsAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {new Date(upcoming.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
                       </>
                     ) : (
-                      <p className="sph-team-card__when">No scheduled games found</p>
+                      <p className="mm-card__when">No scheduled games found</p>
                     )}
-                    <Link href="/dashboard/discovery/sports/my-teams" className="sph-team-card__btn">🔔 Notify Me</Link>
+                    <Link href="/dashboard/discovery/sports/my-teams" className="mm-card__btn">🔔 Notify Me</Link>
                   </div>
                 );
               })}
@@ -147,8 +150,8 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
 
         <div className="sph-cols">
           <div className="sph-col-main">
-            <section className="sph-section" id="game-day">
-              <div className="sph-section__head">
+            <section className="mm-section" id="game-day">
+              <div className="mm-section__head">
                 <h2>Game Day Live</h2>
                 {primaryGame?.status === "live" && <em className="sph-live-badge">LIVE</em>}
               </div>
@@ -159,12 +162,12 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
                   <div className="sph-gameday__meta">{primarySportLabel} · {primaryGame.status === "live" ? "Live" : primaryGame.status === "final" ? "Final" : "Preseason/Upcoming"}</div>
                   <div className="sph-gameday__score">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {primaryGame.awayTeamLogoUrl ? <img src={primaryGame.awayTeamLogoUrl} alt="" /> : <div className="sph-team-card__logo-ph" />}
+                    {primaryGame.awayTeamLogoUrl ? <img src={primaryGame.awayTeamLogoUrl} alt="" /> : <div className="mm-card__logo-ph" />}
                     <b>{primaryGame.awayScore ?? "—"}</b>
                     <span className="sph-gameday__clock">{primaryGame.status === "live" ? (primaryGame.period ?? "Live") : primaryGame.status === "final" ? "Final" : new Date(primaryGame.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
                     <b>{primaryGame.homeScore ?? "—"}</b>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {primaryGame.homeTeamLogoUrl ? <img src={primaryGame.homeTeamLogoUrl} alt="" /> : <div className="sph-team-card__logo-ph" />}
+                    {primaryGame.homeTeamLogoUrl ? <img src={primaryGame.homeTeamLogoUrl} alt="" /> : <div className="mm-card__logo-ph" />}
                   </div>
                   <div className="sph-gameday__names">
                     <span>{primaryGame.awayTeamName}</span>
@@ -187,8 +190,8 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
               )}
             </section>
 
-            <section className="sph-section">
-              <div className="sph-section__head">
+            <section className="mm-section">
+              <div className="mm-section__head">
                 <h2>Upcoming Games</h2>
                 <Link href="/dashboard/discovery/sports/my-teams">View Full Schedule →</Link>
               </div>
@@ -201,10 +204,10 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
                       <span className="sph-upcoming__league">{SPORT_CATALOG.find((s) => s.slug === g.sport)?.label ?? g.sport}</span>
                       <div className="sph-upcoming__teams">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="sph-team-card__logo-ph sph-team-card__logo-ph--sm" />}
+                        {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="mm-card__logo-ph mm-card__logo-ph--sm" />}
                         <span>vs</span>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {g.homeTeamLogoUrl ? <img src={g.homeTeamLogoUrl} alt="" /> : <div className="sph-team-card__logo-ph sph-team-card__logo-ph--sm" />}
+                        {g.homeTeamLogoUrl ? <img src={g.homeTeamLogoUrl} alt="" /> : <div className="mm-card__logo-ph mm-card__logo-ph--sm" />}
                       </div>
                       <span className="sph-upcoming__when">{g.startsAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}<br />{g.startsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
                     </Link>
@@ -215,8 +218,8 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
           </div>
 
           <div className="sph-col-side">
-            <section className="sph-section">
-              <div className="sph-section__head">
+            <section className="mm-section">
+              <div className="mm-section__head">
                 <h2>Magical Picks</h2>
                 <Link href="/dashboard/discovery/sports/picks">View All →</Link>
               </div>
@@ -260,8 +263,8 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
               )}
             </section>
 
-            <section className="sph-section" id="leaderboard">
-              <div className="sph-section__head">
+            <section className="mm-section" id="leaderboard">
+              <div className="mm-section__head">
                 <h2>{leaderboard.hasFamily ? "Family Leaderboard" : "My Picks"}</h2>
                 <div className="sph-range">
                   <Link href="?range=week" aria-current={range === "week"}>This Week</Link>
@@ -282,46 +285,44 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
           </div>
         </div>
 
-        <section className="sph-tiles">
-          <div className="sph-tile">
-            <div className="sph-tile__icon">📊</div>
+        <section className="mm-tiles">
+          <div className="mm-tile">
+            <div className="mm-tile__icon">📊</div>
             <b>Create a Poll</b>
             <p>Ask anything. Get answers. Start a poll for your family or friends.</p>
             <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm">Create Poll</Link>
           </div>
-          <div className="sph-tile">
-            <div className="sph-tile__icon">👥</div>
+          <div className="mm-tile">
+            <div className="mm-tile__icon">👥</div>
             <b>Share with Your People</b>
             <p>Send polls and picks to family &amp; friends. Let the fun begin!</p>
             <Link href="/dashboard/discovery/sports/my-teams" className="btn btn--sm">Invite Now</Link>
           </div>
-          <div className="sph-tile">
-            <div className="sph-tile__icon">📡</div>
+          <div className="mm-tile">
+            <div className="mm-tile__icon">📡</div>
             <b>Live Game Updates</b>
             <p>Follow every quarter, inning and period in real-time.</p>
             <Link href="/dashboard/discovery/sports#game-day" className="btn btn--sm">View Live Games</Link>
           </div>
-          <div className="sph-tile">
-            <div className="sph-tile__icon">🏆</div>
+          <div className="mm-tile">
+            <div className="mm-tile__icon">🏆</div>
             <b>Magical Picks</b>
             <p>Make predictions, earn points, and climb the leaderboard.</p>
             <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm">Make Your Picks</Link>
           </div>
         </section>
 
-        <section className="sph-tickets" id="tickets">
-          <div>
-            <b>Find Tickets to Your Next Magical Sports Experience</b>
-            <p>NFL, NBA, MLB, NHL, NCAA and more.</p>
-            <form method="get">
-              <input type="text" name="location" placeholder="City or ZIP code" defaultValue={location ?? ""} aria-label="City or ZIP code" />
-              <button type="submit" className="sph-tickets__cta">Find Tickets</button>
-            </form>
-          </div>
+        <section className="mm-banner" id="tickets">
+          <b>Find Tickets to Your Next Magical Sports Experience</b>
+          <p>NFL, NBA, MLB, NHL, NCAA and more.</p>
+          <form method="get">
+            <input type="text" name="location" placeholder="City or ZIP code" defaultValue={location ?? ""} aria-label="City or ZIP code" />
+            <button type="submit" className="mm-banner__cta">Find Tickets</button>
+          </form>
         </section>
         {location?.trim() && (
-          <section className="sph-section">
-            <div className="sph-section__head"><h2>Sporting Event Tickets Near You</h2></div>
+          <section className="mm-section">
+            <div className="mm-section__head"><h2>Sporting Event Tickets Near You</h2></div>
             {feed.ticketedEvents.items.length ? (
               <div className="disc-grid">
                 {feed.ticketedEvents.items.map((e) => (

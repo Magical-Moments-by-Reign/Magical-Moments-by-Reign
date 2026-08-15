@@ -1,59 +1,9 @@
-/* ── Sports Home — Owner-approved redesign ─────────────────────────
-   Scoped to the Sports section only (.sph-* prefix) — does NOT touch or
-   reuse the frozen .disc-* system from discovery.css (see the DESIGN FREEZE
-   note there); Sports Home is a deliberate, explicit visual redesign the
-   Owner asked for, everything else in Discovery stays as-is.
-
-   This nests INSIDE the existing global dashboard sidebar/top bar
-   (DashboardChrome) rather than replacing it — this file only adds a
-   second, Sports-section-scoped left nav + the page content, reusing the
-   same ink/gold/ivory tokens as the rest of the dashboard for consistency. */
-
-.sph { display: flex; align-items: flex-start; gap: 1.6rem; max-width: 1320px; margin: 0 auto; padding: 1.4rem 1.6rem 3rem; }
-
-/* ── Sports section sidebar ── */
-.sph-side { flex: 0 0 240px; position: sticky; top: 1.4rem; background: var(--espresso); border-radius: 16px; padding: 1.2rem .9rem; display: flex; flex-direction: column; gap: 1.2rem; }
-.sph-side__nav { display: flex; flex-direction: column; gap: .15rem; }
-.sph-side__i { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 10px; color: #d9cdb8; text-decoration: none; font-size: .86rem; font-weight: 600; transition: background .15s, color .15s; }
-.sph-side__i svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.sph-side__i:hover { background: rgba(255,255,255,.06); color: var(--ivory); }
-.sph-side__i.is-on { background: var(--gold); color: var(--espresso); }
-.sph-side__live { margin-left: auto; background: #b3392c; color: #fff; font-size: .58rem; font-weight: 800; letter-spacing: .04em; padding: .15rem .4rem; border-radius: 5px; }
-.sph-side__promo { background: rgba(201,162,75,.12); border: 1px solid rgba(201,162,75,.35); border-radius: 12px; padding: 1rem; }
-.sph-side__promo b { display: block; color: var(--ivory); font-size: .86rem; margin-bottom: .35rem; }
-.sph-side__promo p { color: #c9bda6; font-size: .78rem; line-height: 1.5; margin: 0 0 .8rem; }
-.sph-side__promo-btn { display: inline-flex; background: var(--gold); color: var(--espresso); font-size: .78rem; font-weight: 700; padding: .5rem .8rem; border-radius: 8px; text-decoration: none; }
-
-/* ── Main column ── */
-.sph-main { flex: 1 1 0; min-width: 0; }
-
-.sph-hero { position: relative; border-radius: 18px; overflow: hidden; min-height: 300px; background-size: cover; background-position: center 30%; display: flex; align-items: center; margin-bottom: 1.6rem; }
-.sph-hero__scrim { position: relative; z-index: 1; width: 100%; padding: 2rem 2.2rem; background: linear-gradient(90deg, rgba(20,14,9,.88) 0%, rgba(20,14,9,.62) 55%, rgba(20,14,9,.15) 100%); }
-.sph-hero__eyebrow { display: block; color: var(--gold); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; }
-.sph-hero__scrim h1 { color: #fff; font-size: clamp(1.6rem, 3.4vw, 2.5rem); line-height: 1.12; margin: 0 0 .7rem; font-weight: 800; max-width: 13ch; }
-.sph-hero__scrim p { color: #e9e2d4; font-size: .92rem; max-width: 34ch; margin: 0 0 1.2rem; }
-.sph-hero__cta { display: inline-flex; align-items: center; gap: .4rem; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; padding: .65rem 1.1rem; border-radius: 999px; text-decoration: none; }
-
-.sph-section { margin-bottom: 1.8rem; }
-.sph-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
-.sph-section__head h2 { font-size: 1.06rem; margin: 0; color: var(--ink); }
-.sph-section__head > a { font-size: .8rem; font-weight: 700; color: var(--gold-deep); text-decoration: none; white-space: nowrap; }
-.sph-section__head > a:hover { text-decoration: underline; }
-
-/* Favorite Teams */
-.sph-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .9rem; }
-.sph-team-card { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; position: relative; }
-.sph-team-card__head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
-.sph-team-card__head img { width: 40px; height: 40px; object-fit: contain; }
-.sph-team-card__logo-ph { width: 40px; height: 40px; border-radius: 8px; background: var(--cream); flex: 0 0 auto; }
-.sph-team-card__logo-ph--sm { width: 26px; height: 26px; border-radius: 6px; }
-.sph-team-card__head b { display: block; font-size: .92rem; color: var(--ink); }
-.sph-team-card__head span { font-size: .72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .03em; }
-.sph-team-card__label { font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
-.sph-team-card p { margin: .15rem 0; font-size: .84rem; color: var(--ink); }
-.sph-team-card__when { color: var(--ink-soft); font-size: .78rem; }
-.sph-team-card__btn { display: block; text-align: center; margin-top: .8rem; padding: .5rem; border-radius: 8px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); font-size: .78rem; font-weight: 700; text-decoration: none; }
-.sph-team-card__btn:hover { background: var(--gold); border-color: var(--gold); color: var(--espresso); }
+/* ── Sports Home — page-specific pieces only ────────────────────────
+   Shell, sidebar, hero, section headers, card grid, tiles, and banner are
+   shared with Events & Tickets — see ../discovery-shell.css (.mm-*). This
+   file only has what's genuinely Sports-specific: the two-column layout,
+   the Game Day Live scoreboard, the Upcoming Games strip, the Magical
+   Picks poll, and the Family Leaderboard. */
 
 /* Two-column layout: Game Day / Upcoming (left) + Picks / Leaderboard (right) */
 .sph-cols { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 1.8rem; align-items: start; }
@@ -111,26 +61,6 @@
 .sph-leaderboard__rank[data-rank="2"] { background: #cfd3d8; color: var(--ink); }
 .sph-leaderboard__rank[data-rank="3"] { background: #d8b48a; color: var(--espresso); }
 
-/* Feature tiles */
-.sph-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.8rem; }
-.sph-tile { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem; text-align: center; }
-.sph-tile__icon { font-size: 1.5rem; margin-bottom: .5rem; }
-.sph-tile b { display: block; font-size: .88rem; color: var(--ink); margin-bottom: .35rem; }
-.sph-tile p { font-size: .76rem; color: var(--ink-soft); line-height: 1.4; margin: 0 0 .9rem; }
-
-/* Ticket banner */
-.sph-tickets { background: var(--espresso); border-radius: 16px; padding: 1.6rem 2rem; margin-bottom: 1.8rem; }
-.sph-tickets b { display: block; color: #fff; font-size: 1.1rem; margin-bottom: .3rem; }
-.sph-tickets p { color: #c9bda6; font-size: .82rem; margin: 0 0 1rem; }
-.sph-tickets form { display: flex; gap: .6rem; max-width: 420px; }
-.sph-tickets input { flex: 1; padding: .6rem .8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; font-size: .84rem; }
-.sph-tickets input::placeholder { color: #a9987e; }
-.sph-tickets__cta { padding: .6rem 1.1rem; border-radius: 8px; border: none; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; cursor: pointer; white-space: nowrap; }
-
 @media (max-width: 980px) {
   .sph-cols { grid-template-columns: 1fr; }
-}
-@media (max-width: 860px) {
-  .sph { flex-direction: column; }
-  .sph-side { position: static; width: 100%; flex: none; }
 }

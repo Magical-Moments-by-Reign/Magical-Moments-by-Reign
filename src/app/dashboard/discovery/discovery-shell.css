@@ -1,0 +1,88 @@
+/* ── Shared "Magical Moments" two-column shell — sidebar + reusable
+   content blocks (hero, section headers, card grids, tiles, banner) ────
+   Used by any Discovery-area page with its own dedicated left nav (Sports
+   Home, Events & Tickets, …) — nests INSIDE the existing global dashboard
+   sidebar/top bar (DashboardChrome) rather than replacing it: this file
+   only adds a second, section-scoped left nav + content column, reusing
+   the same ink/gold/ivory tokens as the rest of the dashboard.
+
+   Scoped under .mm-* — does NOT touch or reuse the frozen .disc-* system
+   from discovery.css (see the DESIGN FREEZE note there); these pages are a
+   deliberate, explicit visual redesign the Owner asked for, everything
+   else in Discovery stays as-is. */
+
+.mm-shell { display: flex; align-items: flex-start; gap: 1.6rem; max-width: 1320px; margin: 0 auto; padding: 1.4rem 1.6rem 3rem; }
+
+/* ── Section sidebar ── */
+.mm-side { flex: 0 0 240px; position: sticky; top: 1.4rem; background: var(--espresso); border-radius: 16px; padding: 1.2rem .9rem; display: flex; flex-direction: column; gap: 1.2rem; }
+.mm-side__nav { display: flex; flex-direction: column; gap: .15rem; }
+.mm-side__i { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 10px; color: #d9cdb8; text-decoration: none; font-size: .86rem; font-weight: 600; transition: background .15s, color .15s; }
+.mm-side__i svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mm-side__i:hover { background: rgba(255,255,255,.06); color: var(--ivory); }
+.mm-side__i.is-on { background: var(--gold); color: var(--espresso); }
+.mm-side__live { margin-left: auto; background: #b3392c; color: #fff; font-size: .58rem; font-weight: 800; letter-spacing: .04em; padding: .15rem .4rem; border-radius: 5px; }
+.mm-side__promo { background: rgba(201,162,75,.12); border: 1px solid rgba(201,162,75,.35); border-radius: 12px; padding: 1rem; }
+.mm-side__promo b { display: block; color: var(--ivory); font-size: .86rem; margin-bottom: .35rem; }
+.mm-side__promo p { color: #c9bda6; font-size: .78rem; line-height: 1.5; margin: 0 0 .8rem; }
+.mm-side__promo-btn { display: inline-flex; background: var(--gold); color: var(--espresso); font-size: .78rem; font-weight: 700; padding: .5rem .8rem; border-radius: 8px; text-decoration: none; }
+
+/* ── Main column ── */
+.mm-main { flex: 1 1 0; min-width: 0; }
+
+.mm-hero { position: relative; border-radius: 18px; overflow: hidden; min-height: 300px; background-size: cover; background-position: center 30%; display: flex; align-items: center; margin-bottom: 1.6rem; }
+.mm-hero__scrim { position: relative; z-index: 1; width: 100%; padding: 2rem 2.2rem; background: linear-gradient(90deg, rgba(20,14,9,.88) 0%, rgba(20,14,9,.62) 55%, rgba(20,14,9,.15) 100%); }
+.mm-hero__eyebrow { display: block; color: var(--gold); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; }
+.mm-hero__scrim h1 { color: #fff; font-size: clamp(1.6rem, 3.4vw, 2.5rem); line-height: 1.12; margin: 0 0 .7rem; font-weight: 800; max-width: 16ch; }
+.mm-hero__scrim h1 em { color: var(--gold); font-style: normal; }
+.mm-hero__scrim p { color: #e9e2d4; font-size: .92rem; max-width: 38ch; margin: 0 0 1.2rem; }
+.mm-hero__cta { display: inline-flex; align-items: center; gap: .4rem; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; padding: .65rem 1.1rem; border-radius: 999px; text-decoration: none; border: none; cursor: pointer; }
+.mm-hero__trust { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 1.6rem; padding: .9rem 2.2rem; background: rgba(0,0,0,.42); border-top: 1px solid rgba(255,255,255,.12); }
+.mm-hero__trust span { display: flex; flex-direction: column; font-size: .74rem; color: #e9e2d4; }
+.mm-hero__trust span b { color: #fff; font-size: .8rem; }
+
+.mm-section { margin-bottom: 1.8rem; }
+.mm-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
+.mm-section__head h2 { font-size: 1.06rem; margin: 0; color: var(--ink); }
+.mm-section__head > a { font-size: .8rem; font-weight: 700; color: var(--gold-deep); text-decoration: none; white-space: nowrap; }
+.mm-section__head > a:hover { text-decoration: underline; }
+
+/* Card grid (favorite teams, generic cards) */
+.mm-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .9rem; }
+.mm-card { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; position: relative; }
+.mm-card__head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+.mm-card__head img { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; }
+.mm-card__logo-ph { width: 40px; height: 40px; border-radius: 8px; background: var(--cream); flex: 0 0 auto; }
+.mm-card__logo-ph--sm { width: 26px; height: 26px; border-radius: 6px; }
+.mm-card__head b { display: block; font-size: .92rem; color: var(--ink); }
+.mm-card__head span { font-size: .72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .03em; }
+.mm-card__label { font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.mm-card p { margin: .15rem 0; font-size: .84rem; color: var(--ink); }
+.mm-card__when { color: var(--ink-soft); font-size: .78rem; }
+.mm-card__btn { display: block; text-align: center; margin-top: .8rem; padding: .5rem; border-radius: 8px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); font-size: .78rem; font-weight: 700; text-decoration: none; }
+.mm-card__btn:hover { background: var(--gold); border-color: var(--gold); color: var(--espresso); }
+
+/* Feature tiles */
+.mm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.8rem; }
+.mm-tile { background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem; text-align: center; }
+.mm-tile__icon { font-size: 1.5rem; margin-bottom: .5rem; }
+.mm-tile b { display: block; font-size: .88rem; color: var(--ink); margin-bottom: .35rem; }
+.mm-tile p { font-size: .76rem; color: var(--ink-soft); line-height: 1.4; margin: 0 0 .9rem; }
+
+/* Dark promo/CTA banner (tickets, newsletter, etc.) */
+.mm-banner { background: var(--espresso); border-radius: 16px; padding: 1.6rem 2rem; margin-bottom: 1.8rem; }
+.mm-banner b { display: block; color: #fff; font-size: 1.1rem; margin-bottom: .3rem; }
+.mm-banner p { color: #c9bda6; font-size: .82rem; margin: 0 0 1rem; }
+.mm-banner form { display: flex; gap: .6rem; max-width: 420px; flex-wrap: wrap; }
+.mm-banner input { flex: 1; min-width: 160px; padding: .6rem .8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; font-size: .84rem; }
+.mm-banner input::placeholder { color: #a9987e; }
+.mm-banner__cta { padding: .6rem 1.1rem; border-radius: 8px; border: none; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; cursor: pointer; white-space: nowrap; }
+.mm-banner--split { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+.mm-banner--split img { width: 84px; height: 84px; border-radius: 12px; object-fit: cover; flex: 0 0 auto; }
+
+@media (max-width: 980px) {
+  .mm-cols { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .mm-shell { flex-direction: column; }
+  .mm-side { position: static; width: 100%; flex: none; }
+}

@@ -18,7 +18,7 @@ export type NotificationType =
   | "trial_billing" | "domain_renewal" | "message" | "invitation"
   | "achievement" | "rsvp" | "reservation_update" | "general"
   | "sports_team_playing_soon" | "sports_game_final" | "sports_prediction_result"
-  | "sports_new_matchup" | "sports_streak_achievement";
+  | "sports_new_matchup" | "sports_streak_achievement" | "nearyou_event_alerts";
 
 export interface NotificationTypeDef {
   id: NotificationType;
@@ -47,6 +47,7 @@ export const NOTIFICATION_TYPES: NotificationTypeDef[] = [
   { id: "sports_prediction_result", label: "Prediction results", category: "family", defaultChannels: ["in_app"] },
   { id: "sports_new_matchup", label: "New matchups available", category: "family", defaultChannels: ["in_app"] },
   { id: "sports_streak_achievement", label: "Streak & badge achievements", category: "family", defaultChannels: ["in_app"] },
+  { id: "nearyou_event_alerts", label: "Nearby event & presale alerts", category: "family", defaultChannels: ["in_app"] },
 ];
 
 export function notificationType(id: NotificationType): NotificationTypeDef | undefined {

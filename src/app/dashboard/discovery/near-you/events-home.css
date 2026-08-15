@@ -1,0 +1,61 @@
+/* ── Events & Tickets Home — page-specific pieces only ──────────────
+   Shell, sidebar, hero, section headers, tiles, and banner are shared with
+   Sports Home — see ../discovery-shell.css (.mm-*). This file only has
+   what's genuinely specific to this page: the search bar, category pills,
+   the featured-events carousel, the compact near-you list, and the
+   "top events this week" summary panel (an honest substitute for a live
+   interactive map — no mapping service is integrated in this app; a real
+   map is a real future addition, not something to fake with a static
+   image). */
+
+.evt-search { background: var(--ivory); border: 1px solid var(--line); border-radius: 16px; padding: 1.3rem; margin-bottom: 1.6rem; }
+.evt-search h2 { margin: 0 0 .9rem; font-size: 1.02rem; color: var(--ink); }
+.evt-search__row { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: .9rem; }
+.evt-search__row input { flex: 1 1 200px; padding: .65rem .9rem; border-radius: 9px; border: 1px solid var(--line); background: var(--cream); font-size: .84rem; color: var(--ink); }
+.evt-search__row button { padding: .65rem 1.3rem; border-radius: 9px; border: none; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .84rem; cursor: pointer; white-space: nowrap; }
+
+.evt-pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+.evt-pills a { padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--ivory); color: var(--ink-soft); font-size: .8rem; font-weight: 700; text-decoration: none; }
+.evt-pills a[aria-current="true"] { background: var(--espresso); border-color: var(--espresso); color: #fff; }
+.evt-pills a:hover { border-color: var(--gold); color: var(--ink); }
+
+/* Featured Events carousel */
+.evt-carousel { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: .4rem; }
+.evt-fcard { flex: 0 0 220px; background: var(--ivory); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; text-decoration: none; color: var(--ink); display: block; }
+.evt-fcard__img { height: 130px; background: var(--cream) center/cover no-repeat; }
+.evt-fcard__body { padding: .8rem .9rem 1rem; }
+.evt-fcard__eyebrow { font-size: .62rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--gold-deep); }
+.evt-fcard__body h3 { margin: .3rem 0; font-size: .92rem; line-height: 1.25; color: var(--ink); }
+.evt-fcard__meta { font-size: .74rem; color: var(--ink-soft); line-height: 1.5; }
+.evt-fcard__cta { display: inline-block; margin-top: .6rem; font-size: .78rem; font-weight: 700; color: var(--gold-deep); }
+
+/* Events Near You compact list */
+.evt-nearlist { display: flex; flex-direction: column; gap: .55rem; }
+.evt-nearlist__row { display: flex; align-items: center; gap: .7rem; background: var(--ivory); border: 1px solid var(--line); border-radius: 12px; padding: .6rem .8rem; text-decoration: none; color: var(--ink); }
+.evt-nearlist__img { width: 44px; height: 44px; border-radius: 8px; background: var(--cream) center/cover no-repeat; flex: 0 0 auto; }
+.evt-nearlist__row b { display: block; font-size: .84rem; }
+.evt-nearlist__row span { display: block; font-size: .72rem; color: var(--ink-soft); }
+
+/* "Top events this week" summary panel — honest map substitute */
+.evt-summary { background: var(--espresso); border-radius: 16px; padding: 1.3rem; color: #fff; display: flex; flex-direction: column; justify-content: space-between; min-height: 100%; }
+.evt-summary__loc { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: #d9cdb8; margin-bottom: 1rem; }
+.evt-summary__count { font-size: .78rem; color: #c9bda6; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: .2rem; }
+.evt-summary__num { font-size: 2.6rem; font-weight: 800; color: var(--gold); line-height: 1; margin-bottom: .3rem; }
+.evt-summary__sub { font-size: .78rem; color: #a9987e; margin-bottom: 1.2rem; }
+.evt-summary__note { font-size: .7rem; color: #a9987e; line-height: 1.5; margin-bottom: 1rem; }
+.evt-summary__cta { padding: .6rem 1rem; border-radius: 8px; border: none; background: var(--gold); color: var(--espresso); font-weight: 700; font-size: .82rem; text-align: center; text-decoration: none; }
+
+/* Perks strip */
+.evt-perks { background: var(--ivory); border: 1px solid var(--line); border-radius: 16px; padding: 1.4rem 1.6rem; margin-bottom: 1.8rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+.evt-perks__copy b { display: block; color: var(--gold-deep); font-size: 1.02rem; margin-bottom: .3rem; }
+.evt-perks__copy p { margin: 0 0 .8rem; font-size: .82rem; color: var(--ink-soft); }
+.evt-perks__grid { display: flex; gap: 1.6rem; flex-wrap: wrap; }
+.evt-perks__item { display: flex; flex-direction: column; align-items: center; text-align: center; width: 90px; }
+.evt-perks__item span:first-child { font-size: 1.3rem; margin-bottom: .3rem; }
+.evt-perks__item b { font-size: .74rem; color: var(--ink); }
+.evt-perks__item i { font-style: normal; font-size: .66rem; color: var(--ink-soft); }
+
+.evt-cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 1.8rem; align-items: stretch; }
+@media (max-width: 980px) {
+  .evt-cols { grid-template-columns: 1fr; }
+}
