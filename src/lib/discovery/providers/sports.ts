@@ -44,13 +44,23 @@ export interface SportsStanding {
  *  "who you got" doesn't map cleanly onto either format. */
 export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "mlb", "soccer", "nhl", "rugby", "volleyball"];
 
+export interface SportsDateResult {
+  games: SportsGameSummary[];
+  /** Set only when the provider's response body itself signaled a
+   *  subscription/plan restriction for this date (e.g. API-Sports' Free
+   *  plan rejecting dates outside its demo window) — never conflate this
+   *  with a genuine "no games that day" result. `games` is always `[]`
+   *  when this is set; never fabricated from it. */
+  planRestricted?: string;
+}
+
 export interface SportsProvider {
   readonly slug: string;
   readonly name: string;
   readonly attribution: string;
   readonly supportedSports: SportSlug[];
   isConfigured(sport?: SportSlug): boolean;
-  gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsGameSummary[] | null>;
+  gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsDateResult | null>;
   gamesForTeam(sport: SportSlug, teamExternalId: string, opts?: { league?: string; season?: string }): Promise<SportsGameSummary[] | null>;
   searchTeams(sport: SportSlug, query: string, league?: string): Promise<SportsTeam[] | null>;
   standings(sport: SportSlug, league: string, season?: string): Promise<SportsStanding[] | null>;
@@ -69,7 +79,7 @@ export const SportsPendingProvider: SportsProvider = {
   isConfigured(): boolean {
     return false;
   },
-  async gamesByDate(): Promise<SportsGameSummary[] | null> {
+  async gamesByDate(): Promise<SportsDateResult | null> {
     return null;
   },
   async gamesForTeam(): Promise<SportsGameSummary[] | null> {
@@ -128,8 +138,8 @@ function apiKey(): string | undefined {
 // Basketball and hockey seasons span two calendar years, and API-Sports'
 // basketball/hockey APIs require the split "YYYY-YYYY" season format (single
 // non-split years get rejected or return an empty response) — confirmed
-// against this project's own diagnostic page (TEST_SEASON = "2024-2025" for
-// NBA in admin/diagnostics/api-sports). Every other sport here uses a plain
+// against this project's own diagnostic page (admin/diagnostics/api-sports,
+// which uses this same seasonParam()). Every other sport here uses a plain
 // single-year season. A split season "starts" around August: a January 2026
 // game is part of the "2025-2026" season, a November 2026 game starts
 // "2026-2027".
@@ -142,6 +152,28 @@ export function seasonParam(sport: SportSlug, dateISO: string): string {
   if (!SPLIT_SEASON_SPORTS.has(sport)) return String(year);
   const month = d.getMonth(); // 0-indexed; August = 7
   return month >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
+// API-Sports returns HTTP 200 even when a request falls outside what the
+// current plan allows — the body carries a non-empty `errors` object/array
+// (commonly keyed "plan") describing it, alongside an otherwise well-formed
+// `response: []`. Left undetected, that reads exactly like a genuine "no
+// games today" result. Exported for tests and for the admin diagnostic page
+// (same detection logic, not duplicated).
+export function detectPlanRestriction(json: unknown): string | null {
+  const errors = (json as { errors?: unknown } | null | undefined)?.errors;
+  if (errors == null) return null;
+  const messages: string[] = Array.isArray(errors)
+    ? errors.filter((e): e is string => typeof e === "string")
+    : typeof errors === "object"
+      ? Object.values(errors as Record<string, unknown>).filter((v): v is string => typeof v === "string")
+      : [];
+  if (!messages.length) return null;
+  // Prefer a message that actually reads like a plan/access restriction —
+  // a bad-parameter or rate-limit error also lands in `errors` but is a
+  // real failure, not "this date isn't in your plan," and should stay in
+  // the existing null/failed path instead.
+  return messages.find((m) => /plan|subscription|not\s+(?:allowed|included|available)|don.?t\s+have\s+access/i.test(m)) ?? null;
 }
 
 async function apiSportsFetch(sport: SportSlug, path: string, params: Record<string, string | undefined>): Promise<unknown | null> {
@@ -243,14 +275,16 @@ export const ApiSportsProvider: SportsProvider = {
     return true;
   },
 
-  async gamesByDate(sport, dateISO, league): Promise<SportsGameSummary[] | null> {
+  async gamesByDate(sport, dateISO, league): Promise<SportsDateResult | null> {
     if (!this.isConfigured(sport)) return null;
     const cfg = SPORT_CONFIG[sport];
     const lg = league || cfg.defaultLeague;
     const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
     const json = await apiSportsFetch(sport, path, { date: dateISO, league: lg, season: seasonParam(sport, dateISO) });
     if (!json) return null;
-    return mapGamesResponse(sport, lg, json);
+    const planRestricted = detectPlanRestriction(json) ?? undefined;
+    const games = mapGamesResponse(sport, lg, json) ?? [];
+    return { games, planRestricted };
   },
 
   async gamesForTeam(sport, teamExternalId, opts): Promise<SportsGameSummary[] | null> {

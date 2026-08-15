@@ -83,10 +83,23 @@ async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsG
   return synced;
 }
 
+type SportsGameRow = Awaited<ReturnType<typeof prisma.sportsGame.findMany>>[number];
+
+function localGamesForDate(sport: SportSlug, dateISO: string) {
+  return prisma.sportsGame.findMany({
+    where: { sport, startsAt: { gte: new Date(dateISO), lt: new Date(new Date(dateISO).getTime() + 86_400_000) } },
+    orderBy: { startsAt: "asc" },
+  });
+}
+
 /** Games for a sport on a given date (YYYY-MM-DD). Upcoming schedules cache
  *  for hours; anything already live/today refreshes every few minutes so
- *  scores stay current without hammering the provider on every page view. */
-export async function getGamesByDate(sport: SportSlug, dateISO: string, league?: string) {
+ *  scores stay current without hammering the provider on every page view.
+ *  `planRestricted` is set only when the provider itself reported a
+ *  plan/subscription restriction for this date — a genuine "no games" result
+ *  never sets it. Either way, any local (owner-entered or previously synced)
+ *  games for the date are still returned rather than hidden. */
+export async function getGamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<{ games: SportsGameRow[]; planRestricted?: string }> {
   const isToday = dateISO === new Date().toISOString().slice(0, 10);
   const ttl = isToday ? TTL_GAMES_LIVE : TTL_GAMES_UPCOMING;
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league }), ttl, () =>
@@ -94,16 +107,19 @@ export async function getGamesByDate(sport: SportSlug, dateISO: string, league?:
   if (!cached) {
     // Not connected/unreachable — still surface anything already synced locally
     // (e.g. an Owner-entered game) rather than an empty page.
-    return prisma.sportsGame.findMany({
-      where: { sport, startsAt: { gte: new Date(dateISO), lt: new Date(new Date(dateISO).getTime() + 86_400_000) } },
-      orderBy: { startsAt: "asc" },
-    });
+    return { games: await localGamesForDate(sport, dateISO) };
   }
-  return syncGamesToLocal(sport, league || cached.data[0]?.league || "", cached.data);
+  const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
+  if (!synced.length && cached.data.planRestricted) {
+    // Plan-restricted and nothing came back — fall back to any local games
+    // we already have for this date instead of a blank/misleading page.
+    return { games: await localGamesForDate(sport, dateISO), planRestricted: cached.data.planRestricted };
+  }
+  return { games: synced, planRestricted: cached.data.planRestricted };
 }
 
 export interface MatchupCardContext {
-  game: Awaited<ReturnType<typeof getGamesByDate>>[number];
+  game: SportsGameRow;
   tally: VoteTally;
   myPick: "home" | "away" | null;
   myPickCorrect: boolean | null;
@@ -111,10 +127,13 @@ export interface MatchupCardContext {
 }
 
 /** Games for a date, each paired with its vote tally and the viewer's own
- *  pick — what MatchupCard needs to render, in one call. */
-export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string, accountId: string, limit = 6): Promise<MatchupCardContext[]> {
-  const games = (await getGamesByDate(sport, dateISO)).slice(0, limit);
-  return Promise.all(
+ *  pick — what MatchupCard needs to render, in one call. `planRestricted`
+ *  passes through from getGamesByDate — set only on a genuine provider
+ *  plan/date restriction, never on a real "no games today." */
+export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string, accountId: string, limit = 6): Promise<{ contexts: MatchupCardContext[]; planRestricted?: string }> {
+  const { games: allGames, planRestricted } = await getGamesByDate(sport, dateISO);
+  const games = allGames.slice(0, limit);
+  const contexts = await Promise.all(
     games.map(async (game) => {
       const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id }, select: { teamPick: true, accountId: true, isCorrect: true } });
       const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
@@ -122,6 +141,7 @@ export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string,
       return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
     })
   );
+  return { contexts, planRestricted };
 }
 
 export async function getMatchup(gameId: string, accountId?: string): Promise<{
