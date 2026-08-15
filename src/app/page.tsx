@@ -42,6 +42,7 @@ export default async function LandingPage() {
           </Link>
           <div className="lp-navlinks">
             <Link href="/">Home</Link><Link href="/get-started">Get Started</Link>
+            <Link href="/magical-demo">Magical Demo</Link>
             <Link href="/membership">Memberships</Link><Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
           </div>
@@ -55,6 +56,7 @@ export default async function LandingPage() {
           <div className="lp-actions">
             <Link className="lp-gold-btn" href={spaceHref}>Enter your magical space</Link>
             <Link className="lp-text-btn" href="#experience">Explore the experience <span>→</span></Link>
+            <Link className="lp-text-btn" href="/magical-demo">See what&rsquo;s Magical inside before you buy <span>→</span></Link>
           </div>
         </div>
       </section>
