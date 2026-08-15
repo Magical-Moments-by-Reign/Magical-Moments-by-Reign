@@ -124,6 +124,9 @@
 
 .disc-empty { color: var(--ink-soft); font-size: .88rem; padding: 1rem 0; }
 
+.disc-events__attribution { display: flex; align-items: center; gap: .55rem; margin: 1.4rem 0 0; color: var(--ink-soft); font-size: .78rem; }
+.disc-events__tm-badge { display: inline-flex; align-items: center; padding: .2rem .55rem; border-radius: 5px; background: #026cdf; color: #fff; font-weight: 800; font-size: .74rem; letter-spacing: -.01em; text-transform: lowercase; }
+
 /* ── Sports — Discover to Follow to Predict to Play to React to Return ── */
 .sports-hero { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; background: linear-gradient(135deg, #fbf6ee, var(--ivory)); margin-bottom: 1.4rem; }
 .sports-hero h2 { margin: 0 0 .3rem; font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.15rem; }

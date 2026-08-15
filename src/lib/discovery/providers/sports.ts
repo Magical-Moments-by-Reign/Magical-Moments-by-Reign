@@ -125,6 +125,25 @@ function apiKey(): string | undefined {
   return process.env.API_SPORTS_KEY?.trim() || undefined;
 }
 
+// Basketball and hockey seasons span two calendar years, and API-Sports'
+// basketball/hockey APIs require the split "YYYY-YYYY" season format (single
+// non-split years get rejected or return an empty response) — confirmed
+// against this project's own diagnostic page (TEST_SEASON = "2024-2025" for
+// NBA in admin/diagnostics/api-sports). Every other sport here uses a plain
+// single-year season. A split season "starts" around August: a January 2026
+// game is part of the "2025-2026" season, a November 2026 game starts
+// "2026-2027".
+const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "nhl"]);
+
+/** Exported for tests. */
+export function seasonParam(sport: SportSlug, dateISO: string): string {
+  const d = new Date(dateISO);
+  const year = d.getFullYear();
+  if (!SPLIT_SEASON_SPORTS.has(sport)) return String(year);
+  const month = d.getMonth(); // 0-indexed; August = 7
+  return month >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
 async function apiSportsFetch(sport: SportSlug, path: string, params: Record<string, string | undefined>): Promise<unknown | null> {
   const key = apiKey();
   if (!key) return null;
@@ -134,7 +153,11 @@ async function apiSportsFetch(sport: SportSlug, path: string, params: Record<str
   try {
     const res = await fetch(url.toString(), {
       headers: { "x-apisports-key": key },
-      next: { revalidate: false },
+      // Short revalidation window, not indefinite: scores/status change
+      // throughout the day, and an indefinitely-cached empty/error response
+      // (e.g. fetched before today's games were announced) would otherwise
+      // never retry for the rest of the day.
+      next: { revalidate: 300 },
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -225,10 +248,7 @@ export const ApiSportsProvider: SportsProvider = {
     const cfg = SPORT_CONFIG[sport];
     const lg = league || cfg.defaultLeague;
     const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
-    const dateParam = { date: dateISO };
-    const json = await apiSportsFetch(sport, path, cfg.shape === "fixtures"
-      ? { ...dateParam, league: lg, season: String(new Date(dateISO).getFullYear()) }
-      : { ...dateParam, league: lg, season: String(new Date(dateISO).getFullYear()) });
+    const json = await apiSportsFetch(sport, path, { date: dateISO, league: lg, season: seasonParam(sport, dateISO) });
     if (!json) return null;
     return mapGamesResponse(sport, lg, json);
   },
@@ -237,7 +257,7 @@ export const ApiSportsProvider: SportsProvider = {
     if (!this.isConfigured(sport)) return null;
     const cfg = SPORT_CONFIG[sport];
     const lg = opts?.league || cfg.defaultLeague;
-    const season = opts?.season || String(new Date().getFullYear());
+    const season = opts?.season || seasonParam(sport, new Date().toISOString());
     const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
     const json = await apiSportsFetch(sport, path, { team: teamExternalId, league: lg, season });
     if (!json) return null;
@@ -261,8 +281,7 @@ export const ApiSportsProvider: SportsProvider = {
 
   async standings(sport, league, season): Promise<SportsStanding[] | null> {
     if (!this.isConfigured(sport)) return null;
-    const cfg = SPORT_CONFIG[sport];
-    const yr = season || String(new Date().getFullYear());
+    const yr = season || seasonParam(sport, new Date().toISOString());
     const json = await apiSportsFetch(sport, "/standings", { league, season: yr });
     const raw = (json as any)?.response;
     const flat: any[] = Array.isArray(raw)
@@ -285,6 +304,5 @@ export const ApiSportsProvider: SportsProvider = {
         } as SportsStanding;
       })
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
-    void cfg;
   },
 };
