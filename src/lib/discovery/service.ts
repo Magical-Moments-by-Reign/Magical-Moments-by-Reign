@@ -85,10 +85,16 @@ export async function getMusicChart(genre: MusicGenre): Promise<MusicChartResult
   return { chartTitle: manual.title, entries, isOfficial: false, source: "manual" };
 }
 
-export async function getNearYouEvents(params: { location: string; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
-  if (!params.location?.trim()) return { items: [], source: "unavailable" };
-  const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor(params), TTL.events, () =>
-    TicketmasterProvider.search(params));
+export async function getNearYouEvents(params: { location: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
+  if (!params.coords && !params.location?.trim()) return { items: [], source: "unavailable" };
+  // Round coordinates to ~1.1km buckets (2 decimal places) before they reach
+  // the cache key, so nearby members (or the same member's slightly-jittered
+  // GPS reads) share a cache entry instead of every exact lat/lng missing
+  // the cache individually — a real device location is essentially never
+  // bit-for-bit identical twice.
+  const bucketedCoords = params.coords ? { lat: Math.round(params.coords.lat * 100) / 100, lng: Math.round(params.coords.lng * 100) / 100 } : undefined;
+  const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor({ ...params, coords: bucketedCoords }), TTL.events, () =>
+    TicketmasterProvider.search({ ...params, coords: bucketedCoords }));
   if (!cached) return { items: [], source: "unavailable" };
   return { items: cached.data, source: cached.source, providerName: TicketmasterProvider.name, attribution: TicketmasterProvider.attribution, fetchedAt: cached.fetchedAt.toISOString() };
 }

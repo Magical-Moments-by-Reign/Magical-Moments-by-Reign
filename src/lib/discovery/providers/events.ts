@@ -11,10 +11,19 @@ export type EventCategory = "concerts" | "festivals" | "comedy" | "theater" | "s
 
 export interface EventSearchParams {
   /** City name ("Atlanta"), "City, ST" ("Atlanta, GA"), or a 5-digit US ZIP
-   *  ("30032") — whatever the member typed. Required; we never guess a
-   *  location. Resolved into Ticketmaster's own postalCode/city/stateCode
-   *  params below — no geocoding involved, no third-party geocoder needed. */
+   *  ("30032") — whatever the member typed, or a human-readable label for a
+   *  `coords` search (e.g. "Near you"). Required as a display label even
+   *  when `coords` is set; resolved into Ticketmaster's own
+   *  postalCode/city/stateCode params only when `coords` is absent — no
+   *  geocoding involved, no third-party geocoder needed. */
   location: string;
+  /** Real device/browser geolocation, when the member granted permission —
+   *  sent to Ticketmaster's own `latlong` radius search directly. Takes
+   *  priority over `location` for the actual query; `location` is still
+   *  used as the display label. Rounded to ~1km buckets by the caller
+   *  before this reaches the cache key, so nearby requests share a cache
+   *  entry instead of each exact coordinate pair missing every time. */
+  coords?: { lat: number; lng: number };
   category?: EventCategory;
   radiusMiles?: number;
   limit?: number;
@@ -152,15 +161,16 @@ export const TicketmasterProvider: EventsProvider = {
   async search(params: EventSearchParams): Promise<DiscoveredEvent[] | null> {
     const key = tmKey();
     const radiusMiles = params.radiusMiles ?? 25;
-    const location = buildLocationParams(params.location ?? "");
+    const location = params.coords ? { postalCode: null, city: null, stateCode: null, countryCode: null } : buildLocationParams(params.location ?? "");
     const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
     const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
     const classificationSent = segment ?? classificationName ?? null;
+    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim());
 
     const diag: EventsDiagnostic = {
       requestAttempted: false,
       apiKeyPresent: Boolean(key),
-      searchInput: (params.location ?? "").trim().slice(0, 80),
+      searchInput: params.coords ? `${params.coords.lat},${params.coords.lng}` : (params.location ?? "").trim().slice(0, 80),
       postalCodeSent: location.postalCode,
       citySent: location.city,
       stateCodeSent: location.stateCode,
@@ -175,17 +185,21 @@ export const TicketmasterProvider: EventsProvider = {
       recordedAt: new Date().toISOString(),
     };
 
-    if (!key || !params.location?.trim()) {
+    if (!key || !hasUsableLocation) {
       await writeEventsDiagnostic(diag);
       return null;
     }
 
     const q = new URLSearchParams();
     q.set("apikey", key);
-    if (location.postalCode) q.set("postalCode", location.postalCode);
-    if (location.city) q.set("city", location.city);
-    if (location.stateCode) q.set("stateCode", location.stateCode);
-    if (location.countryCode) q.set("countryCode", location.countryCode);
+    if (params.coords) {
+      q.set("latlong", `${params.coords.lat},${params.coords.lng}`);
+    } else {
+      if (location.postalCode) q.set("postalCode", location.postalCode);
+      if (location.city) q.set("city", location.city);
+      if (location.stateCode) q.set("stateCode", location.stateCode);
+      if (location.countryCode) q.set("countryCode", location.countryCode);
+    }
     q.set("size", String(Math.min(Math.max(params.limit ?? 12, 1), 50)));
     q.set("radius", String(radiusMiles));
     q.set("unit", "miles");
