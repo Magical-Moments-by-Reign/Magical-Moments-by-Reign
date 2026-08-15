@@ -22,7 +22,9 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
   const todayISO = new Date().toISOString().slice(0, 10);
 
   const connected = ApiSportsProvider.isConfigured(sport);
-  const gamesForVote = connected ? await getGamesWithVoteContext(sport, todayISO, account.id) : [];
+  const { contexts: gamesForVote, planRestricted } = connected
+    ? await getGamesWithVoteContext(sport, todayISO, account.id)
+    : { contexts: [], planRestricted: undefined as string | undefined };
 
   const searchResults = q?.trim() ? await searchSports(q) : null;
   const isFollowingSport = myFollows.some((f) => f.sport === sport && f.kind === "sport");
@@ -100,6 +102,11 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
             <div className="disc-pending">
               <b>Live {sportMeta.label} data pending</b>
               API-Sports isn&rsquo;t connected yet, so nothing here is invented — games will appear the moment a key is configured.
+            </div>
+          ) : planRestricted && gamesForVote.length === 0 ? (
+            <div className="disc-pending">
+              <b>{sportMeta.label} data isn&rsquo;t available for today on the connected plan</b>
+              This isn&rsquo;t a &ldquo;no games today&rdquo; result — the provider reported a plan restriction: &ldquo;{planRestricted}&rdquo;. We&rsquo;ll show live games again automatically once the connected plan covers this date; an Owner can confirm details on the Sports diagnostics page.
             </div>
           ) : gamesForVote.length === 0 ? (
             <p className="disc-empty">No {sportMeta.label} games found for today.</p>
