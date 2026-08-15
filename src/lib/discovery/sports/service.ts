@@ -98,24 +98,50 @@ function localGamesForDate(sport: SportSlug, dateISO: string) {
  *  `planRestricted` is set only when the provider itself reported a
  *  plan/subscription restriction for this date — a genuine "no games" result
  *  never sets it. Either way, any local (owner-entered or previously synced)
- *  games for the date are still returned rather than hidden. */
+ *  games for the date are still returned rather than hidden.
+ *
+ *  A plan-restricted response is NEVER written to DiscoveryCache (see the
+ *  `restriction` capture below — we hand withCache a `null` for it, its own
+ *  documented "don't cache an outage" case) — a restriction can flip to a
+ *  real result the moment a plan is upgraded, and a cached "restricted" row
+ *  would otherwise keep reporting it for the rest of the TTL (up to 3h)
+ *  regardless of the account's actual current plan. */
 export async function getGamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<{ games: SportsGameRow[]; planRestricted?: string }> {
   const isToday = dateISO === new Date().toISOString().slice(0, 10);
   const ttl = isToday ? TTL_GAMES_LIVE : TTL_GAMES_UPCOMING;
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league }), ttl, () =>
-    ApiSportsProvider.gamesByDate(sport, dateISO, league));
+  let restriction: string | undefined;
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league }), ttl, async () => {
+    const result = await ApiSportsProvider.gamesByDate(sport, dateISO, league);
+    if (result?.planRestricted) {
+      restriction = result.planRestricted;
+      return null;
+    }
+    return result;
+  });
   if (!cached) {
-    // Not connected/unreachable — still surface anything already synced locally
-    // (e.g. an Owner-entered game) rather than an empty page.
-    return { games: await localGamesForDate(sport, dateISO) };
+    // Not connected/unreachable/plan-restricted — still surface anything
+    // already synced locally (e.g. an Owner-entered game) rather than an
+    // empty page.
+    return { games: await localGamesForDate(sport, dateISO), planRestricted: restriction };
   }
   const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
-  if (!synced.length && cached.data.planRestricted) {
-    // Plan-restricted and nothing came back — fall back to any local games
-    // we already have for this date instead of a blank/misleading page.
-    return { games: await localGamesForDate(sport, dateISO), planRestricted: cached.data.planRestricted };
-  }
-  return { games: synced, planRestricted: cached.data.planRestricted };
+  return { games: synced };
+}
+
+/** One-time cleanup for cached API-Sports responses recorded while the
+ *  account was on the Free plan (or otherwise restricted) — such a row
+ *  would keep serving "restricted" for the rest of its TTL even after a
+ *  plan upgrade, since a fresh (unexpired) cache row is served without
+ *  ever calling the provider again. Going forward, getGamesByDate above
+ *  never writes one of these in the first place; this only clears out rows
+ *  written by the OLD code path before that fix shipped. Safe to call
+ *  repeatedly — a no-op once the table's clean. Returns the number of rows
+ *  removed. */
+export async function purgePlanRestrictedSportsCache(): Promise<number> {
+  const result = await prisma.discoveryCache.deleteMany({
+    where: { provider: ApiSportsProvider.slug, payload: { contains: '"planRestricted":"' } },
+  });
+  return result.count;
 }
 
 export interface MatchupCardContext {
