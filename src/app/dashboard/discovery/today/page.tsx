@@ -41,13 +41,22 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
-      {featured && (
-        <a className="disc-card" href={featured.externalUrl ?? "#"} target={featured.externalUrl ? "_blank" : undefined} rel="noopener noreferrer" style={{ marginBottom: "1.4rem", display: "block", maxWidth: 420 }}>
+      {featured ? (
+        <a className="disc-card disc-card--feature" href={featured.externalUrl ?? "#"} target={featured.externalUrl ? "_blank" : undefined} rel="noopener noreferrer">
           <div className="disc-card__img" style={featured.imageUrl ? { backgroundImage: `url(${featured.imageUrl})` } : undefined} />
           <div className="disc-card__body">
             <span className="disc-card__eyebrow">Featured Today</span>
             <h3>{featured.title}</h3>
             {featured.description && <p>{featured.description}</p>}
+          </div>
+        </a>
+      ) : result.items[0] && (
+        <a className="disc-card disc-card--feature" href={result.items[0].url} target="_blank" rel="noopener noreferrer">
+          <div className="disc-card__img" style={result.items[0].imageUrl ? { backgroundImage: `url(${result.items[0].imageUrl})` } : undefined} />
+          <div className="disc-card__body">
+            <span className="disc-card__eyebrow">{result.items[0].source}</span>
+            <h3>{result.items[0].headline}</h3>
+            {result.items[0].snippet && <p>{result.items[0].snippet}</p>}
           </div>
         </a>
       )}

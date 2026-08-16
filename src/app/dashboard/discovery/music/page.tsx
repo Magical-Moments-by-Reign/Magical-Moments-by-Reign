@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { requireAccount } from "@/lib/guard";
 import { getMusicChart } from "@/lib/discovery/service";
 import type { MusicGenre } from "@/lib/discovery/providers/music";
-import { getConnectionView, getValidAccessToken } from "@/lib/spotify/connection";
-import { searchCatalog } from "@/lib/spotify/catalog";
-import { disconnectSpotifyAction } from "./actions";
+import { appleMusicConfigured } from "@/lib/apple-music/token";
+import { searchCatalog as searchAppleMusicCatalog } from "@/lib/apple-music/catalog";
+import { getAlbumsAndPlaylistsCharts } from "@/lib/apple-music/charts";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
@@ -18,29 +18,19 @@ const GENRES: { id: MusicGenre; label: string }[] = [
   { id: "afrobeats", label: "Afrobeats" },
 ];
 
-const SPOTIFY_STATUS_MESSAGES: Record<string, string> = {
-  connected: "Spotify connected.",
-  denied: "Spotify connection was cancelled.",
-  invalid_state: "Spotify connection failed a security check — please try connecting again.",
-  exchange_failed: "Spotify couldn’t confirm the connection — please try again.",
-  profile_failed: "Connected to Spotify, but couldn’t read the profile — please try again.",
-  not_configured: "Spotify isn’t configured yet.",
-  save_failed: "Spotify is temporarily unavailable — please try connecting again in a moment.",
-  configuration_error: "Spotify is temporarily unavailable — please try connecting again in a moment.",
-};
-
-export default async function MusicPage({ searchParams }: { searchParams: Promise<{ genre?: string; spotify?: string; q?: string }> }) {
-  const account = await requireAccount("/dashboard/discovery/music");
-  const { genre: raw, spotify: spotifyStatus, q } = await searchParams;
+export default async function MusicPage({ searchParams }: { searchParams: Promise<{ genre?: string; q?: string }> }) {
+  await requireAccount("/dashboard/discovery/music");
+  const { genre: raw, q } = await searchParams;
   const genre = (GENRES.some((g) => g.id === raw) ? raw : "top") as MusicGenre;
   const chart = await getMusicChart(genre);
-
-  const spotify = await getConnectionView(account.id);
   const query = q?.trim() ?? "";
-  const accessToken = spotify.connected && query ? await getValidAccessToken(account.id) : null;
-  const searchResults = accessToken ? await searchCatalog(accessToken, query) : null;
+
+  const appleConfigured = appleMusicConfigured();
+  const appleResults = appleConfigured && query ? await searchAppleMusicCatalog(query) : null;
+  const featuredCharts = appleConfigured && !query ? await getAlbumsAndPlaylistsCharts() : null;
 
   return (
+    <AppleMusicKitProvider>
     <div className="disc">
       <DiscoveryPageHeader title="Music" description={<>What&rsquo;s hot in music today — charts, artists, albums, and tracks by genre.</>} />
       <DiscoveryNav active="/dashboard/discovery/music" />
@@ -55,32 +45,33 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         <div className={`disc-pending`} style={{ marginBottom: "1.4rem" }}>
           <b>{SPOTIFY_STATUS_MESSAGES[spotifyStatus]}</b>
         </div>
-      )}
 
-      <div className="disc-connect" style={{ marginBottom: "1.4rem" }}>
-        <div>
-          <h2>Spotify</h2>
-          <p>{spotify.connected ? `Connected as ${spotify.displayName ?? "your Spotify account"}.` : "Connect your Spotify account to search artists, albums, and tracks, and to personalize Magical Discovery Music."}</p>
-        </div>
-        {spotify.connected ? (
-          <form action={disconnectSpotifyAction}>
-            <button type="submit" className="btn btn--sm btn--warn">Disconnect Spotify</button>
-          </form>
-        ) : (
-          <a href="/api/spotify/authorize" className="btn btn--sm btn--gold">Connect Spotify</a>
+        {appleConfigured && (
+          <div className="disc-music__search-row">
+            <form className="disc-form disc-form--compact" method="get">
+              <input type="hidden" name="genre" value={genre} />
+              <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label="Search Apple Music" />
+              <button type="submit" className="btn btn--gold">Search</button>
+            </form>
+          </div>
         )}
-      </div>
 
-      {spotify.connected && (
-        <div className="disc-section">
-          <div className="disc-section__head"><h2>Search Spotify</h2></div>
-          <form className="disc-form" method="get">
-            <input type="hidden" name="genre" value={genre} />
-            <input type="text" name="q" placeholder="Search artists, albums, or tracks" defaultValue={query} aria-label="Search Spotify" />
-            <button type="submit" className="btn btn--gold">Search</button>
-          </form>
+        {appleConfigured ? (
+          <>
+            {query && <ConnectAppleMusicButton />}
 
-          {query && !searchResults && <p className="disc-empty">Spotify search is temporarily unavailable — please try again.</p>}
+            {!query && (
+              <AppleMusicBrowse
+                topSongsTitle={chart.chartTitle}
+                topSongs={chart.entries}
+                albumsTitle={featuredCharts?.albumsTitle ?? "New Releases"}
+                albums={featuredCharts?.albums ?? []}
+                playlistsTitle={featuredCharts?.playlistsTitle ?? "Playlists For You"}
+                playlists={featuredCharts?.playlists ?? []}
+                genre={genre}
+                genres={GENRES}
+              />
+            )}
 
           {searchResults && (
             <>
@@ -156,5 +147,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         <DiscoveryEmptyState title="No chart connected yet.">Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.</DiscoveryEmptyState>
       )}
     </div>
+    <NowPlayingBar />
+    </AppleMusicKitProvider>
   );
 }

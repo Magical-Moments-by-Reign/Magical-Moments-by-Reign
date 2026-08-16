@@ -1,0 +1,157 @@
+/* ── Magical Moments Sports — cinematic black/gold/ivory landing ────
+   Reproduces the Owner-approved reference as closely as technically
+   possible. Scoped entirely under .spx-* — does not touch or reuse the
+   frozen .disc-* system (see the DESIGN FREEZE note in discovery.css).
+   Lives inside the existing global dashboard chrome; no page-specific
+   sidebar. Black/deep-charcoal/metallic-gold/ivory only — no pastel, no
+   emoji, no default-dashboard card styling. */
+
+.spx { position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#f4f1ea; background:radial-gradient(ellipse at 50% 5%,#2a2112 0,#0c0a07 30%,#050504 72%); }
+.spx::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28; background:linear-gradient(118deg,transparent 18%,rgba(207,168,84,.18) 18.1%,transparent 18.5%),linear-gradient(62deg,transparent 81%,rgba(207,168,84,.14) 81.1%,transparent 81.5%),repeating-linear-gradient(90deg,transparent 0 11%,rgba(255,255,255,.025) 11.1% 11.25%); }
+.spx > * { position:relative; z-index:1; }
+
+/* ── Hero ── */
+.spx-hero {
+  position: relative; overflow: hidden; border-radius: 20px;
+  background: radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
+  min-height:310px; display:flex; flex-direction:column; justify-content:center; padding: 3rem 2rem 2.5rem; text-align: center; margin: 0 0 1.8rem;
+  border: 1px solid rgba(201,162,75,.25);
+}
+.spx-hero::before, .spx-hero::after {
+  content: ""; position: absolute; top: -10%; width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(255,214,120,.35) 0%, rgba(255,214,120,0) 70%);
+  pointer-events: none;
+}
+.spx-hero::before { left: -60px; }
+.spx-hero::after { right: -60px; }
+.spx-hero__brand { display: flex; align-items: center; justify-content: center; gap: .7rem; margin-bottom: 1.1rem; position: relative; z-index: 1; }
+.spx-hero__brand img { width: 46px; height: 46px; object-fit: contain; }
+.spx-hero__word { text-align: left; line-height: 1.15; }
+.spx-hero__word b { display: block; color: var(--gold); font-size: 1.3rem; font-weight: 800; letter-spacing: .04em; }
+.spx-hero__word span { display: block; color: #d9cdb8; font-size: .68rem; font-weight: 700; letter-spacing: .38em; }
+.spx-hero h1 {
+  position: relative; z-index: 1; margin: 0 0 .6rem; color: #f4f1ea; font-weight: 900;
+  font-size: clamp(1.8rem, 4.4vw, 3.1rem); letter-spacing: .02em; line-height: 1.05;
+  text-shadow: 0 2px 18px rgba(0,0,0,.5);
+}
+.spx-hero__sub { position: relative; z-index: 1; margin: 0; color: var(--gold-soft); font-size: .84rem; font-weight: 700; letter-spacing: .16em; }
+
+/* ── "EXPLORE ALL SPORTS" divider ── */
+.spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }
+.spx-divider span {
+  border: 1px solid rgba(201,162,75,.5); border-radius: 999px; padding: .5rem 1.6rem;
+  color: var(--gold); font-size: .82rem; font-weight: 800; letter-spacing: .22em;
+  background: linear-gradient(180deg, #17130c, #0c0a06);
+}
+
+/* ── Explore Sports grid — illuminated plaques ── */
+.spx-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: .9rem; margin-bottom: 2rem; }
+.spx-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
+  aspect-ratio: 1 / 1; border-radius: 14px; text-decoration: none;
+  background: linear-gradient(180deg, #17140d 0%, #0a0806 100%);
+  border: 1px solid rgba(201,162,75,.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 20px rgba(0,0,0,.35);
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+  padding: 1rem .7rem;
+}
+.spx-card:hover { border-color: var(--gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 1px rgba(201,162,75,.25), 0 10px 26px rgba(0,0,0,.45); transform: translateY(-2px); }
+.spx-card img { max-width: 62px; max-height: 46px; object-fit: contain; }
+.spx-card .discovery-image-fallback { width:62px; height:46px; background:none; color:var(--gold); font-size:1rem; }
+.spx-card__mark { font-size: 1.5rem; font-weight: 900; color: var(--gold); letter-spacing: .04em; }
+.spx-card b { color: #f4f1ea; font-size: .88rem; font-weight: 800; letter-spacing: .04em; text-align: center; }
+.spx-card span { color: #9c8f76; font-size: .62rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+
+/* ── Four-panel row: Live Games / Upcoming Games / Magical Picks / My Teams ── */
+.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
+.spx-panel {
+  background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.28);
+  border-radius: 14px; padding: 1.1rem; display: flex; flex-direction: column;
+}
+.spx-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .9rem; }
+.spx-panel__head h2 { margin: 0; color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .14em; }
+.spx-panel__head a { color: #9c8f76; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
+.spx-panel__head a:hover { color: var(--gold-soft); }
+.spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: auto 0; }
+.spx-panel__body { display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+.spx-panel__cta {
+  display: block; text-align: center; margin-top: .9rem; padding: .55rem; border-radius: 8px;
+  border: 1px solid rgba(201,162,75,.5); color: var(--gold); font-size: .72rem; font-weight: 800;
+  letter-spacing: .1em; text-decoration: none; transition: background .15s, color .15s;
+}
+.spx-panel__cta:hover { background: var(--gold); color: #0a0806; }
+
+/* Live Games rows */
+.spx-live-row { border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: .7rem .8rem; }
+.spx-live-row__meta { display: flex; align-items: center; gap: .4rem; font-size: .66rem; font-weight: 800; letter-spacing: .08em; color: #e05b48; margin-bottom: .5rem; }
+.spx-live-row__meta i { width: 6px; height: 6px; border-radius: 50%; background: #e05b48; display: inline-block; }
+.spx-live-row__score { display: grid; grid-template-columns: 26px auto auto auto 26px; align-items: center; gap: .5rem; }
+.spx-live-row__score img { width: 26px; height: 26px; object-fit: contain; }
+.spx-live-row__score b { color: #f4f1ea; font-size: 1.15rem; font-weight: 800; text-align: center; }
+.spx-live-row__score span { color: var(--gold); font-size: .62rem; font-weight: 700; text-align: center; }
+.spx-live-row__names { display: flex; justify-content: space-between; font-size: .68rem; color: #9c8f76; margin-top: .35rem; }
+
+/* Upcoming Games rows */
+.spx-up-row { display: flex; align-items: center; gap: .6rem; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: .55rem .7rem; text-decoration: none; }
+.spx-up-row img { width: 24px; height: 24px; object-fit: contain; }
+.spx-up-row__vs { color: #6d6252; font-size: .64rem; font-weight: 700; }
+.spx-up-row__meta { margin-left: auto; text-align: right; }
+.spx-up-row__meta b { display: block; color: #f4f1ea; font-size: .72rem; }
+.spx-up-row__meta span { color: #9c8f76; font-size: .64rem; }
+
+/* Magical Picks poll */
+.spx-poll__sport { color: #9c8f76; font-size: .68rem; margin-bottom: .7rem; }
+.spx-poll__vs { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: .8rem; }
+.spx-poll__vs img { width: 40px; height: 40px; object-fit: contain; }
+.spx-poll__vs b { color: #f4f1ea; font-size: .76rem; text-align: center; max-width: 90px; }
+.spx-poll__vs em { font-style: normal; color: var(--gold); font-size: .68rem; font-weight: 800; border: 1px solid rgba(201,162,75,.4); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.spx-poll__bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin-bottom: .4rem; }
+.spx-poll__bar span:first-child { background: #b3392c; }
+.spx-poll__bar span:last-child { background: #2f5fa8; }
+.spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .68rem; font-weight: 800; }
+.spx-poll__votes { text-align: center; color: #9c8f76; font-size: .68rem; margin-bottom: .8rem; }
+.spx-poll__actions { display: flex; gap: .5rem; }
+.spx-poll__actions button { flex: 1; padding: .5rem; border-radius: 8px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.spx-poll__actions button[data-picked="true"] { background: var(--gold); color: #0a0806; border-color: var(--gold); }
+
+/* My Teams rows */
+.spx-team-row { display: flex; align-items: center; gap: .6rem; }
+.spx-team-row img { width: 30px; height: 30px; object-fit: contain; border-radius: 6px; }
+.spx-team-row__ph { width: 30px; height: 30px; border-radius: 6px; background: rgba(255,255,255,.06); }
+.spx-live-row .discovery-image-fallback,.spx-up-row .discovery-image-fallback,.spx-poll__vs .discovery-image-fallback,.spx-team-row > .discovery-image-fallback { width:30px; height:30px; flex:0 0 auto; padding:.15rem; border-radius:6px; font-size:.46rem; }
+.spx-team-row b { display: block; color: #f4f1ea; font-size: .78rem; }
+.spx-team-row span { color: #9c8f76; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; }
+.spx-team-row__icons { margin-left: auto; display: flex; gap: .4rem; color: var(--gold); }
+.spx-team-row__icons svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+/* ── Bottom feature bar — one continuous premium strip, NOT cards ── */
+.spx-bar { display: flex; border: 1px solid rgba(201,162,75,.3); border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #15120b, #0a0806); flex-wrap: wrap; }
+.spx-bar__item {
+  flex: 1 1 150px; display: flex; align-items: center; gap: .6rem; padding: .9rem 1.1rem;
+  border-right: 1px solid rgba(201,162,75,.18); text-decoration: none; color: inherit;
+  transition: background .15s;
+}
+.spx-bar__item:last-child { border-right: none; }
+.spx-bar__item:not(.spx-bar__item--soon):hover { background: rgba(201,162,75,.07); }
+.spx-bar__item svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.spx-bar__item b { display: block; color: #f4f1ea; font-size: .72rem; font-weight: 800; letter-spacing: .06em; }
+.spx-bar__item i { font-style: normal; display: block; color: #9c8f76; font-size: .64rem; }
+.spx-bar__item--soon { opacity: .55; cursor: default; }
+.spx-bar__item--soon svg { stroke: #9c8f76; }
+.spx-bar__soon-pill { margin-left: auto; font-size: .56rem; font-weight: 800; letter-spacing: .06em; color: #9c8f76; border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: .1rem .45rem; }
+
+/* Honest empty/pending states inside the dark panels — override discovery.css's light-mode .disc-pending look */
+.spx .disc-pending { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); color: #d9cdb8; }
+.spx .disc-pending b { color: #f4f1ea; }
+.spx .disc-empty { color: #9c8f76; }
+
+@media (max-width: 640px) {
+  .spx { margin:-16px -16px -32px; padding:16px 1rem 3rem; }
+  .spx-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .spx-hero { min-height:260px; border-radius:14px; padding:2rem 1rem; }
+  .spx-hero__sub { line-height:1.7; }
+  .spx-bar { flex-direction: column; }
+  .spx-bar__item { border-right: none; border-bottom: 1px solid rgba(201,162,75,.18); }
+  .spx-bar__item:last-child { border-bottom: none; }
+}
+@media (min-width:641px) and (max-width:980px) { .spx-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }

@@ -50,13 +50,23 @@ export interface SportsLeagueBrand {
  *  "who you got" doesn't map cleanly onto either format. */
 export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "mlb", "soccer", "nhl", "rugby", "volleyball"];
 
+export interface SportsDateResult {
+  games: SportsGameSummary[];
+  /** Set only when the provider's response body itself signaled a
+   *  subscription/plan restriction for this date (e.g. API-Sports' Free
+   *  plan rejecting dates outside its demo window) — never conflate this
+   *  with a genuine "no games that day" result. `games` is always `[]`
+   *  when this is set; never fabricated from it. */
+  planRestricted?: string;
+}
+
 export interface SportsProvider {
   readonly slug: string;
   readonly name: string;
   readonly attribution: string;
   readonly supportedSports: SportSlug[];
   isConfigured(sport?: SportSlug): boolean;
-  gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsGameSummary[] | null>;
+  gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsDateResult | null>;
   gamesForTeam(sport: SportSlug, teamExternalId: string, opts?: { league?: string; season?: string }): Promise<SportsGameSummary[] | null>;
   searchTeams(sport: SportSlug, query: string, league?: string): Promise<SportsTeam[] | null>;
   standings(sport: SportSlug, league: string, season?: string): Promise<SportsStanding[] | null>;
@@ -75,7 +85,7 @@ export const SportsPendingProvider: SportsProvider = {
   isConfigured(): boolean {
     return false;
   },
-  async gamesByDate(): Promise<SportsGameSummary[] | null> {
+  async gamesByDate(): Promise<SportsDateResult | null> {
     return null;
   },
   async gamesForTeam(): Promise<SportsGameSummary[] | null> {
@@ -127,8 +137,58 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   f1: { host: "v1.formula-1.api-sports.io", shape: "races", defaultLeague: "" },
 };
 
+/** A sport's default API-Sports league id (e.g. NFL = "1") — exported so
+ *  callers needing to query standings/teams directly (outside the
+ *  SportsProvider interface's own default-league handling) don't have to
+ *  duplicate SPORT_CONFIG. Empty string for MMA/F1 (fights/races, not a
+ *  leagues-shaped competition). */
+export function defaultLeagueId(sport: SportSlug): string {
+  return SPORT_CONFIG[sport].defaultLeague;
+}
+
 function apiKey(): string | undefined {
   return process.env.API_SPORTS_KEY?.trim() || undefined;
+}
+
+// Basketball and hockey seasons span two calendar years, and API-Sports'
+// basketball/hockey APIs require the split "YYYY-YYYY" season format (single
+// non-split years get rejected or return an empty response) — confirmed
+// against this project's own diagnostic page (admin/diagnostics/api-sports,
+// which uses this same seasonParam()). Every other sport here uses a plain
+// single-year season. A split season "starts" around August: a January 2026
+// game is part of the "2025-2026" season, a November 2026 game starts
+// "2026-2027".
+const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "nhl"]);
+
+/** Exported for tests. */
+export function seasonParam(sport: SportSlug, dateISO: string): string {
+  const d = new Date(dateISO);
+  const year = d.getFullYear();
+  if (!SPLIT_SEASON_SPORTS.has(sport)) return String(year);
+  const month = d.getMonth(); // 0-indexed; August = 7
+  return month >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
+// API-Sports returns HTTP 200 even when a request falls outside what the
+// current plan allows — the body carries a non-empty `errors` object/array
+// (commonly keyed "plan") describing it, alongside an otherwise well-formed
+// `response: []`. Left undetected, that reads exactly like a genuine "no
+// games today" result. Exported for tests and for the admin diagnostic page
+// (same detection logic, not duplicated).
+export function detectPlanRestriction(json: unknown): string | null {
+  const errors = (json as { errors?: unknown } | null | undefined)?.errors;
+  if (errors == null) return null;
+  const messages: string[] = Array.isArray(errors)
+    ? errors.filter((e): e is string => typeof e === "string")
+    : typeof errors === "object"
+      ? Object.values(errors as Record<string, unknown>).filter((v): v is string => typeof v === "string")
+      : [];
+  if (!messages.length) return null;
+  // Prefer a message that actually reads like a plan/access restriction —
+  // a bad-parameter or rate-limit error also lands in `errors` but is a
+  // real failure, not "this date isn't in your plan," and should stay in
+  // the existing null/failed path instead.
+  return messages.find((m) => /plan|subscription|not\s+(?:allowed|included|available)|don.?t\s+have\s+access/i.test(m)) ?? null;
 }
 
 async function apiSportsFetch(sport: SportSlug, path: string, params: Record<string, string | undefined>): Promise<unknown | null> {
@@ -140,7 +200,11 @@ async function apiSportsFetch(sport: SportSlug, path: string, params: Record<str
   try {
     const res = await fetch(url.toString(), {
       headers: { "x-apisports-key": key },
-      next: { revalidate: false },
+      // Short revalidation window, not indefinite: scores/status change
+      // throughout the day, and an indefinitely-cached empty/error response
+      // (e.g. fetched before today's games were announced) would otherwise
+      // never retry for the rest of the day.
+      next: { revalidate: 300 },
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -243,24 +307,23 @@ export const ApiSportsProvider: SportsProvider = {
     return true;
   },
 
-  async gamesByDate(sport, dateISO, league): Promise<SportsGameSummary[] | null> {
+  async gamesByDate(sport, dateISO, league): Promise<SportsDateResult | null> {
     if (!this.isConfigured(sport)) return null;
     const cfg = SPORT_CONFIG[sport];
     const lg = league || cfg.defaultLeague;
     const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
-    const dateParam = { date: dateISO };
-    const json = await apiSportsFetch(sport, path, cfg.shape === "fixtures"
-      ? { ...dateParam, league: lg, season: String(new Date(dateISO).getFullYear()) }
-      : { ...dateParam, league: lg, season: String(new Date(dateISO).getFullYear()) });
+    const json = await apiSportsFetch(sport, path, { date: dateISO, league: lg, season: seasonParam(sport, dateISO) });
     if (!json) return null;
-    return mapGamesResponse(sport, lg, json);
+    const planRestricted = detectPlanRestriction(json) ?? undefined;
+    const games = mapGamesResponse(sport, lg, json) ?? [];
+    return { games, planRestricted };
   },
 
   async gamesForTeam(sport, teamExternalId, opts): Promise<SportsGameSummary[] | null> {
     if (!this.isConfigured(sport)) return null;
     const cfg = SPORT_CONFIG[sport];
     const lg = opts?.league || cfg.defaultLeague;
-    const season = opts?.season || String(new Date().getFullYear());
+    const season = opts?.season || seasonParam(sport, new Date().toISOString());
     const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
     const json = await apiSportsFetch(sport, path, { team: teamExternalId, league: lg, season });
     if (!json) return null;
@@ -284,8 +347,7 @@ export const ApiSportsProvider: SportsProvider = {
 
   async standings(sport, league, season): Promise<SportsStanding[] | null> {
     if (!this.isConfigured(sport)) return null;
-    const cfg = SPORT_CONFIG[sport];
-    const yr = season || String(new Date().getFullYear());
+    const yr = season || seasonParam(sport, new Date().toISOString());
     const json = await apiSportsFetch(sport, "/standings", { league, season: yr });
     const raw = (json as any)?.response;
     const flat: any[] = Array.isArray(raw)
@@ -308,6 +370,32 @@ export const ApiSportsProvider: SportsProvider = {
         } as SportsStanding;
       })
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
-    void cfg;
   },
 };
+
+/** Fetches the real league logo API-Sports serves for a sport's default
+ *  league (e.g. NFL league id 1 on the american-football host) — never a
+ *  baked-in trademark asset of our own. Returns null when unconfigured, the
+ *  sport has no leagues-endpoint id (MMA/F1 — fights/races, not leagues),
+ *  or the provider simply doesn't return a logo for that league; callers
+ *  fall back to a plain typographic treatment rather than inventing a mark.
+ *  Exported standalone (not on SportsProvider) since only the Explore Sports
+ *  grid needs it — caching lives in the service layer, matching every other
+ *  provider call in this file. */
+export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const cfg = SPORT_CONFIG[sport];
+  if (!cfg.defaultLeague) return null;
+  const json = await apiSportsFetch(sport, "/leagues", { id: cfg.defaultLeague });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  // Football v3 nests identity under `league`; the other API-Sports
+  // verticals return it at the response-item root. Supporting both shapes is
+  // what lets NFL/NCAAF and basketball/baseball/hockey share this resolver.
+  const item = list?.[0];
+  const logo = item?.league?.logo ?? item?.logo;
+  if (typeof logo !== "string") return null;
+  const normalized = logo.trim();
+  return /^https:\/\//i.test(normalized) && !/image[-_ ]?unavailable|placeholder|no[-_ ]?image/i.test(normalized)
+    ? normalized
+    : null;
+}

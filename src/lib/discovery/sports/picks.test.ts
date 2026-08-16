@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked } from "./picks";
+import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek } from "./picks";
 
 test("gradeGamePicks returns null until the game is final with real scores", () => {
   assert.equal(gradeGamePicks({ status: "live", homeScore: 10, awayScore: 7 }, []), null);
@@ -57,4 +57,11 @@ test("isPickLocked locks once the game is no longer scheduled", () => {
   assert.equal(isPickLocked({ status: "scheduled", locksAt: null, startsAt: future }), false);
   assert.equal(isPickLocked({ status: "live", locksAt: null, startsAt: past }), true);
   assert.equal(isPickLocked({ status: "scheduled", locksAt: past, startsAt: future }), true);
+});
+
+test("startOfWeek returns midnight on the most recent Sunday", () => {
+  // Wed Aug 20 2025 -> Sunday Aug 17 2025
+  assert.deepEqual(startOfWeek(new Date(2025, 7, 20, 15, 30)), new Date(2025, 7, 17, 0, 0, 0, 0));
+  // A Sunday itself returns that same day at midnight.
+  assert.deepEqual(startOfWeek(new Date(2025, 7, 17, 23, 59)), new Date(2025, 7, 17, 0, 0, 0, 0));
 });
