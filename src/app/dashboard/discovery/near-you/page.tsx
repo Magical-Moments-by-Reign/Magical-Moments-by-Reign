@@ -30,6 +30,7 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
   const normalizedLocation = location?.trim() ? normalizeTicketmasterLocation(location) : null;
   const invalidLocation = normalizedLocation?.kind === "invalid";
   const result = location?.trim() && !invalidLocation ? await getNearYouEvents({ location: location.trim(), category, radiusMiles: radius }) : null;
+  const hasEvents = Boolean(result?.items.length);
 
   return (
     <div className="disc">
@@ -66,6 +67,7 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
         <DiscoveryEmptyState title="Where should we look?">Enter an address, city and state, or ZIP code to discover real events nearby.</DiscoveryEmptyState>
       ) : invalidLocation ? (
         <DiscoveryEmptyState title="We couldn’t recognize that location.">Try a ZIP code, a city such as Atlanta, GA, or a street address that includes its city and state.</DiscoveryEmptyState>
+      ) : result && hasEvents ? (
       ) : result && result.items.length ? (
         <div className="disc-grid">
           {result.items.map((e) => (

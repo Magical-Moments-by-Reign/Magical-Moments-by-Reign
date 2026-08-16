@@ -92,6 +92,46 @@ export default async function DiscoveryPage() {
     trending[1] && { label: "Trending", title: trending[1].title, description: trending[1].description ?? undefined, image: trending[1].imageUrl ?? undefined, href: trending[1].externalUrl ?? "/dashboard/discovery/trending", external: Boolean(trending[1].externalUrl) },
     today.items[1] && { label: "Today", title: today.items[1].headline, description: today.items[1].snippet, image: today.items[1].imageUrl, href: today.items[1].url, external: true },
   ].filter(Boolean) as Feature[];
+  const primaryHref = primary?.href ?? "/dashboard/discovery/trending";
+
+  return <main className="disc disc-lux disc-dark">
+    <DiscoveryNav active="" />
+
+    <header className="disc-dark__hero">
+      {primary?.image && <Image src={primary.image} alt="" fill priority sizes="(max-width: 800px) 100vw, 80vw" className="disc-dark__hero-image" />}
+      <div className="disc-dark__hero-shade" />
+      <div className="disc-dark__hero-copy">
+        <span className="disc-lux__kicker">✦ &nbsp; Magical Discovery &nbsp; ✦</span>
+        <h1>Discover Something<br /><em>Magical Today</em></h1>
+        <p>A curated look at what&rsquo;s happening, what to watch, what to hear, where to go, and what&rsquo;s worth discovering.</p>
+        <div className="disc-dark__hero-actions"><Link className="btn btn--gold" href={primaryHref}>✦ &nbsp; Explore Now</Link><Link className="btn btn--ghost" href="/dashboard/discovery/trending">See What&rsquo;s Trending</Link></div>
+      </div>
+    </header>
+
+    <nav className="disc-dark__category-bar" aria-label="Explore Discovery">
+      <Link href="/dashboard/discovery/watch"><b>▣</b><span><strong>Watch</strong><small>Top shows &amp; streaming</small></span></Link>
+      <Link href="/dashboard/discovery/movies"><b>▤</b><span><strong>Movies</strong><small>In theaters &amp; more</small></span></Link>
+      <Link href="/dashboard/discovery/music"><b>♫</b><span><strong>Music</strong><small>Top songs &amp; albums</small></span></Link>
+      <Link href="/dashboard/discovery/near-you"><b>✦</b><span><strong>Events</strong><small>Concerts &amp; experiences</small></span></Link>
+      <Link href="/dashboard/discovery/sports"><b>◉</b><span><strong>Sports</strong><small>Live games &amp; scores</small></span></Link>
+      <Link href="/dashboard/discovery/trending"><b>↗</b><span><strong>Trending</strong><small>What&rsquo;s hot now</small></span></Link>
+    </nav>
+
+    <section className="disc-lux__section">
+      <SectionHeader title="Curated For You" subtitle="A little of everything, chosen for your day." href="/dashboard/discovery/trending" action="View All" />
+      {curated.length ? <div className="disc-lux__curated">{curated.map((item) => <FeatureCard key={`${item.label}-${item.title}`} item={item} />)}</div> : <EmptyState title="Your edit is taking shape">Connected, real-time recommendations will appear here when available.</EmptyState>}
+    </section>
+
+    <section className="disc-lux__section">
+      <SectionHeader title="Watch Tonight" href="/dashboard/discovery/watch" action="Explore Watch" />
+      {watch.items.length ? <div className="disc-lux__rail">{watch.items.slice(0, 6).map((item) => <WatchCard key={item.id} item={item} />)}</div> : <EmptyState title="The screen is waiting">Watch recommendations are currently unavailable. Please check back soon.</EmptyState>}
+    </section>
+
+    <section className="disc-lux__section">
+      <SectionHeader title="Now in Theaters" href="/dashboard/discovery/movies" action="Explore Movies" />
+      {movies.items.length ? <div className="disc-lux__movie-rail">{movies.items.slice(0, 6).map((item) => <MovieCard key={item.id} item={item} />)}</div> : <EmptyState title="The curtain will rise soon">Current theatrical releases are unavailable right now.</EmptyState>}
+    </section>
+
 
   return <main className="disc disc-lux disc-dark">
     <DiscoveryNav active="" />

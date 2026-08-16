@@ -53,6 +53,7 @@ export default async function SportsPage() {
   const isFollowingSport = myFollows.some((f) => f.sport === sport && f.kind === "sport");
   const leagueBrands = await Promise.all(SPORT_CATALOG.map(async (item) => [item.slug, await getDefaultLeagueBrand(item.slug)] as const));
   const brandBySport = new Map(leagueBrands);
+  const sportsCatalog = SPORT_CATALOG.map((item) => ({ item, brand: brandBySport.get(item.slug) }));
 
   return (
     <div className="disc sports-dark">
@@ -65,6 +66,8 @@ export default async function SportsPage() {
 
       <h2 className="sports-dark__explore">Explore All Sports</h2>
       <div className="sports-dark__catalog">
+        {sportsCatalog.map(({ item, brand }) => (
+          <Link key={item.slug} href={`/dashboard/discovery/sports?sport=${item.slug}`} aria-current={item.slug === sport}><LeagueLogo src={brand?.logoUrl} label={brand?.name ?? item.label} fallback={item.slug === "f1" ? "F1" : item.slug.slice(0, 3).toUpperCase()} /><strong>{item.label}</strong></Link>
         {SPORT_CATALOG.map((s) => (
           <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}><LeagueLogo src={brandBySport.get(s.slug)?.logoUrl} label={brandBySport.get(s.slug)?.name ?? s.label} fallback={s.slug === "f1" ? "F1" : s.slug.slice(0, 3).toUpperCase()} /><strong>{s.label}</strong></Link>
         ))}

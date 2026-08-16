@@ -24,6 +24,9 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
   const genre = (GENRES.some((g) => g.id === raw) ? raw : "top") as MusicGenre;
   const chart = await getMusicChart(genre);
   const query = q?.trim() ?? "";
+  const accessToken = spotify.connected && query ? await getValidAccessToken(account.id) : null;
+  const searchResults = accessToken ? await searchCatalog(accessToken, query) : null;
+  const spotifyStatusMessage = spotifyStatus ? SPOTIFY_STATUS_MESSAGES[spotifyStatus] : undefined;
 
   const appleConfigured = appleMusicConfigured();
   const appleResults = appleConfigured && query ? await searchAppleMusicCatalog(query) : null;
@@ -41,9 +44,10 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
+      {spotifyStatusMessage && (
       {spotifyStatus && SPOTIFY_STATUS_MESSAGES[spotifyStatus] && (
         <div className={`disc-pending`} style={{ marginBottom: "1.4rem" }}>
-          <b>{SPOTIFY_STATUS_MESSAGES[spotifyStatus]}</b>
+          <b>{spotifyStatusMessage}</b>
         </div>
 
         {appleConfigured && (

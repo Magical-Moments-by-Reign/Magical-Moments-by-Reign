@@ -120,6 +120,10 @@ export function buildTicketmasterQuery(params: EventSearchParams): URLSearchPara
   q.set("sort", "date,asc");
   const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
   if (segment) q.set("segmentName", segment);
+  const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
+  if (classificationName) q.set("classificationName", classificationName);
+  if (params.category === "festivals") q.set("keyword", "festival");
+  return q;
   if (params.category === "comedy") q.set("classificationName", "Comedy");
   if (params.category === "festivals") q.set("keyword", "festival");
   return q;
@@ -169,6 +173,10 @@ export function buildLocationParams(location: string): ResolvedLocation {
 function tmKey(): string | undefined {
   return process.env.TICKETMASTER_API_KEY || undefined;
 }
+
+export const CLASSIFICATION_NAME_MAP: Partial<Record<EventCategory, string>> = {
+  comedy: "Comedy",
+};
 
 /** Pure: Ticketmaster classification → our category. Exported for tests. */
 export function inferCategory(classifications: unknown): EventCategory {
@@ -298,27 +306,6 @@ export const TicketmasterProvider: EventsProvider = {
       return events.map(mapEvent).filter((e: DiscoveredEvent | null): e is DiscoveredEvent => e !== null);
     } catch {
       console.error("[ticketmaster] event search failed status=network detail=request_failed");
-    if (params.coords) {
-      q.set("latlong", `${params.coords.lat},${params.coords.lng}`);
-    } else {
-      if (location.postalCode) q.set("postalCode", location.postalCode);
-      if (location.city) q.set("city", location.city);
-      if (location.stateCode) q.set("stateCode", location.stateCode);
-      if (location.countryCode) q.set("countryCode", location.countryCode);
-    }
-    q.set("size", String(Math.min(Math.max(params.limit ?? 12, 1), 50)));
-    q.set("radius", String(radiusMiles));
-    q.set("unit", "miles");
-    q.set("sort", "date,asc");
-    if (segment) q.set("segmentName", segment);
-    else if (classificationName) q.set("classificationName", classificationName);
-
-    diag.requestAttempted = true;
-
-    const res = await fetch(`${TICKETMASTER_BASE}/events.json?${q.toString()}`, { next: { revalidate: 3600 } }).catch(() => null);
-    if (!res) {
-      diag.safeError = "network_error";
-      await writeEventsDiagnostic(diag);
       return null;
     }
 
