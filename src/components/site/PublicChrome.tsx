@@ -63,6 +63,7 @@ export function PublicFooter({ year }: { year: number }) {
         <div className="gs-fcol">
           <h4>Explore</h4>
           <Link href="/get-started">Get Started</Link>
+          <Link href="/magical-demo">Magical Demo</Link>
           <Link href="/experiences">Journeys</Link>
           <Link href="/legacy">Legacy &amp; Memories</Link>
           <Link href="/inspiration">Inspiration</Link>

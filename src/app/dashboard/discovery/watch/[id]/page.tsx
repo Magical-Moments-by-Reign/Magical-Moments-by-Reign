@@ -29,6 +29,11 @@ export default async function WatchDetailPage({ params }: { params: Promise<{ id
         {show.status && <span className="disc-badge">{show.status}</span>}
         {show.seasons ? <span className="disc-badge">{show.seasons} season{show.seasons === 1 ? "" : "s"}</span> : null}
         {show.voteAverage ? <span className="disc-badge">★ {show.voteAverage.toFixed(1)}</span> : null}
+        {show.nextEpisodeDate && (
+          <span className="disc-badge disc-badge--live">
+            {show.nextEpisodeIsSeasonPremiere ? `New Season${show.nextEpisodeSeasonNumber ? ` ${show.nextEpisodeSeasonNumber}` : ""}` : "New Episode"}: {new Date(show.nextEpisodeDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </span>
+        )}
       </div>
 
       {show.overview && <p className="disc-detail__body">{show.overview}</p>}

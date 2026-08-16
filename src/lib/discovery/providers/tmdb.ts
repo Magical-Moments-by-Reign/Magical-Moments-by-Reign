@@ -48,11 +48,19 @@ export interface WatchDetails extends WatchItem {
   status?: string; // "Returning Series" | "Ended" | ...
   availableOn: WatchProviderAvailability[];
   externalUrl?: string; // TMDB's own page (always safe to link to)
+  /** TMDB's own next_episode_to_air, when the show has a confirmed one —
+   *  never guessed or estimated. */
+  nextEpisodeDate?: string; // ISO date
+  nextEpisodeSeasonNumber?: number;
+  /** true when the upcoming episode is episode 1 of its season (a season
+   *  premiere) rather than just the next episode of an already-airing one. */
+  nextEpisodeIsSeasonPremiere?: boolean;
 }
 
 export interface MovieDetails extends MovieItem {
   trailerUrl?: string; // YouTube, from TMDB's official videos endpoint
   externalUrl?: string;
+  availableOn: WatchProviderAvailability[];
 }
 
 export interface WatchProvider {
@@ -204,6 +212,8 @@ export const TmdbWatchProvider: WatchProvider = {
           .map((p: any) => ({ name: p.provider_name, logoUrl: poster(p.logo_path, "w342"), link: typeof us?.link === "string" ? us.link : undefined }));
       }
 
+      const nextEp = show?.next_episode_to_air;
+
       return {
         ...base,
         seasons: typeof show?.number_of_seasons === "number" ? show.number_of_seasons : undefined,
@@ -211,6 +221,9 @@ export const TmdbWatchProvider: WatchProvider = {
         status: typeof show?.status === "string" ? show.status : undefined,
         availableOn,
         externalUrl: show?.id ? `https://www.themoviedb.org/tv/${show.id}` : undefined,
+        nextEpisodeDate: typeof nextEp?.air_date === "string" ? nextEp.air_date : undefined,
+        nextEpisodeSeasonNumber: typeof nextEp?.season_number === "number" ? nextEp.season_number : undefined,
+        nextEpisodeIsSeasonPremiere: nextEp?.episode_number === 1,
       };
     } catch {
       return null;
@@ -244,9 +257,10 @@ export const TmdbMovieProvider: MovieProvider = {
   async details(id: string): Promise<MovieDetails | null> {
     if (!tmdbKey() || !id) return null;
     try {
-      const [movieRes, videosRes] = await Promise.all([
+      const [movieRes, videosRes, providersRes] = await Promise.all([
         authedFetch(`/movie/${encodeURIComponent(id)}`),
         authedFetch(`/movie/${encodeURIComponent(id)}/videos`),
+        authedFetch(`/movie/${encodeURIComponent(id)}/watch/providers`),
       ]);
       if (!movieRes.ok) return null;
       const movie = await movieRes.json();
@@ -262,7 +276,17 @@ export const TmdbMovieProvider: MovieProvider = {
         if (trailer?.key) trailerUrl = `https://www.youtube.com/watch?v=${trailer.key}`;
       }
 
-      return { ...base, trailerUrl, externalUrl: movie?.id ? `https://www.themoviedb.org/movie/${movie.id}` : undefined };
+      let availableOn: WatchProviderAvailability[] = [];
+      if (providersRes.ok) {
+        const pdata = await providersRes.json();
+        const us = pdata?.results?.US;
+        const flat = [...(us?.flatrate ?? []), ...(us?.ads ?? [])];
+        availableOn = flat
+          .filter((p: any) => typeof p?.provider_name === "string")
+          .map((p: any) => ({ name: p.provider_name, logoUrl: poster(p.logo_path, "w342"), link: typeof us?.link === "string" ? us.link : undefined }));
+      }
+
+      return { ...base, trailerUrl, availableOn, externalUrl: movie?.id ? `https://www.themoviedb.org/movie/${movie.id}` : undefined };
     } catch {
       return null;
     }
