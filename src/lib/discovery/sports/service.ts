@@ -8,7 +8,7 @@
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
 import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
-import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, type VoteTally, type PicksSummary } from "./picks";
+import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -286,6 +286,59 @@ export async function createOwnerGame(input: {
 export async function setFinalScore(gameId: string, homeScore: number, awayScore: number): Promise<number> {
   await prisma.sportsGame.update({ where: { id: gameId }, data: { status: "final", homeScore, awayScore } });
   return gradeGame(gameId);
+}
+
+// ── Family Leaderboard ──────────────────────────────────────────
+
+export interface LeaderboardEntry {
+  accountId: string;
+  name: string;
+  points: number;
+  rank: number;
+  isMe: boolean;
+}
+
+/** Ranks the viewer's own household by correct Magical Picks — 1 point per
+ *  correct pick, real and counted from SportsPick.isCorrect, never a
+ *  fabricated score. There's no flat multi-adult "family group" of
+ *  separate login Accounts in this schema today — the real Account
+ *  relationship available is guardian/ward (Account.guardianAccountId, for
+ *  a minor's account linked to a parent's). "Household" here is: the
+ *  viewer + anyone they guardian, or — if the viewer is themself a
+ *  minor — their guardian + that guardian's other wards (siblings). Most
+ *  adult accounts have no guardian links at all, so most viewers get a
+ *  solo one-row result; `hasFamily` tells the page whether to show the
+ *  "Family Leaderboard" framing or fall back to "My Picks".
+ *  `range: "week"` counts only picks on games that started this week
+ *  (Sunday-anchored, see startOfWeek); `"all"` counts every correct pick
+ *  ever. */
+export async function getFamilyPicksLeaderboard(accountId: string, range: "week" | "all" = "week"): Promise<{ entries: LeaderboardEntry[]; hasFamily: boolean }> {
+  const me = await prisma.account.findUnique({ where: { id: accountId }, select: { guardianAccountId: true, firstName: true } });
+  const householdRootId = me?.guardianAccountId ?? accountId;
+  const household = await prisma.account.findMany({
+    where: { OR: [{ id: householdRootId }, { guardianAccountId: householdRootId }] },
+    select: { id: true, firstName: true },
+  });
+  const familyAccounts = household.length ? household : [{ id: accountId, firstName: me?.firstName ?? "You" }];
+
+  const since = range === "week" ? startOfWeek(new Date()) : undefined;
+  const correctPicks = await prisma.sportsPick.findMany({
+    where: {
+      accountId: { in: familyAccounts.map((a) => a.id) },
+      isCorrect: true,
+      ...(since ? { game: { startsAt: { gte: since } } } : {}),
+    },
+    select: { accountId: true },
+  });
+  const pointsByAccount = new Map<string, number>();
+  for (const p of correctPicks) pointsByAccount.set(p.accountId, (pointsByAccount.get(p.accountId) ?? 0) + 1);
+
+  const entries = familyAccounts
+    .map((a) => ({ accountId: a.id, name: a.firstName, points: pointsByAccount.get(a.id) ?? 0, isMe: a.id === accountId }))
+    .sort((a, b) => b.points - a.points)
+    .map((e, i) => ({ ...e, rank: i + 1 }));
+
+  return { entries, hasFamily: familyAccounts.length > 1 };
 }
 
 // ── Magical Picks profile + badges ──────────────────────────────
