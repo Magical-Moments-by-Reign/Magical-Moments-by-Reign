@@ -82,11 +82,6 @@ export default async function DiscoveryPage() {
     label: "Featured Discovery", title: today.items[0].headline, description: today.items[0].snippet,
     image: today.items[0].imageUrl, href: today.items[0].url, external: true,
   } : undefined;
-  const secondary: Feature[] = [
-    watch.items[1] && { label: "Tonight's Watch", title: watch.items[1].title, image: watch.items[1].backdropUrl ?? watch.items[1].posterUrl, href: `/dashboard/discovery/watch/${watch.items[1].id}` },
-    trending[0] && { label: "Trending Now", title: trending[0].title, description: trending[0].description ?? undefined, image: trending[0].imageUrl ?? undefined, href: trending[0].externalUrl ?? "/dashboard/discovery/trending", external: Boolean(trending[0].externalUrl) },
-  ].filter(Boolean) as Feature[];
-
   const curated: Feature[] = [
     watch.items[2] && { label: "Watch", title: watch.items[2].title, description: watch.items[2].overview, image: watch.items[2].backdropUrl ?? watch.items[2].posterUrl, href: `/dashboard/discovery/watch/${watch.items[2].id}` },
     movies.items[1] && { label: "Movie", title: movies.items[1].title, description: movies.items[1].overview, image: movies.items[1].backdropUrl ?? movies.items[1].posterUrl, href: `/dashboard/discovery/movies/${movies.items[1].id}` },
@@ -94,24 +89,28 @@ export default async function DiscoveryPage() {
     today.items[1] && { label: "Today", title: today.items[1].headline, description: today.items[1].snippet, image: today.items[1].imageUrl, href: today.items[1].url, external: true },
   ].filter(Boolean) as Feature[];
 
-  return <main className="disc disc-lux">
-    <header className="disc-lux__intro">
-      <div><span className="disc-lux__kicker">Magical Discovery</span>
-        <h1>Discover Something<br />Magical Today <em aria-hidden="true">✦</em></h1>
+  return <main className="disc disc-lux disc-dark">
+    <DiscoveryNav active="" />
+
+    <header className="disc-dark__hero">
+      {primary?.image && <Image src={primary.image} alt="" fill priority sizes="(max-width: 800px) 100vw, 80vw" className="disc-dark__hero-image" />}
+      <div className="disc-dark__hero-shade" />
+      <div className="disc-dark__hero-copy">
+        <span className="disc-lux__kicker">✦ &nbsp; Magical Discovery &nbsp; ✦</span>
+        <h1>Discover Something<br /><em>Magical Today</em></h1>
         <p>A curated look at what&rsquo;s happening, what to watch, what to hear, where to go, and what&rsquo;s worth discovering.</p>
+        <div className="disc-dark__hero-actions"><Link className="btn btn--gold" href={primary?.href ?? "/dashboard/discovery/trending"}>✦ &nbsp; Explore Now</Link><Link className="btn btn--ghost" href="/dashboard/discovery/trending">See What&rsquo;s Trending</Link></div>
       </div>
-      <Link className="disc-lux__explore-all" href="/dashboard/discovery/trending">Explore All <span aria-hidden="true">→</span></Link>
     </header>
 
-    {primary ? <section className="disc-lux__hero" aria-label="Featured discoveries">
-      <FeatureCard item={primary} large />
-      <div className="disc-lux__hero-side">
-        {secondary.map((item) => <FeatureCard key={`${item.label}-${item.title}`} item={item} />)}
-        {secondary.length < 2 && <div className="disc-lux__feature disc-lux__feature--quiet"><span>More discoveries are being curated.</span></div>}
-      </div>
-    </section> : <EmptyState title="Today’s edit is being curated">Real discoveries will appear here as soon as the connected providers return them.</EmptyState>}
-
-    <DiscoveryNav active="" />
+    <nav className="disc-dark__category-bar" aria-label="Explore Discovery">
+      <Link href="/dashboard/discovery/watch"><b>▣</b><span><strong>Watch</strong><small>Top shows &amp; streaming</small></span></Link>
+      <Link href="/dashboard/discovery/movies"><b>▤</b><span><strong>Movies</strong><small>In theaters &amp; more</small></span></Link>
+      <Link href="/dashboard/discovery/music"><b>♫</b><span><strong>Music</strong><small>Top songs &amp; albums</small></span></Link>
+      <Link href="/dashboard/discovery/near-you"><b>✦</b><span><strong>Events</strong><small>Concerts &amp; experiences</small></span></Link>
+      <Link href="/dashboard/discovery/sports"><b>◉</b><span><strong>Sports</strong><small>Live games &amp; scores</small></span></Link>
+      <Link href="/dashboard/discovery/trending"><b>↗</b><span><strong>Trending</strong><small>What&rsquo;s hot now</small></span></Link>
+    </nav>
 
     <section className="disc-lux__section">
       <SectionHeader title="Curated For You" subtitle="A little of everything, chosen for your day." href="/dashboard/discovery/trending" action="View All" />

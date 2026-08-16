@@ -7,7 +7,6 @@ import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discove
 import { followSportAction, followTeamAction } from "./actions";
 import { MatchupCard } from "./MatchupCard";
 import DiscoveryNav from "../_nav";
-import { DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -29,15 +28,19 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
   const isFollowingSport = myFollows.some((f) => f.sport === sport && f.kind === "sport");
 
   return (
-    <div className="disc">
-      <DiscoveryPageHeader title="Sports" description={<>Discover, follow, predict, and play — a Magical Moments take on game day, never a betting product.</>} />
+    <div className="disc sports-dark">
+      <header className="sports-dark__masthead">
+        <span>♛</span><h1>Magical Moments <em>Sports</em></h1>
+        <strong>Every Game. Every Moment.</strong>
+        <p>Live scores &nbsp; • &nbsp; real-time stats &nbsp; • &nbsp; picks &nbsp; • &nbsp; unforgettable moments</p>
+      </header>
       <DiscoveryNav active="/dashboard/discovery/sports" />
 
-      <div className="disc-filters">
+      <h2 className="sports-dark__explore">Explore All Sports</h2>
+      <div className="sports-dark__catalog">
         {SPORT_CATALOG.map((s) => (
-          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}>{s.label}</Link>
+          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}><span>{s.slug === "soccer" ? "⚽" : s.slug === "nba" ? "◉" : s.slug === "f1" ? "F1" : s.slug.slice(0, 3).toUpperCase()}</span><strong>{s.label}</strong></Link>
         ))}
-        <Link href="/dashboard/discovery/sports?sport=high_school" aria-current={sportParam === "high_school"}>High School</Link>
       </div>
 
       <div className="sports-hero">
