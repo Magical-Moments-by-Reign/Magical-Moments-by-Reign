@@ -6,13 +6,15 @@
    sidebar. Black/deep-charcoal/metallic-gold/ivory only — no pastel, no
    emoji, no default-dashboard card styling. */
 
-.spx { max-width: 1320px; margin: 0 auto; padding: 0 1.6rem 3rem; }
+.spx { position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#f4f1ea; background:radial-gradient(ellipse at 50% 5%,#2a2112 0,#0c0a07 30%,#050504 72%); }
+.spx::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28; background:linear-gradient(118deg,transparent 18%,rgba(207,168,84,.18) 18.1%,transparent 18.5%),linear-gradient(62deg,transparent 81%,rgba(207,168,84,.14) 81.1%,transparent 81.5%),repeating-linear-gradient(90deg,transparent 0 11%,rgba(255,255,255,.025) 11.1% 11.25%); }
+.spx > * { position:relative; z-index:1; }
 
 /* ── Hero ── */
 .spx-hero {
   position: relative; overflow: hidden; border-radius: 20px;
   background: radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
-  padding: 2.6rem 2rem 2.2rem; text-align: center; margin: 1.4rem 0 1.8rem;
+  min-height:310px; display:flex; flex-direction:column; justify-content:center; padding: 3rem 2rem 2.5rem; text-align: center; margin: 0 0 1.8rem;
   border: 1px solid rgba(201,162,75,.25);
 }
 .spx-hero::before, .spx-hero::after {
@@ -43,7 +45,7 @@
 }
 
 /* ── Explore Sports grid — illuminated plaques ── */
-.spx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .9rem; margin-bottom: 2rem; }
+.spx-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: .9rem; margin-bottom: 2rem; }
 .spx-card {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
   aspect-ratio: 1 / 1; border-radius: 14px; text-decoration: none;
@@ -55,6 +57,7 @@
 }
 .spx-card:hover { border-color: var(--gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 1px rgba(201,162,75,.25), 0 10px 26px rgba(0,0,0,.45); transform: translateY(-2px); }
 .spx-card img { max-width: 62px; max-height: 46px; object-fit: contain; }
+.spx-card .discovery-image-fallback { width:62px; height:46px; background:none; color:var(--gold); font-size:1rem; }
 .spx-card__mark { font-size: 1.5rem; font-weight: 900; color: var(--gold); letter-spacing: .04em; }
 .spx-card b { color: #f4f1ea; font-size: .88rem; font-weight: 800; letter-spacing: .04em; text-align: center; }
 .spx-card span { color: #9c8f76; font-size: .62rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
@@ -115,6 +118,7 @@
 .spx-team-row { display: flex; align-items: center; gap: .6rem; }
 .spx-team-row img { width: 30px; height: 30px; object-fit: contain; border-radius: 6px; }
 .spx-team-row__ph { width: 30px; height: 30px; border-radius: 6px; background: rgba(255,255,255,.06); }
+.spx-live-row .discovery-image-fallback,.spx-up-row .discovery-image-fallback,.spx-poll__vs .discovery-image-fallback,.spx-team-row > .discovery-image-fallback { width:30px; height:30px; flex:0 0 auto; padding:.15rem; border-radius:6px; font-size:.46rem; }
 .spx-team-row b { display: block; color: #f4f1ea; font-size: .78rem; }
 .spx-team-row span { color: #9c8f76; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; }
 .spx-team-row__icons { margin-left: auto; display: flex; gap: .4rem; color: var(--gold); }
@@ -142,7 +146,12 @@
 .spx .disc-empty { color: #9c8f76; }
 
 @media (max-width: 640px) {
+  .spx { margin:-16px -16px -32px; padding:16px 1rem 3rem; }
+  .spx-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .spx-hero { min-height:260px; border-radius:14px; padding:2rem 1rem; }
+  .spx-hero__sub { line-height:1.7; }
   .spx-bar { flex-direction: column; }
   .spx-bar__item { border-right: none; border-bottom: 1px solid rgba(201,162,75,.18); }
   .spx-bar__item:last-child { border-bottom: none; }
 }
+@media (min-width:641px) and (max-width:980px) { .spx-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
@@ -68,8 +69,7 @@ export default async function SportsPage() {
           const logo = logos[s.slug];
           return (
             <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {logo ? <img src={logo} alt="" /> : <span className="spx-card__mark">{s.label.slice(0, 3).toUpperCase()}</span>}
+              <DiscoveryImage src={logo} alt={`${s.label} league mark`} fallback={s.label.slice(0, 3).toUpperCase()} />
               <b>{s.label}</b>
               <span>{SPORT_KIND[s.slug]}</span>
             </Link>
@@ -88,12 +88,12 @@ export default async function SportsPage() {
                 <div className="spx-live-row__meta"><i />LIVE{g.period ? ` · ${g.period}` : ""}</div>
                 <div className="spx-live-row__score">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                  <DiscoveryImage src={g.awayTeamLogoUrl} alt={g.awayTeamName} fallback={g.awayTeamName.slice(0, 3).toUpperCase()} />
                   <b>{g.awayScore ?? "—"}</b>
                   <span>VS</span>
                   <b>{g.homeScore ?? "—"}</b>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {g.homeTeamLogoUrl ? <img src={g.homeTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                  <DiscoveryImage src={g.homeTeamLogoUrl} alt={g.homeTeamName} fallback={g.homeTeamName.slice(0, 3).toUpperCase()} />
                 </div>
                 <div className="spx-live-row__names"><span>{g.awayTeamName}</span><span>{g.homeTeamName}</span></div>
               </Link>
@@ -110,10 +110,10 @@ export default async function SportsPage() {
             ) : upcoming.map((g) => (
               <Link key={g.id} href={`/dashboard/discovery/sports/game/${g.id}`} className="spx-up-row">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={g.awayTeamLogoUrl} alt={g.awayTeamName} fallback={g.awayTeamName.slice(0, 3).toUpperCase()} />
                 <span className="spx-up-row__vs">@</span>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {g.homeTeamLogoUrl ? <img src={g.homeTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={g.homeTeamLogoUrl} alt={g.homeTeamName} fallback={g.homeTeamName.slice(0, 3).toUpperCase()} />
                 <div className="spx-up-row__meta">
                   <b>{g.awayTeamName} @ {g.homeTeamName}</b>
                   <span>{g.startsAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {g.startsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
@@ -133,12 +133,12 @@ export default async function SportsPage() {
               <p className="spx-poll__sport">{SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label} · Who will win this game?</p>
               <div className="spx-poll__vs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {featuredMatchup.game.awayTeamLogoUrl ? <img src={featuredMatchup.game.awayTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={featuredMatchup.game.awayTeamLogoUrl} alt={featuredMatchup.game.awayTeamName} fallback={featuredMatchup.game.awayTeamName.slice(0, 3).toUpperCase()} />
                 <b>{featuredMatchup.game.awayTeamName}</b>
                 <em>VS</em>
                 <b>{featuredMatchup.game.homeTeamName}</b>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {featuredMatchup.game.homeTeamLogoUrl ? <img src={featuredMatchup.game.homeTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={featuredMatchup.game.homeTeamLogoUrl} alt={featuredMatchup.game.homeTeamName} fallback={featuredMatchup.game.homeTeamName.slice(0, 3).toUpperCase()} />
               </div>
               <div className="spx-poll__bar">
                 <span style={{ width: `${featuredMatchup.tally.awayPct || 50}%` }}>{featuredMatchup.tally.awayPct}%</span>
@@ -169,7 +169,7 @@ export default async function SportsPage() {
             ) : myTeams.slice(0, 4).map(({ follow }) => (
               <div className="spx-team-row" key={follow.id}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={follow.teamLogoUrl} alt={follow.teamName ?? "Followed team"} fallback={(follow.teamName ?? "Team").slice(0, 3).toUpperCase()} />
                 <div><b>{follow.teamName}</b><span>{SPORT_CATALOG.find((s) => s.slug === follow.sport)?.label}</span></div>
                 <div className="spx-team-row__icons"><SportsIcon name="star" /><SportsIcon name="bell" /></div>
               </div>
