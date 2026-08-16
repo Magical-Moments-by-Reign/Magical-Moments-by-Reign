@@ -3,9 +3,10 @@ import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getSportsFeed } from "@/lib/discovery/service";
 import { SPORT_CATALOG, getGamesWithVoteContext, getMySportsFollows, searchSports } from "@/lib/discovery/sports/service";
-import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
+import { MATCHUP_SPORTS, ApiSportsProvider, getDefaultLeagueBrand, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followSportAction, followTeamAction } from "./actions";
 import { MatchupCard } from "./MatchupCard";
+import { LeagueLogo } from "./LeagueLogo";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
 
@@ -26,15 +27,25 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
 
   const searchResults = q?.trim() ? await searchSports(q) : null;
   const isFollowingSport = myFollows.some((f) => f.sport === sport && f.kind === "sport");
+  const leagueBrands = await Promise.all(SPORT_CATALOG.map(async (item) => [item.slug, await getDefaultLeagueBrand(item.slug)] as const));
+  const brandBySport = new Map(leagueBrands);
+  const sportsCatalog = SPORT_CATALOG.map((item) => ({ item, brand: brandBySport.get(item.slug) }));
 
   return (
-    <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Sports</h1>
-        <p className="pg-sub">Discover, follow, predict, and play — a Magical Moments take on game day, never a betting product.</p>
-      </div>
+    <div className="disc sports-dark">
+      <header className="sports-dark__masthead">
+        <span>♛</span><h1>Magical Moments <em>Sports</em></h1>
+        <strong>Every Game. Every Moment.</strong>
+        <p>Live scores &nbsp; • &nbsp; real-time stats &nbsp; • &nbsp; picks &nbsp; • &nbsp; unforgettable moments</p>
+      </header>
       <DiscoveryNav active="/dashboard/discovery/sports" />
+
+      <h2 className="sports-dark__explore">Explore All Sports</h2>
+      <div className="sports-dark__catalog">
+        {sportsCatalog.map(({ item, brand }) => (
+          <Link key={item.slug} href={`/dashboard/discovery/sports?sport=${item.slug}`} aria-current={item.slug === sport}><LeagueLogo src={brand?.logoUrl} label={brand?.name ?? item.label} fallback={item.slug === "f1" ? "F1" : item.slug.slice(0, 3).toUpperCase()} /><strong>{item.label}</strong></Link>
+        ))}
+      </div>
 
       <div className="sports-hero">
         <div>
@@ -45,13 +56,6 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
           <Link href="/dashboard/discovery/sports/my-teams" className="btn btn--sm">My Teams</Link>
           <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm btn--gold">Magical Picks</Link>
         </div>
-      </div>
-
-      <div className="disc-filters">
-        {SPORT_CATALOG.map((s) => (
-          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}>{s.label}</Link>
-        ))}
-        <Link href="/dashboard/discovery/sports?sport=high_school" aria-current={sportParam === "high_school"}>High School</Link>
       </div>
 
       <form className="disc-form" method="get">
@@ -127,7 +131,7 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
                 <a key={e.id} className="disc-card" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
                   <div className="disc-card__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
                   <div className="disc-card__body">
-                    <h3>{e.name}</h3>
+                    <span className="disc-card__eyebrow">Sporting Event</span><h3>{e.name}</h3>
                     <div className="disc-card__meta">
                       {e.startsAt && <span>{new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                       {e.venueName && <span>· {e.venueName}</span>}
