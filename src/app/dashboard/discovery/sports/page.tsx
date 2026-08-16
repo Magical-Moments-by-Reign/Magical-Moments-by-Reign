@@ -3,9 +3,10 @@ import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getSportsFeed } from "@/lib/discovery/service";
 import { SPORT_CATALOG, getGamesWithVoteContext, getMySportsFollows, searchSports } from "@/lib/discovery/sports/service";
-import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
+import { MATCHUP_SPORTS, ApiSportsProvider, getDefaultLeagueBrand, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followSportAction, followTeamAction } from "./actions";
 import { MatchupCard } from "./MatchupCard";
+import { LeagueLogo } from "./LeagueLogo";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
 
@@ -26,6 +27,8 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
 
   const searchResults = q?.trim() ? await searchSports(q) : null;
   const isFollowingSport = myFollows.some((f) => f.sport === sport && f.kind === "sport");
+  const leagueBrands = await Promise.all(SPORT_CATALOG.map(async (item) => [item.slug, await getDefaultLeagueBrand(item.slug)] as const));
+  const brandBySport = new Map(leagueBrands);
 
   return (
     <div className="disc sports-dark">
@@ -39,7 +42,7 @@ export default async function SportsPage({ searchParams }: { searchParams: Promi
       <h2 className="sports-dark__explore">Explore All Sports</h2>
       <div className="sports-dark__catalog">
         {SPORT_CATALOG.map((s) => (
-          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}><span>{s.slug === "soccer" ? "⚽" : s.slug === "nba" ? "◉" : s.slug === "f1" ? "F1" : s.slug.slice(0, 3).toUpperCase()}</span><strong>{s.label}</strong></Link>
+          <Link key={s.slug} href={`/dashboard/discovery/sports?sport=${s.slug}`} aria-current={s.slug === sport}><LeagueLogo src={brandBySport.get(s.slug)?.logoUrl} label={brandBySport.get(s.slug)?.name ?? s.label} fallback={s.slug === "f1" ? "F1" : s.slug.slice(0, 3).toUpperCase()} /><strong>{s.label}</strong></Link>
         ))}
       </div>
 

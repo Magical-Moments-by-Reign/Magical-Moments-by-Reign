@@ -295,7 +295,9 @@
 .disc-dark .disc-lux__card-body p, .disc-dark .disc-lux__landscape-copy p, .disc-dark .disc-lux__portrait-copy p, .disc-dark .disc-lux__compact-list p, .disc-dark .disc-lux__news-grid p { color: #aaa297; }
 
 /* ── Magical Moments Sports ───────────────────────────────────── */
-.sports-dark__masthead { position: relative; padding: 1.7rem 1rem 1.25rem; text-align: center; border: 1px solid rgba(224,174,52,.42); border-bottom: 0; background: radial-gradient(ellipse at 50% 120%, rgba(173,113,12,.25), transparent 52%); }
+.sports-dark__masthead { position: relative; overflow: hidden; isolation: isolate; padding: 1.7rem 1rem 1.25rem; text-align: center; border: 1px solid rgba(224,174,52,.42); border-bottom: 0; background: radial-gradient(ellipse at 8% 0, rgba(255,190,76,.2), transparent 25%), radial-gradient(ellipse at 92% 0, rgba(255,190,76,.2), transparent 25%), radial-gradient(ellipse at 50% 120%, rgba(173,113,12,.25), transparent 52%), linear-gradient(180deg,#05080c,#090b0d 72%,#030506); }
+.sports-dark__masthead::before { content: ""; position: absolute; inset: 0; z-index: -2; background: repeating-linear-gradient(164deg, transparent 0 48px, rgba(211,157,45,.11) 49px 50px, transparent 51px 88px), repeating-linear-gradient(16deg, transparent 0 52px, rgba(211,157,45,.08) 53px 54px, transparent 55px 96px); opacity: .5; mask-image: linear-gradient(90deg,#000,transparent 35% 65%,#000); }
+.sports-dark__masthead::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at 5% 4%, rgba(255,232,176,.85) 0 2px, rgba(255,191,69,.32) 3px 8px, transparent 22px), radial-gradient(circle at 95% 4%, rgba(255,232,176,.85) 0 2px, rgba(255,191,69,.32) 3px 8px, transparent 22px), radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,.7) 100%); filter: blur(.2px); pointer-events: none; }
 .sports-dark__masthead > span { color: #e9ba45; font-size: 1.2rem; }
 .sports-dark__masthead h1 { margin: -.25rem 0 .35rem; color: #e5b849; font: 700 clamp(1.8rem, 4vw, 3.25rem)/1 var(--font-display, Georgia, serif); letter-spacing: .03em; text-transform: uppercase; }
 .sports-dark__masthead h1 em { display: block; margin-top: .25rem; font: 700 .45em/1.2 sans-serif; letter-spacing: .45em; }
@@ -305,7 +307,8 @@
 .sports-dark__catalog { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: .6rem; margin-bottom: 1rem; }
 .sports-dark__catalog a { display: grid; place-items: center; min-height: 110px; padding: .85rem .4rem; border: 1px solid #9c6e15; border-radius: 12px; background: linear-gradient(145deg,#11171c,#070a0c); color: #e9bb4d; text-align: center; text-decoration: none; }
 .sports-dark__catalog a[aria-current="true"] { border-color: #f1c557; box-shadow: 0 0 18px rgba(225,170,49,.25), inset 0 0 20px rgba(201,146,28,.1); }
-.sports-dark__catalog a span { font-size: 1.5rem; font-weight: 900; }
+.sports-dark__league-logo { display: block; width: min(76px, 72%); height: 56px; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0,0,0,.65)); }
+.sports-dark__fallback { display: grid; place-items: center; width: 76px; height: 56px; color: #e7b84c; font: 900 1.35rem/1 sans-serif; letter-spacing: .06em; }
 .sports-dark__catalog a strong { margin-top: .5rem; font-size: .78rem; text-transform: uppercase; }
 .sports-dark .sports-hero, .sports-dark .sports-matchup, .sports-dark .disc-pending, .sports-dark .sports-team-row, .sports-dark .disc-card, .sports-dark .disc-form input { border-color: rgba(216,165,51,.5); background: #0c1115; color: #eee; }
 .sports-dark .sports-hero h2, .sports-dark .disc-section__head h2, .sports-dark .sports-matchup__team span, .sports-dark .sports-matchup__team em, .sports-dark .sports-team-row .grow b, .sports-dark .disc-card h3 { color: #fff; }
