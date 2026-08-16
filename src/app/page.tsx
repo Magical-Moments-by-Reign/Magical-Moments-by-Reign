@@ -23,6 +23,11 @@ export default async function LandingPage() {
 
   return (
     <main className="lp">
+      {!signedIn && (
+        <Link href="/magical-demo" className="lp-preview-fab">
+          <span aria-hidden="true">✦</span> Preview Magical Moments
+        </Link>
+      )}
       {/* Recolors the existing logo-watermark.png (a very pale/low-alpha
           watermark asset) to the site's own gold on render — no new image
           asset, same file, same position/size. */}
@@ -42,6 +47,7 @@ export default async function LandingPage() {
           </Link>
           <div className="lp-navlinks">
             <Link href="/">Home</Link><Link href="/get-started">Get Started</Link>
+            <Link href="/magical-demo">Magical Demo</Link>
             <Link href="/membership">Memberships</Link><Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
           </div>

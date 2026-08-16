@@ -10,22 +10,23 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Luxury Services", robots: { index: false } };
 
 // ── Curated Collections ──────────────────────────────────────────
-// Each collection keeps its existing service route and uses realistic lifestyle
-// photography already shipped with the application.
+// Each collection keeps its existing service route. All twelve photos are
+// now cropped from the Owner's uploaded marketing artwork
+// (public/luxury/collections/*).
 type Collection = { category: string; title: string; desc: string; href: string; img: string };
 const COLLECTIONS: Collection[] = [
-  { category: "Flights", title: "Private & Commercial Flights", desc: "First-class journeys and private charter, arranged beautifully.", href: "/dashboard/luxury-services/flights", img: "/gallery/italy/13-tuscansunset.jpg" },
-  { category: "Hotels & Resorts", title: "Luxury Hotels & Resorts", desc: "Exceptional stays in the world’s most memorable places.", href: "/dashboard/luxury-services/hotels", img: "/hero/italy-poster.jpg" },
-  { category: "Dining", title: "Fine Dining", desc: "Beautiful tables, remarkable cuisine, and warm hospitality.", href: "/dashboard/luxury-services/restaurants", img: "/gallery/smith/11-tablescape.jpg" },
-  { category: "Travel", title: "Signature Getaways", desc: "Thoughtful escapes shaped around the way you love to travel.", href: "/dashboard/luxury-services/vacation-packages", img: "/story/vacation.jpg" },
-  { category: "Transportation", title: "Luxury Transportation", desc: "Private drivers and polished arrivals, wherever you are going.", href: "/dashboard/luxury-services/transportation", img: "/gallery/italy/05-scooter.jpg" },
-  { category: "Cruises", title: "Ocean & River Cruises", desc: "Unhurried voyages through extraordinary destinations.", href: "/dashboard/luxury-services/cruises", img: "/gallery/italy/03.jpg" },
-  { category: "Private Stays", title: "Private Villas & Homes", desc: "Beautiful private spaces for gathering, resting, and celebrating.", href: "/dashboard/luxury-services/vacation-homes", img: "/story/newhome.jpg" },
-  { category: "Experiences", title: "Events & Experiences", desc: "Special access and unforgettable evenings, thoughtfully arranged.", href: "/dashboard/luxury-services/experiences", img: "/gallery/smith/06-party.jpg" },
-  { category: "Gifting", title: "Flowers & Gifts", desc: "Elegant gestures chosen and delivered with care.", href: "/dashboard/luxury-services/flowers-gifts", img: "/gallery/smith/04-bouquet.jpg" },
-  { category: "Storytelling", title: "Photography & Videography", desc: "Quietly beautiful storytelling for life’s defining moments.", href: "/dashboard/luxury-services/photography", img: "/gallery/smith/08-portrait.jpg" },
-  { category: "Wellness", title: "Wellness & Spa Retreats", desc: "Restorative experiences in serene, exceptional surroundings.", href: "/dashboard/luxury-services/wellness", img: "/story/anniversary.jpg" },
-  { category: "Leisure", title: "Golf Experiences", desc: "Remarkable courses, private access, and effortless days away.", href: "/dashboard/luxury-services/custom", img: "/gallery/italy/13.jpg" },
+  { category: "Flights", title: "Private & Commercial Flights", desc: "First-class journeys and private charter, arranged beautifully.", href: "/dashboard/luxury-services/flights", img: "/luxury/collections/flights.jpg" },
+  { category: "Hotels & Resorts", title: "Luxury Hotels & Resorts", desc: "Exceptional stays in the world’s most memorable places.", href: "/dashboard/luxury-services/hotels", img: "/luxury/collections/hotels.jpg" },
+  { category: "Dining", title: "Fine Dining", desc: "Beautiful tables, remarkable cuisine, and warm hospitality.", href: "/dashboard/luxury-services/restaurants", img: "/luxury/collections/dining.jpg" },
+  { category: "Travel", title: "Signature Getaways", desc: "Thoughtful escapes shaped around the way you love to travel.", href: "/dashboard/luxury-services/vacation-packages", img: "/luxury/collections/travel.jpg" },
+  { category: "Transportation", title: "Luxury Transportation", desc: "Private drivers and polished arrivals, wherever you are going.", href: "/dashboard/luxury-services/transportation", img: "/luxury/collections/transportation.jpg" },
+  { category: "Cruises", title: "Ocean & River Cruises", desc: "Unhurried voyages through extraordinary destinations.", href: "/dashboard/luxury-services/cruises", img: "/luxury/collections/cruises.jpg" },
+  { category: "Private Stays", title: "Private Villas & Homes", desc: "Beautiful private spaces for gathering, resting, and celebrating.", href: "/dashboard/luxury-services/vacation-homes", img: "/luxury/collections/private-stays.jpg" },
+  { category: "Experiences", title: "Events & Experiences", desc: "Special access and unforgettable evenings, thoughtfully arranged.", href: "/dashboard/luxury-services/experiences", img: "/luxury/collections/experiences.jpg" },
+  { category: "Gifting", title: "Flowers & Gifts", desc: "Elegant gestures chosen and delivered with care.", href: "/dashboard/luxury-services/flowers-gifts", img: "/luxury/collections/gifts.jpg" },
+  { category: "Storytelling", title: "Photography & Videography", desc: "Quietly beautiful storytelling for life’s defining moments.", href: "/dashboard/luxury-services/photography", img: "/luxury/collections/photography.jpg" },
+  { category: "Wellness", title: "Wellness & Spa Retreats", desc: "Restorative experiences in serene, exceptional surroundings.", href: "/dashboard/luxury-services/wellness", img: "/luxury/collections/wellness.jpg" },
+  { category: "Leisure", title: "Golf Experiences", desc: "Remarkable courses, private access, and effortless days away.", href: "/dashboard/luxury-services/custom", img: "/luxury/collections/golf.jpg" },
 ];
 
 export default async function LuxuryServicesPage() {

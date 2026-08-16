@@ -15,6 +15,8 @@ export interface MusicChartEntry {
   artist: string;
   artworkUrl?: string;
   listenUrl?: string; // external — Apple Music's own page for the song
+  catalogId?: string; // Apple's catalog song id — lets MusicKit JS queue/play this exact track
+  previewUrl?: string; // Apple's own 30-second preview clip, plays via plain HTML5 audio
 }
 
 export interface MusicChart {
@@ -62,6 +64,8 @@ export function mapSong(s: any, rank: number): MusicChartEntry | null {
     artist: String(attrs.artistName),
     artworkUrl: typeof attrs?.artwork?.url === "string" ? attrs.artwork.url.replace("{w}x{h}", "300x300") : undefined,
     listenUrl: typeof attrs?.url === "string" ? attrs.url : undefined,
+    catalogId: typeof s?.id === "string" ? s.id : undefined,
+    previewUrl: Array.isArray(attrs?.previews) && typeof attrs.previews[0]?.url === "string" ? attrs.previews[0].url : undefined,
   };
 }
 

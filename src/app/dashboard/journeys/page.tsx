@@ -38,12 +38,16 @@ export default async function JourneysHubPage() {
       {/* Journey worlds */}
       <div className="jwh-worlds">
         {WORLDS.map((w) => (
-          <Link key={w.slug} href={`/dashboard/journeys/${w.slug}`} className="jwh-world" style={w.hero ? { backgroundImage: `linear-gradient(180deg, rgba(28,19,12,.2), rgba(28,19,12,.82)), url(${w.hero})` } : undefined}>
-            {w.status === "soon" && <span className="jwh-world__soon">More soon</span>}
-            <span className="jwh-world__eyebrow">{w.eyebrow}</span>
-            <span className="jwh-world__title">{w.label}</span>
-            <span className="jwh-world__tag">{w.tagline}</span>
-            <span className="jwh-world__cta">Explore →</span>
+          <Link key={w.slug} href={`/dashboard/journeys/${w.slug}`} className="jwh-world">
+            <div className="jwh-world__art" style={w.hero ? { backgroundImage: `url(${w.hero})` } : undefined}>
+              {w.status === "soon" && <span className="jwh-world__soon">More soon</span>}
+            </div>
+            <div className="jwh-world__info">
+              <span className="jwh-world__eyebrow">{w.eyebrow}</span>
+              <span className="jwh-world__title">{w.label}</span>
+              <span className="jwh-world__tag">{w.tagline}</span>
+              <span className="jwh-world__cta">Explore →</span>
+            </div>
           </Link>
         ))}
       </div>

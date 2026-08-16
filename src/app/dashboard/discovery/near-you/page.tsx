@@ -16,6 +16,9 @@ const CATEGORIES: { id: EventCategory; label: string }[] = [
   { id: "theater", label: "Theater" }, { id: "sports", label: "Sports Events" }, { id: "family", label: "Family Activities" },
   { id: "arts_culture", label: "Arts & Culture" }, { id: "other", label: "Other" },
 ];
+const CATEGORY_LABEL: Record<EventCategory, string> = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label])) as Record<EventCategory, string>;
+// Preferred display order for the auto-grouped "hottest near you" sections.
+const CATEGORY_ORDER: EventCategory[] = ["concerts", "sports", "theater", "festivals", "family", "arts_culture", "comedy", "other"];
 
 const RADII = [25, 50, 100] as const;
 
@@ -78,8 +81,13 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
                 {(e.city || e.state || e.distanceMiles != null) && <div className="disc-card__meta"><span>{[e.city, e.state].filter(Boolean).join(", ")}</span>{e.distanceMiles != null && <span>· {e.distanceMiles.toFixed(1)} mi</span>}</div>}
                 <span className="disc-card__action">View Tickets on Ticketmaster →</span>
               </div>
-            </a>
+            </div>
           ))}
+        </>
+      ) : result?.source === "unavailable" ? (
+        <div className="disc-pending">
+          <b>We couldn&rsquo;t load nearby events right now.</b>
+          Ticketmaster didn&rsquo;t respond successfully to that search — try again in a moment.
         </div>
       ) : (
         result ? <div className="near-empty"><DiscoveryEmptyState title={category ? "Nothing in this category nearby yet ✦" : "Nothing nearby yet ✦"}>Try another location, increase your search radius, or choose another category.</DiscoveryEmptyState>{radius < 100 && <Link className="btn btn--gold" href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location)}&radius=100${category ? `&category=${category}` : ""}`}>Expand to 100 Miles</Link>}</div>
