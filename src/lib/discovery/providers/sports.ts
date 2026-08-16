@@ -365,6 +365,14 @@ export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> 
   if (!cfg.defaultLeague) return null;
   const json = await apiSportsFetch(sport, "/leagues", { id: cfg.defaultLeague });
   const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
-  const logo = list?.[0]?.league?.logo;
-  return typeof logo === "string" && logo ? logo : null;
+  // Football v3 nests identity under `league`; the other API-Sports
+  // verticals return it at the response-item root. Supporting both shapes is
+  // what lets NFL/NCAAF and basketball/baseball/hockey share this resolver.
+  const item = list?.[0];
+  const logo = item?.league?.logo ?? item?.logo;
+  if (typeof logo !== "string") return null;
+  const normalized = logo.trim();
+  return /^https:\/\//i.test(normalized) && !/image[-_ ]?unavailable|placeholder|no[-_ ]?image/i.test(normalized)
+    ? normalized
+    : null;
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount } from "@/lib/guard";
 import { getTodayStories, getWatchItems, getMovieItems, getMusicChart, getTrendingItems } from "@/lib/discovery/service";
 import type { NewsStory } from "@/lib/discovery/providers/news";
@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: "Magical Discovery", robots: { index:
 type Feature = { label: string; title: string; description?: string; image?: string; href: string; external?: boolean };
 
 function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string }) {
-  return src ? <Image src={src} alt={alt} fill sizes={sizes} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
+  void sizes;
+  return <DiscoveryImage src={src} alt={alt} className="disc-lux__image" fallback={alt.replace(/ (artwork|poster|image)$/i, "")} />;
 }
 
 function FeatureCard({ item, large = false, boxed = false }: { item: Feature; large?: boolean; boxed?: boolean }) {
@@ -63,7 +64,7 @@ function MovieCard({ item }: { item: MovieItem }) {
 }
 
 function EmptyState({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="disc-lux__empty"><span aria-hidden="true">✦</span><div><h3>{title}</h3><p>{children}</p></div></div>;
+  return <div className="disc-lux__empty"><div><h3>{title}</h3><p>{children}</p></div></div>;
 }
 
 export default async function DiscoveryPage() {
@@ -95,21 +96,21 @@ export default async function DiscoveryPage() {
   ].filter(Boolean) as Feature[];
 
   return <main className="disc disc-lux">
-    <DiscoveryNav active="" />
-
+    <section className="disc-lux__masthead" aria-label="Featured discoveries">
     <header className="disc-lux__intro">
       <span className="disc-lux__kicker">Magical Discovery</span>
-      <h1>Discover Something<br />Magical Today <em aria-hidden="true">✦</em></h1>
+      <h1>Discover Something<br />Magical Today</h1>
       <p>A curated look at what&rsquo;s happening, what to watch, what to hear, where to go, and what&rsquo;s worth discovering.</p>
     </header>
 
-    {primary ? <section className="disc-lux__hero" aria-label="Featured discoveries">
-      <FeatureCard item={primary} large />
+    {primary ? <div className="disc-lux__hero"><FeatureCard item={primary} large />
       <div className="disc-lux__hero-side">
         {secondary.map((item) => <FeatureCard key={`${item.label}-${item.title}`} item={item} />)}
         {secondary.length < 2 && <div className="disc-lux__feature disc-lux__feature--quiet"><span>More discoveries are being curated.</span></div>}
       </div>
-    </section> : <EmptyState title="Today’s edit is being curated">Real discoveries will appear here as soon as the connected providers return them.</EmptyState>}
+    </div> : <EmptyState title="Today’s edit is being curated">Real discoveries will appear here as soon as the connected providers return them.</EmptyState>}
+    </section>
+    <DiscoveryNav active="" />
 
     <section className="disc-lux__section">
       <SectionHeader title="Curated For You" subtitle="A little of everything, chosen for your day." href="/dashboard/discovery/trending" action="View All" />
@@ -130,7 +131,7 @@ export default async function DiscoveryPage() {
       <section className="disc-lux__mini-section"><SectionHeader title="The Sound of Right Now" href="/dashboard/discovery/music" action="Explore Music" />
         {music.entries.length ? <div className="disc-lux__music">{music.entries.slice(0, 4).map((entry) => <div className="disc-lux__music-item" key={`${entry.rank}-${entry.song}`}><div className="disc-lux__music-art"><Artwork src={entry.artworkUrl} alt={`${entry.song} artwork`} sizes="90px" /></div><h3>{entry.song}</h3><p>{entry.artist}</p></div>)}</div> : <EmptyState title="Music is coming online">Your music edit will appear here when a legitimate music source is available.</EmptyState>}
       </section>
-      <section className="disc-lux__mini-section"><SectionHeader title="Worth Stepping Out For" href="/dashboard/discovery/near-you" action="Explore Near You" /><EmptyState title="Where should we look?">Share your city in Near You to discover real concerts, festivals, and experiences nearby.</EmptyState></section>
+      <section className="disc-lux__mini-section disc-lux__near"><SectionHeader title="Worth Stepping Out For" href="/dashboard/discovery/near-you" action="Explore Near You" /><Link href="/dashboard/discovery/near-you" className="disc-lux__near-entry"><span>Events &amp; experiences</span><strong>Discover what is happening near you</strong><small>Use your location to explore real listings</small></Link></section>
       <section className="disc-lux__mini-section"><SectionHeader title="Everyone’s Talking About" href="/dashboard/discovery/trending" action="Explore Trending" />
         {trending.length ? <div className="disc-lux__compact-list">{trending.slice(0, 3).map((item) => { const content = <><div className="disc-lux__compact-art"><Artwork src={item.imageUrl ?? undefined} alt={`${item.title} artwork`} sizes="90px" /></div><div><h3>{item.title}</h3>{item.category && <p>{item.category}</p>}</div></>; return item.externalUrl ? <a key={item.id} href={item.externalUrl} target="_blank" rel="noopener noreferrer">{content}</a> : <Link key={item.id} href="/dashboard/discovery/trending">{content}</Link>; })}</div> : <EmptyState title="The conversation is quiet">Curated, verified trends will appear here when available.</EmptyState>}
       </section>
