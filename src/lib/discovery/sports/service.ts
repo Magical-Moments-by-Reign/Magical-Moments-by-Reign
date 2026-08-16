@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -15,6 +15,7 @@ import { dispatchNotification } from "@/lib/notify";
 const TTL_GAMES_UPCOMING = 180; // 3h — schedules barely move
 const TTL_GAMES_LIVE = 3; // 3m — live games refresh often
 const TTL_STANDINGS = 720; // 12h
+const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
 
 export const SPORT_CATALOG: { slug: SportSlug; label: string }[] = [
   { slug: "nfl", label: "NFL" },
@@ -126,6 +127,46 @@ export async function getGamesByDate(sport: SportSlug, dateISO: string, league?:
   }
   const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
   return { games: synced };
+}
+
+/** The real league logo API-Sports serves for each supported sport's default
+ *  league, one per sport, cached for a week. Sports with no real logo
+ *  returned (or no leagues-endpoint id at all, like MMA/F1) are simply
+ *  absent from the result — callers fall back to a plain typographic
+ *  treatment, never an invented mark. */
+export async function getLeagueLogos(): Promise<Partial<Record<SportSlug, string>>> {
+  const entries = await Promise.all(
+    SPORT_CATALOG.map(async ({ slug }) => {
+      const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport: slug, kind: "league_logo" }), TTL_LEAGUE_LOGO, () => fetchLeagueLogo(slug));
+      return [slug, cached?.data ?? null] as const;
+    })
+  );
+  return Object.fromEntries(entries.filter((e): e is [SportSlug, string] => Boolean(e[1])));
+}
+
+/** Live + upcoming games across the given sports (typically the member's
+ *  followed sports, or a sensible default when they follow none), for the
+ *  Sports landing page's Live Games / Upcoming Games panels. Never returns
+ *  an empty "upcoming" list just because today's schedule is empty — steps
+ *  forward day by day (up to a week out) until it finds real games, so the
+ *  landing page never shows a blank panel when games are simply later this
+ *  week. */
+export async function getSportsLandingGames(sports: SportSlug[], limit = 4): Promise<{ live: SportsGameRow[]; upcoming: SportsGameRow[] }> {
+  const configured = sports.filter((s) => ApiSportsProvider.isConfigured(s));
+  if (!configured.length) return { live: [], upcoming: [] };
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const today = (await Promise.all(configured.map((s) => getGamesByDate(s, todayISO)))).flatMap((r) => r.games);
+  const live = today.filter((g) => g.status === "live").sort((a, b) => +a.startsAt - +b.startsAt).slice(0, limit);
+
+  let upcoming = today.filter((g) => g.status === "scheduled").sort((a, b) => +a.startsAt - +b.startsAt);
+  for (let daysOut = 1; daysOut <= 7 && upcoming.length < limit; daysOut++) {
+    const dateISO = new Date(Date.now() + daysOut * 86_400_000).toISOString().slice(0, 10);
+    const dayGames = (await Promise.all(configured.map((s) => getGamesByDate(s, dateISO)))).flatMap((r) => r.games);
+    upcoming = upcoming.concat(dayGames.filter((g) => g.status === "scheduled").sort((a, b) => +a.startsAt - +b.startsAt));
+  }
+
+  return { live, upcoming: upcoming.slice(0, limit) };
 }
 
 /** One-time cleanup for cached API-Sports responses recorded while the
@@ -414,4 +455,12 @@ export async function searchSports(query: string) {
 
 export function isHighSchoolConnected(): boolean {
   return HighSchoolPendingProvider.isConfigured();
+}
+
+/** Team search scoped to one sport — for the per-sport page's own
+ *  follow-a-team box, as opposed to searchSports' cross-sport search. */
+export async function searchTeamsForSport(sport: SportSlug, query: string) {
+  if (!query.trim() || !ApiSportsProvider.isConfigured(sport)) return [];
+  const teams = await ApiSportsProvider.searchTeams(sport, query);
+  return teams ?? [];
 }

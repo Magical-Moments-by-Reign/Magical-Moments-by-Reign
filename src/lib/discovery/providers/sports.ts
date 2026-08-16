@@ -131,6 +131,15 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   f1: { host: "v1.formula-1.api-sports.io", shape: "races", defaultLeague: "" },
 };
 
+/** A sport's default API-Sports league id (e.g. NFL = "1") — exported so
+ *  callers needing to query standings/teams directly (outside the
+ *  SportsProvider interface's own default-league handling) don't have to
+ *  duplicate SPORT_CONFIG. Empty string for MMA/F1 (fights/races, not a
+ *  leagues-shaped competition). */
+export function defaultLeagueId(sport: SportSlug): string {
+  return SPORT_CONFIG[sport].defaultLeague;
+}
+
 function apiKey(): string | undefined {
   return process.env.API_SPORTS_KEY?.trim() || undefined;
 }
@@ -340,3 +349,22 @@ export const ApiSportsProvider: SportsProvider = {
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
   },
 };
+
+/** Fetches the real league logo API-Sports serves for a sport's default
+ *  league (e.g. NFL league id 1 on the american-football host) — never a
+ *  baked-in trademark asset of our own. Returns null when unconfigured, the
+ *  sport has no leagues-endpoint id (MMA/F1 — fights/races, not leagues),
+ *  or the provider simply doesn't return a logo for that league; callers
+ *  fall back to a plain typographic treatment rather than inventing a mark.
+ *  Exported standalone (not on SportsProvider) since only the Explore Sports
+ *  grid needs it — caching lives in the service layer, matching every other
+ *  provider call in this file. */
+export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const cfg = SPORT_CONFIG[sport];
+  if (!cfg.defaultLeague) return null;
+  const json = await apiSportsFetch(sport, "/leagues", { id: cfg.defaultLeague });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  const logo = list?.[0]?.league?.logo;
+  return typeof logo === "string" && logo ? logo : null;
+}
