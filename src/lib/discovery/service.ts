@@ -85,6 +85,12 @@ export async function getMusicChart(genre: MusicGenre): Promise<MusicChartResult
   return { chartTitle: manual.title, entries, isOfficial: false, source: "manual" };
 }
 
+export async function getNearYouEvents(params: { location: string; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
+  if (!params.location?.trim()) return { items: [], source: "unavailable" };
+  // queryVersion invalidates empty cache rows produced by the former
+  // `keyword=<location>` request, which was not a geographic search.
+  const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor({ ...params, queryVersion: 2 }), TTL.events, () =>
+    TicketmasterProvider.search(params));
 export async function getNearYouEvents(params: { location: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
   if (!params.coords && !params.location?.trim()) return { items: [], source: "unavailable" };
   // Round coordinates to ~1.1km buckets (2 decimal places) before they reach

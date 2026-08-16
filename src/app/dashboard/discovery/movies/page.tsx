@@ -4,6 +4,7 @@ import { requireAccount } from "@/lib/guard";
 import { getMovieItems, getMovieDetails, getFeaturedItem } from "@/lib/discovery/service";
 import type { MovieSection } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "../_nav";
+import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -44,11 +45,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Movies — Now in Theaters</h1>
-        <p className="pg-sub">What can we go see tonight? Posters, ratings, genres, and trailers for what&rsquo;s playing and what&rsquo;s coming.</p>
-      </div>
+      <DiscoveryPageHeader title="Movies" description={<>What can we go see tonight? Posters, ratings, genres, and trailers for what&rsquo;s playing and what&rsquo;s coming.</>} />
       <DiscoveryNav active="/dashboard/discovery/movies" />
 
       <div className="disc-filters">
@@ -80,37 +77,18 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
       {result.items.length ? (
         <div className="disc-grid">
           {result.items.map((m) => (
-            <Link key={m.id} className="disc-card" href={`/dashboard/discovery/movies/${m.id}`}>
+            <Link key={m.id} className="disc-card disc-card--portrait" href={`/dashboard/discovery/movies/${m.id}`}>
               <div className="disc-card__img" style={m.posterUrl ? { backgroundImage: `url(${m.posterUrl})` } : undefined} />
               <div className="disc-card__body">
-                <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
-                <h3>{m.title}</h3>
-                <div className="disc-card__meta">
-                  {m.voteAverage ? <span>★ {m.voteAverage.toFixed(1)}</span> : null}
-                  {formatDate(m.releaseDate) && <span>{formatDate(m.releaseDate)}</span>}
-                  {m.genres?.length ? <span>{m.genres.slice(0, 2).join(", ")}</span> : null}
-                </div>
-                {m.overview && <p>{m.overview}</p>}
-                {availableOnById.get(m.id)?.length ? (
-                  <div className="disc-card__stream">
-                    {availableOnById.get(m.id)!.slice(0, 4).map((p) => (
-                      <span key={p.name}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {p.logoUrl && <img src={p.logoUrl} alt="" />}
-                        {p.name}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+                <span className="disc-card__eyebrow">Movie</span><h3>{m.title}</h3>
+                {m.voteAverage ? <div className="disc-card__meta"><span>★ {m.voteAverage.toFixed(1)}</span>{m.releaseDate && <span>· {m.releaseDate.slice(0, 4)}</span>}</div> : null}
+                {m.genres?.length ? <div className="disc-card__meta"><span>{m.genres.slice(0, 2).join(", ")}</span></div> : null}
               </div>
             </Link>
           ))}
         </div>
       ) : (
-        <div className="disc-pending">
-          <b>Movies aren&rsquo;t connected yet.</b>
-          Once a movie metadata provider is configured, showtimes-ready listings will appear here automatically.
-        </div>
+        <DiscoveryEmptyState title="Movies aren’t connected yet.">Once a movie metadata provider is configured, showtimes-ready listings will appear here automatically.</DiscoveryEmptyState>
       )}
 
       {result.providerName && <p className="disc-empty">{result.attribution}</p>}

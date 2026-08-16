@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAccount } from "@/lib/guard";
 import { getTrendingItems } from "@/lib/discovery/service";
 import DiscoveryNav from "../_nav";
+import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +14,7 @@ export default async function TrendingPage() {
 
   return (
     <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Trending</h1>
-        <p className="pg-sub">Timely ideas for the season — gifts, holidays, and lifestyle finds, curated by Magical Moments.</p>
-      </div>
+      <DiscoveryPageHeader title="Trending" description={<>Timely ideas for the season — gifts, holidays, and lifestyle finds, curated by Magical Moments.</>} />
       <DiscoveryNav active="/dashboard/discovery/trending" />
 
       {items[0] && (
@@ -45,10 +42,7 @@ export default async function TrendingPage() {
           ))}
         </div>
       ) : (
-        <div className="disc-pending">
-          <b>Nothing featured yet.</b>
-          Trending is curated by the Owner from the Discovery Content Center — seasonal finds, gift ideas, and lifestyle picks will appear here once added.
-        </div>
+        <DiscoveryEmptyState title="Nothing featured yet.">Trending is curated by the Owner from the Discovery Content Center — seasonal finds, gift ideas, and lifestyle picks will appear here once added.</DiscoveryEmptyState>
       )}
     </div>
   );

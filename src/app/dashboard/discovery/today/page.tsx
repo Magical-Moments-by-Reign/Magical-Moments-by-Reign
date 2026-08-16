@@ -3,6 +3,7 @@ import { requireAccount } from "@/lib/guard";
 import { getTodayStories, getFeaturedItem } from "@/lib/discovery/service";
 import type { NewsSection } from "@/lib/discovery/providers/news";
 import DiscoveryNav from "../_nav";
+import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -31,11 +32,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery</span>
-        <h1 className="pg-title">Today</h1>
-        <p className="pg-sub">A concise view of what&rsquo;s happening today — headline, source, and a link to read the full story where it was published.</p>
-      </div>
+      <DiscoveryPageHeader title="Today" description={<>A concise view of what&rsquo;s happening today — headline, source, and a link to read the full story where it was published.</>} />
       <DiscoveryNav active="/dashboard/discovery/today" />
 
       <div className="disc-filters">
@@ -79,10 +76,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           ))}
         </div>
       ) : (
-        <div className="disc-pending">
-          <b>News isn&rsquo;t connected yet.</b>
-          Magical Discovery&rsquo;s Today feed connects to a licensed news provider — once it&rsquo;s configured, headlines will appear here automatically. Nothing is shown until then.
-        </div>
+        <DiscoveryEmptyState title="News isn’t connected yet.">Magical Discovery&rsquo;s Today feed connects to a licensed news provider — once it&rsquo;s configured, headlines will appear here automatically. Nothing is shown until then.</DiscoveryEmptyState>
       )}
     </div>
   );
