@@ -38,6 +38,12 @@ export interface SportsStanding {
   summary?: string; // fallback display when the provider doesn't split W/L/T
 }
 
+export interface SportsLeagueBrand {
+  id: string;
+  name: string;
+  logoUrl: string;
+}
+
 /** Sports whose format is a two-side matchup — the only ones offered in the
  *  Pick / community-vote UI. F1 (a multi-entrant race, not head-to-head) and
  *  MMA (individual fighters, not team logos) are discoverable but excluded —
@@ -205,6 +211,23 @@ function mapGamesResponse(sport: SportSlug, league: string, json: any): SportsGa
     .map((item: any) => (cfg.shape === "fixtures" ? mapFixtureItem(league, item) : mapGameItem(sport, league, item)))
     .filter((g: SportsGameSummary | null): g is SportsGameSummary => g !== null);
   return mapped;
+}
+
+/** Resolves the configured competition through API-Sports itself so the UI
+ * never guesses at, copies, or hard-codes league artwork. A missing endpoint,
+ * unconfigured sport, mismatched id, or response without a valid HTTPS logo
+ * intentionally returns null and lets the presentation use its text fallback. */
+export async function getDefaultLeagueBrand(sport: SportSlug): Promise<SportsLeagueBrand | null> {
+  const cfg = SPORT_CONFIG[sport];
+  if (!cfg.defaultLeague || !apiKey() || sport === "mma" || sport === "f1") return null;
+  const json = await apiSportsFetch(sport, "/leagues", { id: cfg.defaultLeague });
+  const first = Array.isArray((json as any)?.response) ? (json as any).response[0] : null;
+  const league = first?.league ?? first;
+  const id = league?.id;
+  const name = league?.name;
+  const logo = league?.logo;
+  if (String(id ?? "") !== cfg.defaultLeague || typeof name !== "string" || typeof logo !== "string" || !logo.startsWith("https://")) return null;
+  return { id: String(id), name, logoUrl: logo };
 }
 
 export const ApiSportsProvider: SportsProvider = {
