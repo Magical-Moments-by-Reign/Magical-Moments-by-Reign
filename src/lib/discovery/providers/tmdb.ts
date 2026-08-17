@@ -42,19 +42,36 @@ export interface WatchProviderAvailability {
   link?: string;
 }
 
+export interface TvEpisodeRef {
+  seasonNumber: number;
+  episodeNumber: number;
+  name?: string;
+  airDate?: string; // ISO date
+}
+
+export interface TvNetwork {
+  name: string;
+  logoUrl?: string;
+}
+
 export interface WatchDetails extends WatchItem {
   seasons?: number;
   latestSeasonName?: string;
   status?: string; // "Returning Series" | "Ended" | ...
   availableOn: WatchProviderAvailability[];
   externalUrl?: string; // TMDB's own page (always safe to link to)
+  /** TMDB's own networks/channels for this show (e.g. HBO, Netflix) —
+   *  distinct from availableOn, which is JustWatch streaming availability. */
+  networks: TvNetwork[];
   /** TMDB's own next_episode_to_air, when the show has a confirmed one —
    *  never guessed or estimated. */
-  nextEpisodeDate?: string; // ISO date
-  nextEpisodeSeasonNumber?: number;
+  nextEpisode?: TvEpisodeRef;
   /** true when the upcoming episode is episode 1 of its season (a season
    *  premiere) rather than just the next episode of an already-airing one. */
   nextEpisodeIsSeasonPremiere?: boolean;
+  /** TMDB's own last_episode_to_air — the most recent real episode, used
+   *  for "current season/episode" display when there's no upcoming one. */
+  lastEpisode?: TvEpisodeRef;
 }
 
 export interface MovieDetails extends MovieItem {
@@ -213,6 +230,14 @@ export const TmdbWatchProvider: WatchProvider = {
       }
 
       const nextEp = show?.next_episode_to_air;
+      const lastEp = show?.last_episode_to_air;
+      const toEpisodeRef = (e: any): TvEpisodeRef | undefined =>
+        typeof e?.season_number === "number" && typeof e?.episode_number === "number"
+          ? { seasonNumber: e.season_number, episodeNumber: e.episode_number, name: typeof e?.name === "string" ? e.name : undefined, airDate: typeof e?.air_date === "string" ? e.air_date : undefined }
+          : undefined;
+      const networks: TvNetwork[] = Array.isArray(show?.networks)
+        ? show.networks.filter((n: any) => typeof n?.name === "string").map((n: any) => ({ name: n.name, logoUrl: poster(n.logo_path, "w342") }))
+        : [];
 
       return {
         ...base,
@@ -220,16 +245,35 @@ export const TmdbWatchProvider: WatchProvider = {
         latestSeasonName: typeof show?.last_episode_to_air?.name === "string" ? show.last_episode_to_air.name : undefined,
         status: typeof show?.status === "string" ? show.status : undefined,
         availableOn,
+        networks,
         externalUrl: show?.id ? `https://www.themoviedb.org/tv/${show.id}` : undefined,
-        nextEpisodeDate: typeof nextEp?.air_date === "string" ? nextEp.air_date : undefined,
-        nextEpisodeSeasonNumber: typeof nextEp?.season_number === "number" ? nextEp.season_number : undefined,
+        nextEpisode: toEpisodeRef(nextEp),
         nextEpisodeIsSeasonPremiere: nextEp?.episode_number === 1,
+        lastEpisode: toEpisodeRef(lastEp),
       };
     } catch {
       return null;
     }
   },
 };
+
+/** TMDB's own "recommendations" for a TV show — a real, provider-computed
+ *  list (not a hand-tuned algorithm of ours), used to power "Suggested For
+ *  You" from what's already in a member's lineup. Returns null (not an
+ *  empty array) on any failure so callers can tell "no recommendations"
+ *  from "the request failed." */
+export async function recommendedTv(id: string): Promise<WatchItem[] | null> {
+  if (!tmdbKey() || !id) return null;
+  try {
+    const res = await authedFetch(`/tv/${encodeURIComponent(id)}/recommendations`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data?.results)) return null;
+    return data.results.map(mapTv).filter((t: WatchItem | null): t is WatchItem => t !== null);
+  } catch {
+    return null;
+  }
+}
 
 export const TmdbMovieProvider: MovieProvider = {
   slug: "tmdb",

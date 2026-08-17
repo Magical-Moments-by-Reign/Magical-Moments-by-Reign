@@ -4,8 +4,11 @@ import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
+import { getAwardRace, AWARD_RACES } from "@/lib/discovery/sports/awards";
+import { sdioConfigured } from "@/lib/discovery/providers/sportsdata";
 import { submitPickAction } from "./actions";
 import SportsIcon from "./SportsIcons";
+import PlayerSearch from "./PlayerSearch";
 import "../discovery.css";
 import "./sports-home.css";
 
@@ -45,10 +48,13 @@ export default async function SportsPage() {
   const myTeams = await getMyTeams(account.id);
   const followedSports = [...new Set(myTeams.map((t) => t.follow.sport as SportSlug))];
 
-  const [logos, { live, upcoming }, featuredMatchup] = await Promise.all([
+  const [logos, { live, upcoming }, featuredMatchup, awardRaces] = await Promise.all([
     getLeagueLogos(),
     getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])),
     pickFeaturedMatchup(myTeams, followedSports, account.id),
+    sdioConfigured()
+      ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) })))
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -76,6 +82,44 @@ export default async function SportsPage() {
           );
         })}
       </div>
+
+      <div className="spx-divider"><span>Player &amp; Team Status</span></div>
+      {sdioConfigured() ? (
+        <PlayerSearch />
+      ) : (
+        <p className="spx-panel__empty">Player search is being connected — check back soon.</p>
+      )}
+
+      {awardRaces.length > 0 && awardRaces.some((r) => r.entries.length > 0) && (
+        <>
+          <div className="spx-divider"><span>Magical Watch — Award Races</span></div>
+          <div className="spx-awards">
+            {awardRaces.filter((r) => r.entries.length > 0).map((race) => (
+              <div className="spx-award" key={`${race.league}-${race.award}`}>
+                <div className="spx-award__head">
+                  <h3>{race.label}</h3>
+                  <span>Betting-market consensus, for entertainment only</span>
+                </div>
+                <ol className="spx-award__list">
+                  {race.entries.slice(0, 5).map((e) => (
+                    <li key={e.playerId}>
+                      <span className="spx-award__rank">{e.currentRank}</span>
+                      <div className="spx-award__info">
+                        <b>{e.playerName}</b>
+                        <span>{[e.position, e.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                        {e.seasonStats && <span className="spx-award__stats">{e.seasonStats}</span>}
+                        {e.teamRecord && <span className="spx-award__record">Team: {e.teamRecord}</span>}
+                      </div>
+                      {e.futuresConsensus && <span className="spx-award__odds">{e.futuresConsensus}</span>}
+                    </li>
+                  ))}
+                </ol>
+                <p className="spx-award__foot">Source: SportsDataIO futures market · updated {new Date(race.entries[0].lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="spx-panels">
         <div className="spx-panel" id="live-games">

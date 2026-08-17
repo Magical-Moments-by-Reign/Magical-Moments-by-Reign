@@ -11,7 +11,7 @@
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "./cache";
 import { NewsApiProvider, type NewsSection, type NewsStory } from "./providers/news";
-import { TmdbWatchProvider, TmdbMovieProvider, type WatchSection, type MovieSection, type WatchItem, type MovieItem, type WatchDetails, type MovieDetails } from "./providers/tmdb";
+import { TmdbWatchProvider, TmdbMovieProvider, recommendedTv, type WatchSection, type MovieSection, type WatchItem, type MovieItem, type WatchDetails, type MovieDetails } from "./providers/tmdb";
 import { AppleMusicProvider, type MusicGenre, type MusicChart, type MusicChartEntry } from "./providers/music";
 import { TicketmasterProvider, type EventCategory, type DiscoveredEvent } from "./providers/events";
 import { SportsPendingProvider, PENDING_SPORTS_MESSAGE } from "./providers/sports";
@@ -43,6 +43,12 @@ export async function getWatchDetails(id: string): Promise<WatchDetails | null> 
   const cached = await withCache("watch", TmdbWatchProvider.slug, cacheKeyFor({ kind: "watch_details", id }), TTL.catalog, () =>
     TmdbWatchProvider.details(id));
   return cached?.data ?? null;
+}
+
+export async function getRecommendedTv(id: string): Promise<WatchItem[]> {
+  const cached = await withCache("watch", TmdbWatchProvider.slug, cacheKeyFor({ kind: "watch_recs", id }), TTL.catalog, () =>
+    recommendedTv(id));
+  return cached?.data ?? [];
 }
 
 export async function getMovieItems(section: MovieSection): Promise<DiscoveryResult<MovieItem>> {
