@@ -1096,6 +1096,7 @@ model Account {
   notifications   Notification[]
   reservations    Reservation[]
   savedServices   SavedService[]
+  watchlistItems  WatchlistItem[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   spotifyConnection SpotifyConnection?
@@ -2406,6 +2407,26 @@ model SavedService {
 
   @@index([accountId, createdAt])
   @@index([accountId, collection])
+}
+
+// A member's personal TV lineup ("Watch TV Show" — Magical Discovery). Just
+// the member's own picks + favorite flag; everything else (poster, network,
+// next-episode date, season/episode) is read live from TMDB at render time
+// (see getWatchDetails) rather than duplicated/cached here, so it's never
+// stale. There is deliberately no "progress %" field — with no per-episode
+// watched-tracking built yet, a percentage here would have to be invented.
+model WatchlistItem {
+  id         String   @id @default(cuid())
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tmdbId     String   // TMDB tv id, stringified — matches WatchItem.id
+  title      String   // snapshot for display if a live TMDB fetch ever fails
+  posterUrl  String?
+  isFavorite Boolean  @default(false)
+  addedAt    DateTime @default(now())
+
+  @@unique([accountId, tmdbId])
+  @@index([accountId, addedAt])
 }
 
 // An in-app notification (source of truth) + record of external delivery.
