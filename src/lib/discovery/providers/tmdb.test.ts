@@ -7,7 +7,7 @@ test("mapTv maps a TMDB tv show", () => {
   assert.ok(w);
   assert.equal(w!.id, "1399");
   assert.equal(w!.title, "Example Show");
-  assert.equal(w!.posterUrl, "https://image.tmdb.org/t/p/w342/p.jpg");
+  assert.equal(w!.posterUrl, "https://image.tmdb.org/t/p/w500/p.jpg");
   assert.equal(w!.voteAverage, 9.3);
 });
 

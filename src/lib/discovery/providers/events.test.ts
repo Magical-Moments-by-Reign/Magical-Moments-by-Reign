@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation, TicketmasterProvider } from "./events";
-import { mapEvent, inferCategory, buildLocationParams } from "./events";
+import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation, TicketmasterProvider, buildLocationParams } from "./events";
 
 test("mapEvent maps a Ticketmaster event, picking the widest image", () => {
   const e = mapEvent({

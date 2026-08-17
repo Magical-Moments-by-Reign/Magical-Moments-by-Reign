@@ -16,7 +16,9 @@ export interface EventSearchParams {
    *  when `coords` is set; resolved into Ticketmaster's own
    *  postalCode/city/stateCode params only when `coords` is absent — no
    *  geocoding involved, no third-party geocoder needed. */
-  location: string;
+  /** Required as a display label for a location-based search; can be
+   *  omitted entirely for a nationwide `keyword`-only search. */
+  location?: string;
   /** Real device/browser geolocation, when the member granted permission —
    *  sent to Ticketmaster's own `latlong` radius search directly. Takes
    *  priority over `location` for the actual query; `location` is still
@@ -27,6 +29,11 @@ export interface EventSearchParams {
   category?: EventCategory;
   radiusMiles?: number;
   limit?: number;
+  /** Free-text artist/event search (Ticketmaster's real `keyword` Discovery
+   *  API param) — e.g. featuring a specific real, currently-on-sale show by
+   *  name rather than searching by location. Can be used with or without a
+   *  location; a keyword alone searches nationwide. */
+  keyword?: string;
 }
 
 export interface DiscoveredEvent {
@@ -36,11 +43,10 @@ export interface DiscoveredEvent {
   startsAt?: string; // ISO, when the provider gives a real date/time
   venueName?: string;
   city?: string;
-  state?: string;
+  state?: string; // USPS state code, when Ticketmaster's venue record has one
   localDate?: string;
   localTime?: string;
   distanceMiles?: number;
-  state?: string; // USPS state code, when Ticketmaster's venue record has one
   category: EventCategory;
   ticketUrl: string; // the provider's own official ticket page — always
 }
@@ -67,6 +73,13 @@ export const SEGMENT_MAP: Partial<Record<EventCategory, string>> = {
   theater: "Arts & Theatre",
   arts_culture: "Arts & Theatre",
   family: "Family",
+};
+
+// `classificationName` is a separate, documented Discovery API param that
+// fuzzy-matches a segment, genre, or sub-genre name — used here only for
+// "comedy", which Ticketmaster doesn't expose as its own segment.
+export const CLASSIFICATION_NAME_MAP: Partial<Record<EventCategory, string>> = {
+  comedy: "Comedy",
 };
 
 export type TicketmasterLocation =
@@ -99,40 +112,42 @@ export function normalizeTicketmasterLocation(input: string): TicketmasterLocati
   return { kind: "invalid" };
 }
 
+/** Builds the real Ticketmaster Discovery query string. A real device
+ *  `coords` reading always takes priority over the typed `location` label
+ *  (per EventSearchParams — the label is kept only for display). */
 export function buildTicketmasterQuery(params: EventSearchParams): URLSearchParams | null {
-  const location = normalizeTicketmasterLocation(params.location);
-  if (location.kind === "invalid") return null;
   const q = new URLSearchParams();
-  if (location.kind === "postalCode") q.set("postalCode", location.postalCode);
-  if (location.kind === "coordinates") q.set("latlong", location.latlong);
-  if (location.kind === "city") {
-    q.set("city", location.city);
-    if (location.stateCode) q.set("stateCode", location.stateCode);
-  }
-  q.set("size", String(Math.min(Math.max(params.limit ?? 24, 1), 50)));
-  // Establish the postal/city lookup without an additional geographic
-  // restriction. Ticketmaster's radius is meaningful with `latlong`; adding
-  // it to an exact postalCode request can unintentionally narrow the result.
-  if (location.kind === "coordinates") {
+  const hasKeyword = Boolean(params.keyword?.trim());
+  if (params.coords) {
+    q.set("latlong", `${params.coords.lat},${params.coords.lng}`);
     q.set("radius", String(params.radiusMiles ?? 25));
     q.set("unit", "miles");
+  } else if (params.location?.trim()) {
+    const location = normalizeTicketmasterLocation(params.location);
+    if (location.kind === "invalid" && !hasKeyword) return null;
+    if (location.kind === "postalCode") q.set("postalCode", location.postalCode);
+    if (location.kind === "coordinates") q.set("latlong", location.latlong);
+    if (location.kind === "city") {
+      q.set("city", location.city);
+      if (location.stateCode) q.set("stateCode", location.stateCode);
+    }
+    if (location.kind === "coordinates") {
+      q.set("radius", String(params.radiusMiles ?? 25));
+      q.set("unit", "miles");
+    }
+  } else if (!hasKeyword) {
+    return null; // no coords, no location, no keyword — nothing to search on
   }
+  q.set("size", String(Math.min(Math.max(params.limit ?? 24, 1), 50)));
   q.set("sort", "date,asc");
   const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
   if (segment) q.set("segmentName", segment);
   const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
   if (classificationName) q.set("classificationName", classificationName);
-  if (params.category === "festivals") q.set("keyword", "festival");
+  if (hasKeyword) q.set("keyword", params.keyword!.trim());
+  else if (params.category === "festivals") q.set("keyword", "festival");
   return q;
-  if (params.category === "comedy") q.set("classificationName", "Comedy");
-  if (params.category === "festivals") q.set("keyword", "festival");
-  return q;
-// `classificationName` is a separate, documented Discovery API param that
-// fuzzy-matches a segment, genre, or sub-genre name — used here only for
-// "comedy", which Ticketmaster doesn't expose as its own segment.
-export const CLASSIFICATION_NAME_MAP: Partial<Record<EventCategory, string>> = {
-  comedy: "Comedy",
-};
+}
 
 // USPS state/territory codes — used to recognize a trailing "City, ST" or
 // "City ST" pattern in free-text location input without guessing. Anything
@@ -150,10 +165,10 @@ export interface ResolvedLocation {
   countryCode: string | null;
 }
 
-/** Pure: turn free-text member input into Ticketmaster's own location
- *  params — postalCode for a 5-digit US ZIP, city/stateCode for "City, ST",
- *  or a plain city search otherwise. No geocoding — Ticketmaster's Discovery
- *  API accepts all three natively. Exported for tests. */
+/** Pure: turn free-text member input into a breakdown for the diagnostics
+ *  record (see events-diagnostics.ts) — postalCode for a 5-digit US ZIP,
+ *  city/stateCode for "City, ST", or a plain city search otherwise. Exported
+ *  for tests. */
 export function buildLocationParams(location: string): ResolvedLocation {
   const trimmed = location.trim();
 
@@ -174,17 +189,8 @@ function tmKey(): string | undefined {
   return process.env.TICKETMASTER_API_KEY || undefined;
 }
 
-export const CLASSIFICATION_NAME_MAP: Partial<Record<EventCategory, string>> = {
-  comedy: "Comedy",
-};
-
 /** Pure: Ticketmaster classification → our category. Exported for tests. */
 export function inferCategory(classifications: unknown): EventCategory {
-  const first = Array.isArray(classifications) ? (classifications[0] as any) : undefined;
-  const seg = first?.segment?.name;
-  const detail = `${first?.genre?.name ?? ""} ${first?.subGenre?.name ?? ""}`.toLowerCase();
-  if (detail.includes("comedy")) return "comedy";
-  if (detail.includes("festival")) return "festivals";
   const first = Array.isArray(classifications) ? (classifications[0] as { segment?: { name?: unknown }; genre?: { name?: unknown } }) : undefined;
   const seg = first?.segment?.name;
   const genre = first?.genre?.name;
@@ -234,18 +240,12 @@ export const TicketmasterProvider: EventsProvider = {
 
   async search(params: EventSearchParams): Promise<DiscoveredEvent[] | null> {
     const key = tmKey();
-    if (!params.location?.trim()) {
-      console.error("[ticketmaster] request_attempted=NO api_key_present=REDACTED reason=missing_location");
-      return null;
-    }
-    if (!key) {
-      console.error("[ticketmaster] request_attempted=NO api_key_present=NO reason=missing_api_key");
     const radiusMiles = params.radiusMiles ?? 25;
     const location = params.coords ? { postalCode: null, city: null, stateCode: null, countryCode: null } : buildLocationParams(params.location ?? "");
     const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
     const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
     const classificationSent = segment ?? classificationName ?? null;
-    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim());
+    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim()) || Boolean(params.keyword?.trim());
 
     const diag: EventsDiagnostic = {
       requestAttempted: false,
@@ -272,71 +272,48 @@ export const TicketmasterProvider: EventsProvider = {
 
     const q = buildTicketmasterQuery(params);
     if (!q) {
-      console.error("[ticketmaster] request_attempted=NO api_key_present=YES reason=invalid_location");
+      diag.safeError = "invalid_location";
+      await writeEventsDiagnostic(diag);
       return [];
     }
-    const safeEndpoint = `${TICKETMASTER_BASE}/events.json?${q.toString()}`;
     q.set("apikey", key);
-    const requestUrl = `${TICKETMASTER_BASE}/events.json?${q.toString()}`;
-    const location = normalizeTicketmasterLocation(params.location);
-    const safeLocation = location.kind === "postalCode" ? `postalCode:${location.postalCode}`
-      : location.kind === "city" ? `city:${location.city}${location.stateCode ? `,${location.stateCode}` : ""}`
-        : location.kind === "coordinates" ? "coordinates:provided" : "invalid";
-    console.info(`[ticketmaster] request_attempted=YES api_key_present=YES location=${safeLocation} endpoint=${safeEndpoint}`);
+    diag.requestAttempted = true;
 
     try {
-      const res = await fetch(requestUrl, { next: { revalidate: 3600 } });
-      const contentType = res.headers.get("content-type") ?? "none";
+      const res = await fetch(`${TICKETMASTER_BASE}/events.json?${q.toString()}`, { next: { revalidate: 3600 } });
+      diag.httpStatus = res.status;
+      diag.contentType = res.headers.get("content-type");
+
       const data = await res.json().catch(() => null);
-      const jsonParse = data === null ? "FAIL" : "PASS";
-      const embeddedEvents = Array.isArray(data?._embedded?.events);
-      const resultCount = embeddedEvents ? data._embedded.events.length : 0;
-      const safeErrorCode = typeof data?.errors?.[0]?.code === "string" ? data.errors[0].code.slice(0, 60) : res.ok ? "none" : String(res.status);
-      const safeErrorMessage = typeof data?.errors?.[0]?.detail === "string" ? data.errors[0].detail.replace(/[\r\n]/g, " ").slice(0, 160)
-        : typeof data?.fault?.faultstring === "string" ? data.fault.faultstring.replace(/[\r\n]/g, " ").slice(0, 160)
-          : "none";
-      console.info(`[ticketmaster] http_status=${res.status} content_type=${contentType} json_parse=${jsonParse} safe_error_code=${safeErrorCode} safe_error_message=${safeErrorMessage} embedded_events=${embeddedEvents ? "YES" : "NO"} results=${resultCount}`);
+      diag.jsonParsed = data !== null && typeof data === "object";
+
       if (!res.ok) {
+        const errObj = diag.jsonParsed ? (data as { fault?: { faultstring?: unknown }; errors?: unknown[] }) : null;
+        diag.safeError = errObj?.fault?.faultstring
+          ? String(errObj.fault.faultstring).slice(0, 200)
+          : Array.isArray(errObj?.errors) && errObj.errors[0]
+            ? JSON.stringify(errObj.errors[0]).slice(0, 200)
+            : `HTTP ${res.status}`;
+        await writeEventsDiagnostic(diag);
         return null;
       }
-      if (!data) {
+
+      if (!diag.jsonParsed) {
+        diag.safeError = "invalid_json";
+        await writeEventsDiagnostic(diag);
         return null;
       }
-      const events: any[] = data?._embedded?.events ?? [];
-      return events.map(mapEvent).filter((e: DiscoveredEvent | null): e is DiscoveredEvent => e !== null);
+
+      const events: any[] = (data as any)?._embedded?.events ?? [];
+      diag.embeddedEventsPresent = Boolean((data as any)?._embedded?.events);
+      const mapped = events.map(mapEvent).filter((e: DiscoveredEvent | null): e is DiscoveredEvent => e !== null);
+      diag.eventsReturned = mapped.length;
+      await writeEventsDiagnostic(diag);
+      return mapped;
     } catch {
-      console.error("[ticketmaster] event search failed status=network detail=request_failed");
-      return null;
-    }
-
-    diag.httpStatus = res.status;
-    diag.contentType = res.headers.get("content-type");
-
-    const data = await res.json().catch(() => null);
-    diag.jsonParsed = data !== null && typeof data === "object";
-
-    if (!res.ok) {
-      const errObj = diag.jsonParsed ? (data as { fault?: { faultstring?: unknown }; errors?: unknown[] }) : null;
-      diag.safeError = errObj?.fault?.faultstring
-        ? String(errObj.fault.faultstring).slice(0, 200)
-        : Array.isArray(errObj?.errors) && errObj.errors[0]
-          ? JSON.stringify(errObj.errors[0]).slice(0, 200)
-          : `HTTP ${res.status}`;
+      diag.safeError = "network_error";
       await writeEventsDiagnostic(diag);
       return null;
     }
-
-    if (!diag.jsonParsed) {
-      diag.safeError = "invalid_json";
-      await writeEventsDiagnostic(diag);
-      return null;
-    }
-
-    const events: any[] = (data as any)?._embedded?.events ?? [];
-    diag.embeddedEventsPresent = Boolean((data as any)?._embedded?.events);
-    const mapped = events.map(mapEvent).filter((e: DiscoveredEvent | null): e is DiscoveredEvent => e !== null);
-    diag.eventsReturned = mapped.length;
-    await writeEventsDiagnostic(diag);
-    return mapped;
   },
 };

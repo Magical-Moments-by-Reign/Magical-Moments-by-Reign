@@ -5,6 +5,11 @@ import type { MusicGenre } from "@/lib/discovery/providers/music";
 import { appleMusicConfigured } from "@/lib/apple-music/token";
 import { searchCatalog as searchAppleMusicCatalog } from "@/lib/apple-music/catalog";
 import { getAlbumsAndPlaylistsCharts } from "@/lib/apple-music/charts";
+import { AppleMusicKitProvider } from "@/components/apple-music/AppleMusicKitProvider";
+import ConnectAppleMusicButton from "@/components/apple-music/ConnectAppleMusicButton";
+import PlaySongButton from "@/components/apple-music/PlaySongButton";
+import NowPlayingBar from "@/components/apple-music/NowPlayingBar";
+import AppleMusicBrowse from "@/components/apple-music/AppleMusicBrowse";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
 import "../discovery.css";
@@ -24,9 +29,6 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
   const genre = (GENRES.some((g) => g.id === raw) ? raw : "top") as MusicGenre;
   const chart = await getMusicChart(genre);
   const query = q?.trim() ?? "";
-  const accessToken = spotify.connected && query ? await getValidAccessToken(account.id) : null;
-  const searchResults = accessToken ? await searchCatalog(accessToken, query) : null;
-  const spotifyStatusMessage = spotifyStatus ? SPOTIFY_STATUS_MESSAGES[spotifyStatus] : undefined;
 
   const appleConfigured = appleMusicConfigured();
   const appleResults = appleConfigured && query ? await searchAppleMusicCatalog(query) : null;
@@ -44,12 +46,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
-      {spotifyStatusMessage && (
-      {spotifyStatus && SPOTIFY_STATUS_MESSAGES[spotifyStatus] && (
-        <div className={`disc-pending`} style={{ marginBottom: "1.4rem" }}>
-          <b>{spotifyStatusMessage}</b>
-        </div>
-
+      <div className="disc-section">
         {appleConfigured && (
           <div className="disc-music__search-row">
             <form className="disc-form disc-form--compact" method="get">
@@ -77,79 +74,87 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
               />
             )}
 
-          {searchResults && (
-            <>
-              {searchResults.artists.length === 0 && searchResults.albums.length === 0 && searchResults.tracks.length === 0 && (
-                <p className="disc-empty">No Spotify results for &ldquo;{query}&rdquo;.</p>
-              )}
-              {searchResults.artists.length > 0 && (
-                <>
-                  <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Artists</h3>
-                  <div className="disc-grid">
-                    {searchResults.artists.map((a) => (
-                      <a key={a.id} className="disc-card disc-card--square" href={a.externalUrl} target="_blank" rel="noopener noreferrer">
-                        <div className="disc-card__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
-                        <div className="disc-card__body"><h3>{a.name}</h3><p>Open in Spotify →</p></div>
-                      </a>
-                    ))}
-                  </div>
-                </>
-              )}
-              {searchResults.albums.length > 0 && (
-                <>
-                  <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Albums</h3>
-                  <div className="disc-grid">
-                    {searchResults.albums.map((a) => (
-                      <a key={a.id} className="disc-card disc-card--square" href={a.externalUrl} target="_blank" rel="noopener noreferrer">
-                        <div className="disc-card__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
-                        <div className="disc-card__body"><h3>{a.name}</h3><p>{a.artistNames}</p></div>
-                      </a>
-                    ))}
-                  </div>
-                </>
-              )}
-              {searchResults.tracks.length > 0 && (
-                <>
-                  <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Tracks</h3>
-                  <div className="disc-chart">
-                    {searchResults.tracks.map((t) => (
-                      <div className="disc-chart__row" key={t.id}>
-                        <div className="disc-chart__art" style={t.imageUrl ? { backgroundImage: `url(${t.imageUrl})` } : undefined} />
-                        <div className="disc-chart__song"><b>{t.name}</b><span>{t.artistNames} · {t.albumName}</span></div>
-                        <a className="btn btn--sm btn--ghost" href={t.externalUrl} target="_blank" rel="noopener noreferrer">Open in Spotify →</a>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-              <p className="disc-empty" style={{ marginTop: ".8rem" }}>Artwork and results provided by Spotify. Playback happens in Spotify, not inside Magical Moments.</p>
-            </>
-          )}
-        </div>
-      )}
+            {query && !appleResults && <p className="disc-empty">Apple Music is temporarily unavailable. Please try again shortly.</p>}
 
-      {chart.entries.length ? (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: ".6rem", marginBottom: ".8rem" }}>
-            <h2 style={{ fontFamily: "var(--font-display, Georgia, serif)", color: "var(--espresso)", fontSize: "1.1rem", margin: 0 }}>{chart.chartTitle}</h2>
-            <span className={`disc-badge ${chart.isOfficial ? "disc-badge--live" : "disc-badge--manual"}`}>
-              {chart.isOfficial ? "Official Chart" : "Magical Moments Chart"}
-            </span>
-          </div>
-          <div className="disc-chart">
-            {chart.entries.map((e) => (
-              <div className="disc-chart__row" key={e.rank}>
-                <span className="disc-chart__rank">{e.rank}</span>
-                <div className="disc-chart__art" style={e.artworkUrl ? { backgroundImage: `url(${e.artworkUrl})` } : undefined} />
-                <div className="disc-chart__song"><b>{e.song}</b><span>{e.artist}</span></div>
-                {e.listenUrl && <a className="btn btn--sm btn--ghost" href={e.listenUrl} target="_blank" rel="noopener noreferrer">Listen →</a>}
-              </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <DiscoveryEmptyState title="No chart connected yet.">Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.</DiscoveryEmptyState>
-      )}
+            {appleResults && (
+              <>
+                {appleResults.artists.length === 0 && appleResults.albums.length === 0 && appleResults.songs.length === 0 && (
+                  <p className="disc-empty">No Apple Music results for &ldquo;{query}&rdquo;.</p>
+                )}
+                {appleResults.artists.length > 0 && (
+                  <>
+                    <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Artists</h3>
+                    <div className="disc-grid">
+                      {appleResults.artists.map((a) => {
+                        const body = <>
+                          <div className="disc-card__img" style={a.artworkUrl ? { backgroundImage: `url(${a.artworkUrl})` } : undefined} />
+                          <div className="disc-card__body"><span className="disc-card__eyebrow">Apple Music</span><h3>{a.name}</h3>{a.url && <p className="disc-card__cta">Open in Apple Music →</p>}</div>
+                        </>;
+                        return a.url
+                          ? <a key={a.id} className="disc-card" href={a.url} target="_blank" rel="noopener noreferrer">{body}</a>
+                          : <div key={a.id} className="disc-card">{body}</div>;
+                      })}
+                    </div>
+                  </>
+                )}
+                {appleResults.albums.length > 0 && (
+                  <>
+                    <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Albums</h3>
+                    <div className="disc-grid">
+                      {appleResults.albums.map((a) => {
+                        const body = <>
+                          <div className="disc-card__img" style={a.artworkUrl ? { backgroundImage: `url(${a.artworkUrl})` } : undefined} />
+                          <div className="disc-card__body"><span className="disc-card__eyebrow">Apple Music</span><h3>{a.name}</h3><p>{a.artistName}</p>{a.url && <p className="disc-card__cta">Open in Apple Music →</p>}</div>
+                        </>;
+                        return a.url
+                          ? <a key={a.id} className="disc-card" href={a.url} target="_blank" rel="noopener noreferrer">{body}</a>
+                          : <div key={a.id} className="disc-card">{body}</div>;
+                      })}
+                    </div>
+                  </>
+                )}
+                {appleResults.songs.length > 0 && (
+                  <>
+                    <h3 style={{ fontSize: ".85rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)", margin: "1rem 0 .6rem" }}>Tracks</h3>
+                    <div className="disc-chart">
+                      {appleResults.songs.map((t) => (
+                        <div className="disc-chart__row" key={t.id}>
+                          <div className="disc-chart__art" style={t.artworkUrl ? { backgroundImage: `url(${t.artworkUrl})` } : undefined} />
+                          <div className="disc-chart__song"><b>{t.name}</b><span>{t.artistName}{t.albumName ? ` · ${t.albumName}` : ""}</span></div>
+                          <PlaySongButton song={{ id: t.id, name: t.name, artistName: t.artistName, albumName: t.albumName, artworkUrl: t.artworkUrl, previewUrl: t.previewUrl }} />
+                          {t.url && <a className="btn btn--sm btn--ghost" href={t.url} target="_blank" rel="noopener noreferrer">Open in Apple Music →</a>}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <p className="disc-empty" style={{ marginTop: ".8rem" }}>Artwork and results provided by Apple Music. Playback happens in Apple Music, not inside Magical Moments.</p>
+              </>
+            )}
+          </>
+        ) : chart.entries.length ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: ".6rem", marginBottom: ".8rem" }}>
+              <h2 style={{ fontFamily: "var(--font-display, Georgia, serif)", color: "var(--espresso)", fontSize: "1.1rem", margin: 0 }}>{chart.chartTitle}</h2>
+              <span className={`disc-badge ${chart.isOfficial ? "disc-badge--live" : "disc-badge--manual"}`}>
+                {chart.isOfficial ? "Official Chart" : "Magical Moments Chart"}
+              </span>
+            </div>
+            <div className="disc-chart">
+              {chart.entries.map((e) => (
+                <div className="disc-chart__row" key={e.rank}>
+                  <span className="disc-chart__rank">{e.rank}</span>
+                  <div className="disc-chart__art" style={e.artworkUrl ? { backgroundImage: `url(${e.artworkUrl})` } : undefined} />
+                  <div className="disc-chart__song"><b>{e.song}</b><span>{e.artist}</span></div>
+                  {e.listenUrl && <a className="btn btn--sm btn--ghost" href={e.listenUrl} target="_blank" rel="noopener noreferrer">Listen →</a>}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <DiscoveryEmptyState title="No chart connected yet.">Once a music chart provider is configured this genre will update automatically — or the Owner can feature a Magical Moments Chart from the Discovery Content Center.</DiscoveryEmptyState>
+        )}
+      </div>
     </div>
     <NowPlayingBar />
     </AppleMusicKitProvider>

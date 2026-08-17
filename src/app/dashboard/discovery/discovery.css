@@ -257,7 +257,6 @@
 .disc-lux__feature--quiet { align-items: center; justify-content: center; padding: 1rem; color: #d9c9ac; font-family: var(--font-display, Georgia, serif); text-align: center; }
 .disc-lux > .disc-nav { flex-wrap: nowrap; gap: .75rem; margin: 1.35rem 0 0; padding: 0 0 1rem; overflow-x: auto; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
 .disc-lux > .disc-nav a { flex: 1 0 105px; justify-content: center; background: #fdf9f1; border-color: #d9cdbb; box-shadow: none; color: #30271f; }
-.disc-lux > .disc-nav a:first-child { background: linear-gradient(180deg, #d9bd78, #c5a04e); border-color: #c09a45; }
 .disc-lux__section { margin-top: 2rem; }
 .disc-lux__section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: .85rem; }
 .disc-lux__section-head h2 { margin: 0; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 500; }
@@ -328,12 +327,20 @@
 }
 
 /* ── Dark editorial Discovery landing ─────────────────────────── */
-.disc-dark, .sports-dark { margin: -1.5rem; padding: 1.2rem 1.5rem 3rem; background: radial-gradient(circle at 52% 0, #13120e 0, #070a0c 42%, #030609 100%); color: #f5efe3; min-height: calc(100vh - 70px); }
+/* .dsh-main caps content at 1280px and centers it — fine for ordinary pages,
+   but the dark Discovery/Sports theme is meant to run edge-to-edge, not sit
+   as a dark card inside the ordinary cream page. Drop the cap specifically
+   when the page content is one of these, then cancel .dsh-main's own
+   padding (1.6rem, see dashboard-ui.css) so the dark background reaches the
+   real edges of the content column instead of leaving a visible margin. */
+.dsh-main:has(> .disc-dark), .dsh-main:has(> .sports-dark) { max-width: none; }
+.disc-dark, .sports-dark { margin: -1.6rem; padding: 1.2rem 1.6rem 3rem; background: radial-gradient(circle at 52% 0, #13120e 0, #070a0c 42%, #030609 100%); color: #f5efe3; min-height: calc(100vh - 70px); }
 .disc-dark > .disc-nav, .sports-dark > .disc-nav { margin: 0 0 1rem; border: 0; }
 .disc-dark > .disc-nav a, .sports-dark > .disc-nav a { flex: 0 0 auto; padding: .7rem .9rem; border: 0; border-radius: 0; background: transparent; color: #eee5d8; box-shadow: none; }
 .disc-dark > .disc-nav a:hover, .sports-dark > .disc-nav a:hover { color: #dfb959; box-shadow: inset 0 -2px #dfb959; }
+.disc-dark > .disc-nav a[aria-current="page"], .sports-dark > .disc-nav a[aria-current="page"] { color: #1a1006; background: linear-gradient(135deg, #e0b651, #b98524); border-radius: 999px; }
 .disc-dark__hero { position: relative; min-height: 380px; display: flex; align-items: center; justify-content: flex-start; overflow: hidden; border: 1px solid rgba(209,164,65,.28); border-radius: 22px 22px 0 0; isolation: isolate; }
-.disc-dark__hero-image { object-fit: cover; object-position: 78% center; z-index: -3; filter: saturate(.8) brightness(.56); }
+.disc-dark__hero-image { object-fit: contain; object-position: center; z-index: -3; filter: saturate(.85) brightness(.78); }
 .disc-dark__hero-shade { position: absolute; inset: 0; z-index: -2; background: linear-gradient(90deg, rgba(2,5,7,.98) 0%, rgba(2,5,7,.93) 32%, rgba(2,5,7,.68) 53%, rgba(2,5,7,.12) 76%, rgba(2,5,7,.46) 100%), radial-gradient(circle at 80% 48%, transparent 22%, rgba(2,5,7,.48) 100%); }
 .disc-dark__hero-copy { width: 55%; max-width: 690px; padding: 3rem clamp(1.5rem, 4vw, 4rem); text-align: left; }
 .disc-dark__hero-copy h1 { margin: .5rem 0 .8rem; color: #fffdf8; font: 500 clamp(2.6rem, 5.7vw, 5rem)/.94 var(--font-display, Georgia, serif); letter-spacing: -.045em; }
@@ -349,6 +356,24 @@
 .disc-dark__category-bar strong, .disc-dark__category-bar small { display: block; }
 .disc-dark__category-bar strong { font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
 .disc-dark__category-bar small { margin-top: .18rem; color: #bdb6ab; font-size: .6rem; }
+/* Image-on-top, text-in-a-separate-box card — used by Curated For You,
+   Watch Tonight, and Now in Theaters. Deliberately NOT the overlay-on-photo
+   look: the image gets a fixed, moderate height so it stays recognizable
+   (never stretched to fill a tall card), and the title/description sit in
+   their own solid panel below it, never printed over the artwork. */
+.disc-dark__card { display: flex; flex-direction: column; overflow: hidden; border-radius: 13px; border: 1px solid rgba(210,168,72,.3); background: #111416; color: #fffaf0; text-decoration: none; scroll-snap-align: start; transition: transform .18s, box-shadow .18s; }
+.disc-dark__card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(0,0,0,.4); }
+.disc-dark__card-art { position: relative; width: 100%; height: 210px; flex-shrink: 0; overflow: hidden; isolation: isolate; background: linear-gradient(145deg, #2a2117, #14100c); }
+.disc-dark__card-art img { object-fit: cover; object-position: center 25%; }
+.disc-dark__card-art--logo img { object-fit: contain; padding: 1.6rem; }
+.disc-dark__card-art .disc-lux__image { z-index: 0; }
+.disc-dark__card-art .disc-lux__placeholder { position: static; width: 100%; height: 100%; z-index: 0; background: none; }
+.disc-dark__card-body { padding: .9rem 1rem 1.05rem; }
+.disc-dark__card-body .disc-lux__label { color: #d7aa49; }
+.disc-dark__card-body h2, .disc-dark__card-body h3 { margin: .3rem 0 .35rem; color: #fffaf0; font-family: var(--font-display, Georgia, serif); font-size: 1.02rem; font-weight: 500; line-height: 1.25; }
+.disc-dark__card-body p { margin: 0 0 .5rem; color: #b7ad9d; font-size: .74rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.disc-dark__card-body .disc-lux__explore { color: #e0b651; margin-top: 0; }
+
 .disc-dark .disc-lux__section-head h2, .disc-dark .disc-lux__mini-section .disc-lux__section-head h2 { color: #fffaf0; }
 .disc-dark .disc-lux__section-head p { color: #aaa297; }
 .disc-dark .disc-lux__section-head > a { color: #e0b651; }
@@ -379,8 +404,16 @@
 .sports-dark .disc-section__head { padding-bottom: .55rem; border-bottom: 1px solid rgba(216,165,51,.3); }
 .sports-dark .sports-matchup__pick button { border-color: #9c6e15; background: #0a0d0f; color: #e5b84a; }
 
+.disc-dark > .disc-lux__section, .disc-dark > .disc-lux__triptych { margin-top: 0; padding-top: 1.6rem; }
+.disc-dark .disc-lux__curated { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1200px) { .disc-dark .disc-lux__curated { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .disc-dark .disc-lux__curated { display: grid; grid-auto-flow: column; grid-auto-columns: 82%; grid-template-columns: none; overflow-x: auto; padding-bottom: .6rem; scroll-snap-type: x proximity; } }
+.disc-dark > .disc-lux__section + .disc-lux__section,
+.disc-dark > .disc-lux__section + .disc-lux__triptych,
+.disc-dark > .disc-lux__triptych + .disc-lux__section { border-top: 1px solid rgba(210,168,72,.16); }
+
 @media (max-width: 900px) {
-  .disc-dark__hero-image { object-position: 82% center; }
+  .disc-dark__hero-image { object-position: center; }
   .disc-dark__hero-copy { width: 62%; padding-inline: 2rem; }
   .disc-dark__hero-copy h1 { font-size: clamp(2.5rem, 6.5vw, 4rem); }
   .disc-dark__hero-shade { background: linear-gradient(90deg, rgba(2,5,7,.98) 0%, rgba(2,5,7,.91) 42%, rgba(2,5,7,.55) 68%, rgba(2,5,7,.38) 100%); }
@@ -389,9 +422,9 @@
   .sports-dark__catalog { grid-template-columns: repeat(3, minmax(0,1fr)); }
 }
 @media (max-width: 680px) {
-  .disc-dark, .sports-dark { margin: -1rem; padding: .8rem 1rem 2rem; }
+  .disc-dark, .sports-dark { margin: -1.6rem; padding: .8rem 1rem 2rem; }
   .disc-dark__hero { min-height: 440px; }
-  .disc-dark__hero-image { object-position: 76% center; }
+  .disc-dark__hero-image { object-position: center; }
   .disc-dark__hero-copy { width: 100%; max-width: 34rem; padding: 2.4rem 1.35rem; align-self: flex-end; }
   .disc-dark__hero-copy h1 { max-width: 9ch; font-size: clamp(2.45rem, 12vw, 3.45rem); }
   .disc-dark__hero-copy p { max-width: 30rem; }
@@ -433,7 +466,6 @@
 .disc-lux__feature--quiet { align-items: center; justify-content: center; padding: 1rem; color: #d9c9ac; font-family: var(--font-display, Georgia, serif); text-align: center; }
 .disc-lux > .disc-nav { flex-wrap: nowrap; gap: .55rem; margin: .9rem 0 1.15rem; padding: .15rem 0 .8rem; overflow-x: auto; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
 .disc-lux > .disc-nav a { flex: 1 0 105px; justify-content: center; background: #fdf9f1; border-color: #d9cdbb; box-shadow: none; color: #30271f; }
-.disc-lux > .disc-nav a:first-child { background: linear-gradient(180deg, #d9bd78, #c5a04e); border-color: #c09a45; }
 .disc-lux__section { margin-top: 1.45rem; }
 .disc-lux__section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: .85rem; }
 .disc-lux__section-head h2 { margin: 0; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 500; }
