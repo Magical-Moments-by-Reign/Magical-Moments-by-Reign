@@ -18,22 +18,14 @@ function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string
   return src ? <Image src={src} alt={alt} fill sizes={sizes} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
 }
 
-function FeatureCard({ item, large = false }: { item: Feature; large?: boolean }) {
-  const body = large ? (
+// Image on top (fixed height, so it stays recognizable instead of being
+// stretched to fill the card), title/description in a separate solid box
+// below — never printed over the artwork.
+function FeatureCard({ item }: { item: Feature }) {
+  const body = (
     <>
-      <Artwork src={item.image} alt={`${item.title} artwork`} sizes={large ? "(max-width: 800px) 100vw, 55vw" : "(max-width: 800px) 100vw, 30vw"} />
-      <div className="disc-lux__shade" />
-      <div className="disc-lux__feature-copy">
-        <span className="disc-lux__label">{item.label}</span>
-        <h2>{item.title}</h2>
-        {item.description && <p>{item.description}</p>}
-        <span className="disc-lux__explore">Explore <span aria-hidden="true">→</span></span>
-      </div>
-    </>
-  ) : (
-    <>
-      <Artwork src={item.image} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, (max-width: 1100px) 44vw, 22vw" />
-      <div className="disc-lux__feature-copy">
+      <div className="disc-dark__card-art"><Artwork src={item.image} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, (max-width: 1100px) 44vw, 20vw" /></div>
+      <div className="disc-dark__card-body">
         <span className="disc-lux__label">{item.label}</span>
         <h2>{item.title}</h2>
         {item.description && <p>{item.description}</p>}
@@ -41,8 +33,7 @@ function FeatureCard({ item, large = false }: { item: Feature; large?: boolean }
       </div>
     </>
   );
-  const classes = `disc-lux__feature${large ? " disc-lux__feature--large" : ""}`;
-  return item.external ? <a className={classes} href={item.href} target="_blank" rel="noopener noreferrer">{body}</a> : <Link className={classes} href={item.href}>{body}</Link>;
+  return item.external ? <a className="disc-dark__card" href={item.href} target="_blank" rel="noopener noreferrer">{body}</a> : <Link className="disc-dark__card" href={item.href}>{body}</Link>;
 }
 
 function SectionHeader({ title, subtitle, href, action }: { title: string; subtitle?: string; href: string; action: string }) {
@@ -50,16 +41,16 @@ function SectionHeader({ title, subtitle, href, action }: { title: string; subti
 }
 
 function WatchCard({ item }: { item: WatchItem }) {
-  return <Link className="disc-lux__landscape" href={`/dashboard/discovery/watch/${item.id}`}>
-    <div className="disc-lux__landscape-art"><Artwork src={item.backdropUrl ?? item.posterUrl} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, 31vw" /></div>
-    <div className="disc-lux__landscape-copy"><h3>{item.title}</h3>{item.firstAirDate && <span>{item.firstAirDate.slice(0, 4)}</span>}</div>
+  return <Link className="disc-dark__card" href={`/dashboard/discovery/watch/${item.id}`}>
+    <div className="disc-dark__card-art"><Artwork src={item.backdropUrl ?? item.posterUrl} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, 31vw" /></div>
+    <div className="disc-dark__card-body"><span className="disc-lux__label">Watch</span><h3>{item.title}</h3>{item.firstAirDate && <p>{item.firstAirDate.slice(0, 4)}</p>}</div>
   </Link>;
 }
 
 function MovieCard({ item }: { item: MovieItem }) {
-  return <Link className="disc-lux__portrait" href={`/dashboard/discovery/movies/${item.id}`}>
-    <div className="disc-lux__portrait-art"><Artwork src={item.posterUrl ?? item.backdropUrl} alt={`${item.title} poster`} sizes="(max-width: 700px) 48vw, 18vw" /></div>
-    <div className="disc-lux__portrait-copy"><h3>{item.title}</h3>{item.releaseDate && <span>{item.releaseDate.slice(0, 4)}</span>}</div>
+  return <Link className="disc-dark__card" href={`/dashboard/discovery/movies/${item.id}`}>
+    <div className="disc-dark__card-art"><Artwork src={item.posterUrl ?? item.backdropUrl} alt={`${item.title} poster`} sizes="(max-width: 700px) 48vw, 18vw" /></div>
+    <div className="disc-dark__card-body"><span className="disc-lux__label">Movie</span><h3>{item.title}</h3>{item.releaseDate && <p>{item.releaseDate.slice(0, 4)}</p>}</div>
   </Link>;
 }
 

@@ -1,11 +1,11 @@
 import Link from "next/link";
 
 const TABS: { href: string; label: string }[] = [
-  { href: "/dashboard/discovery/today", label: "Today" },
+  { href: "/dashboard/discovery/today", label: "News Today" },
   { href: "/dashboard/discovery/watch", label: "Watch" },
   { href: "/dashboard/discovery/movies", label: "Movies" },
   { href: "/dashboard/discovery/music", label: "Music" },
-  { href: "/dashboard/discovery/near-you", label: "Near You" },
+  { href: "/dashboard/discovery/near-you", label: "Events and Tickets" },
   { href: "/dashboard/discovery/sports", label: "Sports" },
   { href: "/dashboard/discovery/trending", label: "Trending" },
 ];

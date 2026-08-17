@@ -349,6 +349,23 @@
 .disc-dark__category-bar strong, .disc-dark__category-bar small { display: block; }
 .disc-dark__category-bar strong { font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
 .disc-dark__category-bar small { margin-top: .18rem; color: #bdb6ab; font-size: .6rem; }
+/* Image-on-top, text-in-a-separate-box card — used by Curated For You,
+   Watch Tonight, and Now in Theaters. Deliberately NOT the overlay-on-photo
+   look: the image gets a fixed, moderate height so it stays recognizable
+   (never stretched to fill a tall card), and the title/description sit in
+   their own solid panel below it, never printed over the artwork. */
+.disc-dark__card { display: flex; flex-direction: column; overflow: hidden; border-radius: 13px; border: 1px solid rgba(210,168,72,.3); background: #111416; color: #fffaf0; text-decoration: none; scroll-snap-align: start; transition: transform .18s, box-shadow .18s; }
+.disc-dark__card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(0,0,0,.4); }
+.disc-dark__card-art { position: relative; width: 100%; height: 176px; flex-shrink: 0; overflow: hidden; isolation: isolate; background: linear-gradient(145deg, #2a2117, #14100c); }
+.disc-dark__card-art img { object-fit: cover; object-position: center 20%; }
+.disc-dark__card-art .disc-lux__image { z-index: 0; }
+.disc-dark__card-art .disc-lux__placeholder { position: static; width: 100%; height: 100%; z-index: 0; background: none; }
+.disc-dark__card-body { padding: .9rem 1rem 1.05rem; }
+.disc-dark__card-body .disc-lux__label { color: #d7aa49; }
+.disc-dark__card-body h2, .disc-dark__card-body h3 { margin: .3rem 0 .35rem; color: #fffaf0; font-family: var(--font-display, Georgia, serif); font-size: 1.02rem; font-weight: 500; line-height: 1.25; }
+.disc-dark__card-body p { margin: 0 0 .5rem; color: #b7ad9d; font-size: .74rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.disc-dark__card-body .disc-lux__explore { color: #e0b651; margin-top: 0; }
+
 .disc-dark .disc-lux__section-head h2, .disc-dark .disc-lux__mini-section .disc-lux__section-head h2 { color: #fffaf0; }
 .disc-dark .disc-lux__section-head p { color: #aaa297; }
 .disc-dark .disc-lux__section-head > a { color: #e0b651; }
@@ -382,7 +399,7 @@
 .disc-dark > .disc-lux__section, .disc-dark > .disc-lux__triptych { margin-top: 0; padding-top: 1.6rem; }
 .disc-dark .disc-lux__curated { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 @media (max-width: 1200px) { .disc-dark .disc-lux__curated { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .disc-dark .disc-lux__curated { display: grid; grid-auto-flow: column; grid-auto-columns: 82%; grid-template-columns: none; overflow-x: auto; padding-bottom: .6rem; scroll-snap-type: x proximity; } .disc-dark .disc-lux__curated .disc-lux__feature { scroll-snap-align: start; } }
+@media (max-width: 700px) { .disc-dark .disc-lux__curated { display: grid; grid-auto-flow: column; grid-auto-columns: 82%; grid-template-columns: none; overflow-x: auto; padding-bottom: .6rem; scroll-snap-type: x proximity; } }
 .disc-dark > .disc-lux__section + .disc-lux__section,
 .disc-dark > .disc-lux__section + .disc-lux__triptych,
 .disc-dark > .disc-lux__triptych + .disc-lux__section { border-top: 1px solid rgba(210,168,72,.16); }

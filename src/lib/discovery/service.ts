@@ -15,7 +15,13 @@ import { TmdbWatchProvider, TmdbMovieProvider, type WatchSection, type MovieSect
 import { AppleMusicProvider, type MusicGenre, type MusicChart, type MusicChartEntry } from "./providers/music";
 import { TicketmasterProvider, type EventCategory, type DiscoveredEvent } from "./providers/events";
 import { SportsPendingProvider, PENDING_SPORTS_MESSAGE } from "./providers/sports";
+import { getSportsLandingGames, SPORT_CATALOG } from "./sports/service";
 import type { DiscoveryResult } from "./types";
+
+// Default sports for the Curated For You row when no follows are known —
+// the landing page has no per-member sports-follow context, so this picks
+// from the whole catalog rather than guessing a favorite.
+const CURATED_DEFAULT_SPORTS = SPORT_CATALOG.map((s) => s.slug);
 
 const TTL = { news: 15, catalog: 360, chart: 1440, events: 60 };
 
@@ -123,20 +129,20 @@ export interface CuratedItem {
   external?: boolean;
 }
 
-/** One real item per category (Watch/Movies/Music/Events/Sports) for the
- *  Discovery hub's "Curated For You" row. Events only appears when a
- *  location is known (the member's primary address, or a location they've
- *  already searched) — there is no server-side geolocation on the landing
- *  page. Sports is intentionally never included today: getSportsFeed()
- *  never returns real games (see PENDING_SPORTS_MESSAGE), and this row
- *  never fabricates a placeholder to fill the slot. Categories with no real
- *  item are simply omitted, so the row can be shorter than five. */
+/** One real item per category (Watch/Movies/Music/Sports/Events) for the
+ *  Discovery hub's "Curated For You" row. Watch/Movies/Music/Sports each
+ *  fall back across a few real sources so the row rarely looks sparse;
+ *  Events only appears when a location is known (the member's primary
+ *  address, or a location they've already searched) — there is no
+ *  server-side geolocation on the landing page. A category with no real
+ *  item anywhere is simply omitted — never fabricated to fill the slot. */
 export async function getCuratedForYou(opts: { location?: string } = {}): Promise<CuratedItem[]> {
-  const [watch, movies, music, events] = await Promise.all([
+  const [watch, movies, music, events, sportsGames] = await Promise.all([
     getWatchItems("trending"),
     getMovieItems("now_playing"),
     getMusicChart("top"),
     opts.location?.trim() ? getNearYouEvents({ location: opts.location.trim() }) : Promise.resolve<DiscoveryResult<DiscoveredEvent>>({ items: [], source: "unavailable" }),
+    getSportsLandingGames(CURATED_DEFAULT_SPORTS, 1),
   ]);
 
   const items: CuratedItem[] = [];
@@ -146,6 +152,17 @@ export async function getCuratedForYou(opts: { location?: string } = {}): Promis
   if (m) items.push({ category: "Movies", title: m.title, description: "Now In Theaters", image: m.posterUrl ?? m.backdropUrl, href: `/dashboard/discovery/movies/${m.id}` });
   const track = music.entries[0];
   if (track) items.push({ category: "Music", title: track.artist, description: track.song, image: track.artworkUrl, href: "/dashboard/discovery/music" });
+  const game = sportsGames.live[0] ?? sportsGames.upcoming[0];
+  if (game) {
+    const sportLabel = SPORT_CATALOG.find((s) => s.slug === game.sport)?.label ?? game.sport;
+    items.push({
+      category: "Sports",
+      title: `${game.awayTeamName} @ ${game.homeTeamName}`,
+      description: game.status === "live" ? `Live now · ${sportLabel}` : `${sportLabel} · ${game.startsAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`,
+      image: game.awayTeamLogoUrl ?? game.homeTeamLogoUrl ?? undefined,
+      href: `/dashboard/discovery/sports/game/${game.id}`,
+    });
+  }
   const event = events.items[0];
   if (event) items.push({ category: "Events", title: event.name, description: event.venueName ?? ([event.city, event.state].filter(Boolean).join(", ") || undefined), image: event.imageUrl, href: event.ticketUrl, external: true });
 
