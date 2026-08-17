@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/discovery", label: "Discovery" },
-  { href: "/dashboard/discovery/today", label: "News Today" },
+  { href: "/dashboard/discovery/today", label: "Top Stories" },
   { href: "/dashboard/discovery/watch", label: "Watch" },
   { href: "/dashboard/discovery/movies", label: "Movies" },
   { href: "/dashboard/discovery/music", label: "Music" },
