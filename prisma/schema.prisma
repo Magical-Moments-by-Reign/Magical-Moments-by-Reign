@@ -1091,6 +1091,13 @@ model Account {
   // from Settings). Additive + nullable — safe `prisma db push`.
   tourCompletedAt   DateTime?
 
+  // Set the first time Watch TV Show checks this account's lineup, whether or
+  // not a starter lineup was actually added (see seedStarterLineup in
+  // watchlist.ts) — so a member who removes every starter show gets an
+  // honestly empty lineup on their next visit instead of it refilling.
+  // Additive, default-false — safe `prisma db push`.
+  watchLineupSeeded Boolean @default(false)
+
   identity      AccountIdentity?
   sessions        Session[]
   notifications   Notification[]
