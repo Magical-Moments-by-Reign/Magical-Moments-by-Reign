@@ -12,7 +12,7 @@ import "./discovery.css";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Discovery", robots: { index: false } };
 
-type Feature = { label: string; title: string; description?: string; image?: string; href: string; external?: boolean };
+type Feature = { label: string; title: string; description?: string; image?: string; href: string; external?: boolean; logo?: boolean };
 
 function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string }) {
   return src ? <Image src={src} alt={alt} fill sizes={sizes} quality={90} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
@@ -20,11 +20,13 @@ function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string
 
 // Image on top (fixed height, so it stays recognizable instead of being
 // stretched to fill the card), title/description in a separate solid box
-// below — never printed over the artwork.
+// below — never printed over the artwork. Team logos (`logo: true`, e.g. a
+// Sports matchup) get a contained, padded treatment instead of a full-bleed
+// photo crop — cropping a small logo into a wide box distorts it.
 function FeatureCard({ item }: { item: Feature }) {
   const body = (
     <>
-      <div className="disc-dark__card-art"><Artwork src={item.image} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, (max-width: 1100px) 44vw, 20vw" /></div>
+      <div className={`disc-dark__card-art${item.logo ? " disc-dark__card-art--logo" : ""}`}><Artwork src={item.image} alt={`${item.title} artwork`} sizes="(max-width: 700px) 86vw, (max-width: 1100px) 44vw, 20vw" /></div>
       <div className="disc-dark__card-body">
         <span className="disc-lux__label">{item.label}</span>
         <h2>{item.title}</h2>
@@ -78,7 +80,7 @@ export default async function DiscoveryPage() {
     image: today.items[0].imageUrl, href: today.items[0].url, external: true,
   } : undefined;
 
-  const curatedFeatures: Feature[] = curated.map((c) => ({ label: c.category, title: c.title, description: c.description, image: c.image, href: c.href, external: c.external }));
+  const curatedFeatures: Feature[] = curated.map((c) => ({ label: c.category, title: c.title, description: c.description, image: c.image, href: c.href, external: c.external, logo: c.category === "Sports" }));
 
   return <main className="disc disc-lux disc-dark">
     <DiscoveryNav active="/dashboard/discovery" />

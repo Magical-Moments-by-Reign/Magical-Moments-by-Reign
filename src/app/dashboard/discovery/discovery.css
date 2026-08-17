@@ -356,8 +356,9 @@
    their own solid panel below it, never printed over the artwork. */
 .disc-dark__card { display: flex; flex-direction: column; overflow: hidden; border-radius: 13px; border: 1px solid rgba(210,168,72,.3); background: #111416; color: #fffaf0; text-decoration: none; scroll-snap-align: start; transition: transform .18s, box-shadow .18s; }
 .disc-dark__card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(0,0,0,.4); }
-.disc-dark__card-art { position: relative; width: 100%; height: 176px; flex-shrink: 0; overflow: hidden; isolation: isolate; background: linear-gradient(145deg, #2a2117, #14100c); }
-.disc-dark__card-art img { object-fit: contain; object-position: center; }
+.disc-dark__card-art { position: relative; width: 100%; height: 210px; flex-shrink: 0; overflow: hidden; isolation: isolate; background: linear-gradient(145deg, #2a2117, #14100c); }
+.disc-dark__card-art img { object-fit: cover; object-position: center 25%; }
+.disc-dark__card-art--logo img { object-fit: contain; padding: 1.6rem; }
 .disc-dark__card-art .disc-lux__image { z-index: 0; }
 .disc-dark__card-art .disc-lux__placeholder { position: static; width: 100%; height: 100%; z-index: 0; background: none; }
 .disc-dark__card-body { padding: .9rem 1rem 1.05rem; }
