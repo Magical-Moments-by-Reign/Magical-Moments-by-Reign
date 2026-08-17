@@ -27,7 +27,14 @@ export interface PlayerSearchResult extends SdioPlayer {
   transactions: SdioTransaction[] | null; // null = league doesn't expose a transaction feed
   /** College players use roster/transfer language, never "trade." */
   movementLabel: "Trade" | "Roster Move";
+  /** The most recent transaction that actually moved this player onto their
+   *  CURRENT team (Signed/Trade/Claim types, team name matching). Only set
+   *  when the provider's own transaction feed supports the inference —
+   *  never a guessed or computed-from-silence date. */
+  withCurrentTeamSince?: { date?: string; via?: string };
 }
+
+const JOIN_TYPES = /sign|trade|claim|activat/i;
 
 export async function searchPlayers(query: string, league: SdioLeague): Promise<PlayerSearchResult[]> {
   const q = query.trim().toLowerCase();
@@ -50,11 +57,18 @@ export async function searchPlayers(query: string, league: SdioLeague): Promise<
     txByPlayer.set(t.playerId, list);
   }
 
-  return matches.map((p) => ({
-    ...p,
-    transactions: txCached?.data === null ? null : (txByPlayer.get(p.playerId) ?? []),
-    movementLabel: league === "cfb" ? "Roster Move" : "Trade",
-  }));
+  return matches.map((p) => {
+    const playerTx = txByPlayer.get(p.playerId) ?? [];
+    const joinEvent = playerTx
+      .filter((t) => t.team && p.team && t.team === p.team && t.type && JOIN_TYPES.test(t.type) && t.date)
+      .sort((a, b) => +new Date(b.date!) - +new Date(a.date!))[0];
+    return {
+      ...p,
+      transactions: txCached?.data === null ? null : playerTx,
+      movementLabel: league === "cfb" ? "Roster Move" : "Trade",
+      withCurrentTeamSince: joinEvent ? { date: joinEvent.date, via: joinEvent.type } : undefined,
+    };
+  });
 }
 
 export async function getAwardRace(league: SdioLeague, award: "Heisman" | "MVP"): Promise<AwardRaceEntry[]> {

@@ -22,8 +22,18 @@ interface PlayerResult {
   position?: string;
   status?: string;
   photoUrl?: string;
+  age?: number;
+  college?: string;
+  experienceYears?: number;
   movementLabel: "Trade" | "Roster Move";
   transactions: { date?: string; type?: string; team?: string; description?: string }[] | null;
+  withCurrentTeamSince?: { date?: string; via?: string };
+}
+
+function formatDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function PlayerSearch() {
@@ -73,20 +83,31 @@ export default function PlayerSearch() {
         <div className="spx-search__results">
           {results.map((p) => (
             <div className="spx-search__card" key={p.playerId}>
-              <div className="spx-search__photo">
-                {p.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.photoUrl} alt="" />
-                ) : (
-                  <span aria-hidden="true">{p.name.slice(0, 1)}</span>
-                )}
+              <div className="spx-search__top">
+                <div className="spx-search__photo">
+                  {p.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.photoUrl} alt="" />
+                  ) : (
+                    <span aria-hidden="true">{p.name.slice(0, 1)}</span>
+                  )}
+                </div>
+                <div className="spx-search__info">
+                  <b>{p.name}</b>
+                  <span>{[p.position, p.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                  {p.status && <span className="spx-search__status">{p.status}</span>}
+                </div>
               </div>
-              <div className="spx-search__info">
-                <b>{p.name}</b>
-                <span>{[p.position, p.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
-                {p.status && <span className="spx-search__status">{p.status}</span>}
-              </div>
+
+              <dl className="spx-search__bio">
+                <div><dt>Age</dt><dd>{p.age ?? "—"}</dd></div>
+                <div><dt>College</dt><dd>{p.college ?? "—"}</dd></div>
+                <div><dt>Experience</dt><dd>{typeof p.experienceYears === "number" ? `${p.experienceYears} season${p.experienceYears === 1 ? "" : "s"}` : "—"}</dd></div>
+                <div><dt>With {p.team ?? "current team"}</dt><dd>{formatDate(p.withCurrentTeamSince?.date) ? `Since ${formatDate(p.withCurrentTeamSince?.date)}${p.withCurrentTeamSince?.via ? ` (${p.withCurrentTeamSince.via})` : ""}` : "—"}</dd></div>
+              </dl>
+
               <div className="spx-search__moves">
+                <span className="spx-search__label">Recent {p.movementLabel === "Trade" ? "transactions" : "roster moves"}</span>
                 {p.transactions === null ? (
                   <span className="spx-search__muted">Transaction data not available for this league.</span>
                 ) : p.transactions.length === 0 ? (
@@ -94,11 +115,14 @@ export default function PlayerSearch() {
                 ) : (
                   p.transactions.slice(0, 2).map((t, i) => (
                     <span key={i} className="spx-search__move">
+                      {formatDate(t.date) && <b>{formatDate(t.date)}: </b>}
                       {t.type ?? p.movementLabel}{t.team ? ` — ${t.team}` : ""}{t.description ? `: ${t.description}` : ""}
                     </span>
                   ))
                 )}
               </div>
+
+              <p className="spx-search__gap">Career championships and past MVP/Heisman wins aren&rsquo;t available from this data source yet — shown here only once we have a real feed for it, never guessed.</p>
             </div>
           ))}
         </div>

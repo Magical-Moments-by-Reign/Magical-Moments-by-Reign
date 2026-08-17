@@ -34,6 +34,9 @@ export interface SdioPlayer {
   position?: string;
   status?: string; // Active, Injured Reserve, Free Agent, etc. — provider's own label
   photoUrl?: string;
+  age?: number;
+  college?: string;
+  experienceYears?: number; // seasons played, per the provider's own count
 }
 
 export interface SdioTransaction {
@@ -79,6 +82,24 @@ async function sdioFetch(league: SdioLeague, path: string): Promise<unknown | nu
   }
 }
 
+/** Age computed from the provider's own BirthDate — never guessed. Falls
+ *  back to the provider's own Age field (some SportsDataIO endpoints
+ *  return one directly) when BirthDate itself is missing or unparsable. */
+function deriveAge(p: any): number | undefined {
+  const birthDate = p?.BirthDate;
+  if (typeof birthDate === "string") {
+    const d = new Date(birthDate);
+    if (!Number.isNaN(d.getTime())) {
+      const now = new Date();
+      let age = now.getFullYear() - d.getFullYear();
+      const beforeBirthdayThisYear = now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate());
+      if (beforeBirthdayThisYear) age -= 1;
+      if (age > 0 && age < 100) return age;
+    }
+  }
+  return typeof p?.Age === "number" && p.Age > 0 ? p.Age : undefined;
+}
+
 function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
   const id = p?.PlayerID ?? p?.PlayerId;
   const name = p?.Name ?? [p?.FirstName, p?.LastName].filter(Boolean).join(" ");
@@ -92,6 +113,9 @@ function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
     position: p?.Position ?? p?.FantasyPosition ?? undefined,
     status: p?.Status ?? undefined,
     photoUrl: typeof p?.PhotoUrl === "string" && p.PhotoUrl.startsWith("http") ? p.PhotoUrl : undefined,
+    age: deriveAge(p),
+    college: typeof p?.College === "string" && p.College.trim() ? p.College.trim() : undefined,
+    experienceYears: typeof p?.Experience === "number" ? p.Experience : undefined,
   };
 }
 

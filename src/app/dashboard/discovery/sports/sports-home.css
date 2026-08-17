@@ -169,23 +169,30 @@
 }
 .spx-search__bar input::placeholder { color: #7a6f5b; }
 .spx-search__hint { color: #9c8f76; font-size: .78rem; }
-.spx-search__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .8rem; }
+.spx-search__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .8rem; }
 .spx-search__card {
-  display: flex; gap: .8rem; align-items: flex-start; padding: .9rem; border-radius: 12px;
+  display: flex; flex-direction: column; gap: .8rem; padding: 1rem; border-radius: 12px;
   border: 1px solid rgba(201,162,75,.28); background: linear-gradient(180deg, #14110b 0%, #0a0806 100%);
 }
+.spx-search__top { display: flex; gap: .8rem; align-items: flex-start; }
 .spx-search__photo {
-  flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; background: #1c170e;
-  display: flex; align-items: center; justify-content: center; color: var(--gold); font-weight: 800;
+  flex: none; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: #1c170e;
+  display: flex; align-items: center; justify-content: center; color: var(--gold); font-weight: 800; font-size: 1.1rem;
 }
 .spx-search__photo img { width: 100%; height: 100%; object-fit: cover; }
 .spx-search__info { display: flex; flex-direction: column; gap: .15rem; flex: 1; min-width: 0; }
-.spx-search__info b { color: #f4f1ea; font-size: .88rem; }
+.spx-search__info b { color: #f4f1ea; font-size: .92rem; }
 .spx-search__info span { color: #9c8f76; font-size: .74rem; }
 .spx-search__status { color: var(--gold-soft) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .64rem !important; }
-.spx-search__moves { display: flex; flex-direction: column; gap: .25rem; flex-basis: 100%; margin-top: .3rem; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.06); }
+.spx-search__bio { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem .8rem; margin: 0; padding-top: .7rem; border-top: 1px solid rgba(255,255,255,.06); }
+.spx-search__bio dt { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
+.spx-search__bio dd { color: #d9cdb8; font-size: .76rem; margin: 0; }
+.spx-search__moves { display: flex; flex-direction: column; gap: .25rem; padding-top: .6rem; border-top: 1px solid rgba(255,255,255,.06); }
+.spx-search__label { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .1rem; }
 .spx-search__move { color: #d9cdb8; font-size: .72rem; line-height: 1.4; }
+.spx-search__move b { color: #d9cdb8; font-weight: 700; }
 .spx-search__muted { color: #7a6f5b; font-size: .72rem; font-style: italic; }
+.spx-search__gap { margin: 0; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.06); color: #6b6151; font-size: .64rem; font-style: italic; line-height: 1.4; }
 
 /* ── Magical Watch — award races ── */
 .spx-awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
