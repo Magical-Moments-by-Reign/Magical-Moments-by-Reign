@@ -8,7 +8,7 @@ test("mapSong maps a catalog song with its rank", () => {
   assert.equal(e!.rank, 3);
   assert.equal(e!.song, "Example Song");
   assert.equal(e!.artist, "Example Artist");
-  assert.equal(e!.artworkUrl, "https://a/300x300bb.jpg");
+  assert.equal(e!.artworkUrl, "https://a/600x600bb.jpg");
 });
 
 test("mapSong captures the catalog id and preview URL for playback", () => {

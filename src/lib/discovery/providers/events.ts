@@ -16,7 +16,9 @@ export interface EventSearchParams {
    *  when `coords` is set; resolved into Ticketmaster's own
    *  postalCode/city/stateCode params only when `coords` is absent — no
    *  geocoding involved, no third-party geocoder needed. */
-  location: string;
+  /** Required as a display label for a location-based search; can be
+   *  omitted entirely for a nationwide `keyword`-only search. */
+  location?: string;
   /** Real device/browser geolocation, when the member granted permission —
    *  sent to Ticketmaster's own `latlong` radius search directly. Takes
    *  priority over `location` for the actual query; `location` is still
@@ -27,6 +29,11 @@ export interface EventSearchParams {
   category?: EventCategory;
   radiusMiles?: number;
   limit?: number;
+  /** Free-text artist/event search (Ticketmaster's real `keyword` Discovery
+   *  API param) — e.g. featuring a specific real, currently-on-sale show by
+   *  name rather than searching by location. Can be used with or without a
+   *  location; a keyword alone searches nationwide. */
+  keyword?: string;
 }
 
 export interface DiscoveredEvent {
@@ -110,13 +117,14 @@ export function normalizeTicketmasterLocation(input: string): TicketmasterLocati
  *  (per EventSearchParams — the label is kept only for display). */
 export function buildTicketmasterQuery(params: EventSearchParams): URLSearchParams | null {
   const q = new URLSearchParams();
+  const hasKeyword = Boolean(params.keyword?.trim());
   if (params.coords) {
     q.set("latlong", `${params.coords.lat},${params.coords.lng}`);
     q.set("radius", String(params.radiusMiles ?? 25));
     q.set("unit", "miles");
-  } else {
+  } else if (params.location?.trim()) {
     const location = normalizeTicketmasterLocation(params.location);
-    if (location.kind === "invalid") return null;
+    if (location.kind === "invalid" && !hasKeyword) return null;
     if (location.kind === "postalCode") q.set("postalCode", location.postalCode);
     if (location.kind === "coordinates") q.set("latlong", location.latlong);
     if (location.kind === "city") {
@@ -127,6 +135,8 @@ export function buildTicketmasterQuery(params: EventSearchParams): URLSearchPara
       q.set("radius", String(params.radiusMiles ?? 25));
       q.set("unit", "miles");
     }
+  } else if (!hasKeyword) {
+    return null; // no coords, no location, no keyword — nothing to search on
   }
   q.set("size", String(Math.min(Math.max(params.limit ?? 24, 1), 50)));
   q.set("sort", "date,asc");
@@ -134,7 +144,8 @@ export function buildTicketmasterQuery(params: EventSearchParams): URLSearchPara
   if (segment) q.set("segmentName", segment);
   const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
   if (classificationName) q.set("classificationName", classificationName);
-  if (params.category === "festivals") q.set("keyword", "festival");
+  if (hasKeyword) q.set("keyword", params.keyword!.trim());
+  else if (params.category === "festivals") q.set("keyword", "festival");
   return q;
 }
 
@@ -234,7 +245,7 @@ export const TicketmasterProvider: EventsProvider = {
     const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
     const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
     const classificationSent = segment ?? classificationName ?? null;
-    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim());
+    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim()) || Boolean(params.keyword?.trim());
 
     const diag: EventsDiagnostic = {
       requestAttempted: false,

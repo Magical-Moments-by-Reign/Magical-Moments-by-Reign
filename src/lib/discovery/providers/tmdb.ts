@@ -98,11 +98,11 @@ function authedFetch(path: string, params: Record<string, string> = {}) {
   });
 }
 
-function poster(path: unknown, size: "w342" | "w500" = "w342"): string | undefined {
+function poster(path: unknown, size: "w342" | "w500" = "w500"): string | undefined {
   return typeof path === "string" && path ? `${TMDB_IMG}/${size}${path}` : undefined;
 }
 function backdrop(path: unknown): string | undefined {
-  return typeof path === "string" && path ? `${TMDB_IMG}/w780${path}` : undefined;
+  return typeof path === "string" && path ? `${TMDB_IMG}/w1280${path}` : undefined;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Magical Discovery", robots: { index:
 type Feature = { label: string; title: string; description?: string; image?: string; href: string; external?: boolean };
 
 function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string }) {
-  return src ? <Image src={src} alt={alt} fill sizes={sizes} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
+  return src ? <Image src={src} alt={alt} fill sizes={sizes} quality={90} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
 }
 
 // Image on top (fixed height, so it stays recognizable instead of being
@@ -84,7 +84,7 @@ export default async function DiscoveryPage() {
     <DiscoveryNav active="/dashboard/discovery" />
 
     <header className="disc-dark__hero">
-      {primary?.image && <Image src={primary.image} alt="" fill priority sizes="(max-width: 800px) 100vw, 80vw" className="disc-dark__hero-image" />}
+      {primary?.image && <Image src={primary.image} alt="" fill priority quality={90} sizes="(max-width: 800px) 100vw, 80vw" className="disc-dark__hero-image" />}
       <div className="disc-dark__hero-shade" />
       <div className="disc-dark__hero-copy">
         <span className="disc-lux__kicker">✦ &nbsp; Magical Discovery &nbsp; ✦</span>

@@ -91,8 +91,8 @@ export async function getMusicChart(genre: MusicGenre): Promise<MusicChartResult
   return { chartTitle: manual.title, entries, isOfficial: false, source: "manual" };
 }
 
-export async function getNearYouEvents(params: { location: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
-  if (!params.coords && !params.location?.trim()) return { items: [], source: "unavailable" };
+export async function getNearYouEvents(params: { location?: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number; keyword?: string; limit?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
+  if (!params.coords && !params.location?.trim() && !params.keyword?.trim()) return { items: [], source: "unavailable" };
   // Round coordinates to ~1.1km buckets (2 decimal places) before they reach
   // the cache key, so nearby members (or the same member's slightly-jittered
   // GPS reads) share a cache entry instead of every exact lat/lng missing
@@ -129,21 +129,32 @@ export interface CuratedItem {
   external?: boolean;
 }
 
+// The owner's current explicit editorial pick for the Events slot — a real,
+// on-sale tour, searched live against Ticketmaster by name rather than any
+// hardcoded date/venue/image, so it always reflects Ticketmaster's actual
+// current listing (or disappears on its own once nothing matches). Revisit
+// once this tour is no longer on sale.
+const CURATED_FEATURED_EVENT_KEYWORD = "Chris Brown";
+
 /** One real item per category (Watch/Movies/Music/Sports/Events) for the
  *  Discovery hub's "Curated For You" row. Watch/Movies/Music/Sports each
- *  fall back across a few real sources so the row rarely looks sparse;
- *  Events only appears when a location is known (the member's primary
- *  address, or a location they've already searched) — there is no
- *  server-side geolocation on the landing page. A category with no real
- *  item anywhere is simply omitted — never fabricated to fill the slot. */
+ *  fall back across a few real sources so the row rarely looks sparse.
+ *  Events tries the owner's current featured keyword search first (a real,
+ *  live Ticketmaster listing), then falls back to a location-based search
+ *  when the member has an address on file — there is no server-side
+ *  geolocation on the landing page. A category with no real item anywhere
+ *  is simply omitted — never fabricated to fill the slot. */
 export async function getCuratedForYou(opts: { location?: string } = {}): Promise<CuratedItem[]> {
-  const [watch, movies, music, events, sportsGames] = await Promise.all([
+  const [watch, movies, music, featuredEvent, sportsGames] = await Promise.all([
     getWatchItems("trending"),
     getMovieItems("now_playing"),
     getMusicChart("top"),
-    opts.location?.trim() ? getNearYouEvents({ location: opts.location.trim() }) : Promise.resolve<DiscoveryResult<DiscoveredEvent>>({ items: [], source: "unavailable" }),
+    getNearYouEvents({ keyword: CURATED_FEATURED_EVENT_KEYWORD, limit: 1 }),
     getSportsLandingGames(CURATED_DEFAULT_SPORTS, 1),
   ]);
+  const events = featuredEvent.items.length
+    ? featuredEvent
+    : opts.location?.trim() ? await getNearYouEvents({ location: opts.location.trim() }) : { items: [], source: "unavailable" as const };
 
   const items: CuratedItem[] = [];
   const w = watch.items[0];

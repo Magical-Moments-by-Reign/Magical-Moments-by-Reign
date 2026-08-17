@@ -62,7 +62,7 @@ export function mapSong(s: any, rank: number): MusicChartEntry | null {
     rank,
     song: String(attrs.name),
     artist: String(attrs.artistName),
-    artworkUrl: typeof attrs?.artwork?.url === "string" ? attrs.artwork.url.replace("{w}x{h}", "300x300") : undefined,
+    artworkUrl: typeof attrs?.artwork?.url === "string" ? attrs.artwork.url.replace("{w}x{h}", "600x600") : undefined,
     listenUrl: typeof attrs?.url === "string" ? attrs.url : undefined,
     catalogId: typeof s?.id === "string" ? s.id : undefined,
     previewUrl: Array.isArray(attrs?.previews) && typeof attrs.previews[0]?.url === "string" ? attrs.previews[0].url : undefined,
