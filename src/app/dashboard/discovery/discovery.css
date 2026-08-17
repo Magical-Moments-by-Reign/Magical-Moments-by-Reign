@@ -379,6 +379,14 @@
 .sports-dark .disc-section__head { padding-bottom: .55rem; border-bottom: 1px solid rgba(216,165,51,.3); }
 .sports-dark .sports-matchup__pick button { border-color: #9c6e15; background: #0a0d0f; color: #e5b84a; }
 
+.disc-dark > .disc-lux__section, .disc-dark > .disc-lux__triptych { margin-top: 0; padding-top: 1.6rem; }
+.disc-dark .disc-lux__curated { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1200px) { .disc-dark .disc-lux__curated { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .disc-dark .disc-lux__curated { display: grid; grid-auto-flow: column; grid-auto-columns: 82%; grid-template-columns: none; overflow-x: auto; padding-bottom: .6rem; scroll-snap-type: x proximity; } .disc-dark .disc-lux__curated .disc-lux__feature { scroll-snap-align: start; } }
+.disc-dark > .disc-lux__section + .disc-lux__section,
+.disc-dark > .disc-lux__section + .disc-lux__triptych,
+.disc-dark > .disc-lux__triptych + .disc-lux__section { border-top: 1px solid rgba(210,168,72,.16); }
+
 @media (max-width: 900px) {
   .disc-dark__hero-image { object-position: 82% center; }
   .disc-dark__hero-copy { width: 62%; padding-inline: 2rem; }

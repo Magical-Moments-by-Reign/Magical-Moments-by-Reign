@@ -68,7 +68,6 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
       ) : invalidLocation ? (
         <DiscoveryEmptyState title="We couldn’t recognize that location.">Try a ZIP code, a city such as Atlanta, GA, or a street address that includes its city and state.</DiscoveryEmptyState>
       ) : result && hasEvents ? (
-      ) : result && result.items.length ? (
         <div className="disc-grid">
           {result.items.map((e) => (
             <a key={e.id} className="disc-card" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
@@ -83,9 +82,9 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
                 {(e.city || e.state || e.distanceMiles != null) && <div className="disc-card__meta"><span>{[e.city, e.state].filter(Boolean).join(", ")}</span>{e.distanceMiles != null && <span>· {e.distanceMiles.toFixed(1)} mi</span>}</div>}
                 <span className="disc-card__action">View Tickets on Ticketmaster →</span>
               </div>
-            </div>
+            </a>
           ))}
-        </>
+        </div>
       ) : result?.source === "unavailable" ? (
         <div className="disc-pending">
           <b>We couldn&rsquo;t load nearby events right now.</b>

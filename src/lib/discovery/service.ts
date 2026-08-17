@@ -85,12 +85,6 @@ export async function getMusicChart(genre: MusicGenre): Promise<MusicChartResult
   return { chartTitle: manual.title, entries, isOfficial: false, source: "manual" };
 }
 
-export async function getNearYouEvents(params: { location: string; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
-  if (!params.location?.trim()) return { items: [], source: "unavailable" };
-  // queryVersion invalidates empty cache rows produced by the former
-  // `keyword=<location>` request, which was not a geographic search.
-  const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor({ ...params, queryVersion: 2 }), TTL.events, () =>
-    TicketmasterProvider.search(params));
 export async function getNearYouEvents(params: { location: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
   if (!params.coords && !params.location?.trim()) return { items: [], source: "unavailable" };
   // Round coordinates to ~1.1km buckets (2 decimal places) before they reach
@@ -118,6 +112,44 @@ export async function getSportsFeed(location?: string): Promise<SportsResult> {
     ? await getNearYouEvents({ location, category: "sports" })
     : { items: [], source: "unavailable" as const };
   return { games: [], pendingMessage: PENDING_SPORTS_MESSAGE, ticketedEvents };
+}
+
+export interface CuratedItem {
+  category: "Watch" | "Movies" | "Music" | "Events" | "Sports";
+  title: string;
+  description?: string;
+  image?: string;
+  href: string;
+  external?: boolean;
+}
+
+/** One real item per category (Watch/Movies/Music/Events/Sports) for the
+ *  Discovery hub's "Curated For You" row. Events only appears when a
+ *  location is known (the member's primary address, or a location they've
+ *  already searched) — there is no server-side geolocation on the landing
+ *  page. Sports is intentionally never included today: getSportsFeed()
+ *  never returns real games (see PENDING_SPORTS_MESSAGE), and this row
+ *  never fabricates a placeholder to fill the slot. Categories with no real
+ *  item are simply omitted, so the row can be shorter than five. */
+export async function getCuratedForYou(opts: { location?: string } = {}): Promise<CuratedItem[]> {
+  const [watch, movies, music, events] = await Promise.all([
+    getWatchItems("trending"),
+    getMovieItems("now_playing"),
+    getMusicChart("top"),
+    opts.location?.trim() ? getNearYouEvents({ location: opts.location.trim() }) : Promise.resolve<DiscoveryResult<DiscoveredEvent>>({ items: [], source: "unavailable" }),
+  ]);
+
+  const items: CuratedItem[] = [];
+  const w = watch.items[0];
+  if (w) items.push({ category: "Watch", title: w.title, description: w.firstAirDate ? `New episodes · ${w.firstAirDate.slice(0, 4)}` : undefined, image: w.backdropUrl ?? w.posterUrl, href: `/dashboard/discovery/watch/${w.id}` });
+  const m = movies.items[0];
+  if (m) items.push({ category: "Movies", title: m.title, description: "Now In Theaters", image: m.posterUrl ?? m.backdropUrl, href: `/dashboard/discovery/movies/${m.id}` });
+  const track = music.entries[0];
+  if (track) items.push({ category: "Music", title: track.artist, description: track.song, image: track.artworkUrl, href: "/dashboard/discovery/music" });
+  const event = events.items[0];
+  if (event) items.push({ category: "Events", title: event.name, description: event.venueName ?? ([event.city, event.state].filter(Boolean).join(", ") || undefined), image: event.imageUrl, href: event.ticketUrl, external: true });
+
+  return items.slice(0, 5);
 }
 
 /** Owner-curated Trending items — by design, no live provider (see architecture spec). */
