@@ -20,8 +20,12 @@ export interface LineupEntry {
   details: WatchDetails | null;
 }
 
+/** Reads degrade to an empty lineup (never crash the page) when the
+ *  WatchlistItem table hasn't been pushed to this environment's database
+ *  yet — schema deploys are a deliberate manual step here (see DEPLOY.md),
+ *  so a brand-new model can legitimately be missing for a while. */
 export async function getMyLineup(accountId: string): Promise<LineupEntry[]> {
-  const rows = await prisma.watchlistItem.findMany({ where: { accountId }, orderBy: { addedAt: "desc" } });
+  const rows = await prisma.watchlistItem.findMany({ where: { accountId }, orderBy: { addedAt: "desc" } }).catch(() => []);
   const details = await Promise.all(rows.map((r) => getWatchDetails(r.tmdbId)));
   return rows.map((r, i) => ({
     id: r.id,
@@ -39,17 +43,17 @@ export async function addToLineup(accountId: string, tmdbId: string, title: stri
     where: { accountId_tmdbId: { accountId, tmdbId } },
     update: {},
     create: { accountId, tmdbId, title, posterUrl },
-  });
+  }).catch(() => undefined);
 }
 
 export async function removeFromLineup(accountId: string, tmdbId: string): Promise<void> {
-  await prisma.watchlistItem.deleteMany({ where: { accountId, tmdbId } });
+  await prisma.watchlistItem.deleteMany({ where: { accountId, tmdbId } }).catch(() => undefined);
 }
 
 export async function toggleFavorite(accountId: string, tmdbId: string): Promise<void> {
-  const row = await prisma.watchlistItem.findUnique({ where: { accountId_tmdbId: { accountId, tmdbId } } });
+  const row = await prisma.watchlistItem.findUnique({ where: { accountId_tmdbId: { accountId, tmdbId } } }).catch(() => null);
   if (!row) return;
-  await prisma.watchlistItem.update({ where: { id: row.id }, data: { isFavorite: !row.isFavorite } });
+  await prisma.watchlistItem.update({ where: { id: row.id }, data: { isFavorite: !row.isFavorite } }).catch(() => undefined);
 }
 
 /** TMDB's own recommendations, seeded from up to 3 of the member's most
@@ -57,7 +61,7 @@ export async function toggleFavorite(accountId: string, tmdbId: string): Promise
  *  other. Falls back to trending TV when the lineup is empty or TMDB
  *  returns nothing usable for any seed — never a fabricated suggestion. */
 export async function getSuggestedForYou(accountId: string, limit = 10): Promise<WatchItem[]> {
-  const lineupRows = await prisma.watchlistItem.findMany({ where: { accountId }, orderBy: { addedAt: "desc" } });
+  const lineupRows = await prisma.watchlistItem.findMany({ where: { accountId }, orderBy: { addedAt: "desc" } }).catch(() => []);
   const lineupIds = new Set(lineupRows.map((r) => r.tmdbId));
 
   if (lineupRows.length) {
