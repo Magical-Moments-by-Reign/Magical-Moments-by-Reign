@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
 import "../../discovery.css";
@@ -28,10 +28,12 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = defaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults] = await Promise.all([
+  const [myTeams, searchResults, logos] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
+    getLeagueLogos(),
   ]);
+  const leagueLogo = logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
@@ -58,8 +60,18 @@ export default async function SportPage({ params, searchParams }: { params: Prom
 
   return (
     <div className="spx">
-      <div className="spx-divider" style={{ marginTop: "1.4rem" }}><span>{sportMeta.label}</span></div>
-      <Link href="/dashboard/discovery/sports" className="spx-panel__cta" style={{ display: "inline-block", marginBottom: "1.4rem" }}>← Back to Sports</Link>
+      <header className="spx-sport-header">
+        <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
+        <div className="spx-sport-header__brand">
+          {leagueLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={leagueLogo} alt="" className="spx-sport-header__logo" />
+          ) : (
+            <span className="spx-sport-header__mark" aria-hidden="true">{sportMeta.label.slice(0, 3).toUpperCase()}</span>
+          )}
+          <h1>{sportMeta.label}</h1>
+        </div>
+      </header>
 
       <div className="spx-panel" style={{ marginBottom: "1.4rem" }}>
         <div className="spx-panel__head"><h2>{gamesLabel}</h2></div>
