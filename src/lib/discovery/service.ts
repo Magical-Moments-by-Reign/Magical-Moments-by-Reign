@@ -126,6 +126,23 @@ export async function getSportsFeed(location?: string): Promise<SportsResult> {
   return { games: [], pendingMessage: PENDING_SPORTS_MESSAGE, ticketedEvents };
 }
 
+// Owner-curated "trending now" artists for the Near You page — each is a
+// real, live Ticketmaster keyword search by name, never a hardcoded date/
+// venue/image. An artist with no current on-sale listing anywhere in the
+// country simply doesn't appear in the row — never fabricated to fill a
+// slot. Add/remove names here as the Owner's picks change.
+const TRENDING_NEAR_YOU_KEYWORDS = ["Usher", "Chris Brown"];
+
+/** One real Ticketmaster listing per Owner-curated trending artist, for the
+ *  "Trending Now" row at the bottom of Near You. Searched nationwide (no
+ *  location required) so it works before a member enters one. */
+export async function getTrendingNearYouEvents(): Promise<DiscoveredEvent[]> {
+  const results = await Promise.all(
+    TRENDING_NEAR_YOU_KEYWORDS.map((keyword) => getNearYouEvents({ keyword, limit: 1 })),
+  );
+  return results.flatMap((r) => r.items.slice(0, 1));
+}
+
 export interface CuratedItem {
   category: "Watch" | "Movies" | "Music" | "Events" | "Sports";
   title: string;

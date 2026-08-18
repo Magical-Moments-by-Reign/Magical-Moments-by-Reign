@@ -3,7 +3,7 @@
 .near-hero {
   position: relative; overflow: hidden; border-radius: 16px; margin: 1.2rem 0 1.6rem; padding: 2.2rem 1.9rem 2rem;
   border: 1px solid rgba(210,168,72,.3);
-  background-image: linear-gradient(90deg, rgba(3,4,10,.94) 0%, rgba(3,4,10,.8) 42%, rgba(3,4,10,.32) 78%, rgba(3,4,10,.15) 100%), url(/discovery/near-you-hero.png);
+  background-image: linear-gradient(90deg, rgba(3,4,10,1) 0%, rgba(3,4,10,1) 46%, rgba(3,4,10,.6) 62%, rgba(3,4,10,.2) 85%, rgba(3,4,10,.08) 100%), url(/discovery/near-you-hero.png);
   background-size: cover; background-position: center; background-repeat: no-repeat;
 }
 .near-hero h1 { margin: 0 0 .6rem; color: #fffdf8; font: 800 clamp(2rem, 4.4vw, 3.2rem)/1.05 var(--font-sans, Arial, sans-serif); letter-spacing: -.02em; max-width: 16ch; }
@@ -46,6 +46,11 @@
 .near-you .disc-pending { border-color: rgba(210,168,72,.3); background: #14110b; color: #d9cdb8; }
 .near-you .disc-pending b { color: #fffaf0; }
 .near-you .near-empty { color: #9c8f76; }
+
+.near-trending { margin-top: 2.4rem; padding-top: 1.8rem; border-top: 1px solid rgba(210,168,72,.18); }
+.near-trending__head { display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.near-trending__head h2 { margin: 0; color: #fffdf8; font: 500 1.4rem/1.1 var(--font-display, Georgia, serif); }
+.near-trending__head span { color: #9c8f76; font-size: .74rem; }
 
 @media (max-width: 700px) {
   .near-hero { padding: 1.6rem 1.2rem; background-position: 70% center; }
