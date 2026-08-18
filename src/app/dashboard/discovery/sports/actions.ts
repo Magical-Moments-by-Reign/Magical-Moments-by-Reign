@@ -9,7 +9,9 @@
 import { revalidatePath } from "next/cache";
 import { requireAccount, requireOwner } from "@/lib/guard";
 import { followSport, followTeam, unfollow, submitPick, gradeGame, setFinalScore } from "@/lib/discovery/sports/service";
+import { trackPlayer, untrackPlayer } from "@/lib/discovery/sports/tracked-players";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
+import type { SdioLeague } from "@/lib/discovery/providers/sportsdata";
 
 export async function followSportAction(formData: FormData): Promise<void> {
   const account = await requireAccount("/dashboard/discovery/sports");
@@ -49,6 +51,31 @@ export async function submitPickAction(formData: FormData): Promise<void> {
   await submitPick(account.id, gameId, teamPick);
   revalidatePath(`/dashboard/discovery/sports/game/${gameId}`);
   revalidatePath("/dashboard/discovery/sports/picks");
+}
+
+const SDIO_LEAGUES: SdioLeague[] = ["nfl", "cfb", "nba", "wnba"];
+
+export async function trackPlayerAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports");
+  const league = String(formData.get("league") || "");
+  const playerId = String(formData.get("playerId") || "");
+  const playerName = String(formData.get("playerName") || "");
+  const team = formData.get("team") ? String(formData.get("team")) : undefined;
+  const position = formData.get("position") ? String(formData.get("position")) : undefined;
+  if (!SDIO_LEAGUES.includes(league as SdioLeague) || !playerId || !playerName) return;
+  await trackPlayer(account.id, league as SdioLeague, playerId, playerName, team, position);
+  revalidatePath("/dashboard/discovery/sports");
+  revalidatePath("/dashboard/discovery");
+}
+
+export async function untrackPlayerAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports");
+  const league = String(formData.get("league") || "");
+  const playerId = String(formData.get("playerId") || "");
+  if (!SDIO_LEAGUES.includes(league as SdioLeague) || !playerId) return;
+  await untrackPlayer(account.id, league as SdioLeague, playerId);
+  revalidatePath("/dashboard/discovery/sports");
+  revalidatePath("/dashboard/discovery");
 }
 
 /** Manual grading fallback — Owner only. Automatic grading already runs

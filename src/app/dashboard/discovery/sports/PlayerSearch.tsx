@@ -5,6 +5,7 @@
 // never fabricates a trade or roster move that didn't come back from the API.
 
 import { useEffect, useRef, useState } from "react";
+import { trackPlayerAction, untrackPlayerAction } from "./actions";
 
 type League = "nfl" | "cfb" | "nba" | "wnba";
 
@@ -17,6 +18,7 @@ const LEAGUES: { value: League; label: string }[] = [
 
 interface PlayerResult {
   playerId: string;
+  league: League;
   name: string;
   team?: string;
   position?: string;
@@ -36,11 +38,16 @@ function formatDate(iso?: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function PlayerSearch() {
+function trackedKey(league: string, playerId: string): string {
+  return `${league}:${playerId}`;
+}
+
+export default function PlayerSearch({ trackedKeys }: { trackedKeys: string[] }) {
   const [league, setLeague] = useState<League>("nfl");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlayerResult[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tracked, setTracked] = useState<Set<string>>(() => new Set(trackedKeys));
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -81,7 +88,10 @@ export default function PlayerSearch() {
 
       {results && results.length > 0 && (
         <div className="spx-search__results">
-          {results.map((p) => (
+          {results.map((p) => {
+            const key = trackedKey(p.league, p.playerId);
+            const isTracked = tracked.has(key);
+            return (
             <div className="spx-search__card" key={p.playerId}>
               <div className="spx-search__top">
                 <div className="spx-search__photo">
@@ -97,6 +107,19 @@ export default function PlayerSearch() {
                   <span>{[p.position, p.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
                   {p.status && <span className="spx-search__status">{p.status}</span>}
                 </div>
+                <form
+                  action={isTracked ? untrackPlayerAction : trackPlayerAction}
+                  onSubmit={() => setTracked((prev) => { const next = new Set(prev); if (isTracked) next.delete(key); else next.add(key); return next; })}
+                >
+                  <input type="hidden" name="league" value={p.league} />
+                  <input type="hidden" name="playerId" value={p.playerId} />
+                  {!isTracked && <input type="hidden" name="playerName" value={p.name} />}
+                  {!isTracked && p.team && <input type="hidden" name="team" value={p.team} />}
+                  {!isTracked && p.position && <input type="hidden" name="position" value={p.position} />}
+                  <button type="submit" className={isTracked ? "spx-search__track spx-search__track--on" : "spx-search__track"}>
+                    {isTracked ? "✓ Tracking" : "+ Track"}
+                  </button>
+                </form>
               </div>
 
               <dl className="spx-search__bio">
@@ -124,7 +147,8 @@ export default function PlayerSearch() {
 
               <p className="spx-search__gap">Career championships and past MVP/Heisman wins aren&rsquo;t available from this data source yet — shown here only once we have a real feed for it, never guessed.</p>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

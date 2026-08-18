@@ -1104,6 +1104,7 @@ model Account {
   reservations    Reservation[]
   savedServices   SavedService[]
   watchlistItems  WatchlistItem[]
+  trackedPlayers  TrackedPlayer[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   spotifyConnection SpotifyConnection?
@@ -2433,6 +2434,25 @@ model WatchlistItem {
   addedAt    DateTime @default(now())
 
   @@unique([accountId, tmdbId])
+  @@index([accountId, addedAt])
+}
+
+// A player the member is tracking on the Sports page — across any number of
+// leagues at once (NFL/CFB/NBA/WNBA). Just the pick itself; live status,
+// team, transactions, etc. are read fresh from SportsDataIO at render time
+// via getMyTrackedPlayers, never duplicated or cached stale here.
+model TrackedPlayer {
+  id         String   @id @default(cuid())
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  league     String   // SdioLeague: "nfl" | "cfb" | "nba" | "wnba"
+  playerId   String   // SportsDataIO PlayerID, stringified
+  playerName String   // snapshot for display if a live fetch ever fails
+  team       String?
+  position   String?
+  addedAt    DateTime @default(now())
+
+  @@unique([accountId, league, playerId])
   @@index([accountId, addedAt])
 }
 

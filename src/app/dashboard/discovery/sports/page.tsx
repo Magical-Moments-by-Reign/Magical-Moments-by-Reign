@@ -5,8 +5,9 @@ import { requireAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { getAwardRace, AWARD_RACES } from "@/lib/discovery/sports/awards";
+import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
 import { sdioConfigured } from "@/lib/discovery/providers/sportsdata";
-import { submitPickAction } from "./actions";
+import { submitPickAction, untrackPlayerAction } from "./actions";
 import SportsIcon from "./SportsIcons";
 import PlayerSearch from "./PlayerSearch";
 import "../discovery.css";
@@ -48,14 +49,16 @@ export default async function SportsPage() {
   const myTeams = await getMyTeams(account.id);
   const followedSports = [...new Set(myTeams.map((t) => t.follow.sport as SportSlug))];
 
-  const [logos, { live, upcoming }, featuredMatchup, awardRaces] = await Promise.all([
+  const [logos, { live, upcoming }, featuredMatchup, awardRaces, trackedPlayers] = await Promise.all([
     getLeagueLogos(),
     getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])),
     pickFeaturedMatchup(myTeams, followedSports, account.id),
     sdioConfigured()
       ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) })))
       : Promise.resolve([]),
+    sdioConfigured() ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
   ]);
+  const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
 
   return (
     <div className="spx">
@@ -85,9 +88,39 @@ export default async function SportsPage() {
 
       <div className="spx-divider"><span>Player &amp; Team Status</span></div>
       {sdioConfigured() ? (
-        <PlayerSearch />
+        <PlayerSearch trackedKeys={trackedKeys} />
       ) : (
         <p className="spx-panel__empty">Player search is being connected — check back soon.</p>
+      )}
+
+      {trackedPlayers.length > 0 && (
+        <div className="spx-tracked">
+          <div className="spx-tracked__head"><span>My Tracked Players</span><em>{trackedPlayers.length} across {new Set(trackedPlayers.map((t) => t.league)).size} league{new Set(trackedPlayers.map((t) => t.league)).size === 1 ? "" : "s"}</em></div>
+          <div className="spx-tracked__list">
+            {trackedPlayers.map((t) => (
+              <div className="spx-tracked__item" key={t.id}>
+                <div className="spx-tracked__photo">
+                  {t.live?.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.live.photoUrl} alt="" />
+                  ) : (
+                    <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
+                  )}
+                </div>
+                <div className="spx-tracked__info">
+                  <b>{t.playerName}</b>
+                  <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                  {t.live?.status && <span className="spx-tracked__status">{t.live.status}</span>}
+                </div>
+                <form action={untrackPlayerAction}>
+                  <input type="hidden" name="league" value={t.league} />
+                  <input type="hidden" name="playerId" value={t.playerId} />
+                  <button type="submit" className="spx-tracked__remove" aria-label={`Stop tracking ${t.playerName}`}>✕</button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {awardRaces.length > 0 && awardRaces.some((r) => r.entries.length > 0) && (

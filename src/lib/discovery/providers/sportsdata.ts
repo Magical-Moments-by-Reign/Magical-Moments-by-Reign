@@ -114,9 +114,15 @@ function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
     status: p?.Status ?? undefined,
     photoUrl: typeof p?.PhotoUrl === "string" && p.PhotoUrl.startsWith("http") ? p.PhotoUrl : undefined,
     age: deriveAge(p),
-    college: typeof p?.College === "string" && p.College.trim() ? p.College.trim() : undefined,
-    experienceYears: typeof p?.Experience === "number" ? p.Experience : undefined,
+    college: [p?.College, p?.CollegeName].find((v) => typeof v === "string" && v.trim())?.trim(),
+    experienceYears: parseExperience(p?.Experience ?? p?.ExperienceSeasons ?? p?.Seasons),
   };
+}
+
+function parseExperience(v: unknown): number | undefined {
+  if (typeof v === "number") return v >= 0 ? v : undefined;
+  if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v))) return Number(v);
+  return undefined;
 }
 
 /** Full active-roster player list for a league, used as the search index.

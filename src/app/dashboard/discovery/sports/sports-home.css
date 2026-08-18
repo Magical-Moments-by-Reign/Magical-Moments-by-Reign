@@ -214,6 +214,13 @@
 .spx-search__info b { color: #f4f1ea; font-size: .92rem; }
 .spx-search__info span { color: #9c8f76; font-size: .74rem; }
 .spx-search__status { color: var(--gold-soft) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .64rem !important; }
+.spx-search__top form { flex: none; margin-left: auto; align-self: flex-start; }
+.spx-search__track {
+  padding: .4rem .75rem; border-radius: 999px; border: 1px solid rgba(210,168,72,.4); background: transparent;
+  color: #d9cdb8; font-size: .68rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.spx-search__track:hover { border-color: var(--gold); color: var(--gold-soft); }
+.spx-search__track--on { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
 .spx-search__bio { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem .8rem; margin: 0; padding-top: .7rem; border-top: 1px solid rgba(255,255,255,.06); }
 .spx-search__bio dt { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
 .spx-search__bio dd { color: #d9cdb8; font-size: .76rem; margin: 0; }
@@ -223,6 +230,22 @@
 .spx-search__move b { color: #d9cdb8; font-weight: 700; }
 .spx-search__muted { color: #7a6f5b; font-size: .72rem; font-style: italic; }
 .spx-search__gap { margin: 0; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.06); color: #6b6151; font-size: .64rem; font-style: italic; line-height: 1.4; }
+
+/* ── My Tracked Players — multi-sport, persistent ── */
+.spx-tracked { margin: 0 0 2rem; padding: 1.1rem 1.3rem; border-radius: 14px; border: 1px solid rgba(201,162,75,.28); background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); }
+.spx-tracked__head { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; margin-bottom: .9rem; }
+.spx-tracked__head span { color: var(--gold); font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.spx-tracked__head em { color: #7a6f5b; font-size: .68rem; font-style: normal; }
+.spx-tracked__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .7rem; }
+.spx-tracked__item { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 10px; border: 1px solid rgba(255,255,255,.06); background: #0f0d09; }
+.spx-tracked__photo { flex: none; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: #1c170e; display: flex; align-items: center; justify-content: center; color: var(--gold); font-weight: 800; font-size: .82rem; }
+.spx-tracked__photo img { width: 100%; height: 100%; object-fit: cover; }
+.spx-tracked__info { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; }
+.spx-tracked__info b { color: #f4f1ea; font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spx-tracked__info span { color: #9c8f76; font-size: .66rem; }
+.spx-tracked__status { color: var(--gold-soft) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .58rem !important; }
+.spx-tracked__remove { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(210,168,72,.3); background: transparent; color: #7a6f5b; font-size: .68rem; cursor: pointer; }
+.spx-tracked__remove:hover { color: #e05b48; border-color: #e05b48; }
 
 /* ── Magical Watch — award races ── */
 .spx-awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
