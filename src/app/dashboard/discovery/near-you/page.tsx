@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getNearYouEvents } from "@/lib/discovery/service";
 import { normalizeTicketmasterLocation, type EventCategory } from "@/lib/discovery/providers/events";
 import DiscoveryNav from "../_nav";
-import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
+import { DiscoveryEmptyState } from "../_components";
 import "../discovery.css";
+import "./near-you.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Near You — Magical Discovery", robots: { index: false } };
@@ -33,28 +33,25 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
   const hasEvents = Boolean(result?.items.length);
 
   return (
-    <div className="disc">
-      <DiscoveryPageHeader title="Near You" description={<>Things you can actually go do — concerts, festivals, theater, and more, near a city you choose. We only look up events where you tell us to.</>} />
+    <div className="disc disc-lux disc-dark near-you">
       <DiscoveryNav active="/dashboard/discovery/near-you" />
 
-      <section className="near-partner" aria-labelledby="near-partner-title">
-        <div className="near-partner__brands">
-          <Image src="/brand/logo.png" alt="Magical Moments by Reign" width={190} height={62} className="near-partner__logo" />
-          <span aria-hidden="true">×</span>
-          <strong>ticketmaster</strong>
+      <section className="near-hero">
+        <h1>Events &amp; <em>Tickets</em></h1>
+        <p>Discover live experiences and book your next unforgettable moment.</p>
+        <div className="near-hero__row">
+          <span className="near-hero__partner">Powered by Ticketmaster, inside Magical Moments</span>
+          <Link href="/dashboard/discovery/trending" className="near-hero__trending">✦ See What&rsquo;s Trending <span aria-hidden="true">→</span></Link>
         </div>
-        <span className="near-partner__eyebrow">Ticketmaster inside Magical Moments</span>
-        <h2 id="near-partner-title">Find Something Magical Near You</h2>
-        <p>Discover concerts, festivals, comedy, theater, sports, family experiences, arts, culture, and more happening around you.</p>
-      </section>
 
-      <form className="near-search" method="get">
-        <label htmlFor="near-location">Where do you want to explore?</label>
-        <div className="near-search__row"><input id="near-location" type="text" name="location" placeholder="Enter address, city, or ZIP code" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
-        <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
-        {category && <input type="hidden" name="category" value={category} />}
-        <button type="submit" className="btn btn--gold">Find Events</button></div>
-      </form>
+        <form className="near-search" method="get">
+          <label htmlFor="near-location">Where do you want to explore?</label>
+          <div className="near-search__row"><input id="near-location" type="text" name="location" placeholder="Enter address, city, or ZIP code" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
+          <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
+          {category && <input type="hidden" name="category" value={category} />}
+          <button type="submit" className="btn btn--gold">Find Events</button></div>
+        </form>
+      </section>
 
       <div className="disc-filters">
         <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&radius=${radius}`} aria-current={!category ? "true" : undefined}>All</a>
