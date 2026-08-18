@@ -63,7 +63,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   }
 
   const standingsResult = connected && hasLeague ? await getStandings(sport, league) : { standings: [] };
-  const standings = standingsResult.standings;
+  const standings = standingsResult.standings ?? [];
   const standingsRestricted = standingsResult.planRestricted;
 
   return (
