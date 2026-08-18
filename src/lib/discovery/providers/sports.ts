@@ -72,7 +72,16 @@ export interface SportsProvider {
   gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsDateResult | null>;
   gamesForTeam(sport: SportSlug, teamExternalId: string, opts?: { league?: string; season?: string }): Promise<SportsGameSummary[] | null>;
   searchTeams(sport: SportSlug, query: string, league?: string): Promise<SportsTeam[] | null>;
-  standings(sport: SportSlug, league: string, season?: string): Promise<SportsStanding[] | null>;
+  standings(sport: SportSlug, league: string, season?: string): Promise<SportsStandingsResult | null>;
+}
+
+export interface SportsStandingsResult {
+  standings: SportsStanding[];
+  /** Set only when API-Sports' response body itself signaled a plan
+   *  restriction for the standings endpoint — same detection as
+   *  SportsDateResult.planRestricted, never conflated with a genuine
+   *  "no standings yet" result. */
+  planRestricted?: string;
 }
 
 export const PENDING_SPORTS_MESSAGE = "Live sports integration pending.";
@@ -97,7 +106,7 @@ export const SportsPendingProvider: SportsProvider = {
   async searchTeams(): Promise<SportsTeam[] | null> {
     return null;
   },
-  async standings(): Promise<SportsStanding[] | null> {
+  async standings(): Promise<SportsStandingsResult | null> {
     return null;
   },
 };
@@ -351,16 +360,17 @@ export const ApiSportsProvider: SportsProvider = {
       .filter((t: SportsTeam | null): t is SportsTeam => t !== null);
   },
 
-  async standings(sport, league, season): Promise<SportsStanding[] | null> {
+  async standings(sport, league, season): Promise<SportsStandingsResult | null> {
     if (!this.isConfigured(sport)) return null;
     const yr = season || seasonParam(sport, new Date().toISOString());
     const json = await apiSportsFetch(sport, "/standings", { league, season: yr });
+    if (!json) return null;
+    const planRestricted = detectPlanRestriction(json) ?? undefined;
     const raw = (json as any)?.response;
     const flat: any[] = Array.isArray(raw)
       ? (Array.isArray(raw[0]) ? raw.flat() : Array.isArray(raw[0]?.league?.standings?.[0]) ? raw[0].league.standings.flat() : raw)
       : [];
-    if (!flat.length) return null;
-    return flat
+    const standings = flat
       .map((row: any) => {
         const t = row?.team;
         if (!t?.id || !t?.name) return null;
@@ -376,6 +386,7 @@ export const ApiSportsProvider: SportsProvider = {
         } as SportsStanding;
       })
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
+    return { standings, planRestricted };
   },
 };
 
