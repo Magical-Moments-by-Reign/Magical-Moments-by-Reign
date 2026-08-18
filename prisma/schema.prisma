@@ -1105,6 +1105,7 @@ model Account {
   savedServices   SavedService[]
   watchlistItems  WatchlistItem[]
   trackedPlayers  TrackedPlayer[]
+  savedEvents     SavedEvent[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
   spotifyConnection SpotifyConnection?
@@ -2453,6 +2454,33 @@ model TrackedPlayer {
   addedAt    DateTime @default(now())
 
   @@unique([accountId, league, playerId])
+  @@index([accountId, addedAt])
+}
+
+// A Ticketmaster event a member saved on the Near You (Events & Tickets)
+// page. This is a personal watchlist only — never proof of purchase.
+// Magical Moments has no connection to Ticketmaster's order/checkout data
+// (that would require a Ticketmaster Partner/Order API relationship we
+// don't have), so we can never know what a member actually bought.
+// ticketUrl always points back to Ticketmaster's own real checkout/event
+// page — the only place an actual purchase happens.
+model SavedEvent {
+  id             String   @id @default(cuid())
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ticketmasterId String   // Ticketmaster event id — matches DiscoveredEvent.id
+  name           String   // snapshot for display if a live fetch ever fails
+  imageUrl       String?
+  category       String?  // EventCategory
+  localDate      String?
+  localTime      String?
+  venueName      String?
+  city           String?
+  state          String?
+  ticketUrl      String
+  addedAt        DateTime @default(now())
+
+  @@unique([accountId, ticketmasterId])
   @@index([accountId, addedAt])
 }
 
