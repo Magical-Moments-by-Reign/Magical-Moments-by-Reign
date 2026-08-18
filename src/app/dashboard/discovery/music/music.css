@@ -1,0 +1,74 @@
+/* ── Music — black/gold .disc-dark theme ──────────────────────────
+   Reskins the shared .amk-* (Apple Music browse) and .disc-* (search
+   results / no-provider fallback) components for this page only, the
+   same way movies.css/today.css/sports-home.css scope their own
+   page-specific dark overrides rather than touching the shared light
+   theme those classes still serve elsewhere. */
+
+.music .disc-filters { border: none; margin-bottom: 1.4rem; }
+.music .disc-filters a { border-color: rgba(210,168,72,.3); background: #14110b; color: #d9cdb8; }
+.music .disc-filters a[aria-current="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
+
+.music .disc-music__search-row { margin-bottom: 1.2rem; }
+.music .disc-form--compact { border-color: rgba(210,168,72,.35); background: #14110b; }
+.music .disc-form--compact input[type="text"] { background: #0b0906; border-color: rgba(210,168,72,.25); color: #fffaf0; }
+
+/* ── Hero (photo background already set in discovery.css) ── */
+.amk-hero__badge { gap: .6rem; }
+.amk-hero__badge img { width: 34px; height: 34px; object-fit: contain; }
+.amk-hero__badge span { display: flex; flex-direction: column; line-height: 1.2; font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #fffaf0; }
+.amk-hero__badge span em { font-style: normal; color: #d6aa4c; font-size: .68rem; letter-spacing: .1em; }
+.music .amk-hero__body h1 { color: #fffdf8; }
+.music .amk-hero__body p { color: #e9dcc4; }
+.amk-hero__play-all {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .6rem 1.2rem; border-radius: 999px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; font-size: .78rem; font-weight: 800; letter-spacing: .02em;
+}
+
+/* ── Pills ── */
+.music .amk-pills a, .music .amk-pills button { border-color: rgba(210,168,72,.3); background: #14110b; color: #d9cdb8; }
+.music .amk-pills a[aria-current="true"], .music .amk-pills button[aria-current="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
+
+/* ── Row heads ── */
+.music .amk-row__head h2 { color: #fffaf0; font-weight: 500; }
+.amk-row__seeall { margin-left: auto; background: none; border: none; color: #d6aa4c; font-size: .76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: .25rem; }
+.amk-row__seeall:hover { color: #e0b651; }
+
+/* ── Ranked list (Top Songs / Playlists / Artists) ── */
+.amk-row__ranked { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.1rem; }
+.amk-ranked { display: flex; flex-direction: column; gap: .4rem; text-decoration: none; color: inherit; min-width: 0; }
+.amk-ranked__num { font-family: var(--font-display, Georgia, serif); color: #d6aa4c; font-size: 1.3rem; font-weight: 700; line-height: 1; }
+.amk-ranked__art { position: relative; width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: linear-gradient(145deg, #2a2117, #14100c); }
+.amk-ranked__img { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.amk-ranked__play {
+  position: absolute; right: .45rem; bottom: .45rem; width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; font-size: .68rem; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.4);
+}
+.amk-ranked__title { display: block; color: #fffaf0; font-size: .84rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amk-ranked__subtitle { display: block; color: #9c8f76; font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.amk-ranked--round .amk-ranked__art--round { border-radius: 50%; }
+.amk-ranked--round .amk-ranked__title { text-align: center; }
+
+@media (max-width: 900px) { .amk-row__ranked { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .amk-row__ranked { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Albums / New Releases row (unranked horizontal scroll, kept from before) ── */
+.music .amk-tile__title { color: #fffaf0; }
+.music .amk-tile__subtitle { color: #9c8f76; }
+.music .amk-tile__art { background-color: #14100c; }
+
+/* ── Search results + no-provider fallback ── */
+.music .disc-card { background: #14110b; border-color: rgba(210,168,72,.3); box-shadow: none; }
+.music .disc-card h3 { color: #fffaf0; }
+.music .disc-card p { color: #9c8f76; }
+.music .disc-card__eyebrow { color: #d6aa4c; }
+.music .disc-card__cta { color: #d6aa4c; }
+.music .disc-chart { background: #14110b; border-color: rgba(210,168,72,.3); }
+.music .disc-chart__row { border-color: rgba(210,168,72,.15); }
+.music .disc-chart__song b { color: #fffaf0; }
+.music .disc-chart__song span { color: #9c8f76; }
+.music .disc-chart__rank { color: #d6aa4c; }
+.music .disc-empty { color: #9c8f76; }
+.music h3 { color: #d9cdb8; }

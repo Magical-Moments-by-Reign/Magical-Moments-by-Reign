@@ -11,8 +11,9 @@ import PlaySongButton from "@/components/apple-music/PlaySongButton";
 import NowPlayingBar from "@/components/apple-music/NowPlayingBar";
 import AppleMusicBrowse from "@/components/apple-music/AppleMusicBrowse";
 import DiscoveryNav from "../_nav";
-import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
+import { DiscoveryEmptyState } from "../_components";
 import "../discovery.css";
+import "./music.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Music — Magical Discovery", robots: { index: false } };
@@ -36,13 +37,12 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
 
   return (
     <AppleMusicKitProvider>
-    <div className="disc">
-      <DiscoveryPageHeader title="Music" description={<>What&rsquo;s hot in music today — charts, artists, albums, and tracks by genre.</>} />
+    <div className="disc disc-lux disc-dark music">
       <DiscoveryNav active="/dashboard/discovery/music" />
 
       <div className="disc-filters">
         {GENRES.map((g) => (
-          <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
+          <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
         ))}
       </div>
 
@@ -70,7 +70,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                 playlistsTitle={featuredCharts?.playlistsTitle ?? "Playlists For You"}
                 playlists={featuredCharts?.playlists ?? []}
                 genre={genre}
-                genres={GENRES}
+                isOfficial={chart.isOfficial}
               />
             )}
 
