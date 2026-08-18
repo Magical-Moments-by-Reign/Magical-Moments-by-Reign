@@ -7,16 +7,19 @@
 .today-lead { display: grid; grid-template-columns: 1.6fr 1fr; gap: 1.2rem; margin-bottom: 1.8rem; }
 
 .today-hero {
-  position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: 420px;
-  padding: 1.6rem 1.8rem; border-radius: 16px; border: 1px solid rgba(210,168,72,.3);
-  background: linear-gradient(180deg, rgba(2,5,7,.15) 0%, rgba(2,5,7,.92) 92%), linear-gradient(145deg, #2a2117, #14100c);
-  background-size: cover; background-position: center; text-decoration: none; color: inherit; overflow: hidden;
+  display: flex; flex-direction: column; border-radius: 16px; border: 1px solid rgba(210,168,72,.3);
+  background: #14110b; text-decoration: none; color: inherit; overflow: hidden;
+}
+.today-hero__art {
+  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  background: linear-gradient(145deg, #2a2117, #14100c); background-size: cover; background-position: center;
+  display: flex; align-items: flex-start;
 }
 .today-hero__badge {
-  align-self: flex-start; margin-bottom: auto; padding: .3rem .75rem; border-radius: 6px; background: #d6aa4c;
+  margin: 1rem; padding: .3rem .75rem; border-radius: 6px; background: #d6aa4c;
   color: #1a1006; font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
 }
-.today-hero__body { max-width: 42rem; }
+.today-hero__body { max-width: 42rem; padding: 1.4rem 1.8rem 1.6rem; }
 .today-hero__eyebrow { display: block; margin-bottom: .4rem; color: #d6aa4c; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 .today-hero__body h2 { margin: 0 0 .6rem; color: #fffdf8; font: 500 clamp(1.5rem, 3vw, 2.2rem)/1.15 var(--font-display, Georgia, serif); }
 .today-hero__body p { margin: 0 0 .9rem; color: #eee8df; font-size: .88rem; line-height: 1.5; max-width: 55ch; }
