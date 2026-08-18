@@ -14,7 +14,12 @@ type Props = {
  * browser error here ensures the product never exposes a broken image icon. */
 export default function DiscoveryImage({ src, alt, className, fallback }: Props) {
   const [failed, setFailed] = useState(false);
-  const usable = Boolean(src && /^https?:\/\//i.test(src));
+  // Provider artwork must be a real http(s) URL; a root-relative path
+  // (e.g. "/discovery/leagues/nfl.png") is one of our own static assets,
+  // not user- or provider-controlled, so it's equally safe to render —
+  // excludes "//host/..." (protocol-relative, i.e. an external URL in
+  // disguise) by requiring the second character not also be a slash.
+  const usable = Boolean(src && (/^https?:\/\//i.test(src) || /^\/(?!\/)/.test(src)));
 
   if (!usable || failed) {
     return <span className={`${className ?? ""} discovery-image-fallback`} role="img" aria-label={alt}>{fallback ?? alt}</span>;
