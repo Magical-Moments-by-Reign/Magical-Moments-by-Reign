@@ -67,8 +67,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <>
           <div className="today-lead">
             {hero && (
-              <a className="today-hero" href={hero.url ?? "#"} target={hero.url ? "_blank" : undefined} rel="noopener noreferrer" style={hero.imageUrl ? { backgroundImage: `linear-gradient(180deg, rgba(2,5,7,.15) 0%, rgba(2,5,7,.92) 92%), url(${hero.imageUrl})` } : undefined}>
-                <span className="today-hero__badge">Breaking</span>
+              <a className="today-hero" href={hero.url ?? "#"} target={hero.url ? "_blank" : undefined} rel="noopener noreferrer">
+                <div className="today-hero__art" style={hero.imageUrl ? { backgroundImage: `url(${hero.imageUrl})` } : undefined}>
+                  <span className="today-hero__badge">Breaking</span>
+                </div>
                 <div className="today-hero__body">
                   <span className="today-hero__eyebrow">{hero.source}</span>
                   <h2>{hero.headline}</h2>
