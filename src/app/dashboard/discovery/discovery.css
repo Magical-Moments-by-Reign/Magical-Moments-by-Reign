@@ -52,6 +52,12 @@
 .disc-badge--live { background: #e7f3ea; color: #2f7a45; border-color: #cfe8d5; }
 .disc-badge--manual { background: #f1e8d6; color: var(--gold-deep); }
 .disc-badge--error { background: #fbe9e7; color: #a63a2e; border-color: #f0cec8; }
+
+.disc-admin-badge {
+  display: inline-block; margin: 0 0 .8rem; padding: .3rem .75rem; border-radius: 6px;
+  background: rgba(224,85,95,.12); border: 1px solid rgba(224,85,95,.4); color: #e0555f;
+  font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+}
 .disc-badge--muted { background: #f2ede4; color: var(--ink-soft); border-color: var(--line); }
 
 /* ── Discovery Content Center (owner-only) ──────────────────────── */

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getMovieItems, getMovieDetails, getFeaturedItem } from "@/lib/discovery/service";
-import type { MovieSection } from "@/lib/discovery/providers/tmdb";
+import type { MovieItem, MovieSection } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "../_nav";
-import { DiscoveryEmptyState, DiscoveryPageHeader } from "../_components";
+import { DiscoveryEmptyState } from "../_components";
 import "../discovery.css";
+import "./movies.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Movies — Magical Discovery", robots: { index: false } };
@@ -23,10 +25,17 @@ const SECTION_STATUS: Record<MovieSection, string> = {
   coming_soon: "Coming Soon", popular: "Popular Now",
 };
 
-function formatDate(iso?: string): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+function Artwork({ src, alt }: { src?: string; alt: string }) {
+  return src ? <Image src={src} alt={alt} fill sizes="220px" className="movies-art-img" /> : <div className="movies-art-fallback" aria-hidden="true">✦</div>;
+}
+
+interface HeroMovie {
+  id: string;
+  title: string;
+  overview?: string;
+  image?: string;
+  href: string;
+  external?: boolean;
 }
 
 export default async function MoviesPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
@@ -43,55 +52,70 @@ export default async function MoviesPage({ searchParams }: { searchParams: Promi
     (await Promise.all(result.items.map(async (m) => [m.id, (await getMovieDetails(m.id))?.availableOn ?? []] as const))),
   );
 
+  const rest = [...result.items];
+  const hero: HeroMovie | null = featured
+    ? { id: "featured", title: featured.title, overview: featured.description ?? undefined, image: featured.imageUrl ?? undefined, href: featured.externalUrl ?? "#", external: Boolean(featured.externalUrl) }
+    : rest.length
+      ? (() => { const m = rest.shift() as MovieItem; return { id: m.id, title: m.title, overview: m.overview, image: m.backdropUrl ?? m.posterUrl, href: `/dashboard/discovery/movies/${m.id}` }; })()
+      : null;
+
   return (
-    <div className="disc">
-      <DiscoveryPageHeader title="Movies" description={<>What can we go see tonight? Posters, ratings, genres, and trailers for what&rsquo;s playing and what&rsquo;s coming.</>} />
+    <div className="disc disc-lux disc-dark movies">
       <DiscoveryNav active="/dashboard/discovery/movies" />
 
-      <div className="disc-filters">
+      <header className="movies-header">
+        <div>
+          <h1>Movies</h1>
+          <p>What can we go see tonight? Posters, ratings, genres, and trailers for what&rsquo;s playing and what&rsquo;s coming.</p>
+        </div>
+      </header>
+
+      <div className="disc-filters movies-filters">
         {SECTIONS.map((s) => (
           <a key={s.id} href={`/dashboard/discovery/movies?section=${s.id}`} aria-current={section === s.id ? "true" : undefined}>{s.label}</a>
         ))}
       </div>
 
-      {featured ? (
-        <a className="disc-card disc-card--feature" href={featured.externalUrl ?? "#"} target={featured.externalUrl ? "_blank" : undefined} rel="noopener noreferrer">
-          <div className="disc-card__img" style={featured.imageUrl ? { backgroundImage: `url(${featured.imageUrl})` } : undefined} />
-          <div className="disc-card__body">
-            <span className="disc-card__eyebrow">Because It&rsquo;s Hot</span>
-            <h3>{featured.title}</h3>
-            {featured.description && <p>{featured.description}</p>}
-          </div>
-        </a>
-      ) : result.items[0] && (
-        <Link className="disc-card disc-card--feature" href={`/dashboard/discovery/movies/${result.items[0].id}`}>
-          <div className="disc-card__img" style={(result.items[0].backdropUrl ?? result.items[0].posterUrl) ? { backgroundImage: `url(${result.items[0].backdropUrl ?? result.items[0].posterUrl})` } : undefined} />
-          <div className="disc-card__body">
-            <span className="disc-card__eyebrow">{SECTION_STATUS[section]}</span>
-            <h3>{result.items[0].title}</h3>
-            {result.items[0].overview && <p>{result.items[0].overview}</p>}
-          </div>
-        </Link>
+      {hero && (
+        hero.external ? (
+          <a className="movies-hero" href={hero.href} target="_blank" rel="noopener noreferrer" style={hero.image ? { backgroundImage: `linear-gradient(180deg, rgba(2,5,7,.15) 0%, rgba(2,5,7,.92) 92%), url(${hero.image})` } : undefined}>
+            <span className="movies-hero__badge">{SECTION_STATUS[section]}</span>
+            <h2>{hero.title}</h2>
+            {hero.overview && <p>{hero.overview}</p>}
+          </a>
+        ) : (
+          <Link className="movies-hero" href={hero.href} style={hero.image ? { backgroundImage: `linear-gradient(180deg, rgba(2,5,7,.15) 0%, rgba(2,5,7,.92) 92%), url(${hero.image})` } : undefined}>
+            <span className="movies-hero__badge">{SECTION_STATUS[section]}</span>
+            <h2>{hero.title}</h2>
+            {hero.overview && <p>{hero.overview}</p>}
+          </Link>
+        )
       )}
 
-      {result.items.length ? (
-        <div className="disc-grid">
-          {result.items.map((m) => (
-            <Link key={m.id} className="disc-card disc-card--portrait" href={`/dashboard/discovery/movies/${m.id}`}>
-              <div className="disc-card__img" style={m.posterUrl ? { backgroundImage: `url(${m.posterUrl})` } : undefined} />
-              <div className="disc-card__body">
-                <span className="disc-card__eyebrow">Movie</span><h3>{m.title}</h3>
-                {m.voteAverage ? <div className="disc-card__meta"><span>★ {m.voteAverage.toFixed(1)}</span>{m.releaseDate && <span>· {m.releaseDate.slice(0, 4)}</span>}</div> : null}
-                {m.genres?.length ? <div className="disc-card__meta"><span>{m.genres.slice(0, 2).join(", ")}</span></div> : null}
-              </div>
-            </Link>
-          ))}
+      {rest.length ? (
+        <div className="movies-grid">
+          {rest.map((m) => {
+            const availableOn = availableOnById.get(m.id) ?? [];
+            return (
+              <Link key={m.id} className="movies-card" href={`/dashboard/discovery/movies/${m.id}`}>
+                <div className="movies-card__art"><Artwork src={m.posterUrl} alt={`${m.title} poster`} /></div>
+                <div className="movies-card__body">
+                  <b>{m.title}</b>
+                  {(m.voteAverage || m.releaseDate) && (
+                    <span>{m.voteAverage ? `★ ${m.voteAverage.toFixed(1)}` : ""}{m.voteAverage && m.releaseDate ? " · " : ""}{m.releaseDate?.slice(0, 4)}</span>
+                  )}
+                  {m.genres?.length ? <span className="movies-card__genres">{m.genres.slice(0, 2).join(", ")}</span> : null}
+                  {availableOn.length > 0 && <span className="movies-card__watch">{availableOn[0].name}</span>}
+                </div>
+              </Link>
+            );
+          })}
         </div>
-      ) : (
+      ) : !hero ? (
         <DiscoveryEmptyState title="Movies aren’t connected yet.">Once a movie metadata provider is configured, showtimes-ready listings will appear here automatically.</DiscoveryEmptyState>
-      )}
+      ) : null}
 
-      {result.providerName && <p className="disc-empty">{result.attribution}</p>}
+      {result.providerName && <p className="movies-attribution">{result.attribution}</p>}
     </div>
   );
 }

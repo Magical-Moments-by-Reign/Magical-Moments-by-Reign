@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
-import { requireAccount } from "@/lib/guard";
+import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { getAwardRace, AWARD_RACES } from "@/lib/discovery/sports/awards";
 import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
-import { sdioConfigured } from "@/lib/discovery/providers/sportsdata";
+import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { submitPickAction, untrackPlayerAction } from "./actions";
 import SportsIcon from "./SportsIcons";
 import PlayerSearch from "./PlayerSearch";
+import StadiumBackdrop from "./StadiumBackdrop";
 import "../discovery.css";
 import "./sports-home.css";
+
+// API-Sports doesn't reliably return usable league artwork for American
+// football (confirmed repeatedly — a generic "no logo" placeholder image
+// comes back looking like a broken icon rather than a real crest), so these
+// two always use the clean monogram fallback instead of attempting a live
+// logo render.
+const NO_LIVE_LOGO = new Set<SportSlug>(["nfl", "ncaaf"]);
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Moments Sports", robots: { index: false } };
@@ -49,20 +57,29 @@ export default async function SportsPage() {
   const myTeams = await getMyTeams(account.id);
   const followedSports = [...new Set(myTeams.map((t) => t.follow.sport as SportSlug))];
 
+  // SportsDataIO is still on a free trial known to return scrambled values
+  // for some fields (e.g. a player's team) — every surface it powers stays
+  // owner-only until SPORTSDATAIO_COMMERCIAL_DATA flips on, so members are
+  // never shown unverified trial data. See sdioCommercialMode's doc comment.
+  const isOwner = await isOwnerAccount(account.id);
+  const showSdio = sdioConfigured() && (sdioCommercialMode() || isOwner);
+  const previewOnly = showSdio && !sdioCommercialMode();
+
   const [logos, { live, upcoming }, featuredMatchup, awardRaces, trackedPlayers] = await Promise.all([
     getLeagueLogos(),
     getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])),
     pickFeaturedMatchup(myTeams, followedSports, account.id),
-    sdioConfigured()
+    showSdio
       ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) })))
       : Promise.resolve([]),
-    sdioConfigured() ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
+    showSdio ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
   ]);
   const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
 
   return (
     <div className="spx">
       <section className="spx-hero">
+        <StadiumBackdrop />
         <div className="spx-hero__brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/logo-champagne.png" alt="" />
@@ -75,7 +92,7 @@ export default async function SportsPage() {
       <div className="spx-divider"><span>Explore All Sports</span></div>
       <div className="spx-grid">
         {SPORT_CATALOG.map((s) => {
-          const logo = logos[s.slug];
+          const logo = NO_LIVE_LOGO.has(s.slug) ? undefined : logos[s.slug];
           return (
             <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
               <DiscoveryImage src={logo} alt={`${s.label} league mark`} fallback={s.label.slice(0, 3).toUpperCase()} />
@@ -86,71 +103,73 @@ export default async function SportsPage() {
         })}
       </div>
 
-      <div className="spx-divider"><span>Player &amp; Team Status</span></div>
-      {sdioConfigured() ? (
-        <PlayerSearch trackedKeys={trackedKeys} />
-      ) : (
-        <p className="spx-panel__empty">Player search is being connected — check back soon.</p>
-      )}
-
-      {trackedPlayers.length > 0 && (
-        <div className="spx-tracked">
-          <div className="spx-tracked__head"><span>My Tracked Players</span><em>{trackedPlayers.length} across {new Set(trackedPlayers.map((t) => t.league)).size} league{new Set(trackedPlayers.map((t) => t.league)).size === 1 ? "" : "s"}</em></div>
-          <div className="spx-tracked__list">
-            {trackedPlayers.map((t) => (
-              <div className="spx-tracked__item" key={t.id}>
-                <div className="spx-tracked__photo">
-                  {t.live?.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.live.photoUrl} alt="" />
-                  ) : (
-                    <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
-                  )}
-                </div>
-                <div className="spx-tracked__info">
-                  <b>{t.playerName}</b>
-                  <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
-                  {t.live?.status && <span className="spx-tracked__status">{t.live.status}</span>}
-                </div>
-                <form action={untrackPlayerAction}>
-                  <input type="hidden" name="league" value={t.league} />
-                  <input type="hidden" name="playerId" value={t.playerId} />
-                  <button type="submit" className="spx-tracked__remove" aria-label={`Stop tracking ${t.playerName}`}>✕</button>
-                </form>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {awardRaces.length > 0 && awardRaces.some((r) => r.entries.length > 0) && (
+      {showSdio && (
         <>
-          <div className="spx-divider"><span>Magical Watch — Award Races</span></div>
-          <div className="spx-awards">
-            {awardRaces.filter((r) => r.entries.length > 0).map((race) => (
-              <div className="spx-award" key={`${race.league}-${race.award}`}>
-                <div className="spx-award__head">
-                  <h3>{race.label}</h3>
-                  <span>Betting-market consensus, for entertainment only</span>
-                </div>
-                <ol className="spx-award__list">
-                  {race.entries.slice(0, 5).map((e) => (
-                    <li key={e.playerId}>
-                      <span className="spx-award__rank">{e.currentRank}</span>
-                      <div className="spx-award__info">
-                        <b>{e.playerName}</b>
-                        <span>{[e.position, e.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
-                        {e.seasonStats && <span className="spx-award__stats">{e.seasonStats}</span>}
-                        {e.teamRecord && <span className="spx-award__record">Team: {e.teamRecord}</span>}
-                      </div>
-                      {e.futuresConsensus && <span className="spx-award__odds">{e.futuresConsensus}</span>}
-                    </li>
-                  ))}
-                </ol>
-                <p className="spx-award__foot">Source: SportsDataIO futures market · updated {new Date(race.entries[0].lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+          {previewOnly && <div className="spx-admin-badge">Admin Preview — not shown to members</div>}
+
+          <div className="spx-divider"><span>Player &amp; Team Status</span></div>
+          <PlayerSearch trackedKeys={trackedKeys} />
+
+          {trackedPlayers.length > 0 && (
+            <div className="spx-tracked">
+              <div className="spx-tracked__head"><span>My Tracked Players</span><em>{trackedPlayers.length} across {new Set(trackedPlayers.map((t) => t.league)).size} league{new Set(trackedPlayers.map((t) => t.league)).size === 1 ? "" : "s"}</em></div>
+              <div className="spx-tracked__list">
+                {trackedPlayers.map((t) => (
+                  <div className="spx-tracked__item" key={t.id}>
+                    <div className="spx-tracked__photo">
+                      {t.live?.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={t.live.photoUrl} alt="" />
+                      ) : (
+                        <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
+                      )}
+                    </div>
+                    <div className="spx-tracked__info">
+                      <b>{t.playerName}</b>
+                      <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                      {t.live?.status && <span className="spx-tracked__status">{t.live.status}</span>}
+                    </div>
+                    <form action={untrackPlayerAction}>
+                      <input type="hidden" name="league" value={t.league} />
+                      <input type="hidden" name="playerId" value={t.playerId} />
+                      <button type="submit" className="spx-tracked__remove" aria-label={`Stop tracking ${t.playerName}`}>✕</button>
+                    </form>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {awardRaces.length > 0 && awardRaces.some((r) => r.entries.length > 0) && (
+            <>
+              <div className="spx-divider"><span>Magical Watch — Award Races</span></div>
+              <div className="spx-awards">
+                {awardRaces.filter((r) => r.entries.length > 0).map((race) => (
+                  <div className="spx-award" key={`${race.league}-${race.award}`}>
+                    <div className="spx-award__head">
+                      <h3>{race.label}</h3>
+                      <span>Market consensus, not official voting</span>
+                    </div>
+                    <ol className="spx-award__list">
+                      {race.entries.slice(0, 5).map((e) => (
+                        <li key={e.playerId}>
+                          <span className="spx-award__rank">{e.currentRank}</span>
+                          <div className="spx-award__info">
+                            <b>{e.playerName}</b>
+                            <span>{[e.position, e.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                            {e.seasonStats && <span className="spx-award__stats">{e.seasonStats}</span>}
+                            {e.teamRecord && <span className="spx-award__record">Team: {e.teamRecord}</span>}
+                          </div>
+                          {e.futuresConsensus && <span className="spx-award__odds">{e.futuresConsensus}</span>}
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="spx-award__foot">Updated {new Date(race.entries[0].lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 
