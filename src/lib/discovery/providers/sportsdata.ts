@@ -204,6 +204,18 @@ export function sdioConfigured(): boolean {
   return Boolean(apiKey());
 }
 
+/** True once SPORTSDATAIO_COMMERCIAL_DATA="true" is set — flip this the day
+ *  the account moves off SportsDataIO's free trial (which is known to return
+ *  scrambled values for some fields, e.g. a player's team). Until then,
+ *  every SportsDataIO-driven surface (player search, tracked players,
+ *  Magical Watch award races) is restricted to owner/admin preview only —
+ *  see isOwnerAccount in lib/guard.ts — so members never see unverified
+ *  trial data presented as real. No code change needed to go live for
+ *  everyone once this flips: callers already check it. */
+export function sdioCommercialMode(): boolean {
+  return process.env.SPORTSDATAIO_COMMERCIAL_DATA === "true";
+}
+
 // A handful of headline stat fields per sport, in priority order — whatever
 // the provider actually returns gets joined into a short summary. Nothing
 // here is invented; a field simply drops out of the summary if it's absent

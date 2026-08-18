@@ -122,30 +122,26 @@ export default function PlayerSearch({ trackedKeys }: { trackedKeys: string[] })
                 </form>
               </div>
 
-              <dl className="spx-search__bio">
-                <div><dt>Age</dt><dd>{p.age ?? "—"}</dd></div>
-                <div><dt>College</dt><dd>{p.college ?? "—"}</dd></div>
-                <div><dt>Experience</dt><dd>{typeof p.experienceYears === "number" ? `${p.experienceYears} season${p.experienceYears === 1 ? "" : "s"}` : "—"}</dd></div>
-                <div><dt>With {p.team ?? "current team"}</dt><dd>{formatDate(p.withCurrentTeamSince?.date) ? `Since ${formatDate(p.withCurrentTeamSince?.date)}${p.withCurrentTeamSince?.via ? ` (${p.withCurrentTeamSince.via})` : ""}` : "—"}</dd></div>
-              </dl>
+              {(p.age || p.college || p.experienceYears || p.withCurrentTeamSince?.date) && (
+                <dl className="spx-search__bio">
+                  {p.age && <div><dt>Age</dt><dd>{p.age}</dd></div>}
+                  {p.college && <div><dt>College</dt><dd>{p.college}</dd></div>}
+                  {typeof p.experienceYears === "number" && <div><dt>Experience</dt><dd>{p.experienceYears} season{p.experienceYears === 1 ? "" : "s"}</dd></div>}
+                  {formatDate(p.withCurrentTeamSince?.date) && <div><dt>With {p.team ?? "team"}</dt><dd>Since {formatDate(p.withCurrentTeamSince?.date)}</dd></div>}
+                </dl>
+              )}
 
-              <div className="spx-search__moves">
-                <span className="spx-search__label">Recent {p.movementLabel === "Trade" ? "transactions" : "roster moves"}</span>
-                {p.transactions === null ? (
-                  <span className="spx-search__muted">Transaction data not available for this league.</span>
-                ) : p.transactions.length === 0 ? (
-                  <span className="spx-search__muted">No recent {p.movementLabel.toLowerCase()} activity.</span>
-                ) : (
-                  p.transactions.slice(0, 2).map((t, i) => (
+              {p.transactions && p.transactions.length > 0 && (
+                <div className="spx-search__moves">
+                  <span className="spx-search__label">Recent {p.movementLabel === "Trade" ? "transactions" : "roster moves"}</span>
+                  {p.transactions.slice(0, 2).map((t, i) => (
                     <span key={i} className="spx-search__move">
                       {formatDate(t.date) && <b>{formatDate(t.date)}: </b>}
                       {t.type ?? p.movementLabel}{t.team ? ` — ${t.team}` : ""}{t.description ? `: ${t.description}` : ""}
                     </span>
-                  ))
-                )}
-              </div>
-
-              <p className="spx-search__gap">Career championships and past MVP/Heisman wins aren&rsquo;t available from this data source yet — shown here only once we have a real feed for it, never guessed.</p>
+                  ))}
+                </div>
+              )}
             </div>
             );
           })}

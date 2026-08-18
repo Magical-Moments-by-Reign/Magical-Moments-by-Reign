@@ -186,6 +186,13 @@
 }
 @media (min-width:641px) and (max-width:980px) { .spx-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 
+/* ── Admin-preview badge (shown only to owner while data isn't commercial) ── */
+.spx-admin-badge {
+  display: inline-block; margin: 0 0 1rem; padding: .3rem .75rem; border-radius: 6px;
+  background: rgba(224,85,95,.12); border: 1px solid rgba(224,85,95,.4); color: #e0555f;
+  font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+}
+
 /* ── Player &amp; Team Status search ── */
 .spx-search { margin-bottom: 2rem; }
 .spx-search__bar { display: flex; gap: .6rem; margin-bottom: .8rem; }
@@ -228,8 +235,6 @@
 .spx-search__label { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .1rem; }
 .spx-search__move { color: #d9cdb8; font-size: .72rem; line-height: 1.4; }
 .spx-search__move b { color: #d9cdb8; font-weight: 700; }
-.spx-search__muted { color: #7a6f5b; font-size: .72rem; font-style: italic; }
-.spx-search__gap { margin: 0; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.06); color: #6b6151; font-size: .64rem; font-style: italic; line-height: 1.4; }
 
 /* ── My Tracked Players — multi-sport, persistent ── */
 .spx-tracked { margin: 0 0 2rem; padding: 1.1rem 1.3rem; border-radius: 14px; border: 1px solid rgba(201,162,75,.28); background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); }

@@ -58,6 +58,21 @@ export async function requireOwner(next?: string): Promise<CurrentAccount> {
 }
 
 /**
+ * Same "owner" check as requireOwner, but never redirects — for gating what a
+ * page RENDERS (e.g. hiding a still-unreliable data source from ordinary
+ * members while an admin previews it) rather than blocking the whole route.
+ */
+export async function isOwnerAccount(accountId: string): Promise<boolean> {
+  const row = await prisma.account.findUnique({ where: { id: accountId }, select: { staffRoles: true } }).catch(() => null);
+  try {
+    const parsed = JSON.parse(row?.staffRoles || "[]");
+    return Array.isArray(parsed) && parsed.includes("owner");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Require a MEMBERSHIP that can create occasions / Life Estates. Free Forever is
  * a basic introduction and cannot — so a Free member is redirected to the
  * memberships page with the upgrade context, never silently allowed. This is the

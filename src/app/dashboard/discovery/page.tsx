@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { requireAccount } from "@/lib/guard";
+import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { getTodayStories, getWatchItems, getMovieItems, getMusicChart, getTrendingItems, getCuratedForYou } from "@/lib/discovery/service";
 import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
-import { sdioConfigured } from "@/lib/discovery/providers/sportsdata";
+import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import type { NewsStory } from "@/lib/discovery/providers/news";
 import type { MovieItem, WatchItem } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "./_nav";
@@ -67,9 +67,15 @@ export default async function DiscoveryPage() {
   const primaryAddress = await prisma.customerAddress.findFirst({ where: { accountId: account.id, isPrimary: true }, select: { city: true, state: true } }).catch(() => null);
   const location = primaryAddress ? `${primaryAddress.city}, ${primaryAddress.state}` : undefined;
 
+  // SportsDataIO is still on a free trial known to return scrambled values
+  // for some fields — this widget stays owner-only until
+  // SPORTSDATAIO_COMMERCIAL_DATA flips on. See sdioCommercialMode's doc
+  // comment (lib/discovery/providers/sportsdata.ts).
+  const showSdio = sdioConfigured() && (sdioCommercialMode() || await isOwnerAccount(account.id));
+
   const [today, watch, movies, music, trending, curated, trackedPlayers] = await Promise.all([
     getTodayStories("top"), getWatchItems("trending"), getMovieItems("now_playing"), getMusicChart("top"), getTrendingItems(), getCuratedForYou({ location }),
-    sdioConfigured() ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
+    showSdio ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
   ]);
 
   const primary: Feature | undefined = watch.items[0] ? {
@@ -115,6 +121,7 @@ export default async function DiscoveryPage() {
 
     {trackedPlayers.length > 0 && (
       <section className="disc-lux__mini-section">
+        {!sdioCommercialMode() && <div className="disc-admin-badge">Admin Preview — not shown to members</div>}
         <SectionHeader title="My Tracked Players" subtitle="Live status across every sport you follow." href="/dashboard/discovery/sports" action="Manage" />
         <div className="disc-lux__compact-list">
           {trackedPlayers.slice(0, 6).map((t) => (
