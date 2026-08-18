@@ -274,7 +274,12 @@ export async function getMySportsFollows(accountId: string) {
 
 export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<{ standings: SportsStanding[]; planRestricted?: string }> {
   let restriction: string | undefined;
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings" }), TTL_STANDINGS, async () => {
+  // "standings_v2" (not "standings"): the cached payload shape changed from a
+  // flat SportsStanding[] to {standings, planRestricted} — a distinct cache
+  // key keeps this from ever deserializing an old-shaped row left over from
+  // before that change (which crashed the page: cached.data.standings was
+  // undefined on a plain array, and .length on undefined threw).
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings_v2" }), TTL_STANDINGS, async () => {
     const result = await ApiSportsProvider.standings(sport, league, season);
     if (result?.planRestricted) {
       restriction = result.planRestricted;
@@ -283,7 +288,7 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     return result;
   });
   if (!cached) return { standings: [], planRestricted: restriction };
-  return { standings: cached.data.standings };
+  return { standings: cached.data.standings ?? [], planRestricted: cached.data.planRestricted };
 }
 
 // ── Picks / voting ───────────────────────────────────────────────
