@@ -1,0 +1,35 @@
+/* ── Trending — black/gold .disc-dark theme ── */
+
+.trending-header { padding: 1.4rem 0 1.6rem; }
+.trending-header h1 { margin: 0 0 .3rem; color: #fffaf0; font: 500 clamp(1.7rem, 3vw, 2.3rem)/1.05 var(--font-display, Georgia, serif); }
+.trending-header p { margin: 0; color: #b7ad9d; font-size: .88rem; max-width: 62ch; }
+
+.trending .disc-card { background: #14110b; border-color: rgba(210,168,72,.3); box-shadow: none; }
+.trending .disc-card:hover { border-color: rgba(224,182,81,.55); }
+.trending .disc-card__img { background-color: #0b0906; }
+.trending .disc-card h3 { color: #fffaf0; }
+.trending .disc-card p { color: #b7ad9d; }
+.trending .disc-card__eyebrow { color: #d6aa4c; }
+.trending .disc-card__meta span { color: #9c8f76; font-size: .78rem; }
+.trending .disc-card__action { color: #d6aa4c; font-size: .78rem; font-weight: 700; }
+.trending .disc-empty { color: #9c8f76; }
+
+.trending .disc-card--feature {
+  position: relative; display: block; min-height: 260px; padding: 1.6rem 1.8rem; border-radius: 16px;
+  background-size: cover; background-position: center; margin-bottom: 2rem;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.trending .disc-card--feature .disc-card__img { display: none; }
+.trending .disc-card--feature .disc-card__body { padding: 0; }
+.trending .disc-card--feature h3 { font-size: clamp(1.4rem, 3vw, 2rem); }
+.trending .disc-card--feature p { -webkit-line-clamp: 3; max-width: 60ch; }
+
+.trending-tm { margin-top: 2.4rem; padding-top: 1.8rem; border-top: 1px solid rgba(210,168,72,.18); }
+.trending-tm__head { display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.trending-tm__head h2 { margin: 0; color: #fffdf8; font: 500 1.4rem/1.1 var(--font-display, Georgia, serif); }
+.trending-tm__head span { color: #9c8f76; font-size: .74rem; }
+.trending-tm__attribution { margin: 1rem 0 0; color: #6b6151; font-size: .68rem; font-style: italic; }
+
+@media (max-width: 700px) {
+  .trending .disc-card--feature { min-height: 200px; padding: 1.2rem; }
+}

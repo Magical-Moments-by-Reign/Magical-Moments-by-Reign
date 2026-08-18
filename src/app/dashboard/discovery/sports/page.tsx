@@ -11,6 +11,7 @@ import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sp
 import { submitPickAction, untrackPlayerAction } from "./actions";
 import SportsIcon from "./SportsIcons";
 import PlayerSearch from "./PlayerSearch";
+import DiscoveryNav from "../_nav";
 import "../discovery.css";
 import "./sports-home.css";
 
@@ -78,6 +79,8 @@ export default async function SportsPage() {
 
   return (
     <div className="spx">
+      <DiscoveryNav active="/dashboard/discovery/sports" />
+
       <section className="spx-hero">
         <Image src="/discovery/stadium.png" alt="" fill priority sizes="100vw" className="spx-hero__photo" />
         <div className="spx-hero__shade" />

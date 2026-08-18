@@ -10,6 +10,12 @@
 .spx::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28; background:linear-gradient(118deg,transparent 18%,rgba(207,168,84,.18) 18.1%,transparent 18.5%),linear-gradient(62deg,transparent 81%,rgba(207,168,84,.14) 81.1%,transparent 81.5%),repeating-linear-gradient(90deg,transparent 0 11%,rgba(255,255,255,.025) 11.1% 11.25%); }
 .spx > * { position:relative; z-index:1; }
 
+/* ── Cross-page nav (shared .disc-nav pills, themed for .spx) ── */
+.spx > .disc-nav { margin: 0 0 1.4rem; padding: 0 0 .7rem; border-bottom: 1px solid rgba(201,162,75,.22); }
+.spx > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: transparent; color: #d9cdb8; box-shadow: none; }
+.spx > .disc-nav a:hover { color: var(--gold-soft); }
+.spx > .disc-nav a[aria-current="page"] { color: #1a1006; background: linear-gradient(135deg, #e0b651, #b98524); }
+
 /* ── Hero ── */
 .spx-hero {
   position: relative; overflow: hidden; border-radius: 20px;
