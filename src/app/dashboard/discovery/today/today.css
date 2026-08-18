@@ -40,7 +40,16 @@
 .today-filters a[aria-current="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
 
 .today-more-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.today-more-grid .disc-lux__news-art { min-height: 220px; background-size: cover; background-position: center; }
+/* discovery.css defines .disc-lux__news-grid > a twice (an older light-theme
+   card and a newer dark "compact row" variant with the thumbnail squeezed to
+   35% width) — both at equal specificity, so whichever comes later in that
+   file wins regardless of which one this page actually wants. Combining both
+   classes on the selector (this element carries "disc-lux__news-grid
+   today-more-grid" together) raises specificity above either one, so this
+   page reliably gets its own full-width-image-on-top layout. */
+.disc-lux__news-grid.today-more-grid > a { display: flex; flex-direction: column; min-height: 0; }
+.disc-lux__news-grid.today-more-grid .disc-lux__news-art { min-height: 220px; background-size: cover; background-position: center; }
+.disc-lux__news-grid.today-more-grid > a > div:last-child { align-self: stretch; padding: 1rem 1.05rem 1.1rem; }
 
 .today-foot { margin: 2.4rem 0 0; padding-top: 1.4rem; border-top: 1px solid rgba(210,168,72,.16); text-align: center; color: #aaa297; font-size: .82rem; font-style: italic; }
 
