@@ -18,6 +18,8 @@
   border: 1px solid rgba(201,162,75,.25);
 }
 .stadium-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.spx-hero__photo { object-fit: cover; z-index: 0; }
+.spx-hero__shade { position: absolute; inset: 0; z-index: 0; background: linear-gradient(180deg, rgba(5,4,3,.35) 0%, rgba(5,4,3,.55) 55%, rgba(5,4,3,.82) 100%); }
 .spx-hero__brand { display: flex; align-items: center; justify-content: center; gap: .7rem; margin-bottom: 1.1rem; position: relative; z-index: 1; }
 .spx-hero__brand img { width: 46px; height: 46px; object-fit: contain; }
 .spx-hero__word { text-align: left; line-height: 1.15; }

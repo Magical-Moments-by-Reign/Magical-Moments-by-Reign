@@ -78,6 +78,9 @@ export interface MovieDetails extends MovieItem {
   trailerUrl?: string; // YouTube, from TMDB's official videos endpoint
   externalUrl?: string;
   availableOn: WatchProviderAvailability[];
+  /** MPAA rating (e.g. "R", "PG-13") from TMDB's US release_dates data.
+   *  Omitted (never guessed) when TMDB has no US certification on file. */
+  certification?: string;
 }
 
 export interface WatchProvider {
@@ -301,10 +304,11 @@ export const TmdbMovieProvider: MovieProvider = {
   async details(id: string): Promise<MovieDetails | null> {
     if (!tmdbKey() || !id) return null;
     try {
-      const [movieRes, videosRes, providersRes] = await Promise.all([
+      const [movieRes, videosRes, providersRes, releaseDatesRes] = await Promise.all([
         authedFetch(`/movie/${encodeURIComponent(id)}`),
         authedFetch(`/movie/${encodeURIComponent(id)}/videos`),
         authedFetch(`/movie/${encodeURIComponent(id)}/watch/providers`),
+        authedFetch(`/movie/${encodeURIComponent(id)}/release_dates`),
       ]);
       if (!movieRes.ok) return null;
       const movie = await movieRes.json();
@@ -330,7 +334,15 @@ export const TmdbMovieProvider: MovieProvider = {
           .map((p: any) => ({ name: p.provider_name, logoUrl: poster(p.logo_path, "w342"), link: typeof us?.link === "string" ? us.link : undefined }));
       }
 
-      return { ...base, trailerUrl, availableOn, externalUrl: movie?.id ? `https://www.themoviedb.org/movie/${movie.id}` : undefined };
+      let certification: string | undefined;
+      if (releaseDatesRes.ok) {
+        const rdata = await releaseDatesRes.json();
+        const us = Array.isArray(rdata?.results) ? rdata.results.find((r: any) => r?.iso_3166_1 === "US") : undefined;
+        const withCert = Array.isArray(us?.release_dates) ? us.release_dates.find((d: any) => typeof d?.certification === "string" && d.certification.trim()) : undefined;
+        certification = withCert?.certification;
+      }
+
+      return { ...base, trailerUrl, availableOn, certification, externalUrl: movie?.id ? `https://www.themoviedb.org/movie/${movie.id}` : undefined };
     } catch {
       return null;
     }

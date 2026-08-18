@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 // API-Sports doesn't reliably return usable league artwork for American
 // football — see the matching note in ../page.tsx.
-const NO_LIVE_LOGO = new Set<SportSlug>(["nfl", "ncaaf"]);
+const STATIC_LOGO: Partial<Record<SportSlug, string>> = { nfl: "/discovery/leagues/nfl.png", ncaaf: "/discovery/leagues/ncaaf.png" };
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
@@ -39,7 +39,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     getLeagueLogos(),
     getFirstPreseasonGame(sport),
   ]);
-  const leagueLogo = NO_LIVE_LOGO.has(sport) ? undefined : logos[sport];
+  const leagueLogo = STATIC_LOGO[sport] ?? logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
