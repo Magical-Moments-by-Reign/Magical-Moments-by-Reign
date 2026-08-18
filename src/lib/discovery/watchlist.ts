@@ -56,6 +56,28 @@ export async function toggleFavorite(accountId: string, tmdbId: string): Promise
   await prisma.watchlistItem.update({ where: { id: row.id }, data: { isFavorite: !row.isFavorite } }).catch(() => undefined);
 }
 
+/** The very first time a member's lineup is checked, fills it with a
+ *  handful of real trending shows so "Your Lineup" and the schedule table
+ *  aren't blank on first visit — remove/add work normally afterward, and a
+ *  member who clears their whole lineup stays honestly empty (this only
+ *  ever runs once per account, tracked by Account.watchLineupSeeded). Never
+ *  invents a show — the starter picks are the same live TMDB trending feed
+ *  "Suggested For You" already uses. */
+export async function seedStarterLineup(accountId: string): Promise<void> {
+  const account = await prisma.account.findUnique({ where: { id: accountId }, select: { watchLineupSeeded: true } }).catch(() => null);
+  if (!account || account.watchLineupSeeded) return;
+
+  const existing = await prisma.watchlistItem.count({ where: { accountId } }).catch(() => 0);
+  if (existing === 0) {
+    const trending = await getWatchItems("trending");
+    for (const item of trending.items.slice(0, 6)) {
+      await addToLineup(accountId, item.id, item.title, item.posterUrl);
+    }
+  }
+
+  await prisma.account.update({ where: { id: accountId }, data: { watchLineupSeeded: true } }).catch(() => undefined);
+}
+
 /** TMDB's own recommendations, seeded from up to 3 of the member's most
  *  recently added lineup shows, deduped against the lineup and against each
  *  other. Falls back to trending TV when the lineup is empty or TMDB

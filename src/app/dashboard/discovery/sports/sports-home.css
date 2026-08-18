@@ -13,7 +13,16 @@
 /* ── Hero ── */
 .spx-hero {
   position: relative; overflow: hidden; border-radius: 20px;
-  background: radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
+  background:
+    /* stadium floodlights along the top edge */
+    radial-gradient(circle at 8% -6%, rgba(255,236,190,.55) 0%, rgba(255,236,190,0) 9%),
+    radial-gradient(circle at 26% -8%, rgba(255,236,190,.4) 0%, rgba(255,236,190,0) 8%),
+    radial-gradient(circle at 50% -10%, rgba(255,236,190,.6) 0%, rgba(255,236,190,0) 10%),
+    radial-gradient(circle at 74% -8%, rgba(255,236,190,.4) 0%, rgba(255,236,190,0) 8%),
+    radial-gradient(circle at 92% -6%, rgba(255,236,190,.55) 0%, rgba(255,236,190,0) 9%),
+    /* stadium-seat rows fading into the dark bowl */
+    repeating-linear-gradient(180deg, rgba(255,255,255,.035) 0, rgba(255,255,255,.035) 2px, transparent 2px, transparent 10px),
+    radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
   min-height:310px; display:flex; flex-direction:column; justify-content:center; padding: 3rem 2rem 2.5rem; text-align: center; margin: 0 0 1.8rem;
   border: 1px solid rgba(201,162,75,.25);
 }
@@ -35,6 +44,27 @@
   text-shadow: 0 2px 18px rgba(0,0,0,.5);
 }
 .spx-hero__sub { position: relative; z-index: 1; margin: 0; color: var(--gold-soft); font-size: .84rem; font-weight: 700; letter-spacing: .16em; }
+
+/* ── Per-sport page header (NFL, College Football, etc.) ── */
+.spx-sport-header {
+  position: relative; overflow: hidden; border-radius: 16px; margin: 1.4rem 0 1.6rem; padding: 1.6rem 1.8rem 1.8rem;
+  border: 1px solid rgba(201,162,75,.25);
+  background:
+    radial-gradient(circle at 12% -10%, rgba(255,236,190,.5) 0%, rgba(255,236,190,0) 9%),
+    radial-gradient(circle at 50% -12%, rgba(255,236,190,.55) 0%, rgba(255,236,190,0) 10%),
+    radial-gradient(circle at 88% -10%, rgba(255,236,190,.5) 0%, rgba(255,236,190,0) 9%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0, rgba(255,255,255,.03) 2px, transparent 2px, transparent 10px),
+    radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
+}
+.spx-sport-header__back { display: inline-block; margin-bottom: 1.1rem; color: #9c8f76; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
+.spx-sport-header__back:hover { color: var(--gold-soft); }
+.spx-sport-header__brand { display: flex; align-items: center; gap: 1rem; }
+.spx-sport-header__logo { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.4)); }
+.spx-sport-header__mark {
+  display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px;
+  border: 1px solid rgba(201,162,75,.4); color: var(--gold); font-size: 1.05rem; font-weight: 900; letter-spacing: .03em;
+}
+.spx-sport-header__brand h1 { margin: 0; color: #f4f1ea; font-weight: 900; font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: .01em; text-shadow: 0 2px 14px rgba(0,0,0,.5); }
 
 /* ── "EXPLORE ALL SPORTS" divider ── */
 .spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }
@@ -184,6 +214,13 @@
 .spx-search__info b { color: #f4f1ea; font-size: .92rem; }
 .spx-search__info span { color: #9c8f76; font-size: .74rem; }
 .spx-search__status { color: var(--gold-soft) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .64rem !important; }
+.spx-search__top form { flex: none; margin-left: auto; align-self: flex-start; }
+.spx-search__track {
+  padding: .4rem .75rem; border-radius: 999px; border: 1px solid rgba(210,168,72,.4); background: transparent;
+  color: #d9cdb8; font-size: .68rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.spx-search__track:hover { border-color: var(--gold); color: var(--gold-soft); }
+.spx-search__track--on { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
 .spx-search__bio { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem .8rem; margin: 0; padding-top: .7rem; border-top: 1px solid rgba(255,255,255,.06); }
 .spx-search__bio dt { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
 .spx-search__bio dd { color: #d9cdb8; font-size: .76rem; margin: 0; }
@@ -193,6 +230,22 @@
 .spx-search__move b { color: #d9cdb8; font-weight: 700; }
 .spx-search__muted { color: #7a6f5b; font-size: .72rem; font-style: italic; }
 .spx-search__gap { margin: 0; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.06); color: #6b6151; font-size: .64rem; font-style: italic; line-height: 1.4; }
+
+/* ── My Tracked Players — multi-sport, persistent ── */
+.spx-tracked { margin: 0 0 2rem; padding: 1.1rem 1.3rem; border-radius: 14px; border: 1px solid rgba(201,162,75,.28); background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); }
+.spx-tracked__head { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; margin-bottom: .9rem; }
+.spx-tracked__head span { color: var(--gold); font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.spx-tracked__head em { color: #7a6f5b; font-size: .68rem; font-style: normal; }
+.spx-tracked__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .7rem; }
+.spx-tracked__item { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 10px; border: 1px solid rgba(255,255,255,.06); background: #0f0d09; }
+.spx-tracked__photo { flex: none; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: #1c170e; display: flex; align-items: center; justify-content: center; color: var(--gold); font-weight: 800; font-size: .82rem; }
+.spx-tracked__photo img { width: 100%; height: 100%; object-fit: cover; }
+.spx-tracked__info { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; }
+.spx-tracked__info b { color: #f4f1ea; font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spx-tracked__info span { color: #9c8f76; font-size: .66rem; }
+.spx-tracked__status { color: var(--gold-soft) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .58rem !important; }
+.spx-tracked__remove { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(210,168,72,.3); background: transparent; color: #7a6f5b; font-size: .68rem; cursor: pointer; }
+.spx-tracked__remove:hover { color: #e05b48; border-color: #e05b48; }
 
 /* ── Magical Watch — award races ── */
 .spx-awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }

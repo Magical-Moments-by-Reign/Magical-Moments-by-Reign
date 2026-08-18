@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getWatchItems, getWatchDetails } from "@/lib/discovery/service";
-import { getMyLineup, getSuggestedForYou, type LineupEntry } from "@/lib/discovery/watchlist";
+import { getMyLineup, getSuggestedForYou, seedStarterLineup, type LineupEntry } from "@/lib/discovery/watchlist";
 import type { WatchItem } from "@/lib/discovery/providers/tmdb";
 import { addToLineupAction, removeFromLineupAction, toggleFavoriteAction } from "./actions";
 import DiscoveryNav from "../_nav";
@@ -86,6 +86,7 @@ function BrowseCard({ item }: { item: WatchItem }) {
 
 export default async function WatchPage() {
   const account = await requireAccount("/dashboard/discovery/watch");
+  await seedStarterLineup(account.id);
 
   const [lineup, suggested, airingSoon, popular, newDrops] = await Promise.all([
     getMyLineup(account.id),
@@ -103,7 +104,6 @@ export default async function WatchPage() {
       <DiscoveryNav active="/dashboard/discovery/watch" />
 
       <header className="wtv-header">
-        <span className="wtv-header__icon" aria-hidden="true">📺</span>
         <div>
           <h1>Watch TV Show</h1>
           <p>Choose your own lineup, track favorites, and get suggestions.</p>

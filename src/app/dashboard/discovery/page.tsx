@@ -4,6 +4,8 @@ import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { prisma } from "@/lib/db";
 import { getTodayStories, getWatchItems, getMovieItems, getMusicChart, getTrendingItems, getCuratedForYou } from "@/lib/discovery/service";
+import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
+import { sdioConfigured } from "@/lib/discovery/providers/sportsdata";
 import type { NewsStory } from "@/lib/discovery/providers/news";
 import type { MovieItem, WatchItem } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "./_nav";
@@ -65,8 +67,9 @@ export default async function DiscoveryPage() {
   const primaryAddress = await prisma.customerAddress.findFirst({ where: { accountId: account.id, isPrimary: true }, select: { city: true, state: true } }).catch(() => null);
   const location = primaryAddress ? `${primaryAddress.city}, ${primaryAddress.state}` : undefined;
 
-  const [today, watch, movies, music, trending, curated] = await Promise.all([
+  const [today, watch, movies, music, trending, curated, trackedPlayers] = await Promise.all([
     getTodayStories("top"), getWatchItems("trending"), getMovieItems("now_playing"), getMusicChart("top"), getTrendingItems(), getCuratedForYou({ location }),
+    sdioConfigured() ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
   ]);
 
   const primary: Feature | undefined = watch.items[0] ? {
@@ -109,6 +112,22 @@ export default async function DiscoveryPage() {
       <SectionHeader title="Curated For You" subtitle="A little of everything, chosen for your day." href="/dashboard/discovery/trending" action="View All" />
       {curatedFeatures.length ? <div className="disc-lux__curated">{curatedFeatures.map((item) => <FeatureCard key={`${item.label}-${item.title}`} item={item} />)}</div> : <EmptyState title="Your edit is taking shape">Connected, real-time recommendations will appear here when available.</EmptyState>}
     </section>
+
+    {trackedPlayers.length > 0 && (
+      <section className="disc-lux__mini-section">
+        <SectionHeader title="My Tracked Players" subtitle="Live status across every sport you follow." href="/dashboard/discovery/sports" action="Manage" />
+        <div className="disc-lux__compact-list">
+          {trackedPlayers.slice(0, 6).map((t) => (
+            <Link key={t.id} href="/dashboard/discovery/sports">
+              <div>
+                <h3>{t.playerName}</h3>
+                <p>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}{t.live?.status ? ` · ${t.live.status}` : ""}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    )}
 
     <section className="disc-lux__section">
       <SectionHeader title="Watch Tonight" href="/dashboard/discovery/watch" action="Explore Watch" />
