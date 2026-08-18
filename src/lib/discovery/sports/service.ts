@@ -272,10 +272,18 @@ export async function getMySportsFollows(accountId: string) {
 
 // ── Standings ────────────────────────────────────────────────────
 
-export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<SportsStanding[]> {
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings" }), TTL_STANDINGS, () =>
-    ApiSportsProvider.standings(sport, league, season));
-  return cached?.data ?? [];
+export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<{ standings: SportsStanding[]; planRestricted?: string }> {
+  let restriction: string | undefined;
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings" }), TTL_STANDINGS, async () => {
+    const result = await ApiSportsProvider.standings(sport, league, season);
+    if (result?.planRestricted) {
+      restriction = result.planRestricted;
+      return null;
+    }
+    return result;
+  });
+  if (!cached) return { standings: [], planRestricted: restriction };
+  return { standings: cached.data.standings };
 }
 
 // ── Picks / voting ───────────────────────────────────────────────

@@ -5,7 +5,7 @@ import { requireAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
-import StadiumBackdrop from "../StadiumBackdrop";
+import SportBackdrop from "../SportBackdrop";
 import "../../discovery.css";
 import "../sports-home.css";
 
@@ -62,12 +62,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     }
   }
 
-  const standings = connected && hasLeague ? await getStandings(sport, league) : [];
+  const standingsResult = connected && hasLeague ? await getStandings(sport, league) : { standings: [] };
+  const standings = standingsResult.standings;
+  const standingsRestricted = standingsResult.planRestricted;
 
   return (
     <div className="spx">
       <header className="spx-sport-header">
-        <StadiumBackdrop />
+        <SportBackdrop sport={sport} />
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
         <div className="spx-sport-header__brand">
           {leagueLogo ? (
@@ -120,6 +122,8 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           <div className="spx-panel__head"><h2>Standings</h2></div>
           {!connected || !hasLeague ? (
             <p className="spx-panel__empty">Standings aren&rsquo;t available for {sportMeta.label} yet.</p>
+          ) : standingsRestricted ? (
+            <p className="spx-panel__empty">Standings aren&rsquo;t available on the connected data plan for {sportMeta.label} right now.</p>
           ) : standings.length === 0 ? (
             <p className="spx-panel__empty">No standings data returned for the current season.</p>
           ) : (
