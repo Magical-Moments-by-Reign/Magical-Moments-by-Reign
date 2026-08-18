@@ -2,13 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
+import StadiumBackdrop from "../StadiumBackdrop";
 import "../../discovery.css";
 import "../sports-home.css";
 
 export const dynamic = "force-dynamic";
+
+// API-Sports doesn't reliably return usable league artwork for American
+// football — see the matching note in ../page.tsx.
+const NO_LIVE_LOGO = new Set<SportSlug>(["nfl", "ncaaf"]);
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
@@ -28,12 +33,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = defaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults, logos] = await Promise.all([
+  const [myTeams, searchResults, logos, firstPreseasonGame] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
     getLeagueLogos(),
+    getFirstPreseasonGame(sport),
   ]);
-  const leagueLogo = logos[sport];
+  const leagueLogo = NO_LIVE_LOGO.has(sport) ? undefined : logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
@@ -61,6 +67,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   return (
     <div className="spx">
       <header className="spx-sport-header">
+        <StadiumBackdrop />
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
         <div className="spx-sport-header__brand">
           {leagueLogo ? (
@@ -71,6 +78,12 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           )}
           <h1>{sportMeta.label}</h1>
         </div>
+        {firstPreseasonGame && (
+          <p className="spx-sport-header__preseason">
+            Preseason begins {new Date(firstPreseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            {" "}— {firstPreseasonGame.awayTeam.name} @ {firstPreseasonGame.homeTeam.name}
+          </p>
+        )}
       </header>
 
       <div className="spx-panel" style={{ marginBottom: "1.4rem" }}>

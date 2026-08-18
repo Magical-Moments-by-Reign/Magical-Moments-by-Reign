@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -142,6 +142,18 @@ export async function getLeagueLogos(): Promise<Partial<Record<SportSlug, string
     })
   );
   return Object.fromEntries(entries.filter((e): e is [SportSlug, string] => Boolean(e[1])));
+}
+
+/** The real first preseason game of the current season, straight from
+ *  API-Sports' own stage label — null when the provider doesn't distinguish
+ *  a preseason stage for this sport, or has no preseason games in its
+ *  response. Never a guessed date. */
+export async function getFirstPreseasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_preseason" }), TTL_GAMES_UPCOMING, () =>
+    fetchFirstPreseasonGame(sport, season));
+  return cached?.data ?? null;
 }
 
 /** Live + upcoming games across the given sports (typically the member's

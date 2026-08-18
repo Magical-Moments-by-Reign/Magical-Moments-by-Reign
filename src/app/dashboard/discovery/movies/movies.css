@@ -1,0 +1,40 @@
+/* ── Movies — black/gold .disc-dark theme ── */
+
+.movies-header { padding: 1.4rem 0 1.6rem; }
+.movies-header h1 { margin: 0 0 .3rem; color: #fffaf0; font: 500 clamp(1.7rem, 3vw, 2.3rem)/1.05 var(--font-display, Georgia, serif); }
+.movies-header p { margin: 0; color: #b7ad9d; font-size: .88rem; max-width: 62ch; }
+
+.movies-filters { border: none; margin-bottom: 1.6rem; }
+.movies-filters a { border-color: rgba(210,168,72,.3); background: #14110b; color: #d9cdb8; }
+.movies-filters a[aria-current="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
+
+.movies-hero {
+  position: relative; display: block; min-height: 320px; padding: 1.6rem 1.8rem; border-radius: 16px;
+  border: 1px solid rgba(210,168,72,.3); background-size: cover; background-position: center;
+  background-color: #14110b; text-decoration: none; color: inherit; margin-bottom: 2rem;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.movies-hero__badge {
+  align-self: flex-start; margin-bottom: auto; padding: .3rem .75rem; border-radius: 6px; background: #d6aa4c;
+  color: #1a1006; font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+}
+.movies-hero h2 { margin: 0 0 .5rem; color: #fffdf8; font: 500 clamp(1.5rem, 3vw, 2.1rem)/1.15 var(--font-display, Georgia, serif); }
+.movies-hero p { margin: 0; max-width: 60ch; color: #eee8df; font-size: .86rem; line-height: 1.5; }
+
+.movies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.1rem; margin-bottom: 1.6rem; }
+.movies-card { display: block; text-decoration: none; color: inherit; }
+.movies-card__art { position: relative; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 12px; border: 1px solid rgba(210,168,72,.3); background: linear-gradient(145deg, #2a2117, #14100c); }
+.movies-art-img { object-fit: cover; }
+.movies-art-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #d7aa49; font-size: 1.6rem; }
+.movies-card__body { padding: .6rem .1rem 0; display: flex; flex-direction: column; gap: .15rem; }
+.movies-card__body b { color: #fffaf0; font-size: .84rem; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.movies-card__body span { color: #aaa297; font-size: .72rem; }
+.movies-card__genres { color: #7a6f5b !important; }
+.movies-card__watch { color: #d7aa49 !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .6rem !important; }
+
+.movies-attribution { margin: 0; color: #6b6151; font-size: .68rem; font-style: italic; }
+
+@media (max-width: 700px) {
+  .movies-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .8rem; }
+  .movies-hero { min-height: 260px; padding: 1.2rem; }
+}

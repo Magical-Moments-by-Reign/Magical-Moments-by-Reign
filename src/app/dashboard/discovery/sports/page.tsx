@@ -10,8 +10,16 @@ import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sp
 import { submitPickAction, untrackPlayerAction } from "./actions";
 import SportsIcon from "./SportsIcons";
 import PlayerSearch from "./PlayerSearch";
+import StadiumBackdrop from "./StadiumBackdrop";
 import "../discovery.css";
 import "./sports-home.css";
+
+// API-Sports doesn't reliably return usable league artwork for American
+// football (confirmed repeatedly — a generic "no logo" placeholder image
+// comes back looking like a broken icon rather than a real crest), so these
+// two always use the clean monogram fallback instead of attempting a live
+// logo render.
+const NO_LIVE_LOGO = new Set<SportSlug>(["nfl", "ncaaf"]);
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Moments Sports", robots: { index: false } };
@@ -71,6 +79,7 @@ export default async function SportsPage() {
   return (
     <div className="spx">
       <section className="spx-hero">
+        <StadiumBackdrop />
         <div className="spx-hero__brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/logo-champagne.png" alt="" />
@@ -83,7 +92,7 @@ export default async function SportsPage() {
       <div className="spx-divider"><span>Explore All Sports</span></div>
       <div className="spx-grid">
         {SPORT_CATALOG.map((s) => {
-          const logo = logos[s.slug];
+          const logo = NO_LIVE_LOGO.has(s.slug) ? undefined : logos[s.slug];
           return (
             <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
               <DiscoveryImage src={logo} alt={`${s.label} league mark`} fallback={s.label.slice(0, 3).toUpperCase()} />

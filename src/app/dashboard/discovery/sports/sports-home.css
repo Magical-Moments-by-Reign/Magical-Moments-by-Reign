@@ -13,26 +13,11 @@
 /* ── Hero ── */
 .spx-hero {
   position: relative; overflow: hidden; border-radius: 20px;
-  background:
-    /* stadium floodlights along the top edge */
-    radial-gradient(circle at 8% -6%, rgba(255,236,190,.55) 0%, rgba(255,236,190,0) 9%),
-    radial-gradient(circle at 26% -8%, rgba(255,236,190,.4) 0%, rgba(255,236,190,0) 8%),
-    radial-gradient(circle at 50% -10%, rgba(255,236,190,.6) 0%, rgba(255,236,190,0) 10%),
-    radial-gradient(circle at 74% -8%, rgba(255,236,190,.4) 0%, rgba(255,236,190,0) 8%),
-    radial-gradient(circle at 92% -6%, rgba(255,236,190,.55) 0%, rgba(255,236,190,0) 9%),
-    /* stadium-seat rows fading into the dark bowl */
-    repeating-linear-gradient(180deg, rgba(255,255,255,.035) 0, rgba(255,255,255,.035) 2px, transparent 2px, transparent 10px),
-    radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
+  background: radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
   min-height:310px; display:flex; flex-direction:column; justify-content:center; padding: 3rem 2rem 2.5rem; text-align: center; margin: 0 0 1.8rem;
   border: 1px solid rgba(201,162,75,.25);
 }
-.spx-hero::before, .spx-hero::after {
-  content: ""; position: absolute; top: -10%; width: 260px; height: 260px;
-  background: radial-gradient(circle, rgba(255,214,120,.35) 0%, rgba(255,214,120,0) 70%);
-  pointer-events: none;
-}
-.spx-hero::before { left: -60px; }
-.spx-hero::after { right: -60px; }
+.stadium-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .spx-hero__brand { display: flex; align-items: center; justify-content: center; gap: .7rem; margin-bottom: 1.1rem; position: relative; z-index: 1; }
 .spx-hero__brand img { width: 46px; height: 46px; object-fit: contain; }
 .spx-hero__word { text-align: left; line-height: 1.15; }
@@ -49,22 +34,22 @@
 .spx-sport-header {
   position: relative; overflow: hidden; border-radius: 16px; margin: 1.4rem 0 1.6rem; padding: 1.6rem 1.8rem 1.8rem;
   border: 1px solid rgba(201,162,75,.25);
-  background:
-    radial-gradient(circle at 12% -10%, rgba(255,236,190,.5) 0%, rgba(255,236,190,0) 9%),
-    radial-gradient(circle at 50% -12%, rgba(255,236,190,.55) 0%, rgba(255,236,190,0) 10%),
-    radial-gradient(circle at 88% -10%, rgba(255,236,190,.5) 0%, rgba(255,236,190,0) 9%),
-    repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0, rgba(255,255,255,.03) 2px, transparent 2px, transparent 10px),
-    radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
+  background: radial-gradient(ellipse at 50% -20%, #241c10 0%, #0b0906 55%, #050403 100%);
 }
-.spx-sport-header__back { display: inline-block; margin-bottom: 1.1rem; color: #9c8f76; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
+.spx-sport-header__back { position: relative; z-index: 1; display: inline-block; margin-bottom: 1.1rem; color: #9c8f76; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 .spx-sport-header__back:hover { color: var(--gold-soft); }
-.spx-sport-header__brand { display: flex; align-items: center; gap: 1rem; }
+.spx-sport-header__brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 1rem; }
+.spx-sport-header .stadium-backdrop { border-radius: 16px; }
 .spx-sport-header__logo { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.4)); }
 .spx-sport-header__mark {
   display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px;
   border: 1px solid rgba(201,162,75,.4); color: var(--gold); font-size: 1.05rem; font-weight: 900; letter-spacing: .03em;
 }
 .spx-sport-header__brand h1 { margin: 0; color: #f4f1ea; font-weight: 900; font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: .01em; text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+.spx-sport-header__preseason {
+  position: relative; z-index: 1; margin: 1rem 0 0; padding: .55rem 1rem; border-radius: 10px; display: inline-block;
+  background: rgba(224,182,81,.12); border: 1px solid rgba(224,182,81,.35); color: #f4e3b0; font-size: .78rem; font-weight: 600;
+}
 
 /* ── "EXPLORE ALL SPORTS" divider ── */
 .spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }

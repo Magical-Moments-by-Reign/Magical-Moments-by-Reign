@@ -27,6 +27,9 @@ export interface SportsGameSummary {
   period?: string; // provider's clock/quarter/inning label when live
   homeScore?: number;
   awayScore?: number;
+  /** The provider's own stage/round label verbatim (e.g. "Regular Season",
+   *  "Pre Season", "Playoffs") when it returns one — never inferred. */
+  stage?: string;
 }
 
 export interface SportsStanding {
@@ -243,6 +246,9 @@ function mapGameItem(sport: SportSlug, league: string, item: any): SportsGameSum
     period: item?.game?.status?.long ?? item?.status?.long ?? undefined,
     homeScore: typeof homeScore === "number" ? homeScore : undefined,
     awayScore: typeof awayScore === "number" ? awayScore : undefined,
+    stage: typeof item?.league?.stage === "string" ? item.league.stage
+      : typeof item?.stage === "string" ? item.stage
+      : undefined,
   };
 }
 
@@ -398,4 +404,34 @@ export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> 
   return /^https:\/\//i.test(normalized) && !/image[-_ ]?unavailable|placeholder|no[-_ ]?image/i.test(normalized)
     ? normalized
     : null;
+}
+
+/** The full season's schedule for a league — queried by season only (no
+ *  date, no team), which API-Sports' games/fixtures endpoints support
+ *  directly. Used to find real preseason/season-opener dates rather than
+ *  guessing from a typical calendar. Exported standalone like
+ *  fetchLeagueLogo — this isn't a per-date lookup so it doesn't belong on
+ *  the SportsProvider interface. */
+export async function fetchSeasonGames(sport: SportSlug, season: string, league?: string): Promise<SportsGameSummary[] | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const cfg = SPORT_CONFIG[sport];
+  const lg = league || cfg.defaultLeague;
+  if (!lg) return null;
+  const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
+  const json = await apiSportsFetch(sport, path, { league: lg, season });
+  return mapGamesResponse(sport, lg, json);
+}
+
+/** The earliest real game of the given season whose provider-reported stage
+ *  matches "pre season" (case/spacing-insensitive) — or null when the
+ *  provider doesn't expose a stage/round distinction for this sport, or
+ *  simply has no preseason games in its response. Never a computed/assumed
+ *  date. */
+export async function fetchFirstPreseasonGame(sport: SportSlug, season: string, league?: string): Promise<SportsGameSummary | null> {
+  const games = await fetchSeasonGames(sport, season, league);
+  if (!games) return null;
+  const preseason = games
+    .filter((g) => g.stage && /pre.?season/i.test(g.stage))
+    .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+  return preseason[0] ?? null;
 }
