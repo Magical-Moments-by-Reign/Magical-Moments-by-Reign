@@ -17,11 +17,11 @@
 @media (max-width: 700px) {
   .music-top-row { flex-direction: column; align-items: stretch; }
   .music .disc-music__search-row { justify-content: stretch; }
-  .music .amk-hero { min-height: 260px; padding: 1.4rem 1.6rem; }
+  .music .amk-hero { min-height: 320px; padding: 1.4rem 1.6rem; }
 }
 
 /* ── Hero (photo background already set in discovery.css) ── */
-.music .amk-hero { min-height: 340px; padding: 2rem 2.4rem; }
+.music .amk-hero { min-height: 480px; padding: 2.4rem 2.8rem; }
 .amk-hero__badge { gap: .6rem; }
 .amk-hero__badge img { width: 34px; height: 34px; object-fit: contain; }
 .amk-hero__badge span { display: flex; flex-direction: column; line-height: 1.2; font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #fffaf0; }
