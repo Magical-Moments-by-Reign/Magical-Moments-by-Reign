@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -33,14 +33,22 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = defaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults, logos, firstPreseasonGame] = await Promise.all([
+  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
     getLeagueLogos(),
     getFirstPreseasonGame(sport),
+    getFirstRegularSeasonGame(sport),
   ]);
   const leagueLogo = STATIC_LOGO[sport] ?? logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
+
+  // Whole days until the real regular-season opener's kickoff — never
+  // shown once kickoff has passed (that game becomes a normal schedule
+  // entry, not a countdown target).
+  const daysUntilKickoff = firstRegularSeasonGame
+    ? Math.ceil((+new Date(firstRegularSeasonGame.startsAt) - Date.now()) / 86_400_000)
+    : null;
 
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
   let gamesLabel = "Today's Games";
@@ -80,6 +88,17 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           )}
           <h1>{sportMeta.label}</h1>
         </div>
+        {firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0 && (
+          <div className="spx-countdown">
+            <span className="spx-countdown__label">{sportMeta.label} Regular Season Countdown</span>
+            <div className="spx-countdown__num"><b>{daysUntilKickoff}</b><span>{daysUntilKickoff === 1 ? "Day" : "Days"}</span></div>
+            <p className="spx-countdown__meta">
+              Kickoff {new Date(firstRegularSeasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              {" "}— {firstRegularSeasonGame.awayTeam.name} @ {firstRegularSeasonGame.homeTeam.name}
+            </p>
+          </div>
+        )}
+
         {firstPreseasonGame && (
           <p className="spx-sport-header__preseason">
             Preseason begins {new Date(firstPreseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}

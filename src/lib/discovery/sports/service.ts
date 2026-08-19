@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -153,6 +153,17 @@ export async function getFirstPreseasonGame(sport: SportSlug): Promise<SportsGam
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_preseason" }), TTL_GAMES_UPCOMING, () =>
     fetchFirstPreseasonGame(sport, season));
+  return cached?.data ?? null;
+}
+
+/** The real regular-season opener — for a live "N days until kickoff"
+ *  countdown. Same real-stage-label sourcing as getFirstPreseasonGame,
+ *  never a computed/assumed date. */
+export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_regular_season" }), TTL_GAMES_UPCOMING, () =>
+    fetchFirstRegularSeasonGame(sport, season));
   return cached?.data ?? null;
 }
 

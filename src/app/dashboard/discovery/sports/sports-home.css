@@ -60,6 +60,16 @@
   background: rgba(224,182,81,.12); border: 1px solid rgba(224,182,81,.35); color: #f4e3b0; font-size: .78rem; font-weight: 600;
 }
 
+.spx-countdown {
+  position: relative; z-index: 1; margin: 1.1rem 0 0; padding: 1.1rem 1.6rem; border-radius: 14px; display: inline-flex; flex-direction: column; align-items: center;
+  background: rgba(224,182,81,.08); border: 1px solid rgba(224,182,81,.4); box-shadow: 0 0 30px rgba(224,182,81,.1) inset;
+}
+.spx-countdown__label { color: var(--gold-soft); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.spx-countdown__num { display: flex; align-items: baseline; gap: .4rem; margin: .3rem 0; }
+.spx-countdown__num b { color: #fffdf8; font-weight: 900; font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 1; letter-spacing: -.02em; text-shadow: 0 2px 16px rgba(224,182,81,.35); }
+.spx-countdown__num span { color: var(--gold); font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.spx-countdown__meta { margin: 0; color: #d9cdb8; font-size: .76rem; }
+
 /* ── "EXPLORE ALL SPORTS" divider ── */
 .spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }
 .spx-divider span {

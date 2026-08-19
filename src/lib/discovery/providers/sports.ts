@@ -446,3 +446,17 @@ export async function fetchFirstPreseasonGame(sport: SportSlug, season: string, 
     .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
   return preseason[0] ?? null;
 }
+
+/** The earliest real game of the given season whose provider-reported stage
+ *  matches "regular season" (case/spacing-insensitive) — the true season
+ *  opener, straight from API-Sports. Null when the provider doesn't expose
+ *  a stage/round distinction for this sport, or has no regular-season games
+ *  in its response yet. Never a computed/assumed kickoff date. */
+export async function fetchFirstRegularSeasonGame(sport: SportSlug, season: string, league?: string): Promise<SportsGameSummary | null> {
+  const games = await fetchSeasonGames(sport, season, league);
+  if (!games) return null;
+  const regular = games
+    .filter((g) => g.stage && /regular.?season/i.test(g.stage))
+    .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+  return regular[0] ?? null;
+}
