@@ -44,7 +44,7 @@
 .near-partner p { max-width: 68ch; margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.6; }
 .near-search { margin-bottom: 1rem; padding: 1.15rem; border: 1px solid var(--line); border-radius: 14px; background: var(--ivory); }
 .near-search > label { display: block; margin-bottom: .6rem; color: var(--espresso); font-family: var(--font-display, Georgia, serif); font-size: 1.1rem; font-weight: 600; }
-.near-search__row { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: .65rem; }
+.near-search__row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto; gap: .65rem; }
 .near-search input, .near-search select { min-width: 0; padding: .7rem .85rem; border: 1px solid var(--line); border-radius: 10px; background: #fffdf8; color: var(--ink); font: inherit; }
 .near-empty { display: grid; gap: .8rem; justify-items: center; }
 

@@ -14,7 +14,7 @@
 .near-hero__trending { color: #fffaf0; font-size: .78rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; }
 .near-hero__trending:hover { color: #e0b651; }
 
-.near-hero .near-search { margin: 0; max-width: 640px; padding: 1rem; border-color: rgba(210,168,72,.35); background: rgba(10,8,5,.72); backdrop-filter: blur(2px); }
+.near-hero .near-search { margin: 0; max-width: 820px; padding: 1rem; border-color: rgba(210,168,72,.35); background: rgba(10,8,5,.72); backdrop-filter: blur(2px); }
 .near-hero .near-search > label { color: #fffaf0; }
 .near-hero .near-search input, .near-hero .near-search select { background: rgba(255,255,255,.06); border-color: rgba(210,168,72,.3); color: #fffaf0; }
 .near-hero .near-search input::placeholder { color: #9c8f76; }
