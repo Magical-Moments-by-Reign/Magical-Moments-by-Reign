@@ -50,6 +50,8 @@
 .disc-lux__news-grid.today-more-grid > a { display: flex; flex-direction: column; min-height: 0; }
 .disc-lux__news-grid.today-more-grid .disc-lux__news-art { min-height: 220px; background-size: cover; background-position: center; }
 .disc-lux__news-grid.today-more-grid > a > div:last-child { align-self: stretch; padding: 1rem 1.05rem 1.1rem; }
+.disc-lux__news-grid.today-more-grid h3 { font-size: 1.05rem; line-height: 1.35; margin: 0 0 .5rem; }
+.disc-lux__news-grid.today-more-grid p { font-size: .8rem; }
 
 .today-foot { margin: 2.4rem 0 0; padding-top: 1.4rem; border-top: 1px solid rgba(210,168,72,.16); text-align: center; color: #aaa297; font-size: .82rem; font-style: italic; }
 

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getNearYouEvents } from "@/lib/discovery/service";
+import { getNearYouEvents, getTrendingNearYouEvents } from "@/lib/discovery/service";
 import { getSavedEventIds } from "@/lib/discovery/saved-events";
-import { normalizeTicketmasterLocation, type EventCategory } from "@/lib/discovery/providers/events";
+import { normalizeTicketmasterLocation, type EventCategory, type DiscoveredEvent } from "@/lib/discovery/providers/events";
 import { saveEventAction, unsaveEventAction } from "./actions";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState } from "../_components";
@@ -24,6 +24,45 @@ const CATEGORY_ORDER: EventCategory[] = ["concerts", "sports", "theater", "festi
 
 const RADII = [25, 50, 100] as const;
 
+function EventCard({ e, isSaved }: { e: DiscoveredEvent; isSaved: boolean }) {
+  return (
+    <div className="disc-card near-card">
+      <form action={isSaved ? unsaveEventAction : saveEventAction} className="near-card__save">
+        <input type="hidden" name="ticketmasterId" value={e.id} />
+        {!isSaved && (
+          <>
+            <input type="hidden" name="name" value={e.name} />
+            <input type="hidden" name="ticketUrl" value={e.ticketUrl} />
+            <input type="hidden" name="category" value={e.category} />
+            {e.imageUrl && <input type="hidden" name="imageUrl" value={e.imageUrl} />}
+            {e.localDate && <input type="hidden" name="localDate" value={e.localDate} />}
+            {e.localTime && <input type="hidden" name="localTime" value={e.localTime} />}
+            {e.venueName && <input type="hidden" name="venueName" value={e.venueName} />}
+            {e.city && <input type="hidden" name="city" value={e.city} />}
+            {e.state && <input type="hidden" name="state" value={e.state} />}
+          </>
+        )}
+        <button type="submit" className={`near-card__save-btn${isSaved ? " near-card__save-btn--saved" : ""}`} aria-label={isSaved ? "Remove from My Saved Events" : "Save this event"}>
+          {isSaved ? "✓ Saved" : "♡ Save"}
+        </button>
+      </form>
+      <a className="disc-card__link" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
+        <div className="disc-card__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
+        <div className="disc-card__body">
+          <span className="disc-card__eyebrow">{e.category.replace("_", " & ")}</span><h3>{e.name}</h3>
+          <div className="disc-card__meta">
+            {(e.localDate || e.startsAt) && <span>{new Date(`${e.localDate ?? e.startsAt?.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+            {e.localTime && <span>· {new Date(`2000-01-01T${e.localTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>}
+            {e.venueName && <span>· {e.venueName}</span>}
+          </div>
+          {(e.city || e.state || e.distanceMiles != null) && <div className="disc-card__meta"><span>{[e.city, e.state].filter(Boolean).join(", ")}</span>{e.distanceMiles != null && <span>· {e.distanceMiles.toFixed(1)} mi</span>}</div>}
+          <span className="disc-card__action">View Tickets on Ticketmaster →</span>
+        </div>
+      </a>
+    </div>
+  );
+}
+
 export default async function NearYouPage({ searchParams }: { searchParams: Promise<{ location?: string; category?: string; radius?: string }> }) {
   const account = await requireAccount("/dashboard/discovery/near-you");
   const { location, category: rawCategory, radius: rawRadius } = await searchParams;
@@ -31,11 +70,14 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
   const radius = RADII.includes(Number(rawRadius) as typeof RADII[number]) ? Number(rawRadius) : 50;
   const normalizedLocation = location?.trim() ? normalizeTicketmasterLocation(location) : null;
   const invalidLocation = normalizedLocation?.kind === "invalid";
-  const [result, savedIds] = await Promise.all([
+  const [result, savedIds, trendingRaw] = await Promise.all([
     location?.trim() && !invalidLocation ? getNearYouEvents({ location: location.trim(), category, radiusMiles: radius }) : Promise.resolve(null),
     getSavedEventIds(account.id),
+    getTrendingNearYouEvents(),
   ]);
   const hasEvents = Boolean(result?.items.length);
+  const resultIds = new Set(result?.items.map((e) => e.id));
+  const trending = trendingRaw.filter((e) => !resultIds.has(e.id));
 
   return (
     <div className="disc disc-lux disc-dark near-you">
@@ -72,45 +114,7 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
         <DiscoveryEmptyState title="We couldn’t recognize that location.">Try a ZIP code, a city such as Atlanta, GA, or a street address that includes its city and state.</DiscoveryEmptyState>
       ) : result && hasEvents ? (
         <div className="disc-grid">
-          {result.items.map((e) => {
-            const isSaved = savedIds.has(e.id);
-            return (
-              <div key={e.id} className="disc-card near-card">
-                <form action={isSaved ? unsaveEventAction : saveEventAction} className="near-card__save">
-                  <input type="hidden" name="ticketmasterId" value={e.id} />
-                  {!isSaved && (
-                    <>
-                      <input type="hidden" name="name" value={e.name} />
-                      <input type="hidden" name="ticketUrl" value={e.ticketUrl} />
-                      <input type="hidden" name="category" value={e.category} />
-                      {e.imageUrl && <input type="hidden" name="imageUrl" value={e.imageUrl} />}
-                      {e.localDate && <input type="hidden" name="localDate" value={e.localDate} />}
-                      {e.localTime && <input type="hidden" name="localTime" value={e.localTime} />}
-                      {e.venueName && <input type="hidden" name="venueName" value={e.venueName} />}
-                      {e.city && <input type="hidden" name="city" value={e.city} />}
-                      {e.state && <input type="hidden" name="state" value={e.state} />}
-                    </>
-                  )}
-                  <button type="submit" className={`near-card__save-btn${isSaved ? " near-card__save-btn--saved" : ""}`} aria-label={isSaved ? "Remove from My Saved Events" : "Save this event"}>
-                    {isSaved ? "✓ Saved" : "♡ Save"}
-                  </button>
-                </form>
-                <a className="disc-card__link" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
-                  <div className="disc-card__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
-                  <div className="disc-card__body">
-                    <span className="disc-card__eyebrow">{e.category.replace("_", " & ")}</span><h3>{e.name}</h3>
-                    <div className="disc-card__meta">
-                      {(e.localDate || e.startsAt) && <span>{new Date(`${e.localDate ?? e.startsAt?.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
-                      {e.localTime && <span>· {new Date(`2000-01-01T${e.localTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>}
-                      {e.venueName && <span>· {e.venueName}</span>}
-                    </div>
-                    {(e.city || e.state || e.distanceMiles != null) && <div className="disc-card__meta"><span>{[e.city, e.state].filter(Boolean).join(", ")}</span>{e.distanceMiles != null && <span>· {e.distanceMiles.toFixed(1)} mi</span>}</div>}
-                    <span className="disc-card__action">View Tickets on Ticketmaster →</span>
-                  </div>
-                </a>
-              </div>
-            );
-          })}
+          {result.items.map((e) => <EventCard key={e.id} e={e} isSaved={savedIds.has(e.id)} />)}
         </div>
       ) : result?.source === "unavailable" ? (
         <div className="disc-pending">
@@ -122,6 +126,18 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
           : <DiscoveryEmptyState title="We couldn’t load nearby events right now.">Please try again in a moment.</DiscoveryEmptyState>
       )}
       {result?.providerName && <p className="disc-empty">{result.attribution}</p>}
+
+      {trending.length > 0 && (
+        <section className="near-trending">
+          <div className="near-trending__head">
+            <h2>Trending Now</h2>
+            <span>Real, currently on-sale shows — live from Ticketmaster</span>
+          </div>
+          <div className="disc-grid">
+            {trending.map((e) => <EventCard key={e.id} e={e} isSaved={savedIds.has(e.id)} />)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

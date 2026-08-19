@@ -34,6 +34,14 @@ export interface EventSearchParams {
    *  name rather than searching by location. Can be used with or without a
    *  location; a keyword alone searches nationwide. */
   keyword?: string;
+  /** When set to "relevance", sorts by Ticketmaster's own relevance ranking
+   *  (their real, documented `sort=relevance,desc` Discovery API value)
+   *  instead of soonest-first — and, only in this case, allows a search
+   *  with no location and no keyword: a genuine "what does Ticketmaster
+   *  consider most relevant right now, nationwide" query, used for the real
+   *  Trending Now feed. This is Ticketmaster's own algorithm, unmodified —
+   *  never a fabricated "popularity" score of our own. */
+  sort?: "relevance";
 }
 
 export interface DiscoveredEvent {
@@ -135,11 +143,11 @@ export function buildTicketmasterQuery(params: EventSearchParams): URLSearchPara
       q.set("radius", String(params.radiusMiles ?? 25));
       q.set("unit", "miles");
     }
-  } else if (!hasKeyword) {
+  } else if (!hasKeyword && params.sort !== "relevance") {
     return null; // no coords, no location, no keyword — nothing to search on
   }
   q.set("size", String(Math.min(Math.max(params.limit ?? 24, 1), 50)));
-  q.set("sort", "date,asc");
+  q.set("sort", params.sort === "relevance" ? "relevance,desc" : "date,asc");
   const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
   if (segment) q.set("segmentName", segment);
   const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
@@ -245,7 +253,7 @@ export const TicketmasterProvider: EventsProvider = {
     const segment = params.category ? SEGMENT_MAP[params.category] : undefined;
     const classificationName = params.category ? CLASSIFICATION_NAME_MAP[params.category] : undefined;
     const classificationSent = segment ?? classificationName ?? null;
-    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim()) || Boolean(params.keyword?.trim());
+    const hasUsableLocation = Boolean(params.coords) || Boolean(params.location?.trim()) || Boolean(params.keyword?.trim()) || params.sort === "relevance";
 
     const diag: EventsDiagnostic = {
       requestAttempted: false,

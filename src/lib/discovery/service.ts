@@ -97,8 +97,8 @@ export async function getMusicChart(genre: MusicGenre): Promise<MusicChartResult
   return { chartTitle: manual.title, entries, isOfficial: false, source: "manual" };
 }
 
-export async function getNearYouEvents(params: { location?: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number; keyword?: string; limit?: number }): Promise<DiscoveryResult<DiscoveredEvent>> {
-  if (!params.coords && !params.location?.trim() && !params.keyword?.trim()) return { items: [], source: "unavailable" };
+export async function getNearYouEvents(params: { location?: string; coords?: { lat: number; lng: number }; category?: EventCategory; radiusMiles?: number; keyword?: string; limit?: number; sort?: "relevance" }): Promise<DiscoveryResult<DiscoveredEvent>> {
+  if (!params.coords && !params.location?.trim() && !params.keyword?.trim() && params.sort !== "relevance") return { items: [], source: "unavailable" };
   // Round coordinates to ~1.1km buckets (2 decimal places) before they reach
   // the cache key, so nearby members (or the same member's slightly-jittered
   // GPS reads) share a cache entry instead of every exact lat/lng missing
@@ -124,6 +124,33 @@ export async function getSportsFeed(location?: string): Promise<SportsResult> {
     ? await getNearYouEvents({ location, category: "sports" })
     : { items: [], source: "unavailable" as const };
   return { games: [], pendingMessage: PENDING_SPORTS_MESSAGE, ticketedEvents };
+}
+
+// Owner-curated "trending now" artists for the Near You page — each is a
+// real, live Ticketmaster keyword search by name, never a hardcoded date/
+// venue/image. An artist with no current on-sale listing anywhere in the
+// country simply doesn't appear in the row — never fabricated to fill a
+// slot. Add/remove names here as the Owner's picks change.
+const TRENDING_NEAR_YOU_KEYWORDS = ["Usher", "Chris Brown"];
+
+/** One real Ticketmaster listing per Owner-curated trending artist, for the
+ *  "Trending Now" row at the bottom of Near You. Searched nationwide (no
+ *  location required) so it works before a member enters one. */
+export async function getTrendingNearYouEvents(): Promise<DiscoveredEvent[]> {
+  const results = await Promise.all(
+    TRENDING_NEAR_YOU_KEYWORDS.map((keyword) => getNearYouEvents({ keyword, limit: 1 })),
+  );
+  return results.flatMap((r) => r.items.slice(0, 1));
+}
+
+/** What's actually trending on Ticketmaster right now, nationwide — sorted
+ *  by Ticketmaster's own real `relevance` ranking (their algorithm, not
+ *  ours), with no location or keyword filter. There is no dedicated
+ *  "trending" endpoint on the Discovery API, so this is the honest proxy:
+ *  real, currently on-sale events, in the order Ticketmaster itself ranks
+ *  them most relevant. Never a fabricated or hand-picked list. */
+export async function getTicketmasterTrending(limit = 8): Promise<DiscoveryResult<DiscoveredEvent>> {
+  return getNearYouEvents({ sort: "relevance", limit });
 }
 
 export interface CuratedItem {

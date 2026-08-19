@@ -23,3 +23,8 @@ prisma/dev.db*
 *.log
 npm-debug.log*
 *.tsbuildinfo
+
+# Local design-sync tooling (build cache, converter deps, generated bundle)
+/.design-sync
+/.ds-sync
+/ds-bundle
