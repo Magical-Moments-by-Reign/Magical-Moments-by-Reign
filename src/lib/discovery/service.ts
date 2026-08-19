@@ -11,7 +11,7 @@
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "./cache";
 import { NewsApiProvider, type NewsSection, type NewsStory } from "./providers/news";
-import { TmdbWatchProvider, TmdbMovieProvider, recommendedTv, type WatchSection, type MovieSection, type WatchItem, type MovieItem, type WatchDetails, type MovieDetails } from "./providers/tmdb";
+import { TmdbWatchProvider, TmdbMovieProvider, recommendedTv, searchTv, type WatchSection, type MovieSection, type WatchItem, type MovieItem, type WatchDetails, type MovieDetails } from "./providers/tmdb";
 import { AppleMusicProvider, type MusicGenre, type MusicChart, type MusicChartEntry } from "./providers/music";
 import { TicketmasterProvider, type EventCategory, type DiscoveredEvent } from "./providers/events";
 import { SportsPendingProvider, PENDING_SPORTS_MESSAGE } from "./providers/sports";
@@ -48,6 +48,16 @@ export async function getWatchDetails(id: string): Promise<WatchDetails | null> 
 export async function getRecommendedTv(id: string): Promise<WatchItem[]> {
   const cached = await withCache("watch", TmdbWatchProvider.slug, cacheKeyFor({ kind: "watch_recs", id }), TTL.catalog, () =>
     recommendedTv(id));
+  return cached?.data ?? [];
+}
+
+/** Free-text TV show search, for finding a show that isn't in any of the
+ *  browse rows. Cached briefly per query so repeat searches for the same
+ *  term (a very common case — someone retyping, or two members searching
+ *  the same show) don't hit TMDB again. */
+export async function getWatchSearch(query: string): Promise<WatchItem[]> {
+  const cached = await withCache("watch", TmdbWatchProvider.slug, cacheKeyFor({ kind: "watch_search", query }), TTL.catalog, () =>
+    searchTv(query));
   return cached?.data ?? [];
 }
 
