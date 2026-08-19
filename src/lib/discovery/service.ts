@@ -11,9 +11,9 @@
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "./cache";
 import { NewsApiProvider, type NewsSection, type NewsStory } from "./providers/news";
-import { TmdbWatchProvider, TmdbMovieProvider, recommendedTv, type WatchSection, type MovieSection, type WatchItem, type MovieItem, type WatchDetails, type MovieDetails } from "./providers/tmdb";
+import { TmdbWatchProvider, TmdbMovieProvider, recommendedTv, searchTv, type WatchSection, type MovieSection, type WatchItem, type MovieItem, type WatchDetails, type MovieDetails } from "./providers/tmdb";
 import { AppleMusicProvider, type MusicGenre, type MusicChart, type MusicChartEntry } from "./providers/music";
-import { TicketmasterProvider, type EventCategory, type DiscoveredEvent } from "./providers/events";
+import { TicketmasterProvider, searchAttraction, type EventCategory, type DiscoveredEvent, type DiscoveredAttraction } from "./providers/events";
 import { SportsPendingProvider, PENDING_SPORTS_MESSAGE } from "./providers/sports";
 import { getSportsLandingGames, SPORT_CATALOG } from "./sports/service";
 import type { DiscoveryResult } from "./types";
@@ -48,6 +48,16 @@ export async function getWatchDetails(id: string): Promise<WatchDetails | null> 
 export async function getRecommendedTv(id: string): Promise<WatchItem[]> {
   const cached = await withCache("watch", TmdbWatchProvider.slug, cacheKeyFor({ kind: "watch_recs", id }), TTL.catalog, () =>
     recommendedTv(id));
+  return cached?.data ?? [];
+}
+
+/** Free-text TV show search, for finding a show that isn't in any of the
+ *  browse rows. Cached briefly per query so repeat searches for the same
+ *  term (a very common case — someone retyping, or two members searching
+ *  the same show) don't hit TMDB again. */
+export async function getWatchSearch(query: string): Promise<WatchItem[]> {
+  const cached = await withCache("watch", TmdbWatchProvider.slug, cacheKeyFor({ kind: "watch_search", query }), TTL.catalog, () =>
+    searchTv(query));
   return cached?.data ?? [];
 }
 
@@ -140,7 +150,12 @@ export async function getTrendingNearYouEvents(): Promise<DiscoveredEvent[]> {
   const results = await Promise.all(
     TRENDING_NEAR_YOU_KEYWORDS.map((keyword) => getNearYouEvents({ keyword, limit: 1 })),
   );
-  return results.flatMap((r) => r.items.slice(0, 1));
+  const items = results.flatMap((r) => r.items.slice(0, 1));
+  // Two curated names can be co-headliners of the very same real show (e.g.
+  // Usher and Chris Brown's joint tour) — dedupe by Ticketmaster event id so
+  // it doesn't render twice.
+  const seen = new Set<string>();
+  return items.filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)));
 }
 
 /** What's actually trending on Ticketmaster right now, nationwide — sorted
@@ -151,6 +166,28 @@ export async function getTrendingNearYouEvents(): Promise<DiscoveredEvent[]> {
  *  them most relevant. Never a fabricated or hand-picked list. */
 export async function getTicketmasterTrending(limit = 8): Promise<DiscoveryResult<DiscoveredEvent>> {
   return getNearYouEvents({ sort: "relevance", limit });
+}
+
+// Owner-curated "Trending Artists & Attractions" row for Near You — each
+// name is looked up live via Ticketmaster's real /attractions.json search,
+// so the photo, genre badge, and link are always Ticketmaster's own current
+// data. An entry with no matching attraction simply doesn't appear — never
+// a fabricated card. Add/remove/reorder names here to change the row.
+const TRENDING_ATTRACTION_KEYWORDS = ["Jonas Brothers", "WWE", "J. Cole", "Olivia Dean", "Don Toliver"];
+
+/** One real Ticketmaster attraction per Owner-curated name, for the
+ *  "Trending Artists & Attractions" row on Near You. Cached per name so it
+ *  refreshes on the same cadence as the rest of Near You's Ticketmaster
+ *  data rather than re-fetching every page view. */
+export async function getTrendingAttractions(): Promise<DiscoveredAttraction[]> {
+  const results = await Promise.all(
+    TRENDING_ATTRACTION_KEYWORDS.map(async (keyword) => {
+      const cached = await withCache("near_you", TicketmasterProvider.slug, cacheKeyFor({ kind: "attraction", keyword }), TTL.events, () =>
+        searchAttraction(keyword));
+      return cached?.data ?? null;
+    }),
+  );
+  return results.filter((a): a is DiscoveredAttraction => a !== null);
 }
 
 export interface CuratedItem {

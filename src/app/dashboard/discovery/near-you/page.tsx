@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getNearYouEvents, getTrendingNearYouEvents } from "@/lib/discovery/service";
+import { getNearYouEvents, getTrendingNearYouEvents, getTrendingAttractions } from "@/lib/discovery/service";
 import { getSavedEventIds } from "@/lib/discovery/saved-events";
 import { normalizeTicketmasterLocation, type EventCategory, type DiscoveredEvent } from "@/lib/discovery/providers/events";
 import { saveEventAction, unsaveEventAction } from "./actions";
@@ -63,17 +63,22 @@ function EventCard({ e, isSaved }: { e: DiscoveredEvent; isSaved: boolean }) {
   );
 }
 
-export default async function NearYouPage({ searchParams }: { searchParams: Promise<{ location?: string; category?: string; radius?: string }> }) {
+export default async function NearYouPage({ searchParams }: { searchParams: Promise<{ location?: string; q?: string; category?: string; radius?: string }> }) {
   const account = await requireAccount("/dashboard/discovery/near-you");
-  const { location, category: rawCategory, radius: rawRadius } = await searchParams;
+  const { location, q, category: rawCategory, radius: rawRadius } = await searchParams;
+  const keyword = q?.trim() ?? "";
   const category = CATEGORIES.some((c) => c.id === rawCategory) ? (rawCategory as EventCategory) : undefined;
   const radius = RADII.includes(Number(rawRadius) as typeof RADII[number]) ? Number(rawRadius) : 50;
   const normalizedLocation = location?.trim() ? normalizeTicketmasterLocation(location) : null;
   const invalidLocation = normalizedLocation?.kind === "invalid";
-  const [result, savedIds, trendingRaw] = await Promise.all([
-    location?.trim() && !invalidLocation ? getNearYouEvents({ location: location.trim(), category, radiusMiles: radius }) : Promise.resolve(null),
+  const hasSearch = !invalidLocation && Boolean(location?.trim() || keyword);
+  const [result, savedIds, trendingRaw, attractions] = await Promise.all([
+    hasSearch
+      ? getNearYouEvents({ location: location?.trim() || undefined, keyword: keyword || undefined, category, radiusMiles: radius })
+      : Promise.resolve(null),
     getSavedEventIds(account.id),
     getTrendingNearYouEvents(),
+    getTrendingAttractions(),
   ]);
   const hasEvents = Boolean(result?.items.length);
   const resultIds = new Set(result?.items.map((e) => e.id));
@@ -93,23 +98,41 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
         </div>
 
         <form className="near-search" method="get">
-          <label htmlFor="near-location">Where do you want to explore?</label>
-          <div className="near-search__row"><input id="near-location" type="text" name="location" placeholder="Enter address, city, or ZIP code" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
-          <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
-          {category && <input type="hidden" name="category" value={category} />}
-          <button type="submit" className="btn btn--gold">Find Events</button></div>
+          <label htmlFor="near-q">Search by artist, event, or venue — and/or a location</label>
+          <div className="near-search__row">
+            <input id="near-q" type="text" name="q" placeholder="Artist, event, or venue" defaultValue={q ?? ""} aria-label="Search by artist, event, or venue" />
+            <input id="near-location" type="text" name="location" placeholder="Address, city, or ZIP (optional)" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
+            <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
+            {category && <input type="hidden" name="category" value={category} />}
+            <button type="submit" className="btn btn--gold">Find Events</button>
+          </div>
         </form>
       </section>
 
+      {attractions.length > 0 && (
+        <section className="near-attractions">
+          <div className="near-attractions__head"><h2>Trending Artists &amp; Attractions</h2></div>
+          <div className="near-attractions__rail">
+            {attractions.map((a) => (
+              <a key={a.id} className="near-attractions__card" href={a.ticketUrl} target="_blank" rel="noopener noreferrer">
+                <div className="near-attractions__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
+                {a.genreLabel && <span className="near-attractions__genre">{a.genreLabel}</span>}
+                <b>{a.name}</b>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="disc-filters">
-        <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&radius=${radius}`} aria-current={!category ? "true" : undefined}>All</a>
+        <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&q=${encodeURIComponent(keyword)}&radius=${radius}`} aria-current={!category ? "true" : undefined}>All</a>
         {CATEGORIES.map((c) => (
-          <a key={c.id} href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&radius=${radius}&category=${c.id}`} aria-current={category === c.id ? "true" : undefined}>{c.label}</a>
+          <a key={c.id} href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&q=${encodeURIComponent(keyword)}&radius=${radius}&category=${c.id}`} aria-current={category === c.id ? "true" : undefined}>{c.label}</a>
         ))}
       </div>
 
-      {!location?.trim() ? (
-        <DiscoveryEmptyState title="Where should we look?">Enter an address, city and state, or ZIP code to discover real events nearby.</DiscoveryEmptyState>
+      {!hasSearch && !invalidLocation ? (
+        <DiscoveryEmptyState title="Where should we look?">Search an artist, event, or venue, enter a location, or both — we&rsquo;ll find real, currently on-sale Ticketmaster listings.</DiscoveryEmptyState>
       ) : invalidLocation ? (
         <DiscoveryEmptyState title="We couldn’t recognize that location.">Try a ZIP code, a city such as Atlanta, GA, or a street address that includes its city and state.</DiscoveryEmptyState>
       ) : result && hasEvents ? (
@@ -122,8 +145,18 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
           Ticketmaster didn&rsquo;t respond successfully to that search — try again in a moment.
         </div>
       ) : (
-        result ? <div className="near-empty"><DiscoveryEmptyState title={category ? "Nothing in this category nearby yet ✦" : "Nothing nearby yet ✦"}>Try another location, increase your search radius, or choose another category.</DiscoveryEmptyState>{radius < 100 && <Link className="btn btn--gold" href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location)}&radius=100${category ? `&category=${category}` : ""}`}>Expand to 100 Miles</Link>}</div>
-          : <DiscoveryEmptyState title="We couldn’t load nearby events right now.">Please try again in a moment.</DiscoveryEmptyState>
+        result ? (
+          <div className="near-empty">
+            <DiscoveryEmptyState title={category ? "Nothing in this category yet ✦" : "Nothing found yet ✦"}>
+              {location?.trim()
+                ? "Try another location, increase your search radius, or choose another category."
+                : "Try a different artist, event, or venue name, or add a location to narrow it down."}
+            </DiscoveryEmptyState>
+            {location?.trim() && radius < 100 && (
+              <Link className="btn btn--gold" href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location)}&q=${encodeURIComponent(keyword)}&radius=100${category ? `&category=${category}` : ""}`}>Expand to 100 Miles</Link>
+            )}
+          </div>
+        ) : <DiscoveryEmptyState title="We couldn’t load events right now.">Please try again in a moment.</DiscoveryEmptyState>
       )}
       {result?.providerName && <p className="disc-empty">{result.attribution}</p>}
 

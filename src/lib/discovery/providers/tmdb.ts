@@ -278,6 +278,23 @@ export async function recommendedTv(id: string): Promise<WatchItem[] | null> {
   }
 }
 
+/** Free-text TV show search (TMDB's real `/search/tv` endpoint) — for
+ *  finding a show that isn't in any of the browse rows. Returns null (not
+ *  an empty array) on failure so callers can tell "no results" from "the
+ *  request failed." */
+export async function searchTv(query: string): Promise<WatchItem[] | null> {
+  if (!tmdbKey() || !query.trim()) return null;
+  try {
+    const res = await authedFetch("/search/tv", { query: query.trim() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data?.results)) return null;
+    return data.results.map(mapTv).filter((t: WatchItem | null): t is WatchItem => t !== null);
+  } catch {
+    return null;
+  }
+}
+
 export const TmdbMovieProvider: MovieProvider = {
   slug: "tmdb",
   name: "TMDB",

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getWatchItems, getWatchDetails } from "@/lib/discovery/service";
+import { getWatchItems, getWatchDetails, getWatchSearch } from "@/lib/discovery/service";
 import { getMyLineup, getSuggestedForYou, seedStarterLineup, type LineupEntry } from "@/lib/discovery/watchlist";
-import type { WatchItem } from "@/lib/discovery/providers/tmdb";
+import type { WatchItem, WatchDetails } from "@/lib/discovery/providers/tmdb";
 import { addToLineupAction, removeFromLineupAction, toggleFavoriteAction } from "./actions";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
@@ -84,9 +84,40 @@ function BrowseCard({ item }: { item: WatchItem }) {
   );
 }
 
-export default async function WatchPage() {
+function SearchResultCard({ item, details, isInLineup }: { item: WatchItem; details: WatchDetails | null; isInLineup: boolean }) {
+  const network = details?.networks[0]?.name;
+  const nextAirDate = formatDate(details?.nextEpisode?.airDate ?? details?.lastEpisode?.airDate);
+  const badge = details?.nextEpisode ? dayBadge(details.nextEpisode.airDate) : null;
+  return (
+    <div className="wtv-card">
+      <Link href={`/dashboard/discovery/watch/${item.id}`} className="wtv-card__art">
+        <Artwork src={item.posterUrl} alt={`${item.title} poster`} />
+      </Link>
+      {isInLineup ? (
+        <span className="wtv-card__fav wtv-card__fav--on" aria-label="Already in your lineup">✓</span>
+      ) : (
+        <form action={addToLineupAction}>
+          <input type="hidden" name="tmdbId" value={item.id} />
+          <input type="hidden" name="title" value={item.title} />
+          {item.posterUrl && <input type="hidden" name="posterUrl" value={item.posterUrl} />}
+          <button type="submit" className="wtv-card__add" aria-label={`Add ${item.title} to your lineup`}>+</button>
+        </form>
+      )}
+      <div className="wtv-card__body">
+        <b>{item.title}</b>
+        {network && <span>{network}</span>}
+        {nextAirDate && <span>{details?.nextEpisode ? "Next episode " : "Last aired "}{nextAirDate}{badge && ` · ${badge}`}</span>}
+        {!network && !nextAirDate && <span>Station and next air date aren&rsquo;t listed for this title yet.</span>}
+      </div>
+    </div>
+  );
+}
+
+export default async function WatchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const account = await requireAccount("/dashboard/discovery/watch");
   await seedStarterLineup(account.id);
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
 
   const [lineup, suggested, airingSoon, popular, newDrops] = await Promise.all([
     getMyLineup(account.id),
@@ -99,6 +130,14 @@ export default async function WatchPage() {
   const lineupTmdbIds = new Set(lineup.map((l) => l.tmdbId));
   const suggestedFiltered = suggested.filter((s) => !lineupTmdbIds.has(s.id));
 
+  // Capped to keep this to a handful of extra TMDB detail calls per search —
+  // each result needs its own /tv/{id} lookup for network + next air date,
+  // since TMDB's search endpoint itself doesn't include that.
+  const searchResults = query ? (await getWatchSearch(query)).slice(0, 12) : [];
+  const searchDetails = query
+    ? await Promise.all(searchResults.map((r) => getWatchDetails(r.id)))
+    : [];
+
   return (
     <div className="disc disc-lux disc-dark wtv">
       <DiscoveryNav active="/dashboard/discovery/watch" />
@@ -108,7 +147,26 @@ export default async function WatchPage() {
           <h1>Watch TV Show</h1>
           <p>Choose your own lineup, track favorites, and get suggestions.</p>
         </div>
+        <form className="wtv-search" method="get">
+          <input type="text" name="q" placeholder="Search for a show" defaultValue={query} aria-label="Search TV shows" />
+          <button type="submit" className="btn btn--gold">Search</button>
+        </form>
       </header>
+
+      {query && (
+        <section className="wtv-section">
+          <div className="wtv-section__head"><h2>Search Results</h2><span className="wtv-section__count">&ldquo;{query}&rdquo;</span></div>
+          {searchResults.length ? (
+            <div className="wtv-rail">
+              {searchResults.map((item, i) => (
+                <SearchResultCard key={item.id} item={item} details={searchDetails[i]} isInLineup={lineupTmdbIds.has(item.id)} />
+              ))}
+            </div>
+          ) : (
+            <p className="wtv-empty">No shows matched &ldquo;{query}&rdquo; on TMDB — try a different spelling or title.</p>
+          )}
+        </section>
+      )}
 
       <section className="wtv-section">
         <div className="wtv-section__head"><h2>Your Lineup</h2><span className="wtv-section__count">{lineup.length} show{lineup.length === 1 ? "" : "s"}</span></div>

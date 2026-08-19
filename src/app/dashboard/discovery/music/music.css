@@ -5,15 +5,23 @@
    page-specific dark overrides rather than touching the shared light
    theme those classes still serve elsewhere. */
 
-.music .disc-filters { border: none; margin-bottom: 1.4rem; }
+.music-top-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+.music .disc-filters { border: none; margin-bottom: 0; flex: 1 1 auto; }
 .music .disc-filters a { border-color: rgba(210,168,72,.3); background: #14110b; color: #d9cdb8; }
 .music .disc-filters a[aria-current="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
 
-.music .disc-music__search-row { margin-bottom: 1.2rem; }
+.music .disc-music__search-row { margin: 0; flex: 0 0 auto; }
 .music .disc-form--compact { border-color: rgba(210,168,72,.35); background: #14110b; }
 .music .disc-form--compact input[type="text"] { background: #0b0906; border-color: rgba(210,168,72,.25); color: #fffaf0; }
 
+@media (max-width: 700px) {
+  .music-top-row { flex-direction: column; align-items: stretch; }
+  .music .disc-music__search-row { justify-content: stretch; }
+  .music .amk-hero { min-height: 320px; padding: 1.4rem 1.6rem; }
+}
+
 /* ── Hero (photo background already set in discovery.css) ── */
+.music .amk-hero { min-height: 480px; padding: 2.4rem 2.8rem; }
 .amk-hero__badge { gap: .6rem; }
 .amk-hero__badge img { width: 34px; height: 34px; object-fit: contain; }
 .amk-hero__badge span { display: flex; flex-direction: column; line-height: 1.2; font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #fffaf0; }

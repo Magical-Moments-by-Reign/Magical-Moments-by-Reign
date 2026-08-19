@@ -1,8 +1,16 @@
 /* ── Watch TV Show — personal lineup (black/gold .disc-dark theme) ── */
 
-.wtv-header { display: flex; align-items: center; gap: 1rem; padding: 1.4rem 0 1.6rem; }
+.wtv-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1.4rem 0 1.6rem; }
 .wtv-header h1 { margin: 0 0 .3rem; color: #fffaf0; font: 500 clamp(1.7rem, 3vw, 2.3rem)/1.05 var(--font-display, Georgia, serif); }
 .wtv-header p { margin: 0; color: #b7ad9d; font-size: .88rem; }
+
+.wtv-search { display: flex; gap: .5rem; flex: 0 0 auto; }
+.wtv-search input[type="text"] { min-width: 220px; padding: .6rem .9rem; border-radius: 10px; border: 1px solid rgba(210,168,72,.35); background: #14110b; color: #fffaf0; font-size: .84rem; }
+.wtv-search input[type="text"]::placeholder { color: #9c8f76; }
+@media (max-width: 700px) {
+  .wtv-search { flex: 1 1 100%; }
+  .wtv-search input[type="text"] { flex: 1; min-width: 0; }
+}
 
 .wtv-section { padding-top: 1.6rem; }
 .wtv-section + .wtv-section { border-top: 1px solid rgba(210,168,72,.16); }

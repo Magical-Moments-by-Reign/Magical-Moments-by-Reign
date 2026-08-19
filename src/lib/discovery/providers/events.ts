@@ -325,3 +325,60 @@ export const TicketmasterProvider: EventsProvider = {
     }
   },
 };
+
+// ── Attractions (artists, teams, shows) — for a "Trending Artists &
+// Attractions" carousel: real Ticketmaster performer cards (photo + genre),
+// distinct from DiscoveredEvent (a specific date/venue listing). Uses
+// Ticketmaster's own real `/attractions.json` Discovery endpoint.
+
+export interface DiscoveredAttraction {
+  id: string; // Ticketmaster attraction id
+  name: string;
+  imageUrl?: string;
+  /** Ticketmaster's own classification label (e.g. "Pop", "Wrestling",
+   *  "Hip-Hop/Rap") — never a genre we've guessed ourselves. */
+  genreLabel?: string;
+  ticketUrl: string; // the attraction's own real Ticketmaster page
+}
+
+/** Pure: map one Ticketmaster attraction object → our shape. Exported for tests. */
+export function mapAttraction(a: any): DiscoveredAttraction | null {
+  const id = a?.id;
+  const name = a?.name;
+  const url = a?.url;
+  if (!id || !name || !url) return null;
+  const images: any[] = Array.isArray(a?.images) ? a.images : [];
+  const bestImage = images.sort((x, y) => (y?.width ?? 0) - (x?.width ?? 0))[0];
+  const first = Array.isArray(a?.classifications) ? a.classifications[0] : undefined;
+  const genreName = first?.genre?.name;
+  const segmentName = first?.segment?.name;
+  const genreLabel =
+    typeof genreName === "string" && genreName !== "Undefined" ? genreName :
+    typeof segmentName === "string" && segmentName !== "Undefined" ? segmentName : undefined;
+  return {
+    id: String(id),
+    name: String(name),
+    imageUrl: typeof bestImage?.url === "string" ? bestImage.url : undefined,
+    genreLabel,
+    ticketUrl: String(url),
+  };
+}
+
+/** Real Ticketmaster attraction search by name — the best (first) match for
+ *  a keyword, or null if nothing matches. Used to look up one owner-picked
+ *  artist/team by name for the Trending Artists row; never a fabricated
+ *  result. */
+export async function searchAttraction(keyword: string): Promise<DiscoveredAttraction | null> {
+  const key = tmKey();
+  if (!key || !keyword.trim()) return null;
+  try {
+    const q = new URLSearchParams({ keyword: keyword.trim(), size: "1", apikey: key });
+    const res = await fetch(`${TICKETMASTER_BASE}/attractions.json?${q.toString()}`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    const attractions: any[] = (data as any)?._embedded?.attractions ?? [];
+    return attractions[0] ? mapAttraction(attractions[0]) : null;
+  } catch {
+    return null;
+  }
+}
