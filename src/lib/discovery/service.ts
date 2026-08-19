@@ -150,7 +150,12 @@ export async function getTrendingNearYouEvents(): Promise<DiscoveredEvent[]> {
   const results = await Promise.all(
     TRENDING_NEAR_YOU_KEYWORDS.map((keyword) => getNearYouEvents({ keyword, limit: 1 })),
   );
-  return results.flatMap((r) => r.items.slice(0, 1));
+  const items = results.flatMap((r) => r.items.slice(0, 1));
+  // Two curated names can be co-headliners of the very same real show (e.g.
+  // Usher and Chris Brown's joint tour) — dedupe by Ticketmaster event id so
+  // it doesn't render twice.
+  const seen = new Set<string>();
+  return items.filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)));
 }
 
 /** What's actually trending on Ticketmaster right now, nationwide — sorted
