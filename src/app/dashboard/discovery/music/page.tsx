@@ -40,13 +40,13 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
     <div className="disc disc-lux disc-dark music">
       <DiscoveryNav active="/dashboard/discovery/music" />
 
-      <div className="disc-filters">
-        {GENRES.map((g) => (
-          <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
-        ))}
-      </div>
+      <div className="music-top-row">
+        <div className="disc-filters">
+          {GENRES.map((g) => (
+            <a key={g.id} href={`/dashboard/discovery/music?genre=${g.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`} aria-current={genre === g.id ? "true" : undefined}>{g.label}</a>
+          ))}
+        </div>
 
-      <div className="disc-section">
         {appleConfigured && (
           <div className="disc-music__search-row">
             <form className="disc-form disc-form--compact" method="get">
@@ -56,6 +56,9 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
             </form>
           </div>
         )}
+      </div>
+
+      <div className="disc-section">
 
         {appleConfigured ? (
           <>
