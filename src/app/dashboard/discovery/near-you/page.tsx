@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getNearYouEvents, getTrendingNearYouEvents } from "@/lib/discovery/service";
+import { getNearYouEvents, getTrendingNearYouEvents, getTrendingAttractions } from "@/lib/discovery/service";
 import { getSavedEventIds } from "@/lib/discovery/saved-events";
 import { normalizeTicketmasterLocation, type EventCategory, type DiscoveredEvent } from "@/lib/discovery/providers/events";
 import { saveEventAction, unsaveEventAction } from "./actions";
@@ -70,10 +70,11 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
   const radius = RADII.includes(Number(rawRadius) as typeof RADII[number]) ? Number(rawRadius) : 50;
   const normalizedLocation = location?.trim() ? normalizeTicketmasterLocation(location) : null;
   const invalidLocation = normalizedLocation?.kind === "invalid";
-  const [result, savedIds, trendingRaw] = await Promise.all([
+  const [result, savedIds, trendingRaw, attractions] = await Promise.all([
     location?.trim() && !invalidLocation ? getNearYouEvents({ location: location.trim(), category, radiusMiles: radius }) : Promise.resolve(null),
     getSavedEventIds(account.id),
     getTrendingNearYouEvents(),
+    getTrendingAttractions(),
   ]);
   const hasEvents = Boolean(result?.items.length);
   const resultIds = new Set(result?.items.map((e) => e.id));
@@ -100,6 +101,21 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
           <button type="submit" className="btn btn--gold">Find Events</button></div>
         </form>
       </section>
+
+      {attractions.length > 0 && (
+        <section className="near-attractions">
+          <div className="near-attractions__head"><h2>Trending Artists &amp; Attractions</h2></div>
+          <div className="near-attractions__rail">
+            {attractions.map((a) => (
+              <a key={a.id} className="near-attractions__card" href={a.ticketUrl} target="_blank" rel="noopener noreferrer">
+                <div className="near-attractions__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
+                {a.genreLabel && <span className="near-attractions__genre">{a.genreLabel}</span>}
+                <b>{a.name}</b>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="disc-filters">
         <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&radius=${radius}`} aria-current={!category ? "true" : undefined}>All</a>

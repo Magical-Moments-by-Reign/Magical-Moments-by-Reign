@@ -52,6 +52,19 @@
 .near-trending__head h2 { margin: 0; color: #fffdf8; font: 500 1.4rem/1.1 var(--font-display, Georgia, serif); }
 .near-trending__head span { color: #9c8f76; font-size: .74rem; }
 
+.near-attractions { margin: 1.8rem 0; }
+.near-attractions__head { margin-bottom: 1rem; }
+.near-attractions__head h2 { margin: 0; color: #fffdf8; font: 500 1.3rem/1.1 var(--font-display, Georgia, serif); }
+.near-attractions__rail { display: grid; grid-auto-flow: column; grid-auto-columns: 170px; gap: 1rem; overflow-x: auto; padding-bottom: .6rem; scroll-snap-type: x proximity; }
+.near-attractions__card { display: flex; flex-direction: column; gap: .35rem; text-decoration: none; scroll-snap-align: start; }
+.near-attractions__img { width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; background-size: cover; background-position: center; background-color: #14100c; border: 1px solid rgba(210,168,72,.3); }
+.near-attractions__genre { color: #d6aa4c; font-size: .64rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.near-attractions__card b { color: #fffaf0; font-size: .84rem; font-weight: 600; line-height: 1.3; }
+
+@media (max-width: 700px) {
+  .near-attractions__rail { grid-auto-columns: 130px; }
+}
+
 @media (max-width: 700px) {
   .near-hero { padding: 1.6rem 1.2rem; }
   .near-hero .near-search__row { grid-template-columns: 1fr; }
