@@ -2,7 +2,7 @@
    Scoped to /dashboard/discovery routes. Reuses the shared pg- and btn
    tokens from dashboard-ui.css (espresso, gold, ivory palette) rather
    than inventing a new look — Discovery lives inside the existing Hub,
-   not a redesign of it.
+   not a redesign of it. */
 
 .disc { width: 100%; color: var(--ink); }
 .disc-page-head { max-width: 760px; margin: 0 0 1.25rem; }
