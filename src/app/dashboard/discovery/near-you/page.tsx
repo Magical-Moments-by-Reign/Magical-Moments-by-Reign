@@ -96,18 +96,18 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
           <Link href="/dashboard/discovery/trending" className="near-hero__trending">✦ See What&rsquo;s Trending <span aria-hidden="true">→</span></Link>
           <Link href="/dashboard/discovery/near-you/saved" className="near-hero__trending">♡ My Saved Events{savedIds.size > 0 ? ` (${savedIds.size})` : ""}</Link>
         </div>
-
-        <form className="near-search" method="get">
-          <label htmlFor="near-q">Search by artist, event, or venue — and/or a location</label>
-          <div className="near-search__row">
-            <input id="near-q" type="text" name="q" placeholder="Artist, event, or venue" defaultValue={q ?? ""} aria-label="Search by artist, event, or venue" />
-            <input id="near-location" type="text" name="location" placeholder="Address, city, or ZIP (optional)" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
-            <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
-            {category && <input type="hidden" name="category" value={category} />}
-            <button type="submit" className="btn btn--gold">Find Events</button>
-          </div>
-        </form>
       </section>
+
+      <form className="near-search" method="get">
+        <label htmlFor="near-q">Search by artist, event, or venue — and/or a location</label>
+        <div className="near-search__row">
+          <input id="near-q" type="text" name="q" placeholder="Artist, event, or venue" defaultValue={q ?? ""} aria-label="Search by artist, event, or venue" />
+          <input id="near-location" type="text" name="location" placeholder="Address, city, or ZIP (optional)" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
+          <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
+          {category && <input type="hidden" name="category" value={category} />}
+          <button type="submit" className="btn btn--gold">Find Events</button>
+        </div>
+      </form>
 
       {attractions.length > 0 && (
         <section className="near-attractions">
