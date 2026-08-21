@@ -195,6 +195,34 @@ export async function getTrendingAttractions(): Promise<DiscoveredAttraction[]> 
   return results.filter((a): a is DiscoveredAttraction => a !== null && a.upcomingEventsCount !== 0);
 }
 
+// Category rails for the "Popular Near You" section — each is a real,
+// nationwide Ticketmaster search sorted by Ticketmaster's own relevance
+// ranking (see getTicketmasterTrending above for why relevance is the
+// honest proxy for "popular"), filtered to one classification. A category
+// with no current on-sale matches simply doesn't render its rail.
+const POPULAR_CATEGORIES: { id: EventCategory; label: string }[] = [
+  { id: "concerts", label: "Concerts" },
+  { id: "sports", label: "Sports" },
+  { id: "theater", label: "Arts, Theater & Comedy" },
+  { id: "family", label: "Family" },
+];
+
+export interface PopularCategoryRail {
+  category: EventCategory;
+  label: string;
+  items: DiscoveredEvent[];
+}
+
+/** One real, relevance-ranked Ticketmaster rail per featured category, for
+ *  the "Popular Near You" section. Nationwide (no location required) so it
+ *  always has something to show, same as Trending Now/Trending Artists. */
+export async function getPopularNearYouByCategory(limit = 10): Promise<PopularCategoryRail[]> {
+  const results = await Promise.all(
+    POPULAR_CATEGORIES.map((c) => getNearYouEvents({ category: c.id, sort: "relevance", limit })),
+  );
+  return POPULAR_CATEGORIES.map((c, i) => ({ category: c.id, label: c.label, items: results[i].items })).filter((r) => r.items.length > 0);
+}
+
 export interface CuratedItem {
   category: "Watch" | "Movies" | "Music" | "Events" | "Sports";
   title: string;
