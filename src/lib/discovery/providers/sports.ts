@@ -235,8 +235,9 @@ function statusOf(shortStatus: string | undefined): "scheduled" | "live" | "fina
 }
 
 /** Maps one "games"-shaped API-Sports response item (american-football,
- *  basketball, baseball, hockey, rugby, volleyball all share this shape). */
-function mapGameItem(sport: SportSlug, league: string, item: any): SportsGameSummary | null {
+ *  basketball, baseball, hockey, rugby, volleyball all share this shape).
+ *  Exported for tests. */
+export function mapGameItem(sport: SportSlug, league: string, item: any): SportsGameSummary | null {
   const id = item?.game?.id ?? item?.id;
   const home = item?.teams?.home;
   const away = item?.teams?.away;
@@ -255,7 +256,12 @@ function mapGameItem(sport: SportSlug, league: string, item: any): SportsGameSum
     period: item?.game?.status?.long ?? item?.status?.long ?? undefined,
     homeScore: typeof homeScore === "number" ? homeScore : undefined,
     awayScore: typeof awayScore === "number" ? awayScore : undefined,
-    stage: typeof item?.league?.stage === "string" ? item.league.stage
+    // API-Sports nests stage under the same `game` object as id/date/status
+    // for these verticals (not `league`, despite it being season/competition
+    // metadata) — checked first since that's where it actually lives; the
+    // other two are kept as fallbacks for any response shape that differs.
+    stage: typeof item?.game?.stage === "string" ? item.game.stage
+      : typeof item?.league?.stage === "string" ? item.league.stage
       : typeof item?.stage === "string" ? item.stage
       : undefined,
   };
