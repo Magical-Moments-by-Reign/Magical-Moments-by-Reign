@@ -6,7 +6,7 @@ import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
-import { getTeamDirectory, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import TeamDirectory from "../TeamDirectory";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
@@ -194,31 +194,44 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   }
 
   const standingsResult = connected && hasLeague ? await getStandings(sport, league) : { standings: [] };
-  const standings = standingsResult.standings ?? [];
   const standingsRestricted = standingsResult.planRestricted;
-  const standingsGroups = normalizeStandingsBySport(sport, standings);
   // Real phase, from the same real dated openers used elsewhere on this
   // page (never a separately-guessed "today's season") — "preseason" here
   // covers both "before this season's preseason starts" and "we don't have
-  // this season's schedule yet," both of which mean the standings on
-  // screen are the last COMPLETED season's, labeled as Final. There is no
-  // verified preseason win-loss data from any connected provider, so that
-  // phase never gets its own standings table — only a truthful label on
-  // the regular-season one that's actually shown.
+  // this season's schedule yet." Computed before the standings fallback
+  // below so it can honestly decide whether an unresolved team's real
+  // record is corroborated 0-0 (season genuinely hasn't started) or an
+  // honest gap ("—", a mid-season provider restriction).
   const standingsPhase = determineSeasonPhase({
     now: Date.now(),
     preseasonGameStartsAt: firstPreseasonGame?.startsAt,
     regularGameStartsAt: firstRegularSeasonGame?.startsAt,
     postseasonGameStartsAt: firstPostseasonGame?.startsAt,
   });
-  const standingsSeasonLabel = formatSeasonLabel(standingsResult.season, standingsPhase);
+  // A sport with a verified, real conference/division reference (see
+  // team-directory.ts) never shows a bare "No standings data returned" —
+  // every real team appears, with its live record where the provider has
+  // one and either a corroborated 0-0 (season confirmed not started yet)
+  // or an honest "—" otherwise. Skipped when the plan itself is
+  // restricted, since that's a different, already-honest message.
+  const standings = !standingsRestricted && hasVerifiedReference(sport)
+    ? await getVerifiedStandingsFallback(sport, standingsResult.standings ?? [], standingsPhase === "preseason")
+    : standingsResult.standings ?? [];
+  const standingsGroups = normalizeStandingsBySport(sport, standings);
+  // No provider returned a season string in the verified-fallback case
+  // (both tiers came back empty) — fall back to the real year off whichever
+  // real dated opener we already have (never a guess), labeled for the
+  // real phase we're actually in, rather than showing no heading at all.
+  const fallbackSeasonYear = firstRegularSeasonGame ? new Date(firstRegularSeasonGame.startsAt).getUTCFullYear() : firstPreseasonGame ? new Date(firstPreseasonGame.startsAt).getUTCFullYear() : null;
+  const standingsSeasonLabel = formatSeasonLabel(standingsResult.season, standingsPhase)
+    ?? (fallbackSeasonYear && standings.length > 0 ? `${fallbackSeasonYear} ${standingsPhase === "preseason" ? "Preseason" : standingsPhase === "postseason" ? "Postseason" : "Regular Season"} Standings` : null);
 
   // All Teams directory — every team in the league under its real
-  // conference/division, with a live-resolved logo. NBA has a verified
-  // static conference/division reference (see team-directory.ts); every
-  // other sport reuses the exact grouping/logos already resolved for the
-  // Standings panel above rather than a second fetch.
-  const directoryGroups: DirectoryGroup[] = sport === "nba"
+  // conference/division, with a live-resolved logo. NBA/NFL have a
+  // verified static conference/division reference (see team-directory.ts);
+  // every other sport reuses the exact grouping/logos already resolved for
+  // the Standings panel above rather than a second fetch.
+  const directoryGroups: DirectoryGroup[] = hasVerifiedReference(sport)
     ? await getTeamDirectory(sport)
     : standingsGroups.map((g) => ({
         label: g.label || sportMeta.label,
@@ -358,7 +371,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             {s.team.logoUrl ? <img src={s.team.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
                             <b style={{ flex: 1 }}>{s.team.name}</b>
-                            <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 48, textAlign: "right" }}>{s.summary ?? `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}`}</span>
+                            <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 48, textAlign: "right" }}>{s.summary ?? (s.wins == null && s.losses == null ? "—" : `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}`)}</span>
                             <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 40, textAlign: "right" }}>{s.wins == null && s.losses == null ? "—" : `${(((s.wins ?? 0) / Math.max((s.wins ?? 0) + (s.losses ?? 0), 1)) * 100).toFixed(1)}`}</span>
                             {d.rows.some((r) => r.gb != null) && <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 32, textAlign: "right" }}>{s.gb == null ? "—" : s.gb === 0 ? "-" : s.gb}</span>}
                           </div>
