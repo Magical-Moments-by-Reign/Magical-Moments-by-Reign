@@ -402,3 +402,19 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-directory__team-name { flex: 1; color: #f4f1ea; font-size: .84rem; font-weight: 700; }
 .spx-directory__team-arrow { color: var(--gold-soft); font-size: .8rem; }
 .spx-directory__roster { padding: 0 .8rem .9rem; }
+
+/* ── All Teams directory — single-team roster panel (replaces the grid) ── */
+.spx-directory__back { background: none; border: none; color: var(--gold-soft); font-size: .74rem; font-weight: 700; cursor: pointer; padding: 0 0 .8rem; }
+.spx-directory__back:hover { color: var(--gold); }
+.spx-directory__panel-head { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
+.spx-directory__panel-head h3 { color: #f4f1ea; font-size: 1.05rem; margin: 0; }
+.spx-directory__breadcrumb { color: #9c8f76; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; }
+.spx-directory__roster-box { border: 1px solid rgba(201,162,75,.18); border-radius: 12px; background: rgba(255,255,255,.02); padding: .9rem 1rem; }
+.spx-directory__roster-group + .spx-directory__roster-group { margin-top: .9rem; }
+.spx-directory__roster-group-label { color: var(--gold-soft); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 .5rem; }
+.spx-roster__row { display: flex; align-items: center; gap: .6rem; padding: .4rem 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.spx-roster__row:last-child { border-bottom: none; }
+.spx-roster__number { color: var(--gold-soft); font-size: .74rem; font-weight: 800; width: 30px; flex: none; }
+.spx-roster__name-link { flex: 1; color: #f4f1ea; font-size: .8rem; font-weight: 700; text-decoration: none; }
+a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underline; }
+.spx-roster__pos { color: #9c8f76; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
