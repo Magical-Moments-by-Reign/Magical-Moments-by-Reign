@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation, TicketmasterProvider, buildLocationParams, mapAttraction } from "./events";
+import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation, TicketmasterProvider, buildLocationParams, mapAttraction, mapSuggestions } from "./events";
 
 test("mapEvent maps a Ticketmaster event, picking the widest image", () => {
   const e = mapEvent({
@@ -76,6 +76,27 @@ test("provider calls the Discovery events endpoint with apikey and maps returned
 
 test("mapEvent rejects an event with no id, name, or url", () => {
   assert.equal(mapEvent({ name: "No id or url" }), null);
+});
+
+test("mapSuggestions maps attractions and venues from a real Ticketmaster /suggest response", () => {
+  const suggestions = mapSuggestions({
+    _embedded: {
+      attractions: [
+        { id: "a1", name: "UniverSoul Circus", classifications: [{ segment: { name: "Circus & Specialty Acts" } }], images: [{ url: "small.jpg", width: 100 }, { url: "big.jpg", width: 800 }] },
+      ],
+      venues: [
+        { id: "v1", name: "Amway Center", city: { name: "Orlando" }, state: { stateCode: "FL" } },
+      ],
+    },
+  });
+  assert.equal(suggestions.length, 2);
+  assert.deepEqual(suggestions[0], { id: "a1", name: "UniverSoul Circus", kind: "attraction", subtitle: "Circus & Specialty Acts", imageUrl: "big.jpg" });
+  assert.deepEqual(suggestions[1], { id: "v1", name: "Amway Center", kind: "venue", subtitle: "Orlando, FL" });
+});
+
+test("mapSuggestions returns [] rather than guessing when Ticketmaster has no embedded results", () => {
+  assert.deepEqual(mapSuggestions({}), []);
+  assert.deepEqual(mapSuggestions(null), []);
 });
 
 test("mapAttraction picks the widest image and real upcomingEvents total", () => {

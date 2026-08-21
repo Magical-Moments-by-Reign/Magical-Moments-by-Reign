@@ -370,6 +370,57 @@ export function mapAttraction(a: any): DiscoveredAttraction | null {
   };
 }
 
+export interface SearchSuggestion {
+  id: string;
+  name: string;
+  kind: "attraction" | "venue";
+  subtitle?: string; // genre for attractions, city/state for venues
+  imageUrl?: string;
+}
+
+/** Pure: map one Ticketmaster /suggest response into our shape. Exported for tests. */
+export function mapSuggestions(data: any): SearchSuggestion[] {
+  const attractions: any[] = Array.isArray(data?._embedded?.attractions) ? data._embedded.attractions : [];
+  const venues: any[] = Array.isArray(data?._embedded?.venues) ? data._embedded.venues : [];
+  const fromAttraction = (a: any): SearchSuggestion | null => {
+    if (!a?.id || !a?.name) return null;
+    const images: any[] = Array.isArray(a?.images) ? a.images : [];
+    const bestImage = images.sort((x, y) => (y?.width ?? 0) - (x?.width ?? 0))[0];
+    const first = Array.isArray(a?.classifications) ? a.classifications[0] : undefined;
+    const genre = first?.genre?.name;
+    const segment = first?.segment?.name;
+    const subtitle = typeof genre === "string" && genre !== "Undefined" ? genre : typeof segment === "string" && segment !== "Undefined" ? segment : undefined;
+    return { id: String(a.id), name: String(a.name), kind: "attraction", subtitle, imageUrl: typeof bestImage?.url === "string" ? bestImage.url : undefined };
+  };
+  const fromVenue = (v: any): SearchSuggestion | null => {
+    if (!v?.id || !v?.name) return null;
+    const subtitle = [v?.city?.name, v?.state?.stateCode].filter((s) => typeof s === "string" && s).join(", ") || undefined;
+    return { id: String(v.id), name: String(v.name), kind: "venue", subtitle };
+  };
+  return [
+    ...attractions.map(fromAttraction).filter((s): s is SearchSuggestion => s !== null).slice(0, 6),
+    ...venues.map(fromVenue).filter((s): s is SearchSuggestion => s !== null).slice(0, 4),
+  ];
+}
+
+/** Real Ticketmaster typeahead — Discovery API's own /suggest endpoint,
+ *  the same live data that powers Ticketmaster's own search box. Returns []
+ *  (never fabricated placeholders) on any failure or empty query. */
+export async function suggestSearch(keyword: string): Promise<SearchSuggestion[]> {
+  const key = tmKey();
+  const trimmed = keyword.trim();
+  if (!key || trimmed.length < 2) return [];
+  try {
+    const q = new URLSearchParams({ keyword: trimmed, apikey: key });
+    const res = await fetch(`${TICKETMASTER_BASE}/suggest?${q.toString()}`, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return mapSuggestions(data);
+  } catch {
+    return [];
+  }
+}
+
 /** Real Ticketmaster attraction search by name — the best (first) match for
  *  a keyword, or null if nothing matches. Used to look up one owner-picked
  *  artist/team by name for the Trending Artists row; never a fabricated
