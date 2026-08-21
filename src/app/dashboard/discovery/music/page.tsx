@@ -10,6 +10,9 @@ import ConnectAppleMusicButton from "@/components/apple-music/ConnectAppleMusicB
 import PlaySongButton from "@/components/apple-music/PlaySongButton";
 import NowPlayingBar from "@/components/apple-music/NowPlayingBar";
 import AppleMusicBrowse from "@/components/apple-music/AppleMusicBrowse";
+import AddToPlaylistMenu from "@/components/apple-music/AddToPlaylistMenu";
+import { getMyPlaylists } from "@/lib/discovery/playlists";
+import { createPlaylistAction, deletePlaylistAction, addTrackToPlaylistAction, removeTrackFromPlaylistAction } from "./actions";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState } from "../_components";
 import "../discovery.css";
@@ -25,7 +28,7 @@ const GENRES: { id: MusicGenre; label: string }[] = [
 ];
 
 export default async function MusicPage({ searchParams }: { searchParams: Promise<{ genre?: string; q?: string }> }) {
-  await requireAccount("/dashboard/discovery/music");
+  const account = await requireAccount("/dashboard/discovery/music");
   const { genre: raw, q } = await searchParams;
   const genre = (GENRES.some((g) => g.id === raw) ? raw : "top") as MusicGenre;
   const chart = await getMusicChart(genre);
@@ -34,6 +37,7 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
   const appleConfigured = appleMusicConfigured();
   const appleResults = appleConfigured && query ? await searchAppleMusicCatalog(query) : null;
   const featuredCharts = appleConfigured && !query ? await getAlbumsAndPlaylistsCharts() : null;
+  const myPlaylists = await getMyPlaylists(account.id);
 
   return (
     <AppleMusicKitProvider>
@@ -74,6 +78,11 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                 playlists={featuredCharts?.playlists ?? []}
                 genre={genre}
                 isOfficial={chart.isOfficial}
+                myPlaylists={myPlaylists}
+                createPlaylistAction={createPlaylistAction}
+                deletePlaylistAction={deletePlaylistAction}
+                addTrackToPlaylistAction={addTrackToPlaylistAction}
+                removeTrackFromPlaylistAction={removeTrackFromPlaylistAction}
               />
             )}
 
@@ -125,6 +134,11 @@ export default async function MusicPage({ searchParams }: { searchParams: Promis
                           <div className="disc-chart__art" style={t.artworkUrl ? { backgroundImage: `url(${t.artworkUrl})` } : undefined} />
                           <div className="disc-chart__song"><b>{t.name}</b><span>{t.artistName}{t.albumName ? ` · ${t.albumName}` : ""}</span></div>
                           <PlaySongButton song={{ id: t.id, name: t.name, artistName: t.artistName, albumName: t.albumName, artworkUrl: t.artworkUrl, previewUrl: t.previewUrl }} />
+                          <AddToPlaylistMenu
+                            playlists={myPlaylists}
+                            track={{ catalogId: t.id, name: t.name, artistName: t.artistName, albumName: t.albumName, artworkUrl: t.artworkUrl, url: t.url, previewUrl: t.previewUrl }}
+                            addTrackToPlaylistAction={addTrackToPlaylistAction}
+                          />
                           {t.url && <a className="btn btn--sm btn--ghost" href={t.url} target="_blank" rel="noopener noreferrer">Open in Apple Music →</a>}
                         </div>
                       ))}

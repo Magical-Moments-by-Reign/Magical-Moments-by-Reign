@@ -67,6 +67,34 @@
 .music .amk-tile__subtitle { color: #9c8f76; }
 .music .amk-tile__art { background-color: #14100c; }
 
+/* ── Add-to-playlist menu ── */
+.amk-addto { position: relative; align-self: flex-start; }
+.amk-addto summary { list-style: none; cursor: pointer; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(210,168,72,.4); color: #d6aa4c; font-size: .92rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+.amk-addto summary::-webkit-details-marker { display: none; }
+.amk-addto summary:hover { border-color: #e0b651; color: #e0b651; }
+.amk-addto[open] summary { background: rgba(224,182,81,.15); }
+.amk-addto__menu { position: absolute; z-index: 5; top: calc(100% + .4rem); left: 0; min-width: 170px; max-width: 220px; padding: .45rem; border-radius: 10px; border: 1px solid rgba(210,168,72,.3); background: #1a1509; box-shadow: 0 12px 28px rgba(0,0,0,.4); display: flex; flex-direction: column; gap: .2rem; }
+.amk-addto__menu button { display: block; width: 100%; text-align: left; padding: .4rem .5rem; border-radius: 6px; border: none; background: none; color: #f4e3b0; font-size: .78rem; cursor: pointer; }
+.amk-addto__menu button:hover { background: rgba(224,182,81,.15); }
+.amk-addto__empty { margin: 0; padding: .3rem .4rem; color: #9c8f76; font-size: .72rem; }
+
+/* ── My Playlists ── */
+.amk-newplaylist { display: flex; gap: .6rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+.amk-newplaylist input { flex: 1; min-width: 180px; max-width: 320px; padding: .55rem .8rem; border-radius: 8px; border: 1px solid rgba(210,168,72,.35); background: #14110b; color: #fffaf0; font-size: .84rem; }
+
+.amk-myplaylists { display: flex; flex-direction: column; gap: 1.2rem; }
+.amk-myplaylist { padding: 1rem 1.1rem; border-radius: 12px; border: 1px solid rgba(210,168,72,.22); background: #100d09; }
+.amk-myplaylist__head { display: flex; align-items: center; gap: .7rem; margin-bottom: .8rem; flex-wrap: wrap; }
+.amk-myplaylist__head h3 { margin: 0; color: #fffaf0; font-family: var(--font-display, Georgia, serif); font-size: 1rem; }
+.amk-myplaylist__head span { color: #9c8f76; font-size: .74rem; }
+.amk-myplaylist__delete { margin-left: auto; background: none; border: none; color: #c0392b; font-size: .72rem; font-weight: 700; cursor: pointer; padding: 0; }
+.amk-myplaylist__delete:hover { text-decoration: underline; }
+.amk-myplaylist__tracks { display: flex; flex-direction: column; gap: .6rem; }
+.amk-myplaylist__tracks .amk-ranked { flex-direction: row; align-items: center; gap: .7rem; }
+.amk-myplaylist__tracks .amk-ranked__art { width: 42px; height: 42px; flex: none; }
+.amk-myplaylist__tracks .amk-ranked__title { white-space: normal; flex: none; }
+.amk-myplaylist__tracks .amk-ranked__subtitle { white-space: normal; margin-right: auto; }
+
 /* ── Search results + no-provider fallback ── */
 .music .disc-card { background: #14110b; border-color: rgba(210,168,72,.3); box-shadow: none; }
 .music .disc-card h3 { color: #fffaf0; }
