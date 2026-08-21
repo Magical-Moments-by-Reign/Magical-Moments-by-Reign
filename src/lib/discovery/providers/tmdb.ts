@@ -54,10 +54,22 @@ export interface TvNetwork {
   logoUrl?: string;
 }
 
+export interface TvCastMember {
+  name: string;
+  character?: string;
+  profileUrl?: string;
+}
+
 export interface WatchDetails extends WatchItem {
   seasons?: number;
+  /** TMDB's own number_of_episodes — omitted, never guessed, when absent. */
+  numberOfEpisodes?: number;
   latestSeasonName?: string;
   status?: string; // "Returning Series" | "Ended" | ...
+  /** TMDB's own in_production flag — true while the show is actively
+   *  producing new episodes, independent of whether a next air date has
+   *  been announced yet. */
+  inProduction?: boolean;
   availableOn: WatchProviderAvailability[];
   externalUrl?: string; // TMDB's own page (always safe to link to)
   /** TMDB's own networks/channels for this show (e.g. HBO, Netflix) —
@@ -72,6 +84,9 @@ export interface WatchDetails extends WatchItem {
   /** TMDB's own last_episode_to_air — the most recent real episode, used
    *  for "current season/episode" display when there's no upcoming one. */
   lastEpisode?: TvEpisodeRef;
+  /** TMDB's own top-billed cast, from /tv/{id}/credits — capped, never
+   *  fabricated; omitted when TMDB has no cast on file. */
+  cast: TvCastMember[];
 }
 
 export interface MovieDetails extends MovieItem {
@@ -144,6 +159,19 @@ export function mapTv(t: any): WatchItem | null {
   };
 }
 
+/** Pure: map a TMDB /tv/{id}/credits response → top-billed cast. Exported for tests. */
+export function mapCast(credits: any): TvCastMember[] {
+  if (!Array.isArray(credits?.cast)) return [];
+  return credits.cast
+    .filter((c: any) => typeof c?.name === "string" && c.name)
+    .slice(0, 12)
+    .map((c: any) => ({
+      name: String(c.name),
+      character: typeof c?.character === "string" && c.character ? c.character : undefined,
+      profileUrl: poster(c?.profile_path, "w342"),
+    }));
+}
+
 /** Pure: map one TMDB movie object → our shape. Exported for tests. */
 export function mapMovie(m: any): MovieItem | null {
   const id = m?.id;
@@ -213,9 +241,10 @@ export const TmdbWatchProvider: WatchProvider = {
   async details(id: string): Promise<WatchDetails | null> {
     if (!tmdbKey() || !id) return null;
     try {
-      const [showRes, providersRes] = await Promise.all([
+      const [showRes, providersRes, creditsRes] = await Promise.all([
         authedFetch(`/tv/${encodeURIComponent(id)}`),
         authedFetch(`/tv/${encodeURIComponent(id)}/watch/providers`),
+        authedFetch(`/tv/${encodeURIComponent(id)}/credits`),
       ]);
       if (!showRes.ok) return null;
       const show = await showRes.json();
@@ -245,14 +274,17 @@ export const TmdbWatchProvider: WatchProvider = {
       return {
         ...base,
         seasons: typeof show?.number_of_seasons === "number" ? show.number_of_seasons : undefined,
+        numberOfEpisodes: typeof show?.number_of_episodes === "number" ? show.number_of_episodes : undefined,
         latestSeasonName: typeof show?.last_episode_to_air?.name === "string" ? show.last_episode_to_air.name : undefined,
         status: typeof show?.status === "string" ? show.status : undefined,
+        inProduction: typeof show?.in_production === "boolean" ? show.in_production : undefined,
         availableOn,
         networks,
         externalUrl: show?.id ? `https://www.themoviedb.org/tv/${show.id}` : undefined,
         nextEpisode: toEpisodeRef(nextEp),
         nextEpisodeIsSeasonPremiere: nextEp?.episode_number === 1,
         lastEpisode: toEpisodeRef(lastEp),
+        cast: creditsRes.ok ? mapCast(await creditsRes.json()) : [],
       };
     } catch {
       return null;

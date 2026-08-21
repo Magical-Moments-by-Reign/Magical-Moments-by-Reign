@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mapTv, mapMovie } from "./tmdb";
+import { mapTv, mapMovie, mapCast } from "./tmdb";
 
 test("mapTv maps a TMDB tv show", () => {
   const w = mapTv({ id: 1399, name: "Example Show", poster_path: "/p.jpg", first_air_date: "2011-04-17", vote_average: 9.3 });
@@ -26,4 +26,18 @@ test("mapMovie never invents a runtime or trailer", () => {
   const m = mapMovie({ id: 1, title: "Bare Movie" });
   assert.ok(m);
   assert.equal(m!.runtimeMinutes, undefined);
+});
+
+test("mapCast maps top-billed cast with character names, capped at 12", () => {
+  const cast = Array.from({ length: 15 }, (_, i) => ({ name: `Actor ${i}`, character: `Role ${i}`, profile_path: "/p.jpg" }));
+  const result = mapCast({ cast });
+  assert.equal(result.length, 12);
+  assert.equal(result[0].name, "Actor 0");
+  assert.equal(result[0].character, "Role 0");
+  assert.equal(result[0].profileUrl, "https://image.tmdb.org/t/p/w342/p.jpg");
+});
+
+test("mapCast returns an empty array rather than guessing when TMDB has no credits", () => {
+  assert.deepEqual(mapCast({}), []);
+  assert.deepEqual(mapCast(null), []);
 });
