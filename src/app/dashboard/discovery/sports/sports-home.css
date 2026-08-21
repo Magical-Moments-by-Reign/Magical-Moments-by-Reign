@@ -130,6 +130,18 @@
 .spx-roster__name { color: #f4f1ea; font-size: .72rem; font-weight: 700; line-height: 1.2; }
 .spx-roster__meta { color: #9c8f76; font-size: .64rem; }
 
+/* ── Standings: collapsed-by-default disclosure + real conference groups ── */
+.spx-standings summary { cursor: pointer; color: var(--gold-soft); font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; list-style: none; }
+.spx-standings summary::-webkit-details-marker { display: none; }
+.spx-standings summary::before { content: "▸ "; }
+.spx-standings[open] summary::before { content: "▾ "; }
+.spx-standings__group { margin-top: 1rem; }
+.spx-standings__group:first-of-type { margin-top: .8rem; }
+.spx-standings__group-label { margin: 0 0 .5rem; color: var(--gold); font-size: .74rem; font-weight: 800; letter-spacing: .04em; }
+.spx-standings__cols { display: flex; align-items: center; gap: .6rem; padding: 0 0 .3rem; color: #776b52; font-size: .58rem; text-transform: uppercase; letter-spacing: .06em; }
+.spx-standings__cols span:first-child { flex: 1; margin-left: 42px; }
+.spx-standings__cols span:not(:first-child) { width: 48px; text-align: right; }
+
 /* ── "EXPLORE ALL SPORTS" divider ── */
 .spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }
 .spx-divider span {
