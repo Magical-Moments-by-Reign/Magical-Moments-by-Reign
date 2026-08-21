@@ -187,7 +187,12 @@ export async function getTrendingAttractions(): Promise<DiscoveredAttraction[]> 
       return cached?.data ?? null;
     }),
   );
-  return results.filter((a): a is DiscoveredAttraction => a !== null);
+  // Ticketmaster's own attraction search can match an entity with no
+  // currently on-sale events (a dead-end "View on Ticketmaster" click) —
+  // drop those explicitly-zero cases. Keep an attraction whose count
+  // Ticketmaster simply didn't report (undefined), since that's not the
+  // same as a confirmed zero.
+  return results.filter((a): a is DiscoveredAttraction => a !== null && a.upcomingEventsCount !== 0);
 }
 
 export interface CuratedItem {
