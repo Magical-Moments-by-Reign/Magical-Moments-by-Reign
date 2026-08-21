@@ -93,16 +93,20 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           <h1>{sportMeta.label}</h1>
         </div>
         {firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0 && (
-          <div className="spx-countdown">
-            <span className="spx-countdown__label">{sportMeta.label} Regular Season Countdown</span>
-            <div className="spx-countdown__matchup">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-              <b>{firstRegularSeasonGame.awayTeam.name}</b>
+          <div className="spx-countdown spx-countdown--hero">
+            <span className="spx-countdown__title">{sportMeta.label} Regular Season Countdown</span>
+            <div className="spx-countdown__matchup spx-countdown__matchup--hero">
+              <div className="spx-countdown__side">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <b>{firstRegularSeasonGame.awayTeam.name}</b>
+              </div>
               <span className="spx-countdown__at">at</span>
-              <b>{firstRegularSeasonGame.homeTeam.name}</b>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+              <div className="spx-countdown__side">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <b>{firstRegularSeasonGame.homeTeam.name}</b>
+              </div>
             </div>
             <CountdownClock targetISO={firstRegularSeasonGame.startsAt} />
           </div>
