@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getTeamRoster } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -13,11 +13,12 @@ import "../sports-home.css";
 
 export const dynamic = "force-dynamic";
 
-// API-Sports doesn't reliably return usable league artwork for American
-// football — see the matching note in ../page.tsx. This is the API's own
-// real identifying mark for the league, used the same way ESPN/other sports
-// apps label a section — not a claim of official endorsement.
-const STATIC_LOGO: Partial<Record<SportSlug, string>> = { nfl: "/discovery/leagues/nfl.png", ncaaf: "/discovery/leagues/ncaaf.png" };
+// American football doesn't get a league mark image at all — API-Sports
+// doesn't reliably return usable league artwork for it, and the official
+// NFL/NCAA shields are trademarked marks we don't have rights to reproduce.
+// Those sports fall back to the plain styled-text mark below instead.
+const NO_LEAGUE_LOGO: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
+const BLUE_LEAGUE_TEXT: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
@@ -44,8 +45,19 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     getFirstPreseasonGame(sport),
     getFirstRegularSeasonGame(sport),
   ]);
-  const leagueLogo = STATIC_LOGO[sport] ?? logos[sport];
+  const leagueLogo = NO_LEAGUE_LOGO[sport] ? undefined : logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
+
+  // Real rosters for followed teams — we can't show injuries (not part of
+  // the connected plan), so this is the honest substitute: who's actually
+  // on the roster this season, straight from API-Sports.
+  const rosters = new Map<string, Awaited<ReturnType<typeof getTeamRoster>>>();
+  if (connected && myTeamsForSport.length) {
+    const rosterResults = await Promise.all(
+      myTeamsForSport.map((t) => (t.follow.teamExternalId ? getTeamRoster(sport, t.follow.teamExternalId) : Promise.resolve([]))),
+    );
+    myTeamsForSport.forEach((t, i) => rosters.set(t.follow.id, rosterResults[i]));
+  }
 
   // Whole days until the real regular-season opener's kickoff — never
   // shown once kickoff has passed (that game becomes a normal schedule
@@ -96,14 +108,15 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         </div>
         {firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0 && (
           <div className="spx-countdown spx-countdown--hero">
-            <span className="spx-countdown__title">{sportMeta.label} Regular Season Countdown</span>
+            <span className={`spx-countdown__league${BLUE_LEAGUE_TEXT[sport] ? " spx-countdown__league--blue" : ""}`}>{sportMeta.label}</span>
+            <span className="spx-countdown__title">Regular Season Countdown</span>
             <div className="spx-countdown__matchup spx-countdown__matchup--hero">
               <div className="spx-countdown__side">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
                 <b>{firstRegularSeasonGame.awayTeam.name}</b>
               </div>
-              <span className="spx-countdown__at">at</span>
+              <span className="spx-countdown__at">VS</span>
               <div className="spx-countdown__side">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
@@ -180,17 +193,37 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           <div className="spx-panel__body">
             {myTeamsForSport.length === 0 ? (
               <p className="spx-panel__empty">You haven&rsquo;t followed a {sportMeta.label} team yet.</p>
-            ) : myTeamsForSport.map(({ follow }) => (
-              <div className="spx-team-row" key={follow.id}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                <b>{follow.teamName}</b>
-                <form action={unfollowAction} style={{ marginLeft: "auto" }}>
-                  <input type="hidden" name="followId" value={follow.id} />
-                  <button type="submit" className="spx-poll__actions" style={{ background: "none", border: "1px solid rgba(201,162,75,.4)", color: "var(--gold)", borderRadius: 6, padding: ".2rem .5rem", fontSize: ".64rem", cursor: "pointer" }}>Unfollow</button>
-                </form>
-              </div>
-            ))}
+            ) : myTeamsForSport.map(({ follow }) => {
+              const roster = rosters.get(follow.id) ?? [];
+              return (
+                <div key={follow.id} className="spx-my-team">
+                  <div className="spx-team-row">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                    <b>{follow.teamName}</b>
+                    <form action={unfollowAction} style={{ marginLeft: "auto" }}>
+                      <input type="hidden" name="followId" value={follow.id} />
+                      <button type="submit" className="spx-poll__actions" style={{ background: "none", border: "1px solid rgba(201,162,75,.4)", color: "var(--gold)", borderRadius: 6, padding: ".2rem .5rem", fontSize: ".64rem", cursor: "pointer" }}>Unfollow</button>
+                    </form>
+                  </div>
+                  {roster.length > 0 && (
+                    <details className="spx-roster">
+                      <summary>Roster ({roster.length})</summary>
+                      <div className="spx-roster__grid">
+                        {roster.map((p) => (
+                          <div className="spx-roster__player" key={p.id}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <div className="spx-roster__ph" />}
+                            <span className="spx-roster__name">{p.name}</span>
+                            <span className="spx-roster__meta">{p.number != null ? `#${p.number}` : ""}{p.number != null && p.position ? " · " : ""}{p.position ?? ""}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {connected && (

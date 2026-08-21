@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem } from "./sports";
+import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer } from "./sports";
 
 test("seasonParam: NBA/NHL use split-year seasons, keyed off an August season start", () => {
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
@@ -74,4 +74,32 @@ test("mapGameItem never fabricates a stage when API-Sports doesn't report one", 
     teams: { home: { id: 1, name: "Home Team" }, away: { id: 2, name: "Away Team" } },
   });
   assert.equal(g?.stage, undefined);
+});
+
+test("mapRosterPlayer reads position/number from statistics[0] — American Football's shape", () => {
+  const p = mapRosterPlayer({
+    player: { id: 301, name: "Mac Jones", photo: "https://x/players/301.png" },
+    statistics: [{ team: { id: 1 }, position: "QB", number: 10 }],
+  });
+  assert.deepEqual(p, { id: "301", name: "Mac Jones", position: "QB", number: 10, photoUrl: "https://x/players/301.png" });
+});
+
+test("mapRosterPlayer falls back to root-level fields for verticals that don't nest under player/statistics", () => {
+  const p = mapRosterPlayer({ id: 55, name: "Jane Athlete", position: "G", number: 23 });
+  assert.deepEqual(p, { id: "55", name: "Jane Athlete", position: "G", number: 23, photoUrl: undefined });
+});
+
+test("mapRosterPlayer never fabricates position/number/photo API-Sports didn't report", () => {
+  const p = mapRosterPlayer({ player: { id: 9, name: "No Stats Player" }, statistics: [{}] });
+  assert.deepEqual(p, { id: "9", name: "No Stats Player", position: undefined, number: undefined, photoUrl: undefined });
+});
+
+test("mapRosterPlayer returns null when the provider omits an id or name", () => {
+  assert.equal(mapRosterPlayer({ player: { name: "No Id" } }), null);
+  assert.equal(mapRosterPlayer({ player: { id: 1 } }), null);
+});
+
+test("mapRosterPlayer rejects a non-https photo URL rather than rendering it", () => {
+  const p = mapRosterPlayer({ player: { id: 2, name: "Sketchy Photo", photo: "javascript:alert(1)" } });
+  assert.equal(p?.photoUrl, undefined);
 });
