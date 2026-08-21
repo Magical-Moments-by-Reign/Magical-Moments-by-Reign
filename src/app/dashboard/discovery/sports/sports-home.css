@@ -72,18 +72,6 @@
     linear-gradient(180deg, rgba(3,2,1,.4) 0%, rgba(3,2,1,.1) 25%, rgba(3,2,1,.15) 70%, rgba(3,2,1,.5) 100%);
 }
 
-/* Football-sport backdrop: a real green turf field with crisp white yard
-   lines, drawn in CSS (no photo, no AI-generated artwork) — fills the
-   whole hero, unlike the old thin decorative line overlay. */
-.spx-sport-header--field {
-  background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,.5) 0px, rgba(255,255,255,.5) 2px, transparent 2px, transparent 168px),
-    repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0 42px, rgba(0,0,0,.05) 42px 84px),
-    radial-gradient(ellipse 90% 70% at 50% 8%, rgba(255,241,204,.16) 0%, transparent 55%),
-    radial-gradient(ellipse 100% 60% at 50% 105%, #1f4016 0%, #12280d 55%, #0a1707 100%);
-}
-.spx-sport-header--field .spx-sport-header__photo { display: none; }
-
 .spx-countdown--hero {
   position: relative; z-index: 1; margin-top: .6rem; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 720px;
 }
