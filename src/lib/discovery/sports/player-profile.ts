@@ -26,13 +26,28 @@ import { AWARD_RACES, getAwardRace } from "./awards";
 import { resolveTeamByName, sportSlugForSdio } from "./service";
 
 const TTL_ROSTER = 360; // minutes — matches the roster-list TTL used elsewhere for this same endpoint
-const TTL_STATS = 180; // minutes
-const TTL_TRANSACTIONS = 180;
+const TTL_STATS = 180; // minutes — the live, still-moving current season
+const TTL_HISTORICAL = 60 * 24 * 365; // ~1 year — a completed season's stats/transactions never change, cache aggressively
 const TTL_INJURIES = 60;
-const SEASONS_BACK = 4; // current season + up to 3 prior, for the "By Season" table
+// When neither the player's real draft year nor experience count tells us
+// where their career started, this bounds how far back we check rather
+// than guessing an exact start — comfortably past the longest real NFL/NBA
+// careers on record. Every season in range is independently, really
+// fetched; one with nothing simply doesn't appear — never a fabricated gap
+// filled in, never a real season silently dropped because of a fixed cap.
+const MAX_SEASON_LOOKBACK = 20;
+
+// Rate/percentage fields aren't meaningfully additive across seasons (you
+// can't sum a completion percentage) — Career Totals sums every other
+// field and leaves these out rather than publish a misleading average.
+const NON_ADDITIVE_STAT_FIELDS = new Set(["PassingCompletionPercentage", "RushingYardsPerAttempt", "ReceivingYardsPerReception", "FieldGoalsPercentage", "ThreePointersPercentage", "FreeThrowsPercentage"]);
 
 export interface PlayerSeasonLine {
   season: number;
+  /** The real team this stat line was recorded under. Present whenever the
+   *  provider reports it; a player traded mid-season gets one line per real
+   *  team rather than one blended line. */
+  team?: string;
   stats: Record<string, number>;
 }
 
@@ -71,12 +86,20 @@ export interface PlayerProfile {
    *  field name. Undefined when the stats endpoint has nothing yet. */
   currentSeasonStats?: Record<string, number>;
   currentSeason: number;
-  /** Real per-season stat lines, most recent first — [] when the stats
-   *  endpoint has nothing for any of the recent seasons checked. */
+  /** Real per-season stat lines, most recent first — every season from the
+   *  player's real career start (draft year, or derived from a real
+   *  experience count) through the current one that the provider actually
+   *  had data for. [] when the stats endpoint has nothing for any season
+   *  checked. */
   seasonsBySeason: PlayerSeasonLine[];
-  /** Real transaction/roster-move history for this player this season —
-   *  the honest source for "Career Timeline." [] when the league has no
-   *  transaction feed (see TRANSACTIONS_SUPPORTED) or none this season. */
+  /** Sum of every additive stat field across seasonsBySeason (rate/
+   *  percentage fields excluded — see NON_ADDITIVE_STAT_FIELDS). Undefined
+   *  when there are no season lines to sum. */
+  careerTotals?: Record<string, number>;
+  /** Real transaction/roster-move history for this player across their
+   *  full real career range (not just the current season) — the honest
+   *  source for "The Journey." [] when the league has no transaction feed
+   *  (see TRANSACTIONS_SUPPORTED) or none on record. */
   transactions: SdioTransaction[];
   /** Current real injury entries for this player — normally 0 or 1. */
   injuries: SdioInjury[];
@@ -95,6 +118,33 @@ function currentSeasonYear(league: SdioLeague): number {
   return now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
 }
 
+/** Where a player's real career started, for deciding how far back to
+ *  check for season stats/transactions — never a fixed short window. The
+ *  provider's own real draft year is authoritative when we have it; a real
+ *  experience-season count is the next best signal; only when neither
+ *  exists do we fall back to a generous bound (MAX_SEASON_LOOKBACK) rather
+ *  than refusing to look. This never invents which seasons had real
+ *  stats — it only decides which years are worth actually asking about. */
+export function careerStartYear(player: { draftYear?: number; experienceYears?: number }, currentSeason: number): number {
+  if (typeof player.draftYear === "number" && player.draftYear > 1900) return player.draftYear;
+  if (typeof player.experienceYears === "number" && player.experienceYears > 0) return currentSeason - player.experienceYears + 1;
+  return currentSeason - (MAX_SEASON_LOOKBACK - 1);
+}
+
+/** Sums every additive field present across the given season lines —
+ *  purely a real-data aggregation, never a fabricated figure. */
+export function sumCareerTotals(lines: PlayerSeasonLine[]): Record<string, number> | undefined {
+  if (!lines.length) return undefined;
+  const totals: Record<string, number> = {};
+  for (const line of lines) {
+    for (const [field, value] of Object.entries(line.stats)) {
+      if (NON_ADDITIVE_STAT_FIELDS.has(field)) continue;
+      totals[field] = (totals[field] ?? 0) + value;
+    }
+  }
+  return Object.keys(totals).length ? totals : undefined;
+}
+
 /** Resolves the full normalized profile for one player. Returns null only
  *  when the player can't be found in the league's roster list at all —
  *  every other field degrades gracefully to undefined/[] rather than
@@ -106,18 +156,29 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
 
   const season = currentSeasonYear(league);
   const sport = sportSlugForSdio(league);
+  const startYear = careerStartYear(player, season);
+  const seasonsToCheck: number[] = [];
+  for (let yr = season; yr >= startYear; yr--) seasonsToCheck.push(yr);
 
-  const [team, teamRecord, seasonLines, transactionsAll, injuriesAll, awardRaces] = await Promise.all([
+  const [team, teamRecord, seasonLines, transactionsBySeason, injuriesAll, awardRaces] = await Promise.all([
     player.team ? resolveTeamByName(sport, player.team) : Promise.resolve(null),
     fetchTeamRecord(league, player.teamId ?? player.team, season),
     Promise.all(
-      Array.from({ length: SEASONS_BACK }, (_, i) => season - i).map(async (yr): Promise<PlayerSeasonLine | null> => {
-        const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, playerId, season: yr, kind: "player_season_stats" }), TTL_STATS, () =>
+      seasonsToCheck.map(async (yr): Promise<PlayerSeasonLine[]> => {
+        const ttl = yr === season ? TTL_STATS : TTL_HISTORICAL;
+        const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, playerId, season: yr, kind: "player_season_stats" }), ttl, () =>
           fetchPlayerSeasonStats(league, playerId, yr));
-        return cached?.data ? { season: yr, stats: cached.data } : null;
+        return (cached?.data ?? []).map((row) => ({ season: yr, team: row.team, stats: row.stats }));
       })
-    ).then((rows) => rows.filter((r): r is PlayerSeasonLine => r !== null)),
-    withCache("sports", "sportsdataio", cacheKeyFor({ league, season, kind: "transactions" }), TTL_TRANSACTIONS, () => fetchRecentTransactions(league, season)),
+    ).then((rows) => rows.flat()),
+    Promise.all(
+      seasonsToCheck.map(async (yr) => {
+        const ttl = yr === season ? TTL_STATS : TTL_HISTORICAL;
+        const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, season: yr, kind: "transactions" }), ttl, () =>
+          fetchRecentTransactions(league, yr));
+        return cached?.data ?? [];
+      })
+    ),
     withCache("sports", "sportsdataio", cacheKeyFor({ league, kind: "injuries" }), TTL_INJURIES, () => fetchInjuries(league)),
     Promise.all(
       AWARD_RACES.filter((r) => r.league === league).map(async (r): Promise<PlayerAwardAppearance | null> => {
@@ -155,7 +216,8 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     currentSeasonStats: seasonLines.find((s) => s.season === season)?.stats,
     currentSeason: season,
     seasonsBySeason: seasonLines,
-    transactions: (transactionsAll?.data ?? []).filter((t) => t.playerId === playerId),
+    careerTotals: sumCareerTotals(seasonLines),
+    transactions: transactionsBySeason.flatMap((rows) => rows ?? []).filter((t) => t.playerId === playerId),
     injuries: (injuriesAll?.data ?? []).filter((i) => i.playerId === playerId),
     awards: awardRaces,
   };

@@ -267,17 +267,18 @@ const STAT_FIELDS: Record<SdioLeague, { field: string; label: string }[]> = {
   wnba: [{ field: "Points", label: "PPG" }, { field: "Rebounds", label: "RPG" }, { field: "Assists", label: "APG" }],
 };
 
-async function fetchPlayerSeasonStatsRow(league: SdioLeague, playerId: string, season: number): Promise<any | null> {
+async function fetchPlayerSeasonStatsRows(league: SdioLeague, playerId: string, season: number): Promise<any[]> {
   const json = await sdioFetch(league, `/stats/json/PlayerSeasonStatsByPlayerID/${season}/${playerId}`);
-  const row = Array.isArray(json) ? json[0] : json;
-  return row && typeof row === "object" ? row : null;
+  if (Array.isArray(json)) return json.filter((r) => r && typeof r === "object");
+  return json && typeof json === "object" ? [json] : [];
 }
 
 /** Best-effort season-stat summary for one player (e.g. "3,842 pass yds ·
  *  31 pass TD"). Returns undefined — not a fabricated line — when the stats
- *  endpoint has nothing for this player/season. */
+ *  endpoint has nothing real for this player/season. */
 export async function fetchPlayerSeasonStatSummary(league: SdioLeague, playerId: string, season: number): Promise<string | undefined> {
-  const row = await fetchPlayerSeasonStatsRow(league, playerId, season);
+  const rows = (await fetchPlayerSeasonStatsRows(league, playerId, season)).filter((r) => !looksLikeScrambledStats(league, r));
+  const row = rows[0];
   if (!row) return undefined;
   const parts = STAT_FIELDS[league]
     .map(({ field, label }) => {
@@ -294,26 +295,83 @@ export async function fetchPlayerSeasonStatSummary(league: SdioLeague, playerId:
 // for a given position. Fields absent from a given response simply don't
 // appear in the returned object — never a fabricated zero.
 const STRUCTURED_STAT_FIELDS: Record<SdioLeague, string[]> = {
-  nfl: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "PassingCompletionPercentage", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"],
-  cfb: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "PassingCompletionPercentage", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"],
+  nfl: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "PassingCompletionPercentage", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "RushingLong", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns", "ReceivingLong", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"],
+  cfb: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "PassingCompletionPercentage", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "RushingLong", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns", "ReceivingLong", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"],
   nba: ["Games", "Minutes", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers", "FieldGoalsPercentage", "ThreePointersPercentage", "FreeThrowsPercentage"],
   wnba: ["Games", "Minutes", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers", "FieldGoalsPercentage", "ThreePointersPercentage", "FreeThrowsPercentage"],
 };
 
-/** Structured season stats for one player — every real numeric field the
- *  provider returned from STRUCTURED_STAT_FIELDS, keyed by the provider's
- *  own field name. Powers the Player Profile's position-aware stat panel
- *  and year-by-year table. Returns undefined when the endpoint has nothing
- *  for this player/season — never a fabricated zero for a missing field. */
-export async function fetchPlayerSeasonStats(league: SdioLeague, playerId: string, season: number): Promise<Record<string, number> | undefined> {
-  const row = await fetchPlayerSeasonStatsRow(league, playerId, season);
-  if (!row) return undefined;
-  const out: Record<string, number> = {};
-  for (const field of STRUCTURED_STAT_FIELDS[league]) {
+// Real NFL/CFB counting stats are always whole numbers — EXCEPT tackle-
+// family fields (Tackles, TacklesForLoss, Sacks), which the league itself
+// scores in halves for an assisted play (e.g. "2.5 sacks" is a real,
+// official stat, not corrupted data). Every other counting field here is
+// never fractional in an actual completed-game/season line, so a decimal
+// value (e.g. "60.6 receptions") is a reliable signal that the response is
+// projection/fantasy/trial-scrambled data rather than a real historical
+// stat line — SportsDataIO's own trial-key documentation notes some
+// endpoints return obfuscated values as an anti-scraping measure. Rate
+// fields (percentages, per-attempt averages) are legitimately decimal and
+// are intentionally left out of this list.
+const INTEGER_STAT_FIELDS: Record<SdioLeague, string[]> = {
+  nfl: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "RushingAttempts", "RushingYards", "RushingTouchdowns", "RushingLong", "Receptions", "ReceivingYards", "ReceivingTouchdowns", "ReceivingLong", "SoloTackles", "Interceptions", "PassesDefended", "FumblesForced"],
+  cfb: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "RushingAttempts", "RushingYards", "RushingTouchdowns", "RushingLong", "Receptions", "ReceivingYards", "ReceivingTouchdowns", "ReceivingLong", "SoloTackles", "Interceptions", "PassesDefended", "FumblesForced"],
+  nba: ["Games", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers"],
+  wnba: ["Games", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers"],
+};
+
+/** True when a real SportsDataIO PlayerSeasonStats row reports a fractional
+ *  value for a stat that is never fractional in real completed-game data
+ *  (e.g. 60.6 receptions) — the signature of projection/fantasy/trial-
+ *  scrambled data rather than an actual historical stat line. Exported for
+ *  tests. A row that fails this check is rejected outright rather than
+ *  partially trusted, since scrambled data corrupts the whole row, not just
+ *  the one field that happened to reveal it. */
+export function looksLikeScrambledStats(league: SdioLeague, row: Record<string, unknown>): boolean {
+  return INTEGER_STAT_FIELDS[league].some((field) => {
     const v = row[field];
-    if (typeof v === "number") out[field] = v;
+    return typeof v === "number" && Number.isFinite(v) && !Number.isInteger(v);
+  });
+}
+
+export interface PlayerSeasonStatsRow {
+  team?: string;
+  stats: Record<string, number>;
+}
+
+/** Structured season stats for one player, one row per real team the
+ *  provider reports them under for that season (almost always one row; two
+ *  when the player was traded/claimed mid-season and the provider preserves
+ *  a per-team split) — every real numeric field from STRUCTURED_STAT_FIELDS,
+ *  keyed by the provider's own field name. Powers the Player Profile's
+ *  position-aware stat panel and year-by-year table.
+ *
+ *  A row whose counting stats look projection/trial-scrambled (see
+ *  looksLikeScrambledStats) is dropped entirely rather than shown as if it
+ *  were real — per the Magical Sports Data Policy, a source that fails
+ *  validation is rejected and the caller falls back to "unavailable" for
+ *  that season rather than display wrong-but-authoritative-looking numbers.
+ *  (API-Sports and a verified official source are the next two tiers this
+ *  policy calls for; neither currently has a per-player season-stats feed
+ *  wired into this codebase, so today the chain ends here — same documented
+ *  gap as the rest of this file's provider-tier comments.)
+ *
+ *  Returns [] when the endpoint has nothing real for this player/season. */
+export async function fetchPlayerSeasonStats(league: SdioLeague, playerId: string, season: number): Promise<PlayerSeasonStatsRow[]> {
+  const rows = await fetchPlayerSeasonStatsRows(league, playerId, season);
+  const out: PlayerSeasonStatsRow[] = [];
+  for (const row of rows) {
+    if (looksLikeScrambledStats(league, row)) continue;
+    const stats: Record<string, number> = {};
+    for (const field of STRUCTURED_STAT_FIELDS[league]) {
+      const v = row[field];
+      if (typeof v === "number") stats[field] = v;
+    }
+    if (Object.keys(stats).length) {
+      const team = typeof row.Team === "string" ? row.Team : typeof row.TeamName === "string" ? row.TeamName : undefined;
+      out.push({ team, stats });
+    }
   }
-  return Object.keys(out).length ? out : undefined;
+  return out;
 }
 
 export interface SdioGame {
