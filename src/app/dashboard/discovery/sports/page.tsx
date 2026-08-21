@@ -5,7 +5,7 @@ import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
-import { getAwardRace, AWARD_RACES } from "@/lib/discovery/sports/awards";
+import { getAwardRace, AWARD_RACES, getCollegeFootballRankings } from "@/lib/discovery/sports/awards";
 import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { submitPickAction, untrackPlayerAction } from "./actions";
@@ -68,13 +68,14 @@ export default async function SportsPage() {
   const showSdio = sdioConfigured() && (sdioCommercialMode() || isOwner);
   const previewOnly = showSdio && !sdioCommercialMode();
 
-  const [logos, { live, upcoming }, featuredMatchup, awardRaces, trackedPlayers] = await Promise.all([
+  const [logos, { live, upcoming }, featuredMatchup, awardRaces, rankings, trackedPlayers] = await Promise.all([
     getLeagueLogos(),
     getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])),
     pickFeaturedMatchup(myTeams, followedSports, account.id),
     showSdio
       ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) })))
       : Promise.resolve([]),
+    showSdio ? getCollegeFootballRankings() : Promise.resolve([]),
     showSdio ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
   ]);
   const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
@@ -189,6 +190,33 @@ export default async function SportsPage() {
                     <p className="spx-award__foot">Updated {new Date(race.entries[0].lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
                   </div>
                 ))}
+              </div>
+            </>
+          )}
+
+          {rankings.length > 0 && (
+            <>
+              <div className="spx-divider"><span>College Football Rankings</span></div>
+              <div className="spx-awards">
+                <div className="spx-award">
+                  <div className="spx-award__head">
+                    <h3>{rankings[0]?.poll ?? "Poll Rankings"}</h3>
+                    <span>Per the provider&rsquo;s own current poll</span>
+                  </div>
+                  <ol className="spx-award__list">
+                    {rankings.slice(0, 25).map((r) => (
+                      <li key={`${r.rank}-${r.team}`}>
+                        <span className="spx-award__rank">{r.rank}</span>
+                        <div className="spx-award__info">
+                          <b>{r.team}</b>
+                          {r.previousRank != null && r.previousRank !== r.rank && (
+                            <span>Previously #{r.previousRank}</span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               </div>
             </>
           )}

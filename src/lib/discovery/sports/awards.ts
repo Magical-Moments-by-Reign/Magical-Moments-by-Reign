@@ -6,9 +6,9 @@
 
 import { withCache, cacheKeyFor } from "../cache";
 import {
-  fetchAllPlayers, fetchRecentTransactions, fetchAwardFutures,
+  fetchAllPlayers, fetchRecentTransactions, fetchAwardFutures, fetchRankings,
   fetchPlayerSeasonStatSummary, fetchTeamRecord, sdioConfigured,
-  type SdioLeague, type SdioPlayer, type SdioTransaction, type AwardRaceEntry,
+  type SdioLeague, type SdioPlayer, type SdioTransaction, type AwardRaceEntry, type SdioRanking,
 } from "../providers/sportsdata";
 
 const ROSTER_TTL = 360; // minutes — a league's active roster barely moves hour to hour
@@ -84,6 +84,32 @@ export async function getAwardRace(league: SdioLeague, award: "Heisman" | "MVP")
     })));
     return enriched;
   });
+  return cached?.data ?? [];
+}
+
+const RANKINGS_TTL = 360; // minutes — a weekly poll doesn't move between refreshes
+
+/** Which week of the CFB poll to request — an input to the API call, never
+ *  a displayed fact. A wrong guess just returns [] (that week's poll not
+ *  yet posted) rather than a stale/mislabeled one; the caller shows
+ *  nothing in that case. Late-August kickoff is CFB's typical week-1
+ *  window. */
+function currentCfbWeek(): number {
+  const seasonStart = Date.UTC(currentSeasonYear(), 7, 24);
+  const diffWeeks = Math.floor((Date.now() - seasonStart) / (7 * 86_400_000)) + 1;
+  return Math.min(Math.max(diffWeeks, 1), 15);
+}
+
+/** College Football's weekly poll rankings (Magical Sports Data Policy's
+ *  rankings feature) — the one league in this codebase's SportsDataIO
+ *  coverage with a documented rankings feed. Returns [] when unconfigured,
+ *  the guessed week hasn't posted a poll yet, or the call fails. */
+export async function getCollegeFootballRankings(): Promise<SdioRanking[]> {
+  if (!sdioConfigured()) return [];
+  const season = currentSeasonYear();
+  const week = currentCfbWeek();
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ kind: "sdio_rankings", season, week }), RANKINGS_TTL, () =>
+    fetchRankings(season, week));
   return cached?.data ?? [];
 }
 

@@ -294,12 +294,15 @@ export async function fetchNbaFirstGame(seasonKey: string): Promise<SdioGame | n
   return games.find((g) => +new Date(g.startsAt) > now) ?? null;
 }
 
-/** Real NBA games scheduled for one calendar date ("YYYY-MM-DD") —
- *  secondary source for the Today's Games panel when API-Sports has
- *  nothing for that date yet. Returns null on missing config or a failed
- *  call; [] only when the provider itself has no games that day. */
-export async function fetchNbaGamesByDate(dateISO: string): Promise<SdioGame[] | null> {
-  const json = await sdioFetch("nba", `/scores/json/GamesByDate/${dateISO}`);
+/** Real games scheduled for one calendar date ("YYYY-MM-DD") in a given
+ *  league — secondary source for the Today's Games panel when API-Sports
+ *  has nothing for that date yet. Same GamesByDate endpoint SportsDataIO
+ *  documents uniformly across its NFL/CFB/NBA/WNBA score feeds, so this is
+ *  shared rather than duplicated per league. Returns null on missing
+ *  config or a failed call; [] only when the provider itself has no games
+ *  that day. */
+export async function fetchGamesByDate(league: SdioLeague, dateISO: string): Promise<SdioGame[] | null> {
+  const json = await sdioFetch(league, `/scores/json/GamesByDate/${dateISO}`);
   if (!Array.isArray(json)) return null;
   return json.map(toSdioGame).filter((g): g is SdioGame => g !== null);
 }
@@ -320,12 +323,13 @@ export function toSdioStandingRow(t: any): SdioStandingRow | null {
   return { team: String(team), teamId: t?.TeamID != null ? String(t.TeamID) : undefined, wins, losses };
 }
 
-/** Real NBA standings for a season — secondary source for the Standings
- *  panel when API-Sports has nothing yet. Returns null on missing config,
- *  a failed call, or a response with no usable win/loss rows — never a
- *  guessed record. */
-export async function fetchNbaStandings(season: number): Promise<SdioStandingRow[] | null> {
-  const json = await sdioFetch("nba", `/scores/json/Standings/${season}`);
+/** Real standings for a season in a given league — secondary source for the
+ *  Standings panel when API-Sports has nothing yet. Same /Standings/{season}
+ *  shape across NFL/CFB/NBA/WNBA. Returns null on missing config, a failed
+ *  call, or a response with no usable win/loss rows — never a guessed
+ *  record. */
+export async function fetchStandings(league: SdioLeague, season: number): Promise<SdioStandingRow[] | null> {
+  const json = await sdioFetch(league, `/scores/json/Standings/${season}`);
   if (!Array.isArray(json)) return null;
   const rows = json.map(toSdioStandingRow).filter((r): r is SdioStandingRow => r !== null);
   return rows.length ? rows : null;
@@ -345,4 +349,85 @@ export async function fetchTeamRecord(league: SdioLeague, teamKey: string | unde
   const ties = row?.Ties;
   if (typeof wins !== "number" || typeof losses !== "number") return undefined;
   return typeof ties === "number" && ties > 0 ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
+}
+
+export interface SdioInjury {
+  playerId: string;
+  playerName: string;
+  team?: string;
+  position?: string;
+  status?: string; // Out, Doubtful, Questionable, Probable — provider's own label
+  bodyPart?: string;
+  practiceStatus?: string;
+  updated?: string; // ISO, per the provider's own timestamp
+}
+
+/** Maps one /stats/json/InjuredPlayers row. Exported for tests. */
+export function toSdioInjury(r: any): SdioInjury | null {
+  const id = r?.PlayerID ?? r?.PlayerId;
+  const name = r?.Name ?? [r?.FirstName, r?.LastName].filter(Boolean).join(" ");
+  if (id == null || !name) return null;
+  return {
+    playerId: String(id),
+    playerName: name,
+    team: r?.Team ?? undefined,
+    position: r?.Position ?? undefined,
+    status: r?.InjuryStatus ?? r?.Status ?? undefined,
+    bodyPart: r?.InjuryBodyPart ?? r?.BodyPart ?? undefined,
+    practiceStatus: r?.InjuryPractice ?? undefined,
+    updated: typeof r?.Updated === "string" ? r.Updated : typeof r?.InjuryStartDate === "string" ? r.InjuryStartDate : undefined,
+  };
+}
+
+/** Current league-wide injury list — the same /stats/json/InjuredPlayers
+ *  convention SportsDataIO documents across its NFL/CFB/NBA/WNBA products
+ *  (a live, current snapshot rather than a per-week report). Like the rest
+ *  of this file's less-certain endpoints, this hasn't been confirmed
+ *  against live docs since this environment has no active key — a shape
+ *  mismatch simply degrades to null rather than throwing. Filter the result
+ *  to one team/player at the call site. Returns null on missing config, a
+ *  failed call, or a response this parser can't recognize; [] only when the
+ *  provider itself currently has no injuries listed. */
+export async function fetchInjuries(league: SdioLeague): Promise<SdioInjury[] | null> {
+  const json = await sdioFetch(league, "/stats/json/InjuredPlayers");
+  if (!Array.isArray(json)) return null;
+  return json.map(toSdioInjury).filter((i): i is SdioInjury => i !== null);
+}
+
+export interface SdioRanking {
+  rank: number;
+  team: string;
+  teamId?: string;
+  poll?: string; // "AP Top 25", "Coaches Poll", etc. — provider's own label
+  points?: number;
+  previousRank?: number;
+}
+
+/** Maps one CFB /scores/json/Rankings/{season}/{week} row. Exported for
+ *  tests. */
+export function toSdioRanking(r: any): SdioRanking | null {
+  const rank = r?.Rank ?? r?.CoachesRank ?? r?.APRank;
+  const team = r?.Name ?? r?.School ?? r?.Team;
+  if (typeof rank !== "number" || !team) return null;
+  return {
+    rank,
+    team: String(team),
+    teamId: r?.TeamID != null ? String(r.TeamID) : undefined,
+    poll: r?.Poll ?? undefined,
+    points: typeof r?.Points === "number" ? r.Points : undefined,
+    previousRank: typeof r?.PreviousRank === "number" ? r.PreviousRank : undefined,
+  };
+}
+
+/** College Football's weekly poll rankings (AP/Coaches, per the provider) —
+ *  the one league in this codebase's SportsDataIO coverage with a
+ *  documented rankings feed; NFL/NBA/WNBA have no equivalent poll to fetch.
+ *  Best-known endpoint shape, unconfirmed against live docs for the same
+ *  reason as fetchInjuries above. Returns null on missing config, a failed
+ *  call, or an unrecognized response; [] only when the provider itself has
+ *  no rankings for that week yet — never a guessed order. */
+export async function fetchRankings(season: number, week: number): Promise<SdioRanking[] | null> {
+  const json = await sdioFetch("cfb", `/scores/json/Rankings/${season}/${week}`);
+  if (!Array.isArray(json)) return null;
+  return json.map(toSdioRanking).filter((r): r is SdioRanking => r !== null).sort((a, b) => a.rank - b.rank);
 }

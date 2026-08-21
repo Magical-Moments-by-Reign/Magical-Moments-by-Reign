@@ -473,6 +473,21 @@ export async function fetchFirstRegularSeasonGame(sport: SportSlug, season: stri
   return regular[0] ?? null;
 }
 
+/** The earliest real game of the given season whose provider-reported stage
+ *  matches a postseason/playoff/championship label (case/spacing-insensitive
+ *  — API-Sports' own wording varies by sport: "Postseason", "Playoffs",
+ *  "Championship", a bowl name). Null when the provider doesn't expose a
+ *  stage/round distinction for this sport, or has no postseason games in
+ *  its response yet. Never a computed/assumed date. */
+export async function fetchFirstPostseasonGame(sport: SportSlug, season: string, league?: string): Promise<SportsGameSummary | null> {
+  const games = await fetchSeasonGames(sport, season, league);
+  if (!games) return null;
+  const postseason = games
+    .filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage))
+    .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+  return postseason[0] ?? null;
+}
+
 export interface SportsRosterPlayer {
   id: string;
   name: string;
