@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, detectPlanRestriction } from "./sports";
+import { seasonParam, detectPlanRestriction, ApiSportsProvider } from "./sports";
 
 test("seasonParam: NBA/NHL use split-year seasons, keyed off an August season start", () => {
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
@@ -36,4 +36,26 @@ test("detectPlanRestriction: returns null when errors is absent or empty (real s
 test("detectPlanRestriction: a non-plan error (bad params, rate limit) is not mistaken for a plan restriction", () => {
   const json = { errors: { requests: "Too many requests per minute" }, response: [] };
   assert.equal(detectPlanRestriction(json), null);
+});
+
+test("searchTeams sends only `search` to /teams — never `league` (API-Sports rejects league without season)", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  let calledUrl = "";
+  process.env.API_SPORTS_KEY = "test-key";
+  global.fetch = (async (input: any) => {
+    calledUrl = String(input);
+    return new Response(JSON.stringify({ response: [{ team: { id: 1, name: "New England Patriots", logo: "https://x/logo.png" } }] }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const teams = await ApiSportsProvider.searchTeams("nfl", "New England Patriots");
+    const url = new URL(calledUrl);
+    assert.equal(url.searchParams.get("search"), "New England Patriots");
+    assert.equal(url.searchParams.get("league"), null);
+    assert.equal(teams?.[0]?.name, "New England Patriots");
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
 });
