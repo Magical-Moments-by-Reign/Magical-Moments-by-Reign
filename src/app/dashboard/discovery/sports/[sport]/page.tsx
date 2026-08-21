@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getTeamRoster } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getTeamRoster, getNbaHeroState } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -53,12 +53,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = defaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame] = await Promise.all([
+  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame, nbaHeroState] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
     getLeagueLogos(),
     getFirstPreseasonGame(sport),
     getFirstRegularSeasonGame(sport),
+    sport === "nba" ? getNbaHeroState() : Promise.resolve(null),
   ]);
   const leagueLogo = NO_LEAGUE_LOGO[sport] ? undefined : logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
@@ -77,17 +78,22 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // Which real game the hero countdown targets: for PRESEASON_PHASE_SPORTS,
   // the preseason opener until its kickoff passes, then the regular-season
   // opener; every other sport always targets the regular-season opener.
+  // NBA is special-cased through getNbaHeroState, which adds a SportsDataIO
+  // fallback and a known-official-date last resort when neither provider
+  // has posted the season yet — see that function for the full priority
+  // order. heroGame is null in that last-resort state (a real date to count
+  // down to, but no matchup to show yet — never a fabricated one).
   const preseasonKickoff = firstPreseasonGame ? +new Date(firstPreseasonGame.startsAt) : null;
   const preseasonNotYetStarted = preseasonKickoff !== null && preseasonKickoff > Date.now();
   const heroPhase: "preseason" | "regular" = PRESEASON_PHASE_SPORTS[sport] && preseasonNotYetStarted ? "preseason" : "regular";
-  const heroGame = heroPhase === "preseason" ? firstPreseasonGame : firstRegularSeasonGame;
-  const heroTitle = heroPhase === "preseason" ? "Preseason Countdown" : "Regular Season Countdown";
+  const heroGame = nbaHeroState ? nbaHeroState.game : heroPhase === "preseason" ? firstPreseasonGame : firstRegularSeasonGame;
+  const heroTitle = (nbaHeroState ? nbaHeroState.phase : heroPhase) === "preseason" ? "Preseason Countdown" : "Regular Season Countdown";
+  const heroTargetISO = nbaHeroState ? nbaHeroState.targetISO : heroGame?.startsAt;
 
-  // Whole days until the hero's target kickoff — never shown once kickoff
-  // has passed (that game becomes a normal schedule entry, not a countdown
-  // target).
-  const daysUntilKickoff = heroGame
-    ? Math.ceil((+new Date(heroGame.startsAt) - Date.now()) / 86_400_000)
+  // Whole days until the hero's target — never shown once it's passed (a
+  // real game becomes a normal schedule entry, not a countdown target).
+  const daysUntilKickoff = heroTargetISO
+    ? Math.ceil((+new Date(heroTargetISO) - Date.now()) / 86_400_000)
     : null;
 
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
@@ -115,12 +121,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const standingsRestricted = standingsResult.planRestricted;
 
   // The real season-opener countdown is the hero's dominant state. Once
-  // that game's kickoff passes, both this gate and CountdownClock's own
-  // internal clock guard turn it off — the header falls back to the plain
+  // its target passes, both this gate and CountdownClock's own internal
+  // clock guard turn it off — the header falls back to the plain
   // sport-identification brand row below rather than showing an expired
   // 00:00:00:00 clock. For PRESEASON_PHASE_SPORTS this re-evaluates on the
   // regular-season opener once heroGame has already flipped to it above.
-  const showHeroCountdown = Boolean(heroGame && daysUntilKickoff !== null && daysUntilKickoff > 0);
+  // Gated on heroTargetISO rather than heroGame so NBA's known-date
+  // fallback (a real date, no matchup yet) still shows the hero.
+  const showHeroCountdown = Boolean(heroTargetISO && daysUntilKickoff !== null && daysUntilKickoff > 0);
   // The Owner-provided backdrop photo is this sport's backdrop any time we're
   // on its page — not just while a countdown happens to be showing. Without
   // this, a sport with no upcoming game data yet (e.g. NBA's next season not
@@ -137,24 +145,28 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         {!heroBackdrop && <SportBackdrop sport={sport} />}
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
 
-        {showHeroCountdown && heroGame ? (
+        {showHeroCountdown && heroTargetISO ? (
           <div className="spx-countdown--hero">
             <span className={`spx-countdown__league${BLUE_LEAGUE_TEXT[sport] ? " spx-countdown__league--blue" : ""}`}>{sportMeta.label}</span>
             <span className="spx-countdown__title">{heroTitle}</span>
-            <div className="spx-countdown__matchup--hero">
-              <div className="spx-countdown__side">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {heroGame.awayTeam.logoUrl ? <img src={heroGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                <b>{heroGame.awayTeam.name}</b>
+            {heroGame ? (
+              <div className="spx-countdown__matchup--hero">
+                <div className="spx-countdown__side">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {heroGame.awayTeam.logoUrl ? <img src={heroGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                  <b>{heroGame.awayTeam.name}</b>
+                </div>
+                <span className="spx-countdown__vs">VS</span>
+                <div className="spx-countdown__side">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {heroGame.homeTeam.logoUrl ? <img src={heroGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                  <b>{heroGame.homeTeam.name}</b>
+                </div>
               </div>
-              <span className="spx-countdown__vs">VS</span>
-              <div className="spx-countdown__side">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {heroGame.homeTeam.logoUrl ? <img src={heroGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                <b>{heroGame.homeTeam.name}</b>
-              </div>
-            </div>
-            <CountdownClock targetISO={heroGame.startsAt} />
+            ) : (
+              <p className="spx-countdown__tbd">Matchup announced soon</p>
+            )}
+            <CountdownClock targetISO={heroTargetISO} />
           </div>
         ) : (
           <div className="spx-sport-header__brand">

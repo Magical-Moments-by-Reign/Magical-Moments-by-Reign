@@ -246,6 +246,52 @@ export async function fetchPlayerSeasonStatSummary(league: SdioLeague, playerId:
   return parts.length ? parts.slice(0, 3).join(" · ") : undefined;
 }
 
+export interface SdioGame {
+  externalId: string;
+  homeTeam: string;
+  awayTeam: string;
+  startsAt: string; // ISO
+  status?: string;
+  channel?: string;
+}
+
+/** Maps one SportsDataIO /scores/json/Games/{season} row. SportsDataIO
+ *  doesn't return team logos on this endpoint (unlike API-Sports), so
+ *  callers show a placeholder rather than an invented crest. Exported for
+ *  tests. */
+export function toSdioGame(g: any): SdioGame | null {
+  const id = g?.GameID ?? g?.GameId ?? g?.GameKey;
+  const dateTime = g?.DateTime ?? g?.DateTimeUTC ?? g?.Day;
+  const home = g?.HomeTeamName ?? g?.HomeTeam;
+  const away = g?.AwayTeamName ?? g?.AwayTeam;
+  if (id == null || !dateTime || !home || !away) return null;
+  const startsAt = new Date(dateTime);
+  if (Number.isNaN(+startsAt)) return null;
+  return {
+    externalId: String(id),
+    homeTeam: String(home),
+    awayTeam: String(away),
+    startsAt: startsAt.toISOString(),
+    status: typeof g?.Status === "string" ? g.Status : undefined,
+    channel: typeof g?.Channel === "string" ? g.Channel : undefined,
+  };
+}
+
+/** The earliest real, not-yet-started game for an NBA season key
+ *  ("2026" for the 2026-27 regular season, "2026PRE" for its preseason —
+ *  SportsDataIO's own convention for separating the two). A secondary
+ *  source to API-Sports: used only when API-Sports hasn't ingested the
+ *  season yet. Returns null on missing config, a failed call, or no
+ *  games in that key — never a computed/assumed date. */
+export async function fetchNbaFirstGame(seasonKey: string): Promise<SdioGame | null> {
+  const json = await sdioFetch("nba", `/scores/json/Games/${seasonKey}`);
+  if (!Array.isArray(json)) return null;
+  const games = json.map(toSdioGame).filter((g): g is SdioGame => g !== null && g.status !== "Canceled");
+  games.sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+  const now = Date.now();
+  return games.find((g) => +new Date(g.startsAt) > now) ?? null;
+}
+
 /** Best-effort "W-L" (or "W-L-T") record for a team from season standings.
  *  Returns undefined when the team can't be matched in the standings
  *  response — never a guessed record. */
