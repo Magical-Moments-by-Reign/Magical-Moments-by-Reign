@@ -10,6 +10,7 @@ import { withCache, cacheKeyFor } from "../cache";
 import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
+import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -339,23 +340,37 @@ async function getStandingsFromSportsData(sport: SportSlug, season?: string): Pr
 
 /** Real roster players from SportsDataIO for any sport with a SportsDataIO
  *  product connected — secondary source when API-Sports has nothing for a
- *  team. Matched by exact normalized team name only (never a fuzzy
- *  abbreviation guess: SportsDataIO's player records commonly carry a
- *  short team code like "BOS" rather than the full name, and guessing that
- *  mapping risks exactly the kind of wrong-team association this fallback
- *  is already gated to avoid — see the allowSecondarySource caller).
- *  Returns [] when nothing matches confidently, never a guessed roster. */
+ *  team. Matched by real TeamID via the cross-provider Team Identity
+ *  Resolver (resolveSdioTeamId) — never by comparing a full franchise name
+ *  string ("Boston Celtics") against the short team code SportsDataIO's
+ *  player rows actually carry ("BOS"), which never matches and is exactly
+ *  why this fallback used to come back empty even when the provider had
+ *  the real roster. Returns [] when the team can't be resolved to a real
+ *  TeamID or nothing matches — never a guessed roster. */
 async function getRosterFromSportsData(sport: SportSlug, teamName: string): Promise<SportsRosterPlayer[]> {
   const league = sdioLeagueFor(sport);
   if (!league) return [];
-  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, kind: "all_players" }), TTL_ROSTER, () =>
-    fetchAllPlayers(league));
+  const [directory, cached] = await Promise.all([
+    getSdioTeamDirectory(league),
+    withCache("sports", "sportsdataio", cacheKeyFor({ sport, kind: "all_players" }), TTL_ROSTER, () => fetchAllPlayers(league)),
+  ]);
   const players = cached?.data ?? [];
   if (!players.length) return [];
   const target = normalizeTeamName(teamName);
-  return players
-    .filter((p) => p.team && normalizeTeamName(p.team) === target)
-    .map((p): SportsRosterPlayer => ({ id: p.playerId, name: p.name, position: p.position, number: p.number, photoUrl: p.photoUrl }));
+  const identity = directory.find((t) => normalizeTeamName(t.fullName) === target) ?? directory.find((t) => t.key && normalizeTeamName(t.key) === target);
+  const toRosterPlayer = (p: (typeof players)[number]): SportsRosterPlayer => ({ id: p.playerId, name: p.name, position: p.position, number: p.number, photoUrl: p.photoUrl });
+  if (identity) {
+    const byId = players.filter((p) => p.teamId === identity.teamId);
+    if (byId.length) return byId.map(toRosterPlayer);
+    // Verified secondary resolver: the real team code this identity
+    // resolved to, matched against the player row's own team code — never
+    // a raw comparison of the full franchise name against a code.
+    if (identity.key) {
+      const byKey = players.filter((p) => p.team && p.team.toUpperCase() === identity.key!.toUpperCase());
+      if (byKey.length) return byKey.map(toRosterPlayer);
+    }
+  }
+  return [];
 }
 
 async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: SportsGameSummary | null; fallbackISO: string | null; source: "api-sports" | "sportsdata" | "known-fact"; log: SourceAttempt[] }> {
@@ -446,19 +461,27 @@ const TTL_INJURIES = 60; // 1h — a real injury report changes daily during the
 /** Real current injuries for one followed team, from SportsDataIO's
  *  league-wide injury list — the piece of the Magical Sports Data Policy
  *  the codebase previously had no source for at all. Filtered to the team
- *  by exact normalized name match, the same match discipline (and the same
- *  wrong-team-association caution) as getRosterFromSportsData; gate this
- *  behind the same allowSecondarySource/owner-preview rule as the roster
- *  fallback at the call site. Returns [] when nothing matches, the sport
- *  has no SportsDataIO product connected, or the call fails — never a
+ *  by real TeamID via the cross-provider Team Identity Resolver, the same
+ *  identity discipline as getRosterFromSportsData (never a raw comparison
+ *  of a full franchise name against SportsDataIO's short team code); gate
+ *  this behind the same allowSecondarySource/owner-preview rule as the
+ *  roster fallback at the call site. Returns [] when nothing matches, the
+ *  sport has no SportsDataIO product connected, or the call fails — never a
  *  guessed injury. */
 export async function getTeamInjuries(sport: SportSlug, teamName: string): Promise<SdioInjury[]> {
   const league = sdioLeagueFor(sport);
   if (!league) return [];
-  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, kind: "injuries" }), TTL_INJURIES, () =>
-    fetchInjuries(league));
+  const [teamId, cached] = await Promise.all([
+    resolveSdioTeamId(league, teamName),
+    withCache("sports", "sportsdataio", cacheKeyFor({ sport, kind: "injuries" }), TTL_INJURIES, () => fetchInjuries(league)),
+  ]);
   const injuries = cached?.data ?? [];
   if (!injuries.length) return [];
+  if (teamId) {
+    const byId = injuries.filter((i) => i.teamId === teamId);
+    if (byId.length) return byId;
+  }
+  // Verified secondary resolver only — a real, exact team-code match.
   const target = normalizeTeamName(teamName);
   return injuries.filter((i) => i.team && normalizeTeamName(i.team) === target);
 }
