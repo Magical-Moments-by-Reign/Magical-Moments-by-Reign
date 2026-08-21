@@ -470,3 +470,46 @@ export async function fetchFirstRegularSeasonGame(sport: SportSlug, season: stri
     .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
   return regular[0] ?? null;
 }
+
+export interface SportsRosterPlayer {
+  id: string;
+  name: string;
+  position?: string;
+  number?: number;
+  photoUrl?: string;
+}
+
+/** Pure: map one API-Sports /players response item → our shape. Exported
+ *  for tests. American Football's real shape nests identity under
+ *  `player` and roster details under `statistics[0].team`/`.position` —
+ *  other verticals return player fields at the item root, so both are
+ *  checked. Never fabricates a position or number the provider omitted. */
+export function mapRosterPlayer(item: any): SportsRosterPlayer | null {
+  const p = item?.player ?? item;
+  const id = p?.id;
+  const name = p?.name;
+  if (id == null || !name) return null;
+  const stat = Array.isArray(item?.statistics) ? item.statistics[0] : undefined;
+  const position = typeof stat?.position === "string" ? stat.position : typeof p?.position === "string" ? p.position : undefined;
+  const number = typeof stat?.number === "number" ? stat.number : typeof p?.number === "number" ? p.number : undefined;
+  return {
+    id: String(id),
+    name: String(name),
+    position,
+    number,
+    photoUrl: typeof p?.photo === "string" && p.photo.startsWith("https://") ? p.photo : undefined,
+  };
+}
+
+/** A real team's current-season roster — straight from API-Sports'
+ *  /players endpoint (team + season, the same "no bare search" filter
+ *  rule the team-search fix relies on). Returns null on missing config or
+ *  a failed/empty response; an empty array only when the provider itself
+ *  returns zero players. Never invents a roster. */
+export async function fetchTeamRoster(sport: SportSlug, teamExternalId: string, season: string): Promise<SportsRosterPlayer[] | null> {
+  if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return null;
+  const json = await apiSportsFetch(sport, "/players", { team: teamExternalId, season });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  if (!list) return null;
+  return list.map(mapRosterPlayer).filter((p: SportsRosterPlayer | null): p is SportsRosterPlayer => p !== null);
+}

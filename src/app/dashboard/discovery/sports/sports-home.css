@@ -90,9 +90,14 @@
   background: radial-gradient(ellipse at 50% 0%, rgba(224,182,81,.16) 0%, rgba(224,182,81,.05) 55%, transparent 100%), rgba(8,6,3,.55);
   border: 1px solid rgba(224,182,81,.5); box-shadow: 0 0 50px rgba(224,182,81,.15) inset, 0 14px 40px rgba(0,0,0,.35);
 }
+.spx-countdown__league {
+  display: block; color: var(--gold); font-weight: 900; font-size: clamp(1.8rem, 5vw, 2.8rem); letter-spacing: .04em;
+  text-transform: uppercase; text-align: center; text-shadow: 0 2px 20px rgba(224,182,81,.45);
+}
+.spx-countdown__league--blue { color: #2f6fed; text-shadow: 0 2px 20px rgba(47,111,237,.5); }
 .spx-countdown__title {
   color: #fffdf8; font-weight: 900; font-size: clamp(1.15rem, 3.2vw, 1.9rem); letter-spacing: .02em; text-transform: uppercase;
-  text-shadow: 0 2px 18px rgba(224,182,81,.4); text-align: center;
+  text-shadow: 0 2px 18px rgba(224,182,81,.4); text-align: center; margin-top: .2rem;
 }
 .spx-countdown__matchup--hero { gap: 1.2rem; margin-top: 1rem; }
 .spx-countdown__matchup--hero .spx-countdown__side { display: flex; flex-direction: column; align-items: center; gap: .4rem; }
@@ -106,6 +111,17 @@
   .spx-countdown__matchup--hero img { width: 44px; height: 44px; }
   .spx-countdown__matchup--hero b { font-size: .92rem; }
 }
+
+/* ── Real per-team roster (honest substitute for injury data we don't have) ── */
+.spx-my-team { border-bottom: 1px solid rgba(201,162,75,.15); padding-bottom: .5rem; margin-bottom: .5rem; }
+.spx-my-team:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.spx-roster { margin-top: .5rem; }
+.spx-roster summary { cursor: pointer; color: var(--gold-soft); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.spx-roster__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; margin-top: .6rem; }
+.spx-roster__player { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .25rem; padding: .5rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); }
+.spx-roster__player img, .spx-roster__ph { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: rgba(224,182,81,.1); }
+.spx-roster__name { color: #f4f1ea; font-size: .72rem; font-weight: 700; line-height: 1.2; }
+.spx-roster__meta { color: #9c8f76; font-size: .64rem; }
 
 /* ── "EXPLORE ALL SPORTS" divider ── */
 .spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }

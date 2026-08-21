@@ -15,12 +15,11 @@ import DiscoveryNav from "../_nav";
 import "../discovery.css";
 import "./sports-home.css";
 
-// API-Sports doesn't reliably return usable league artwork for American
-// football (confirmed repeatedly — a generic "no logo" placeholder image
-// comes back looking like a broken icon rather than a real crest), so these
-// two use Owner-provided static artwork instead of attempting a live logo
-// render.
-const STATIC_LOGO: Partial<Record<SportSlug, string>> = { nfl: "/discovery/leagues/nfl.png", ncaaf: "/discovery/leagues/ncaaf.png" };
+// American football doesn't get a league mark image — API-Sports doesn't
+// reliably return usable artwork for it, and the official NFL/NCAA shields
+// are trademarked marks we don't have rights to reproduce. Those cards fall
+// back to DiscoveryImage's plain styled-text mark instead.
+const NO_LEAGUE_LOGO: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Moments Sports", robots: { index: false } };
@@ -96,7 +95,7 @@ export default async function SportsPage() {
       <div className="spx-divider"><span>Explore All Sports</span></div>
       <div className="spx-grid">
         {SPORT_CATALOG.map((s) => {
-          const logo = STATIC_LOGO[s.slug] ?? logos[s.slug];
+          const logo = NO_LEAGUE_LOGO[s.slug] ? undefined : logos[s.slug];
           return (
             <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
               <DiscoveryImage src={logo} alt={`${s.label} league mark`} fallback={s.label.slice(0, 3).toUpperCase()} />

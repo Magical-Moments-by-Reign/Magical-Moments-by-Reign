@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchTeamRoster, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -16,6 +16,7 @@ const TTL_GAMES_UPCOMING = 180; // 3h — schedules barely move
 const TTL_GAMES_LIVE = 3; // 3m — live games refresh often
 const TTL_STANDINGS = 720; // 12h
 const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
+const TTL_ROSTER = 10080; // 1 week — a team's active roster barely moves day to day
 
 export const SPORT_CATALOG: { slug: SportSlug; label: string }[] = [
   { slug: "nfl", label: "NFL" },
@@ -165,6 +166,18 @@ export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<Sport
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_regular_season" }), TTL_GAMES_UPCOMING, () =>
     fetchFirstRegularSeasonGame(sport, season));
   return cached?.data ?? null;
+}
+
+/** A followed team's real current-season roster — we can't show injuries
+ *  (not part of the connected API-Sports plan), so this is the honest
+ *  substitute: real players, real jersey numbers/positions, straight from
+ *  the provider. Never invents a name. */
+export async function getTeamRoster(sport: SportSlug, teamExternalId: string): Promise<SportsRosterPlayer[]> {
+  if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return [];
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, () =>
+    fetchTeamRoster(sport, teamExternalId, season));
+  return cached?.data ?? [];
 }
 
 /** Live + upcoming games across the given sports (typically the member's
