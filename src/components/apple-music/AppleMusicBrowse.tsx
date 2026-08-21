@@ -9,8 +9,10 @@
 import { useState } from "react";
 import { useAppleMusicKit, type PlayableSong } from "./AppleMusicKitProvider";
 import ConnectAppleMusicButton from "./ConnectAppleMusicButton";
+import AddToPlaylistMenu from "./AddToPlaylistMenu";
 import type { AppleMusicAlbumResult, AppleMusicPlaylistResult } from "@/lib/apple-music/types";
 import type { MusicChartEntry, MusicGenre } from "@/lib/discovery/providers/music";
+import type { PlaylistEntry } from "@/lib/discovery/playlists";
 
 interface Props {
   topSongsTitle: string;
@@ -21,6 +23,11 @@ interface Props {
   playlists: AppleMusicPlaylistResult[];
   genre: MusicGenre;
   isOfficial: boolean;
+  myPlaylists: PlaylistEntry[];
+  createPlaylistAction: (formData: FormData) => Promise<void>;
+  deletePlaylistAction: (formData: FormData) => Promise<void>;
+  addTrackToPlaylistAction: (formData: FormData) => Promise<void>;
+  removeTrackFromPlaylistAction: (formData: FormData) => Promise<void>;
 }
 
 type View = "all" | "songs" | "albums" | "artists" | "playlists";
@@ -57,7 +64,10 @@ function AppleMarkSvg() {
   );
 }
 
-export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle, albums, playlistsTitle, playlists, genre, isOfficial }: Props) {
+export default function AppleMusicBrowse({
+  topSongsTitle, topSongs, albumsTitle, albums, playlistsTitle, playlists, genre, isOfficial,
+  myPlaylists, createPlaylistAction, deletePlaylistAction, addTrackToPlaylistAction, removeTrackFromPlaylistAction,
+}: Props) {
   const { authorized, nowPlaying, isPlaying, playSong, playCollection } = useAppleMusicKit();
   const [view, setView] = useState<View>("all");
   const [albumsPill, setAlbumsPill] = useState<AlbumsPill>("new");
@@ -69,7 +79,11 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
   const showSongs = (view === "all" || view === "songs") && playableSongs.length > 0;
   const showAlbums = (view === "all" || view === "albums") && albums.length > 0;
   const showArtists = (view === "all" || view === "artists") && artists.length > 0;
-  const showPlaylists = (view === "all" || view === "playlists") && topFivePlaylists.length > 0;
+  // The dedicated Playlists view is always reachable (it's also where a
+  // member creates their own playlists), even on weeks Apple has no curated
+  // "Top Playlists" chart — the "all" overview still only surfaces the row
+  // automatically when there's curated content to show alongside it.
+  const showPlaylists = view === "playlists" || (view === "all" && topFivePlaylists.length > 0);
 
   function goToAlbums(pill: AlbumsPill) {
     setAlbumsPill(pill);
@@ -106,7 +120,7 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
         {albums.length > 0 && <button type="button" aria-current={view === "albums" && albumsPill === "new" ? "true" : undefined} onClick={() => goToAlbums("new")}>New Releases</button>}
         {albums.length > 0 && <button type="button" aria-current={view === "albums" && albumsPill === "albums" ? "true" : undefined} onClick={() => goToAlbums("albums")}>Albums</button>}
         {artists.length > 0 && <button type="button" aria-current={view === "artists" ? "true" : undefined} onClick={() => setView("artists")}>Artists</button>}
-        {topFivePlaylists.length > 0 && <button type="button" aria-current={view === "playlists" ? "true" : undefined} onClick={() => setView("playlists")}>Playlists</button>}
+        <button type="button" aria-current={view === "playlists" ? "true" : undefined} onClick={() => setView("playlists")}>Playlists</button>
       </div>
 
       <div id="amk-rows">
@@ -135,6 +149,11 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
                     </div>
                     <span className="amk-ranked__title">{e.song}</span>
                     <span className="amk-ranked__subtitle">{e.artist}</span>
+                    <AddToPlaylistMenu
+                      playlists={myPlaylists}
+                      track={{ catalogId: e.catalogId ?? "", name: e.song, artistName: e.artist, artworkUrl: e.artworkUrl, url: e.listenUrl, previewUrl: e.previewUrl }}
+                      addTrackToPlaylistAction={addTrackToPlaylistAction}
+                    />
                   </div>
                 );
               })}
@@ -163,22 +182,79 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
         )}
 
         {showPlaylists && (
-          <div className="amk-row" id="amk-playlists">
-            <div className="amk-row__head"><h2>{playlistsTitle}</h2></div>
-            <div className="amk-row__ranked">
-              {topFivePlaylists.map((p, i) => (
-                <a key={p.id} className="amk-ranked" href={p.url ?? "#"} target={p.url ? "_blank" : undefined} rel="noopener noreferrer">
-                  <span className="amk-ranked__num">{i + 1}</span>
-                  <div className="amk-ranked__art">
-                    {p.artworkUrl && <div className="amk-ranked__img" style={{ backgroundImage: `url(${p.artworkUrl})` }} />}
-                    <button type="button" className="amk-ranked__play" aria-label={`Play ${p.name}`} onClick={(e) => { e.preventDefault(); playCollection(p.id, "playlist", p.name); }}>▶</button>
-                  </div>
-                  <span className="amk-ranked__title">{p.name}</span>
-                  <span className="amk-ranked__subtitle">{p.curatorName ?? "Apple Music"}</span>
-                </a>
-              ))}
+          <>
+            <div className="amk-row" id="amk-my-playlists">
+              <div className="amk-row__head"><h2>My Playlists</h2></div>
+              <form action={createPlaylistAction} className="amk-newplaylist">
+                <input type="text" name="name" placeholder="New playlist name" maxLength={120} required />
+                <button type="submit" className="btn btn--sm btn--gold">Create Playlist</button>
+              </form>
+              {myPlaylists.length === 0 ? (
+                <p className="disc-empty">You haven&rsquo;t made a playlist yet — name one above to get started.</p>
+              ) : (
+                <div className="amk-myplaylists">
+                  {myPlaylists.map((p) => (
+                    <div className="amk-myplaylist" key={p.id}>
+                      <div className="amk-myplaylist__head">
+                        <h3>{p.name}</h3>
+                        <span>{p.tracks.length} track{p.tracks.length === 1 ? "" : "s"}</span>
+                        <form action={deletePlaylistAction}>
+                          <input type="hidden" name="playlistId" value={p.id} />
+                          <button type="submit" className="amk-myplaylist__delete" aria-label={`Delete ${p.name}`}>Delete</button>
+                        </form>
+                      </div>
+                      {p.tracks.length === 0 ? (
+                        <p className="disc-empty">No songs yet — use the ＋ button on any song to add it here.</p>
+                      ) : (
+                        <div className="amk-myplaylist__tracks">
+                          {p.tracks.map((t) => {
+                            const song: PlayableSong = { id: t.catalogId, name: t.name, artistName: t.artistName, artworkUrl: t.artworkUrl, previewUrl: t.previewUrl };
+                            const isCurrent = nowPlaying?.title === t.name && nowPlaying?.artist === t.artistName;
+                            return (
+                              <div className="amk-ranked" key={t.id}>
+                                <div className="amk-ranked__art">
+                                  {t.artworkUrl && <div className="amk-ranked__img" style={{ backgroundImage: `url(${t.artworkUrl})` }} />}
+                                  <button type="button" className="amk-ranked__play" aria-label={isCurrent && isPlaying ? `Pause ${t.name}` : `Play ${t.name}`} onClick={() => playSong(song, p.tracks.map((tr) => ({ id: tr.catalogId, name: tr.name, artistName: tr.artistName, artworkUrl: tr.artworkUrl, previewUrl: tr.previewUrl })))}>
+                                    {isCurrent && isPlaying ? "❚❚" : "▶"}
+                                  </button>
+                                </div>
+                                <span className="amk-ranked__title">{t.name}</span>
+                                <span className="amk-ranked__subtitle">{t.artistName}</span>
+                                <form action={removeTrackFromPlaylistAction}>
+                                  <input type="hidden" name="playlistId" value={p.id} />
+                                  <input type="hidden" name="catalogId" value={t.catalogId} />
+                                  <button type="submit" className="amk-myplaylist__delete" aria-label={`Remove ${t.name} from ${p.name}`}>Remove</button>
+                                </form>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+
+            {topFivePlaylists.length > 0 && (
+              <div className="amk-row" id="amk-playlists">
+                <div className="amk-row__head"><h2>{playlistsTitle}</h2></div>
+                <div className="amk-row__ranked">
+                  {topFivePlaylists.map((p, i) => (
+                    <a key={p.id} className="amk-ranked" href={p.url ?? "#"} target={p.url ? "_blank" : undefined} rel="noopener noreferrer">
+                      <span className="amk-ranked__num">{i + 1}</span>
+                      <div className="amk-ranked__art">
+                        {p.artworkUrl && <div className="amk-ranked__img" style={{ backgroundImage: `url(${p.artworkUrl})` }} />}
+                        <button type="button" className="amk-ranked__play" aria-label={`Play ${p.name}`} onClick={(e) => { e.preventDefault(); playCollection(p.id, "playlist", p.name); }}>▶</button>
+                      </div>
+                      <span className="amk-ranked__title">{p.name}</span>
+                      <span className="amk-ranked__subtitle">{p.curatorName ?? "Apple Music"}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {showAlbums && (

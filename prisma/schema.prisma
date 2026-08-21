@@ -1105,6 +1105,7 @@ model Account {
   savedServices   SavedService[]
   watchlistItems  WatchlistItem[]
   trackedPlayers  TrackedPlayer[]
+  playlists       Playlist[]
   savedEvents     SavedEvent[]
   notificationPrefs NotificationPreference[]
   invitationsSent Invitation[] @relation("inviter")
@@ -2436,6 +2437,40 @@ model WatchlistItem {
 
   @@unique([accountId, tmdbId])
   @@index([accountId, addedAt])
+}
+
+// A member's own custom playlist inside Music (Magical Discovery) — distinct
+// from Apple's curated "Top Playlists". Tracks reference a real Apple Music
+// catalog song by id, with a display snapshot (name/artist/artwork) taken at
+// add-time so the playlist still renders if a live Apple lookup ever fails.
+// No playback happens through these rows — actual playback is still via
+// MusicKit/preview URL, same as everywhere else in Music.
+model Playlist {
+  id        String          @id @default(cuid())
+  accountId String
+  account   Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime        @default(now())
+  tracks    PlaylistTrack[]
+
+  @@index([accountId, createdAt])
+}
+
+model PlaylistTrack {
+  id          String   @id @default(cuid())
+  playlistId  String
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  catalogId   String   // Apple Music catalog song id
+  name        String
+  artistName  String
+  albumName   String?
+  artworkUrl  String?
+  url         String?  // Apple Music web link, when Apple returned one
+  previewUrl  String?  // real Apple-hosted 30s preview clip, when available
+  addedAt     DateTime @default(now())
+
+  @@unique([playlistId, catalogId])
+  @@index([playlistId, addedAt])
 }
 
 // A player the member is tracking on the Sports page — across any number of
