@@ -90,33 +90,32 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const standings = standingsResult.standings ?? [];
   const standingsRestricted = standingsResult.planRestricted;
 
+  // The real season-opener countdown is the hero's dominant state. Once
+  // that game's kickoff passes, both this gate and CountdownClock's own
+  // internal clock guard turn it off — the header falls back to the plain
+  // sport-identification brand row below rather than showing an expired
+  // 00:00:00:00 clock.
+  const showHeroCountdown = Boolean(firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0);
+
   return (
     <div className="spx">
-      <header className="spx-sport-header">
+      <header className={`spx-sport-header${showHeroCountdown ? " spx-sport-header--hero" : ""}`}>
         <Image src="/discovery/stadium.png" alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
         <div className="spx-sport-header__shade" />
-        <SportBackdrop sport={sport} />
+        {!showHeroCountdown && <SportBackdrop sport={sport} />}
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
-        <div className="spx-sport-header__brand">
-          {leagueLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={leagueLogo} alt="" className="spx-sport-header__logo" />
-          ) : (
-            <span className="spx-sport-header__mark" aria-hidden="true">{sportMeta.label.slice(0, 3).toUpperCase()}</span>
-          )}
-          <h1>{sportMeta.label}</h1>
-        </div>
-        {firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0 && (
-          <div className="spx-countdown spx-countdown--hero">
+
+        {showHeroCountdown && firstRegularSeasonGame ? (
+          <div className="spx-countdown--hero">
             <span className={`spx-countdown__league${BLUE_LEAGUE_TEXT[sport] ? " spx-countdown__league--blue" : ""}`}>{sportMeta.label}</span>
             <span className="spx-countdown__title">Regular Season Countdown</span>
-            <div className="spx-countdown__matchup spx-countdown__matchup--hero">
+            <div className="spx-countdown__matchup--hero">
               <div className="spx-countdown__side">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
                 <b>{firstRegularSeasonGame.awayTeam.name}</b>
               </div>
-              <span className="spx-countdown__at">VS</span>
+              <span className="spx-countdown__vs">VS</span>
               <div className="spx-countdown__side">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
@@ -124,6 +123,16 @@ export default async function SportPage({ params, searchParams }: { params: Prom
               </div>
             </div>
             <CountdownClock targetISO={firstRegularSeasonGame.startsAt} />
+          </div>
+        ) : (
+          <div className="spx-sport-header__brand">
+            {leagueLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={leagueLogo} alt="" className="spx-sport-header__logo" />
+            ) : (
+              <span className="spx-sport-header__mark" aria-hidden="true">{sportMeta.label.slice(0, 3).toUpperCase()}</span>
+            )}
+            <h1>{sportMeta.label}</h1>
           </div>
         )}
 
