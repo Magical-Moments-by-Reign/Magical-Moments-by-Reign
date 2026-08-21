@@ -36,8 +36,22 @@ export interface SdioPlayer {
   status?: string; // Active, Injured Reserve, Free Agent, etc. — provider's own label
   photoUrl?: string;
   age?: number;
+  birthDate?: string; // ISO, provider's own BirthDate — for a real DOB display, not just derived age
   college?: string;
   experienceYears?: number; // seasons played, per the provider's own count
+  /** Below: fields the standard SportsDataIO Player object documents for its
+   *  NFL/CFB/NBA/WNBA products but this codebase hasn't previously read —
+   *  same graceful-degrade discipline as everything else here: absent or
+   *  unrecognized shape just leaves the field undefined, never guessed. */
+  heightInches?: number;
+  weightLbs?: number;
+  birthCity?: string;
+  birthState?: string;
+  highSchool?: string;
+  draftYear?: number;
+  draftRound?: number;
+  draftPick?: number;
+  draftTeam?: string;
 }
 
 export interface SdioTransaction {
@@ -45,6 +59,7 @@ export interface SdioTransaction {
   type?: string; // e.g. "Trade", "Waived", "Signed"
   team?: string;
   description?: string;
+  playerId?: string; // the transaction's own PlayerID, for filtering to one player's timeline
 }
 
 export interface AwardRaceEntry {
@@ -101,7 +116,20 @@ function deriveAge(p: any): number | undefined {
   return typeof p?.Age === "number" && p.Age > 0 ? p.Age : undefined;
 }
 
-function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
+/** Height in total inches from whatever shape the provider used — a plain
+ *  number (already inches), or a "6'2"" / "6-2" feet-inches string. Returns
+ *  undefined rather than guess on an unrecognized shape. */
+function parseHeightInches(v: unknown): number | undefined {
+  if (typeof v === "number" && v > 0 && v < 100) return v;
+  if (typeof v === "string") {
+    const m = v.match(/(\d+)['\-](\d+)/);
+    if (m) return Number(m[1]) * 12 + Number(m[2]);
+  }
+  return undefined;
+}
+
+/** Exported for tests. */
+export function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
   const id = p?.PlayerID ?? p?.PlayerId;
   const name = p?.Name ?? [p?.FirstName, p?.LastName].filter(Boolean).join(" ");
   if (id == null || !name) return null;
@@ -116,8 +144,18 @@ function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
     status: p?.Status ?? undefined,
     photoUrl: typeof p?.PhotoUrl === "string" && p.PhotoUrl.startsWith("http") ? p.PhotoUrl : undefined,
     age: deriveAge(p),
+    birthDate: typeof p?.BirthDate === "string" && !Number.isNaN(+new Date(p.BirthDate)) ? new Date(p.BirthDate).toISOString() : undefined,
     college: [p?.College, p?.CollegeName].find((v) => typeof v === "string" && v.trim())?.trim(),
     experienceYears: parseExperience(p?.Experience ?? p?.ExperienceSeasons ?? p?.Seasons),
+    heightInches: parseHeightInches(p?.Height),
+    weightLbs: typeof p?.Weight === "number" && p.Weight > 0 ? p.Weight : undefined,
+    birthCity: typeof p?.BirthCity === "string" && p.BirthCity.trim() ? p.BirthCity.trim() : undefined,
+    birthState: typeof p?.BirthState === "string" && p.BirthState.trim() ? p.BirthState.trim() : undefined,
+    highSchool: typeof p?.HighSchool === "string" && p.HighSchool.trim() ? p.HighSchool.trim() : undefined,
+    draftYear: typeof p?.CollegeDraftYear === "number" ? p.CollegeDraftYear : undefined,
+    draftRound: typeof p?.CollegeDraftRound === "number" ? p.CollegeDraftRound : undefined,
+    draftPick: typeof p?.CollegeDraftPick === "number" ? p.CollegeDraftPick : undefined,
+    draftTeam: typeof p?.CollegeDraftTeam === "string" && p.CollegeDraftTeam.trim() ? p.CollegeDraftTeam.trim() : undefined,
   };
 }
 
@@ -229,23 +267,53 @@ const STAT_FIELDS: Record<SdioLeague, { field: string; label: string }[]> = {
   wnba: [{ field: "Points", label: "PPG" }, { field: "Rebounds", label: "RPG" }, { field: "Assists", label: "APG" }],
 };
 
+async function fetchPlayerSeasonStatsRow(league: SdioLeague, playerId: string, season: number): Promise<any | null> {
+  const json = await sdioFetch(league, `/stats/json/PlayerSeasonStatsByPlayerID/${season}/${playerId}`);
+  const row = Array.isArray(json) ? json[0] : json;
+  return row && typeof row === "object" ? row : null;
+}
+
 /** Best-effort season-stat summary for one player (e.g. "3,842 pass yds ·
  *  31 pass TD"). Returns undefined — not a fabricated line — when the stats
  *  endpoint has nothing for this player/season. */
 export async function fetchPlayerSeasonStatSummary(league: SdioLeague, playerId: string, season: number): Promise<string | undefined> {
-  const path = league === "nfl" || league === "cfb"
-    ? `/stats/json/PlayerSeasonStatsByPlayerID/${season}/${playerId}`
-    : `/stats/json/PlayerSeasonStatsByPlayerID/${season}/${playerId}`;
-  const json = await sdioFetch(league, path);
-  const row = Array.isArray(json) ? json[0] : json;
-  if (!row || typeof row !== "object") return undefined;
+  const row = await fetchPlayerSeasonStatsRow(league, playerId, season);
+  if (!row) return undefined;
   const parts = STAT_FIELDS[league]
     .map(({ field, label }) => {
-      const v = (row as any)[field];
+      const v = row[field];
       return typeof v === "number" && v !== 0 ? `${v.toLocaleString("en-US")} ${label}` : null;
     })
     .filter((s): s is string => s !== null);
   return parts.length ? parts.slice(0, 3).join(" · ") : undefined;
+}
+
+// A wider raw-field allowlist for the Player Profile's structured stat
+// panel — every field here is a standard SportsDataIO PlayerSeasonStats
+// field name; the caller (position-aware UI) picks which subset to display
+// for a given position. Fields absent from a given response simply don't
+// appear in the returned object — never a fabricated zero.
+const STRUCTURED_STAT_FIELDS: Record<SdioLeague, string[]> = {
+  nfl: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "PassingCompletionPercentage", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"],
+  cfb: ["Games", "Started", "Completions", "PassingAttempts", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "PassingCompletionPercentage", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"],
+  nba: ["Games", "Minutes", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers", "FieldGoalsPercentage", "ThreePointersPercentage", "FreeThrowsPercentage"],
+  wnba: ["Games", "Minutes", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers", "FieldGoalsPercentage", "ThreePointersPercentage", "FreeThrowsPercentage"],
+};
+
+/** Structured season stats for one player — every real numeric field the
+ *  provider returned from STRUCTURED_STAT_FIELDS, keyed by the provider's
+ *  own field name. Powers the Player Profile's position-aware stat panel
+ *  and year-by-year table. Returns undefined when the endpoint has nothing
+ *  for this player/season — never a fabricated zero for a missing field. */
+export async function fetchPlayerSeasonStats(league: SdioLeague, playerId: string, season: number): Promise<Record<string, number> | undefined> {
+  const row = await fetchPlayerSeasonStatsRow(league, playerId, season);
+  if (!row) return undefined;
+  const out: Record<string, number> = {};
+  for (const field of STRUCTURED_STAT_FIELDS[league]) {
+    const v = row[field];
+    if (typeof v === "number") out[field] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 export interface SdioGame {

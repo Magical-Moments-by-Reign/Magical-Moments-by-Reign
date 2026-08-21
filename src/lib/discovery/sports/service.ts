@@ -60,6 +60,17 @@ export function sdioLeagueFor(sport: SportSlug): SdioLeague | null {
   }
 }
 
+/** The inverse of sdioLeagueFor — our SportSlug for a given SportsDataIO
+ *  league, for callers that only have the SportsDataIO side (e.g. a Player
+ *  Profile route keyed by SdioLeague) and need it to resolve a real
+ *  API-Sports team/logo via resolveTeamByName. */
+export function sportSlugForSdio(league: SdioLeague): SportSlug {
+  switch (league) {
+    case "cfb": return "ncaaf";
+    default: return league;
+  }
+}
+
 // SportsDataIO's own season-year convention for its football/basketball
 // products: the numeric year a fall-starting season began in (so a January
 // 2026 NFL/CFB/NBA game is still part of "2025"), confirmed already for NBA
@@ -255,7 +266,7 @@ function normalizeTeamName(s: string): string {
  *  is only a live lookup the first time a given team name is seen for that
  *  sport. Returns null when API-Sports has no confident match — never a
  *  guessed logo. */
-async function resolveTeamByName(sport: SportSlug, name: string): Promise<{ id: string; logoUrl?: string } | null> {
+export async function resolveTeamByName(sport: SportSlug, name: string): Promise<{ id: string; logoUrl?: string } | null> {
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, teamNameLookup: normalizeTeamName(name) }), TTL_TEAM_LOOKUP, () =>
     ApiSportsProvider.searchTeams(sport, name));
   const candidates = cached?.data;

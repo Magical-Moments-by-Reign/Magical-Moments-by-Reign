@@ -139,19 +139,21 @@ export default async function SportsPage() {
               <div className="spx-tracked__list">
                 {trackedPlayers.map((t) => (
                   <div className="spx-tracked__item" key={t.id}>
-                    <div className="spx-tracked__photo">
-                      {t.live?.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={t.live.photoUrl} alt="" />
-                      ) : (
-                        <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
-                      )}
-                    </div>
-                    <div className="spx-tracked__info">
-                      <b>{t.playerName}</b>
-                      <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
-                      {t.live?.status && <span className="spx-tracked__status">{t.live.status}</span>}
-                    </div>
+                    <Link href={`/dashboard/discovery/sports/player/${t.league}/${t.playerId}`} className="spx-search__linkarea">
+                      <div className="spx-tracked__photo">
+                        {t.live?.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={t.live.photoUrl} alt="" />
+                        ) : (
+                          <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
+                        )}
+                      </div>
+                      <div className="spx-tracked__info">
+                        <b>{t.playerName}</b>
+                        <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                        {t.live?.status && <span className="spx-tracked__status">{t.live.status}</span>}
+                      </div>
+                    </Link>
                     <form action={untrackPlayerAction}>
                       <input type="hidden" name="league" value={t.league} />
                       <input type="hidden" name="playerId" value={t.playerId} />
@@ -174,18 +176,29 @@ export default async function SportsPage() {
                       <span>Market consensus, not official voting</span>
                     </div>
                     <ol className="spx-award__list">
-                      {race.entries.slice(0, 5).map((e) => (
-                        <li key={e.playerId}>
-                          <span className="spx-award__rank">{e.currentRank}</span>
+                      {race.entries.slice(0, 5).map((e) => {
+                        // A real SportsDataIO PlayerID is purely numeric; the
+                        // futures feed occasionally has no id at all, in
+                        // which case fetchAwardFutures falls back to a
+                        // synthetic key that can't resolve a real profile —
+                        // only link when it's the real thing.
+                        const hasRealId = /^\d+$/.test(e.playerId);
+                        const info = (
                           <div className="spx-award__info">
                             <b>{e.playerName}</b>
                             <span>{[e.position, e.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
                             {e.seasonStats && <span className="spx-award__stats">{e.seasonStats}</span>}
                             {e.teamRecord && <span className="spx-award__record">Team: {e.teamRecord}</span>}
                           </div>
-                          {e.futuresConsensus && <span className="spx-award__odds">{e.futuresConsensus}</span>}
-                        </li>
-                      ))}
+                        );
+                        return (
+                          <li key={e.playerId}>
+                            <span className="spx-award__rank">{e.currentRank}</span>
+                            {hasRealId ? <Link href={`/dashboard/discovery/sports/player/${race.league}/${e.playerId}`} className="spx-search__linkarea">{info}</Link> : info}
+                            {e.futuresConsensus && <span className="spx-award__odds">{e.futuresConsensus}</span>}
+                          </li>
+                        );
+                      })}
                     </ol>
                     <p className="spx-award__foot">Updated {new Date(race.entries[0].lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
                   </div>
