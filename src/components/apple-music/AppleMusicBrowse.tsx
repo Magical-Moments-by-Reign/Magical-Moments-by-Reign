@@ -84,6 +84,10 @@ export default function AppleMusicBrowse({ topSongsTitle, topSongs, albumsTitle,
           <img src="/brand/logo-champagne.png" alt="" />
           <span>Magical Moments<em>by Reign</em></span>
         </div>
+        <div className="amk-hero__apple" aria-label="Powered by Apple Music — sign in with your Apple Music account">
+          <AppleMarkSvg />
+          <span>Apple Music</span>
+        </div>
         <div className="amk-hero__body">
           <h1>{showSongs ? topSongsTitle : "Music"}</h1>
           <p>{showSongs ? "The most played hits right now." : "Discover. Play. Feel. All inside Magical Moments."}</p>
