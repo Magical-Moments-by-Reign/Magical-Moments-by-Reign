@@ -57,8 +57,8 @@ test("fetchNbaFirstGame returns null when unconfigured or the provider has nothi
   }
 });
 
-test("toSdioStandingRow maps a real Standings row and rejects one missing wins/losses", () => {
-  assert.deepEqual(toSdioStandingRow({ Name: "Boston Celtics", TeamID: 2, Wins: 12, Losses: 3 }), { team: "Boston Celtics", teamId: "2", wins: 12, losses: 3 });
+test("toSdioStandingRow maps a real Standings row — including its real Key abbreviation, not just TeamID/Name — and rejects one missing wins/losses", () => {
+  assert.deepEqual(toSdioStandingRow({ Name: "Boston Celtics", TeamID: 2, Key: "BOS", Wins: 12, Losses: 3 }), { team: "Boston Celtics", teamId: "2", key: "BOS", wins: 12, losses: 3 });
   assert.equal(toSdioStandingRow({ Name: "Boston Celtics" }), null);
   assert.equal(toSdioStandingRow({ Wins: 12, Losses: 3 }), null);
 });
@@ -85,9 +85,9 @@ test("fetchStandings maps a real response and drops unusable rows, for any leagu
     ]), { status: 200 })) as typeof fetch;
   try {
     const nbaRows = await fetchStandings("nba", 2026);
-    assert.deepEqual(nbaRows, [{ team: "Boston Celtics", teamId: "2", wins: 12, losses: 3 }]);
+    assert.deepEqual(nbaRows, [{ team: "Boston Celtics", teamId: "2", key: undefined, wins: 12, losses: 3 }]);
     const nflRows = await fetchStandings("nfl", 2026);
-    assert.deepEqual(nflRows, [{ team: "Boston Celtics", teamId: "2", wins: 12, losses: 3 }]);
+    assert.deepEqual(nflRows, [{ team: "Boston Celtics", teamId: "2", key: undefined, wins: 12, losses: 3 }]);
   } finally {
     global.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
@@ -95,10 +95,10 @@ test("fetchStandings maps a real response and drops unusable rows, for any leagu
   }
 });
 
-test("toSdioInjury maps a real InjuredPlayers row and rejects one missing an id/name", () => {
+test("toSdioInjury maps a real InjuredPlayers row (including its real TeamID, not just the team code) and rejects one missing an id/name", () => {
   assert.deepEqual(
-    toSdioInjury({ PlayerID: 9, Name: "Test Player", Team: "BOS", Position: "G", InjuryStatus: "Questionable", InjuryBodyPart: "Ankle" }),
-    { playerId: "9", playerName: "Test Player", team: "BOS", position: "G", status: "Questionable", bodyPart: "Ankle", practiceStatus: undefined, updated: undefined },
+    toSdioInjury({ PlayerID: 9, Name: "Test Player", Team: "BOS", TeamID: 2, Position: "G", InjuryStatus: "Questionable", InjuryBodyPart: "Ankle" }),
+    { playerId: "9", playerName: "Test Player", team: "BOS", teamId: "2", position: "G", status: "Questionable", bodyPart: "Ankle", practiceStatus: undefined, updated: undefined },
   );
   assert.equal(toSdioInjury({ Team: "BOS" }), null);
 });

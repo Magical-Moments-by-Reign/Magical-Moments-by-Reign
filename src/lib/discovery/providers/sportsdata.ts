@@ -436,6 +436,10 @@ export async function fetchGamesByDate(league: SdioLeague, dateISO: string): Pro
 export interface SdioStandingRow {
   team: string;
   teamId?: string;
+  /** The provider's short team code (e.g. "BOS") — real, never derived from
+   *  the full name. A verified secondary identity signal only; TeamID is
+   *  always the primary key for cross-provider team resolution. */
+  key?: string;
   wins: number;
   losses: number;
 }
@@ -446,7 +450,7 @@ export function toSdioStandingRow(t: any): SdioStandingRow | null {
   const wins = t?.Wins;
   const losses = t?.Losses;
   if (!team || typeof wins !== "number" || typeof losses !== "number") return null;
-  return { team: String(team), teamId: t?.TeamID != null ? String(t.TeamID) : undefined, wins, losses };
+  return { team: String(team), teamId: t?.TeamID != null ? String(t.TeamID) : undefined, key: typeof t?.Key === "string" ? t.Key : undefined, wins, losses };
 }
 
 /** Real standings for a season in a given league — secondary source for the
@@ -481,6 +485,7 @@ export interface SdioInjury {
   playerId: string;
   playerName: string;
   team?: string;
+  teamId?: string;
   position?: string;
   status?: string; // Out, Doubtful, Questionable, Probable — provider's own label
   bodyPart?: string;
@@ -497,6 +502,7 @@ export function toSdioInjury(r: any): SdioInjury | null {
     playerId: String(id),
     playerName: name,
     team: r?.Team ?? undefined,
+    teamId: r?.TeamID != null ? String(r.TeamID) : undefined,
     position: r?.Position ?? undefined,
     status: r?.InjuryStatus ?? r?.Status ?? undefined,
     bodyPart: r?.InjuryBodyPart ?? r?.BodyPart ?? undefined,
