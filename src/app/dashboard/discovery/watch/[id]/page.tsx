@@ -95,22 +95,30 @@ export default async function WatchDetailPage({ params }: { params: Promise<{ id
         </p>
       )}
 
-      <section id="cast" className="disc-detail__section">
-        <h2>Cast</h2>
-        {show.cast.length > 0 ? (
-          <div className="disc-cast">
-            {show.cast.map((c) => (
-              <div key={c.name} className="disc-cast__card">
-                <div className="disc-cast__photo" style={c.profileUrl ? { backgroundImage: `url(${c.profileUrl})` } : undefined} />
-                <b>{c.name}</b>
-                {c.character && <span>{c.character}</span>}
+      {(() => {
+        // show.cast can be absent on a WatchDetails payload cached (up to
+        // 6h TTL) before this field existed — fall back to [] rather than
+        // throwing on the stale shape.
+        const cast = show.cast ?? [];
+        return (
+          <section id="cast" className="disc-detail__section">
+            <h2>Cast</h2>
+            {cast.length > 0 ? (
+              <div className="disc-cast">
+                {cast.map((c) => (
+                  <div key={c.name} className="disc-cast__card">
+                    <div className="disc-cast__photo" style={c.profileUrl ? { backgroundImage: `url(${c.profileUrl})` } : undefined} />
+                    <b>{c.name}</b>
+                    {c.character && <span>{c.character}</span>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="disc-empty">Cast details aren&rsquo;t listed for this title yet.</p>
-        )}
-      </section>
+            ) : (
+              <p className="disc-empty">Cast details aren&rsquo;t listed for this title yet.</p>
+            )}
+          </section>
+        );
+      })()}
 
       <section id="about" className="disc-detail__section">
         <h2>About</h2>
