@@ -568,18 +568,30 @@ export async function getMySportsFollows(accountId: string) {
 
 export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<{ standings: SportsStanding[]; planRestricted?: string }> {
   let restriction: string | undefined;
-  // "standings_v2" (not "standings"): the cached payload shape changed from a
-  // flat SportsStanding[] to {standings, planRestricted} — a distinct cache
-  // key keeps this from ever deserializing an old-shaped row left over from
-  // before that change (which crashed the page: cached.data.standings was
-  // undefined on a plain array, and .length on undefined threw).
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings_v2" }), TTL_STANDINGS, async () => {
+  // "standings_v3" (not "standings_v2"): rows now carry a resolved team logo
+  // (see below) and a real conference/group label — a distinct cache key
+  // keeps this from ever deserializing an older-shaped row left over from
+  // before that change (same reasoning as the v1→v2 bump above it).
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "standings_v3" }), TTL_STANDINGS, async () => {
     const result = await ApiSportsProvider.standings(sport, league, season);
     if (result?.planRestricted) {
       restriction = result.planRestricted;
       return null;
     }
-    return result;
+    if (!result?.standings.length) return result;
+    // The standings endpoint's own embedded team.logo is unreliable for at
+    // least some teams in some sports (missing, malformed, or a much lower-
+    // quality asset than what the team catalog returns) — re-resolve every
+    // row against the real API-Sports team catalog, the same trusted lookup
+    // the SportsDataIO fallback already uses, and prefer that clean logo.
+    // Falls back to the standings row's own logo only when the catalog
+    // lookup itself comes back empty — never a blank card over a real (if
+    // imperfect) provider-supplied logo.
+    const resolvedStandings = await Promise.all(result.standings.map(async (s) => {
+      const resolved = await resolveTeamByName(sport, s.team.name);
+      return resolved?.logoUrl ? { ...s, team: { ...s.team, logoUrl: resolved.logoUrl } } : s;
+    }));
+    return { ...result, standings: resolvedStandings };
   });
   if (cached?.data.standings?.length) {
     return { standings: cached.data.standings, planRestricted: cached.data.planRestricted };
