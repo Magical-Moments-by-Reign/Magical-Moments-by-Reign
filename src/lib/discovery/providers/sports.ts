@@ -37,6 +37,11 @@ export interface SportsStanding {
   wins?: number;
   losses?: number;
   ties?: number;
+  /** The provider's own real points total (e.g. soccer's 3/1/0 win/draw/loss
+   *  points table) when the response includes one — never computed from
+   *  wins/losses ourselves, since the real points formula differs by sport
+   *  (soccer 3/1/0, hockey 2/1/0, etc.) and guessing it risks a wrong table. */
+  points?: number;
   rank?: number;
   summary?: string; // fallback display when the provider doesn't split W/L/T
   /** The provider's own conference/group label verbatim (e.g. "AFC", "east")
@@ -393,13 +398,22 @@ export const ApiSportsProvider: SportsProvider = {
     const flat: any[] = Array.isArray(raw)
       ? (Array.isArray(raw[0]) ? raw.flat() : Array.isArray(raw[0]?.league?.standings?.[0]) ? raw[0].league.standings.flat() : raw)
       : [];
+    // Soccer's standings response (API-Sports' Football product) nests real
+    // win/draw/loss counts under `all` (`all.win`/`all.draw`/`all.lose`) and
+    // carries a top-level `points` field — a different, real shape from the
+    // `games.win.total` convention basketball/baseball/hockey/American
+    // football use on their own API-Sports hosts. Reading the wrong shape
+    // silently left every soccer row's wins/losses undefined even on a
+    // successful call, rendering "—/—" instead of the real record.
+    const isSoccer = sport === "soccer";
     const standings = flat
       .map((row: any) => {
         const t = row?.team;
         if (!t?.id || !t?.name) return null;
-        const wins = row?.games?.win?.total ?? row?.won ?? undefined;
-        const losses = row?.games?.lose?.total ?? row?.lost ?? undefined;
-        const ties = row?.games?.draw?.total ?? row?.draw ?? undefined;
+        const wins = isSoccer ? row?.all?.win : row?.games?.win?.total ?? row?.won ?? undefined;
+        const losses = isSoccer ? row?.all?.lose : row?.games?.lose?.total ?? row?.lost ?? undefined;
+        const ties = isSoccer ? row?.all?.draw : row?.games?.draw?.total ?? row?.draw ?? undefined;
+        const points = typeof row?.points === "number" ? row.points : undefined;
         const group = typeof row?.conference?.name === "string" ? row.conference.name
           : typeof row?.conference === "string" ? row.conference
           : typeof row?.group?.name === "string" ? row.group.name
@@ -414,6 +428,7 @@ export const ApiSportsProvider: SportsProvider = {
           wins: typeof wins === "number" ? wins : undefined,
           losses: typeof losses === "number" ? losses : undefined,
           ties: typeof ties === "number" ? ties : undefined,
+          points,
           rank: row?.position ?? row?.rank ?? undefined,
           group,
           division,

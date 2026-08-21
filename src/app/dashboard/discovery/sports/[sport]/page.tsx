@@ -359,11 +359,18 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                 {standingsGroups.map((g) => (
                   <div key={g.label || "flat"} className="spx-standings__group">
                     {g.label && <h3 className="spx-standings__group-label">{formatGroupLabel(g.label)}</h3>}
-                    {g.divisions.map((d) => (
+                    {g.divisions.map((d) => {
+                      // A points-based table (soccer's real 3/1/0 win/draw/
+                      // loss points, per the provider) reads a Pts column
+                      // instead of the win%-ranked-sports' Win% column —
+                      // real data the provider returns, never a computed
+                      // stand-in for a formula that differs by sport.
+                      const hasPoints = d.rows.some((r) => r.points != null);
+                      return (
                       <div key={d.label || "flat"} className="spx-standings__division">
                         {d.label && <h4 className="spx-standings__division-label">{formatGroupLabel(d.label)}</h4>}
                         <div className="spx-standings__cols">
-                          <span>Team</span><span>W-L</span><span>Win%</span>{d.rows.some((r) => r.gb != null) && <span>GB</span>}
+                          <span>Team</span><span>{hasPoints ? "W-D-L" : "W-L"}</span><span>{hasPoints ? "Pts" : "Win%"}</span>{d.rows.some((r) => r.gb != null) && <span>GB</span>}
                         </div>
                         {d.rows.map((s) => (
                           <div className="spx-team-row" key={s.team.id}>
@@ -372,12 +379,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                             {s.team.logoUrl ? <img src={s.team.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
                             <b style={{ flex: 1 }}>{s.team.name}</b>
                             <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 48, textAlign: "right" }}>{s.summary ?? (s.wins == null && s.losses == null ? "—" : `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}`)}</span>
-                            <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 40, textAlign: "right" }}>{s.wins == null && s.losses == null ? "—" : `${(((s.wins ?? 0) / Math.max((s.wins ?? 0) + (s.losses ?? 0), 1)) * 100).toFixed(1)}`}</span>
+                            <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 40, textAlign: "right" }}>{hasPoints ? (s.points ?? "—") : s.wins == null && s.losses == null ? "—" : `${(((s.wins ?? 0) / Math.max((s.wins ?? 0) + (s.losses ?? 0), 1)) * 100).toFixed(1)}`}</span>
                             {d.rows.some((r) => r.gb != null) && <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 32, textAlign: "right" }}>{s.gb == null ? "—" : s.gb === 0 ? "-" : s.gb}</span>}
                           </div>
                         ))}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -404,7 +412,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                       <button type="submit" className="spx-poll__actions" style={{ background: "none", border: "1px solid rgba(201,162,75,.4)", color: "var(--gold)", borderRadius: 6, padding: ".2rem .5rem", fontSize: ".64rem", cursor: "pointer" }}>Unfollow</button>
                     </form>
                   </div>
-                  {roster.length > 0 && (
+                  {roster.length > 0 ? (
                     <details className="spx-roster">
                       <summary>Roster ({roster.length})</summary>
                       <div className="spx-roster__grid">
@@ -426,6 +434,8 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                         })}
                       </div>
                     </details>
+                  ) : (
+                    <p className="spx-panel__empty" style={{ fontSize: ".72rem", margin: ".4rem 0 0" }}>Roster not posted yet for {follow.teamName}.</p>
                   )}
                   {teamInjuries.length > 0 && (
                     <details className="spx-roster">

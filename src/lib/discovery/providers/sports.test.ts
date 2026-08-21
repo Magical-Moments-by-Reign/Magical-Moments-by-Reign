@@ -135,6 +135,49 @@ test("rankTeamMatches: empty query returns no results", () => {
   assert.deepEqual(rankTeamMatches(NBA_ROSTER, "   "), []);
 });
 
+test("ApiSportsProvider.standings: soccer reads real wins/draws/losses from `all` and `points` from the top level — not the games.win.total shape other sports use", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  process.env.API_SPORTS_KEY = "test-key";
+  global.fetch = (async () =>
+    new Response(JSON.stringify({
+      response: [[
+        { rank: 1, team: { id: 1, name: "Arsenal", logo: "https://x/arsenal.png" }, points: 33, all: { win: 10, draw: 3, lose: 2 } },
+      ]],
+    }), { status: 200 })) as typeof fetch;
+  try {
+    const result = await ApiSportsProvider.standings("soccer", "39", "2025");
+    const row = result?.standings[0];
+    assert.equal(row?.wins, 10);
+    assert.equal(row?.losses, 2);
+    assert.equal(row?.ties, 3);
+    assert.equal(row?.points, 33);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("ApiSportsProvider.standings: non-soccer sports keep reading games.win.total (unaffected by the soccer-specific shape)", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  process.env.API_SPORTS_KEY = "test-key";
+  global.fetch = (async () =>
+    new Response(JSON.stringify({
+      response: [{ team: { id: 1, name: "Celtics" }, games: { win: { total: 50 }, lose: { total: 32 } } }],
+    }), { status: 200 })) as typeof fetch;
+  try {
+    const result = await ApiSportsProvider.standings("nba", "12", "2025-2026");
+    assert.equal(result?.standings[0]?.wins, 50);
+    assert.equal(result?.standings[0]?.losses, 32);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
 test("mapGameItem reads stage from the game object — the same nesting id/date/status already use", () => {
   const g = mapGameItem("nfl", "1", {
     game: { id: 5001, date: { date: "2026-08-21" }, status: { short: "NS" }, stage: "Pre Season" },
