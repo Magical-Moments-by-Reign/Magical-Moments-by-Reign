@@ -99,14 +99,29 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
       </section>
 
       <form className="near-search" method="get">
-        <label htmlFor="near-q">Search by artist, event, or venue — and/or a location</label>
-        <div className="near-search__row">
-          <input id="near-q" type="text" name="q" placeholder="Artist, event, or venue" defaultValue={q ?? ""} aria-label="Search by artist, event, or venue" />
-          <input id="near-location" type="text" name="location" placeholder="Address, city, or ZIP (optional)" defaultValue={location ?? ""} aria-label="Address, city, or ZIP code" autoComplete="street-address" />
-          <select name="radius" defaultValue={String(radius)} aria-label="Search radius">{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
-          {category && <input type="hidden" name="category" value={category} />}
-          <button type="submit" className="btn btn--gold">Find Events</button>
+        <div className="near-search__seg">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+          <div className="near-search__seg-text">
+            <label htmlFor="near-location">Location</label>
+            <input id="near-location" type="text" name="location" placeholder="City or ZIP code" defaultValue={location ?? ""} autoComplete="street-address" />
+          </div>
         </div>
+        <div className="near-search__seg">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 12 8 9" /></svg>
+          <div className="near-search__seg-text">
+            <label htmlFor="near-radius">Radius</label>
+            <select id="near-radius" name="radius" defaultValue={String(radius)}>{RADII.map((miles) => <option key={miles} value={miles}>{miles} miles</option>)}</select>
+          </div>
+        </div>
+        <div className="near-search__seg">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+          <div className="near-search__seg-text">
+            <label htmlFor="near-q">Search</label>
+            <input id="near-q" type="text" name="q" placeholder="Artist, event, or venue" defaultValue={q ?? ""} />
+          </div>
+        </div>
+        {category && <input type="hidden" name="category" value={category} />}
+        <button type="submit" className="near-search__btn">Search</button>
       </form>
 
       {attractions.length > 0 && (
