@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation, TicketmasterProvider, buildLocationParams } from "./events";
+import { buildTicketmasterQuery, mapEvent, inferCategory, normalizeTicketmasterLocation, TicketmasterProvider, buildLocationParams, mapAttraction } from "./events";
 
 test("mapEvent maps a Ticketmaster event, picking the widest image", () => {
   const e = mapEvent({
@@ -76,6 +76,25 @@ test("provider calls the Discovery events endpoint with apikey and maps returned
 
 test("mapEvent rejects an event with no id, name, or url", () => {
   assert.equal(mapEvent({ name: "No id or url" }), null);
+});
+
+test("mapAttraction picks the widest image and real upcomingEvents total", () => {
+  const a = mapAttraction({
+    id: "attr1",
+    name: "Example Artist",
+    url: "https://ticketmaster.com/attr1",
+    images: [{ url: "small.jpg", width: 200 }, { url: "large.jpg", width: 1000 }],
+    classifications: [{ segment: { name: "Music" }, genre: { name: "Pop" } }],
+    upcomingEvents: { _total: 12, ticketmaster: 12 },
+  });
+  assert.equal(a?.imageUrl, "large.jpg");
+  assert.equal(a?.genreLabel, "Pop");
+  assert.equal(a?.upcomingEventsCount, 12);
+});
+
+test("mapAttraction omits upcomingEventsCount rather than guessing when absent", () => {
+  const a = mapAttraction({ id: "attr2", name: "No Count Artist", url: "https://ticketmaster.com/attr2" });
+  assert.equal(a?.upcomingEventsCount, undefined);
 });
 
 test("inferCategory falls back to other for an unmapped segment", () => {
