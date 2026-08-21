@@ -71,7 +71,7 @@ export interface SportsProvider {
   isConfigured(sport?: SportSlug): boolean;
   gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsDateResult | null>;
   gamesForTeam(sport: SportSlug, teamExternalId: string, opts?: { league?: string; season?: string }): Promise<SportsGameSummary[] | null>;
-  searchTeams(sport: SportSlug, query: string, league?: string): Promise<SportsTeam[] | null>;
+  searchTeams(sport: SportSlug, query: string): Promise<SportsTeam[] | null>;
   standings(sport: SportSlug, league: string, season?: string): Promise<SportsStandingsResult | null>;
 }
 
@@ -345,10 +345,14 @@ export const ApiSportsProvider: SportsProvider = {
     return mapGamesResponse(sport, lg, json);
   },
 
-  async searchTeams(sport, query, league): Promise<SportsTeam[] | null> {
+  async searchTeams(sport, query): Promise<SportsTeam[] | null> {
     if (!this.isConfigured(sport)) return null;
-    const cfg = SPORT_CONFIG[sport];
-    const json = await apiSportsFetch(sport, "/teams", { search: query, league: league || cfg.defaultLeague });
+    // API-Sports' /teams endpoint treats `search` and `league` as mutually
+    // exclusive filters — `league` only works paired with `season` (a
+    // specific season's roster), so combining it with `search` here (a
+    // name lookup across all of a sport's teams) silently returned zero
+    // results for every query, e.g. "New England Patriots" under the NFL.
+    const json = await apiSportsFetch(sport, "/teams", { search: query });
     const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
     if (!list) return null;
     return list
