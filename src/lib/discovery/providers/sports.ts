@@ -39,6 +39,11 @@ export interface SportsStanding {
   ties?: number;
   rank?: number;
   summary?: string; // fallback display when the provider doesn't split W/L/T
+  /** The provider's own conference/group label verbatim (e.g. "AFC", "east")
+   *  when the standings response exposes one — never inferred or hardcoded
+   *  by team name. Undefined when the provider doesn't group standings for
+   *  this sport/league; callers fall back to one flat list. */
+  group?: string;
 }
 
 export interface SportsLeagueBrand {
@@ -389,12 +394,18 @@ export const ApiSportsProvider: SportsProvider = {
         const wins = row?.games?.win?.total ?? row?.won ?? undefined;
         const losses = row?.games?.lose?.total ?? row?.lost ?? undefined;
         const ties = row?.games?.draw?.total ?? row?.draw ?? undefined;
+        const group = typeof row?.conference?.name === "string" ? row.conference.name
+          : typeof row?.conference === "string" ? row.conference
+          : typeof row?.group?.name === "string" ? row.group.name
+          : typeof row?.group === "string" ? row.group
+          : undefined;
         return {
           team: { id: String(t.id), name: t.name, logoUrl: t.logo || undefined },
           wins: typeof wins === "number" ? wins : undefined,
           losses: typeof losses === "number" ? losses : undefined,
           ties: typeof ties === "number" ? ties : undefined,
           rank: row?.position ?? row?.rank ?? undefined,
+          group,
         } as SportsStanding;
       })
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
