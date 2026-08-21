@@ -1,0 +1,119 @@
+// ── Standings normalization (PURE — no I/O, easily testable) ──────
+// Turns a flat SportsStanding[] into the real league structure fans expect:
+// MLB's AL/NL → East/Central/West, NFL's AFC/NFC → North/South/East/West,
+// NBA/WNBA's Eastern/Western conferences (no division split — matches how
+// those are actually presented), one flat table for everything else. Every
+// grouping label comes straight from the provider's own conference/division
+// fields (SportsStanding.group/division) — never hardcoded by team name.
+// Rank/games-behind are computed from real wins/losses for win-loss sports;
+// points-based tables (soccer) are left in the provider's own order/rank.
+
+import type { SportSlug, SportsStanding } from "../providers/sports";
+
+export interface RankedStandingRow extends SportsStanding {
+  displayRank: number;
+  gb: number | null;
+}
+
+export interface StandingsDivision {
+  /** Empty string when this sport/group has no real division split — the
+   *  rows render directly under the group heading with no sub-heading. */
+  label: string;
+  rows: RankedStandingRow[];
+}
+
+export interface StandingsGroup {
+  /** Empty string only for the single implicit group of an entirely
+   *  ungrouped sport (no real conference/league data at all). */
+  label: string;
+  divisions: StandingsDivision[];
+}
+
+// Sports whose real ranking is win-loss based — re-rank by actual win
+// percentage rather than trusting row order or a possibly division-scoped
+// provider rank field. Deliberately excludes points-based tables (soccer,
+// rugby) where win% is NOT the real ranking metric and would mis-rank them.
+const WIN_PCT_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "nhl"]);
+
+// Sports whose real structure is (league/conference) → (division) → teams.
+// Everything else groups one level deep (conference only, e.g. NBA/WNBA) or
+// not at all (whatever the provider's `group` field does or doesn't give).
+const TWO_LEVEL_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "mlb", "nhl"]);
+
+const LEAGUE_ABBR_LABEL: Record<string, string> = { AL: "American League", NL: "National League" };
+
+/** When a row carries a division label but no top-level group (e.g. the
+ *  provider only returns "AL West", not a separate "American League"
+ *  wrapper), derive the real top-level league from that same real string's
+ *  own standard prefix — expanding a well-known abbreviation the provider
+ *  itself returned, never inventing a new fact. */
+function deriveGroupFromDivision(division: string): string | undefined {
+  const m = division.match(/^(AL|NL|AFC|NFC)\b/i);
+  if (!m) return undefined;
+  const abbr = m[1].toUpperCase();
+  return LEAGUE_ABBR_LABEL[abbr] ?? abbr;
+}
+
+function winPct(s: SportsStanding): number {
+  const w = s.wins ?? 0, l = s.losses ?? 0;
+  return w + l > 0 ? w / (w + l) : 0;
+}
+
+function gamesBehind(leader: SportsStanding, team: SportsStanding): number | null {
+  if (leader.wins == null || leader.losses == null || team.wins == null || team.losses == null) return null;
+  return (leader.wins - team.wins + (team.losses - leader.losses)) / 2;
+}
+
+function sortByWinPct(rows: SportsStanding[]): SportsStanding[] {
+  return [...rows].sort((a, b) => winPct(b) - winPct(a) || (b.wins ?? 0) - (a.wins ?? 0) || a.team.name.localeCompare(b.team.name));
+}
+
+function rankRows(rows: SportsStanding[], useWinPct: boolean): RankedStandingRow[] {
+  if (!useWinPct) return rows.map((s, i) => ({ ...s, displayRank: s.rank ?? i + 1, gb: null }));
+  const ordered = sortByWinPct(rows);
+  const leader = ordered[0];
+  return ordered.map((s, i) => ({ ...s, displayRank: i + 1, gb: i === 0 ? 0 : gamesBehind(leader, s) }));
+}
+
+/** The one reusable, sport-aware standings transformer — every Standings
+ *  panel calls this instead of rendering a flat provider array. Returns []
+ *  for an empty input. */
+export function normalizeStandingsBySport(sport: SportSlug, standings: SportsStanding[]): StandingsGroup[] {
+  if (!standings.length) return [];
+  const useWinPct = WIN_PCT_SPORTS.has(sport);
+  const twoLevel = TWO_LEVEL_SPORTS.has(sport);
+
+  const enriched = standings.map((s) => {
+    const division = s.division;
+    const group = s.group ?? (division ? deriveGroupFromDivision(division) : undefined);
+    return { ...s, _group: group, _division: division };
+  });
+
+  const hasGroups = enriched.some((s) => s._group);
+  if (!hasGroups) {
+    return [{ label: "", divisions: [{ label: "", rows: rankRows(enriched, useWinPct) }] }];
+  }
+
+  const byGroup = new Map<string, typeof enriched>();
+  for (const s of enriched) {
+    const key = s._group ?? "Other";
+    byGroup.set(key, [...(byGroup.get(key) ?? []), s]);
+  }
+
+  return Array.from(byGroup.entries()).map(([label, groupRows]) => {
+    const hasDivisions = twoLevel && groupRows.some((r) => r._division);
+    if (!hasDivisions) {
+      return { label, divisions: [{ label: "", rows: rankRows(groupRows, useWinPct) }] };
+    }
+    const byDivision = new Map<string, typeof groupRows>();
+    for (const r of groupRows) {
+      const key = r._division ?? "Other";
+      byDivision.set(key, [...(byDivision.get(key) ?? []), r]);
+    }
+    const divisions = Array.from(byDivision.entries()).map(([divLabel, rows]) => ({
+      label: divLabel,
+      rows: rankRows(rows, useWinPct),
+    }));
+    return { label, divisions };
+  });
+}

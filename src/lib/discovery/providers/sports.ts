@@ -44,6 +44,10 @@ export interface SportsStanding {
    *  by team name. Undefined when the provider doesn't group standings for
    *  this sport/league; callers fall back to one flat list. */
   group?: string;
+  /** The provider's own division label verbatim (e.g. "AFC East", "AL West")
+   *  when the response exposes one — a second, finer grouping level below
+   *  `group`. Undefined when the provider doesn't expose a division split. */
+  division?: string;
 }
 
 export interface SportsLeagueBrand {
@@ -399,6 +403,10 @@ export const ApiSportsProvider: SportsProvider = {
           : typeof row?.group?.name === "string" ? row.group.name
           : typeof row?.group === "string" ? row.group
           : undefined;
+        const division = typeof row?.division?.name === "string" ? row.division.name
+          : typeof row?.division === "string" ? row.division
+          : typeof row?.subgroup?.name === "string" ? row.subgroup.name
+          : undefined;
         return {
           team: { id: String(t.id), name: t.name, logoUrl: t.logo || undefined },
           wins: typeof wins === "number" ? wins : undefined,
@@ -406,6 +414,7 @@ export const ApiSportsProvider: SportsProvider = {
           ties: typeof ties === "number" ? ties : undefined,
           rank: row?.position ?? row?.rank ?? undefined,
           group,
+          division,
         } as SportsStanding;
       })
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
