@@ -14,10 +14,32 @@
 .near-hero__trending { color: #fffaf0; font-size: .78rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; }
 .near-hero__trending:hover { color: #e0b651; }
 
-.near-you .near-search { margin: 0 0 1.8rem; max-width: 820px; padding: 1rem; border-color: rgba(210,168,72,.35); background: #14110b; }
-.near-you .near-search > label { color: #fffaf0; }
-.near-you .near-search input, .near-you .near-search select { background: rgba(255,255,255,.06); border-color: rgba(210,168,72,.3); color: #fffaf0; }
-.near-you .near-search input::placeholder { color: #9c8f76; }
+.near-you .near-search {
+  display: flex; align-items: stretch; margin: 0 0 1.8rem; max-width: 900px; padding: 0; border-radius: 999px;
+  border: 1px solid rgba(210,168,72,.35); background: #14110b; overflow: hidden;
+}
+.near-search__seg {
+  display: flex; align-items: center; gap: .65rem; flex: 1 1 0; min-width: 0; padding: .65rem 1.1rem;
+  border-right: 1px solid rgba(210,168,72,.2); color: #d6aa4c;
+}
+.near-search__seg svg { flex: none; }
+.near-search__seg-text { display: flex; flex-direction: column; min-width: 0; }
+.near-search__seg-text label { color: #d6aa4c; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.near-search__seg-text input, .near-search__seg-text select {
+  border: none; background: transparent; padding: 0; margin: 0; font-size: .86rem; font-family: inherit; color: #fffaf0; outline: none; min-width: 0;
+}
+.near-search__seg-text input::placeholder { color: #9c8f76; }
+.near-search__btn {
+  flex: none; margin: .35rem; padding: 0 1.7rem; border: none; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; font-size: .84rem; font-weight: 800;
+}
+.near-search__btn:hover { filter: brightness(1.06); }
+
+@media (max-width: 820px) {
+  .near-you .near-search { flex-wrap: wrap; border-radius: 18px; }
+  .near-search__seg { flex: 1 1 45%; border-right: none; border-bottom: 1px solid rgba(210,168,72,.2); }
+  .near-search__btn { flex: 1 1 100%; margin: .65rem; padding: .7rem; }
+}
 
 .near-you .disc-filters a { border-color: rgba(210,168,72,.3); background: #14110b; color: #d9cdb8; }
 .near-you .disc-filters a[aria-current="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
@@ -70,5 +92,4 @@
 
 @media (max-width: 700px) {
   .near-hero { padding: 1.6rem 1.2rem; }
-  .near-you .near-search__row { grid-template-columns: 1fr; }
 }
