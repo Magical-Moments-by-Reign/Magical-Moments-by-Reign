@@ -37,6 +37,12 @@ function formatDate(iso?: string): string | null {
 
 function LineupCard({ entry }: { entry: LineupEntry }) {
   const network = entry.details?.networks[0]?.name;
+  const nextEp = entry.details?.nextEpisode;
+  const nextAirDate = formatDate(nextEp?.airDate);
+  const badge = nextEp ? dayBadge(nextEp.airDate) : null;
+  const airLabel = nextEp && entry.details?.nextEpisodeIsSeasonPremiere
+    ? `Season ${nextEp.seasonNumber} premieres`
+    : "Next episode";
   return (
     <div className="wtv-card">
       <Link href={`/dashboard/discovery/watch/${entry.tmdbId}`} className="wtv-card__art">
@@ -53,6 +59,7 @@ function LineupCard({ entry }: { entry: LineupEntry }) {
       <div className="wtv-card__body">
         <b>{entry.title}</b>
         {network && <span>{network}</span>}
+        {nextAirDate && <span>{airLabel} {nextAirDate}{badge && ` · ${badge}`}</span>}
       </div>
     </div>
   );
