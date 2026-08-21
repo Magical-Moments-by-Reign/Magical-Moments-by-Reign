@@ -133,6 +133,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-roster__meta { color: #9c8f76; font-size: .64rem; }
 
 /* ── Standings: collapsed-by-default disclosure + real conference groups ── */
+.spx-standings__season { margin: -.4rem 0 .8rem; color: #9c8f76; font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .spx-standings summary { cursor: pointer; color: var(--gold-soft); font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; list-style: none; }
 .spx-standings summary::-webkit-details-marker { display: none; }
 .spx-standings summary::before { content: "▸ "; }

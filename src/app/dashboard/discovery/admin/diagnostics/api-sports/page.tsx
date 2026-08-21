@@ -25,7 +25,7 @@
 import type { Metadata } from "next";
 import { createHash } from "node:crypto";
 import { requireOwner } from "@/lib/guard";
-import { detectPlanRestriction, seasonParam } from "@/lib/discovery/providers/sports";
+import { detectPlanRestriction, seasonParam, fetchLeagueLogo } from "@/lib/discovery/providers/sports";
 import { purgePlanRestrictedSportsCache } from "@/lib/discovery/sports/service";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,7 @@ const BASKETBALL_HOST = "https://v1.basketball.api-sports.io";
 const FOOTBALL_HOST = "https://v1.american-football.api-sports.io"; // NFL/NCAAF — must match SPORT_CONFIG.nfl.host in providers/sports.ts
 const NBA_LEAGUE_ID = "12";
 const NFL_LEAGUE_ID = "1"; // must match SPORT_CONFIG.nfl.defaultLeague in providers/sports.ts
+const NCAAF_LEAGUE_ID = "2"; // must match SPORT_CONFIG.ncaaf.defaultLeague in providers/sports.ts
 
 // A best-effort starting guess only — a hard-coded date will always go
 // stale as API-Sports' Free-plan demo window moves. What actually keeps
@@ -162,6 +163,15 @@ export default async function ApiSportsDiagnosticPage() {
   const nbaArr = Array.isArray(nbaResult.body?.response) ? nbaResult.body.response : [];
   const nbaRestriction = authSuccess ? detectPlanRestriction(nbaResult.body) : null;
 
+  // 5) NFL/NCAAF league-identity check — exactly what fetchLeagueLogo(sport)
+  // itself queries (/leagues?id=X on the football host), plus the REAL
+  // parsed result from that same function, so this page answers directly
+  // whether a missing card-grid logo is a provider gap or a parser bug —
+  // never a guess either way.
+  const nflLeagueResult = await callApiSports(FOOTBALL_HOST, `/leagues?id=${NFL_LEAGUE_ID}`, key);
+  const ncaafLeagueResult = await callApiSports(FOOTBALL_HOST, `/leagues?id=${NCAAF_LEAGUE_ID}`, key);
+  const [nflLogoParsed, ncaafLogoParsed] = await Promise.all([fetchLeagueLogo("nfl"), fetchLeagueLogo("ncaaf")]);
+
   const cause = likelyCause(statusResult, planIsPro, [
     { label: "the NFL test", result: nflResult, restriction: nflRestriction },
     { label: "the NBA test", result: nbaResult, restriction: nbaRestriction },
@@ -232,6 +242,39 @@ export default async function ApiSportsDiagnosticPage() {
       {!nbaRestriction && nbaResult.body?.errors && Object.keys(nbaResult.body.errors).length > 0 && (
         <p>Provider Message: {JSON.stringify(nbaResult.body.errors)}</p>
       )}
+
+      <hr />
+      <h2>NFL/NCAAF League Logo Test (fresh, no-store)</h2>
+      <p style={{ color: "#666" }}>Exactly what the Explore-grid card and per-sport header query via fetchLeagueLogo() — answers whether a generic-icon card is a provider gap or a code bug, not a guess either way.</p>
+      {[
+        { label: "NFL", leagueId: NFL_LEAGUE_ID, result: nflLeagueResult, parsed: nflLogoParsed },
+        { label: "NCAAF", leagueId: NCAAF_LEAGUE_ID, result: ncaafLeagueResult, parsed: ncaafLogoParsed },
+      ].map(({ label, leagueId, result, parsed }) => {
+        const item = Array.isArray(result.body?.response) ? result.body.response[0] : null;
+        const rawLogo = item?.league?.logo ?? item?.logo;
+        return (
+          <div key={label} style={{ marginBottom: "1rem" }}>
+            <p><strong>{label}</strong> — Host: {FOOTBALL_HOST}, Query: /leagues?id={leagueId}</p>
+            <p>HTTP Status: {result.fetchFailed ? "— (fetch failed)" : result.status}</p>
+            <p>League Object Found: {item ? "YES" : "NO"}</p>
+            {item && <p>League Name (raw): {item?.league?.name ?? item?.name ?? "—"}</p>}
+            <p>Raw &lsquo;logo&rsquo; Field: {typeof rawLogo === "string" ? `"${rawLogo}"` : String(rawLogo)}</p>
+            <p>Our Parser (fetchLeagueLogo) Result: {parsed ?? "null — see reason below"}</p>
+            {!parsed && (
+              <p style={{ color: "#a63a2e" }}>
+                {!item
+                  ? "No league object at this id in the response — wrong league id, or the account's plan doesn't include this league's data for /leagues."
+                  : typeof rawLogo !== "string"
+                    ? "Provider genuinely returned no logo field for this league — a real provider gap, not a parser bug."
+                    : !rawLogo.trim().toLowerCase().startsWith("https://")
+                      ? "Provider returned a logo value that isn't a real https:// URL — parser correctly rejected it."
+                      : "Provider returned what looks like a valid https:// logo but our parser rejected it as a placeholder/unavailable marker — check the placeholder-string filter in fetchLeagueLogo."}
+              </p>
+            )}
+            {result.body?.errors && Object.keys(result.body.errors).length > 0 && <p>Provider Message: {JSON.stringify(result.body.errors)}</p>}
+          </div>
+        );
+      })}
 
       <hr />
       <h2>Likely Cause</h2>

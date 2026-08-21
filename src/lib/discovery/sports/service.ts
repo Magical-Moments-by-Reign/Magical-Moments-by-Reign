@@ -320,19 +320,21 @@ async function getGamesByDateFromSportsData(sport: SportSlug, dateISO: string): 
  *  the season yet. Each team is resolved to its real API-Sports id/logo
  *  the same way the other fallbacks do. Returns [] on missing config, an
  *  unsupported sport, a failed call, or no usable rows. */
-async function getStandingsFromSportsData(sport: SportSlug, season?: string): Promise<SportsStanding[]> {
+async function getStandingsFromSportsData(sport: SportSlug, season?: string): Promise<{ standings: SportsStanding[]; season: string }> {
   const league = sdioLeagueFor(sport);
-  if (!league) return [];
+  const empty = { standings: [], season: season ?? "" };
+  if (!league) return empty;
   const parsed = season ? parseInt(season.slice(0, 4), 10) : NaN;
   const year = Number.isFinite(parsed) ? parsed : sdioSeasonYear(league);
   const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, year, kind: "standings" }), TTL_STANDINGS, () =>
     fetchSdioStandings(league, year));
   const rows = cached?.data ?? [];
-  if (!rows.length) return [];
-  return Promise.all(rows.map(async (r): Promise<SportsStanding> => {
+  if (!rows.length) return { standings: [], season: String(year) };
+  const standings = await Promise.all(rows.map(async (r): Promise<SportsStanding> => {
     const team = await resolveTeamByName(sport, r.team);
     return { team: { id: team?.id ?? "", name: r.team, logoUrl: team?.logoUrl }, wins: r.wins, losses: r.losses };
   }));
+  return { standings, season: String(year) };
 }
 
 /** Real roster players from SportsDataIO for any sport with a SportsDataIO
@@ -577,7 +579,7 @@ export async function getMySportsFollows(accountId: string) {
 
 // ── Standings ────────────────────────────────────────────────────
 
-export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<{ standings: SportsStanding[]; planRestricted?: string }> {
+export async function getStandings(sport: SportSlug, league: string, season?: string): Promise<{ standings: SportsStanding[]; planRestricted?: string; season?: string }> {
   let restriction: string | undefined;
   // "standings_v3" (not "standings_v2"): rows now carry a resolved team logo
   // (see below) and a real conference/group label — a distinct cache key
@@ -605,14 +607,14 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     return { ...result, standings: resolvedStandings };
   });
   if (cached?.data.standings?.length) {
-    return { standings: cached.data.standings, planRestricted: cached.data.planRestricted };
+    return { standings: cached.data.standings, planRestricted: cached.data.planRestricted, season: cached.data.season };
   }
 
   // Tier 2: SportsDataIO, when API-Sports had nothing for this season yet —
   // any sport with a SportsDataIO product connected (see sdioLeagueFor).
   if (sdioLeagueFor(sport)) {
     const secondary = await getStandingsFromSportsData(sport, season);
-    if (secondary.length) return { standings: secondary };
+    if (secondary.standings.length) return secondary;
   }
 
   return { standings: [], planRestricted: restriction };

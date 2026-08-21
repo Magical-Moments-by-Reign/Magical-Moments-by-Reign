@@ -117,3 +117,56 @@ export function normalizeStandingsBySport(sport: SportSlug, standings: SportsSta
     return { label, divisions };
   });
 }
+
+// ── Season/phase label ─────────────────────────────────────────────
+// What the Standings panel is actually looking at, in plain words — driven
+// entirely by real dated games we've already fetched (the same preseason/
+// regular/postseason openers the hero countdown and header footnotes use)
+// and the exact season string the standings query itself resolved to
+// (SportsStandingsResult.season) — never a separately-guessed "today's
+// season" that could disagree with what was actually returned.
+
+export type SeasonPhase = "preseason" | "regular" | "postseason";
+
+export interface SeasonPhaseInputs {
+  now: number;
+  preseasonGameStartsAt?: string | null;
+  regularGameStartsAt?: string | null;
+  postseasonGameStartsAt?: string | null;
+}
+
+/** Where we are right now relative to the real, provider-reported season
+ *  openers. "preseason" covers both "before this season's preseason
+ *  starts" and "we don't even have this season's schedule posted yet" —
+ *  both cases mean whatever standings are on screen belong to the last
+ *  COMPLETED season, not a new one that hasn't started. */
+export function determineSeasonPhase(inputs: SeasonPhaseInputs): SeasonPhase {
+  const pre = inputs.preseasonGameStartsAt ? +new Date(inputs.preseasonGameStartsAt) : null;
+  const reg = inputs.regularGameStartsAt ? +new Date(inputs.regularGameStartsAt) : null;
+  const post = inputs.postseasonGameStartsAt ? +new Date(inputs.postseasonGameStartsAt) : null;
+  if (post != null && inputs.now >= post) return "postseason";
+  if (reg != null && inputs.now >= reg) return "regular";
+  if (pre != null && inputs.now >= pre) return "preseason";
+  return "preseason";
+}
+
+/** "2025-2026" -> "2025–26"; a plain single year (NFL/MLB-style) is left
+ *  as-is. Purely a display transform of the real season string the
+ *  standings query itself resolved to — never invented. */
+function formatSeasonYears(season: string): string {
+  const m = season.match(/^(\d{4})-(\d{4})$/);
+  return m ? `${m[1]}–${m[2].slice(2)}` : season;
+}
+
+/** The label to show above a Standings panel — e.g. "2025–26 Final Regular
+ *  Season Standings" during the 2026 preseason/offseason, or "2026–27
+ *  Regular Season Standings" once that season is actually underway. Null
+ *  when there's no season string to attach (nothing fetched yet). This
+ *  never fabricates a separate preseason win-loss table — there is no
+ *  verified source for one, so a "preseason" phase just means the last
+ *  completed regular season is what's shown, labeled as Final. */
+export function formatSeasonLabel(season: string | undefined, phase: SeasonPhase): string | null {
+  if (!season) return null;
+  const years = formatSeasonYears(season);
+  return phase === "regular" ? `${years} Regular Season Standings` : `${years} Final Regular Season Standings`;
+}
