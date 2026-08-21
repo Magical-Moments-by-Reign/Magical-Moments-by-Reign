@@ -10,16 +10,13 @@ import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
 import CountdownClock from "../CountdownClock";
 import JerseyAvatar from "../JerseyAvatar";
+import SportCardVisual from "../SportCardVisual";
+import { SPORT_VISUALS } from "../visuals";
 import "../../discovery.css";
 import "../sports-home.css";
 
 export const dynamic = "force-dynamic";
 
-// American football doesn't get a league mark image at all — API-Sports
-// doesn't reliably return usable league artwork for it, and the official
-// NFL/NCAA shields are trademarked marks we don't have rights to reproduce.
-// Those sports fall back to the plain styled-text mark below instead.
-const NO_LEAGUE_LOGO: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 const BLUE_LEAGUE_TEXT: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 // Sports with an Owner-provided backdrop photo (public/discovery/*) to use
 // as the hero background instead of the generic stadium shot — none of
@@ -62,7 +59,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     getFirstRegularSeasonGame(sport),
     sport === "nba" ? getNbaHeroState() : Promise.resolve(null),
   ]);
-  const leagueLogo = NO_LEAGUE_LOGO[sport] ? undefined : logos[sport];
+  const leagueLogo = SPORT_VISUALS[sport].kind === "league-logo" ? logos[sport] : undefined;
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
   // Real rosters for followed teams — we can't show injuries (not part of
@@ -194,12 +191,9 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           </div>
         ) : (
           <div className="spx-sport-header__brand">
-            {leagueLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={leagueLogo} alt="" className="spx-sport-header__logo" />
-            ) : (
-              <span className="spx-sport-header__mark" aria-hidden="true">{sportMeta.label.slice(0, 3).toUpperCase()}</span>
-            )}
+            <span className="spx-sport-header__logo">
+              <SportCardVisual src={leagueLogo} alt={`${sportMeta.label} mark`} glyph={SPORT_VISUALS[sport].glyph} />
+            </span>
             <h1>{sportMeta.label}</h1>
           </div>
         )}
