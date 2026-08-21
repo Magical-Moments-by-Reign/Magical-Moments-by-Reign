@@ -121,14 +121,20 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // 00:00:00:00 clock. For PRESEASON_PHASE_SPORTS this re-evaluates on the
   // regular-season opener once heroGame has already flipped to it above.
   const showHeroCountdown = Boolean(heroGame && daysUntilKickoff !== null && daysUntilKickoff > 0);
-  const backdropSrc = (showHeroCountdown && HERO_BACKDROP_IMAGE[sport]) || "/discovery/stadium.png";
+  // The Owner-provided backdrop photo is this sport's backdrop any time we're
+  // on its page — not just while a countdown happens to be showing. Without
+  // this, a sport with no upcoming game data yet (e.g. NBA's next season not
+  // posted by API-Sports) would silently fall back to the generic stadium
+  // photo and decorative line art instead.
+  const heroBackdrop = HERO_BACKDROP_IMAGE[sport];
+  const backdropSrc = heroBackdrop ?? "/discovery/stadium.png";
 
   return (
     <div className="spx">
       <header className={`spx-sport-header${showHeroCountdown ? " spx-sport-header--hero" : ""}`}>
         <Image src={backdropSrc} alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
         <div className="spx-sport-header__shade" />
-        {!showHeroCountdown && <SportBackdrop sport={sport} />}
+        {!heroBackdrop && <SportBackdrop sport={sport} />}
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
 
         {showHeroCountdown && heroGame ? (
