@@ -6,6 +6,8 @@ import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
+import { getTeamDirectory, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import TeamDirectory from "../TeamDirectory";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
@@ -210,6 +212,21 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     postseasonGameStartsAt: firstPostseasonGame?.startsAt,
   });
   const standingsSeasonLabel = formatSeasonLabel(standingsResult.season, standingsPhase);
+
+  // All Teams directory — every team in the league under its real
+  // conference/division, with a live-resolved logo. NBA has a verified
+  // static conference/division reference (see team-directory.ts); every
+  // other sport reuses the exact grouping/logos already resolved for the
+  // Standings panel above rather than a second fetch.
+  const directoryGroups: DirectoryGroup[] = sport === "nba"
+    ? await getTeamDirectory(sport)
+    : standingsGroups.map((g) => ({
+        label: g.label || sportMeta.label,
+        divisions: g.divisions.map((d) => ({
+          label: d.label,
+          teams: d.rows.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+        })),
+      }));
 
   // The real season-opener countdown is the hero's dominant state. Once
   // its target passes, both this gate and CountdownClock's own internal
@@ -440,6 +457,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           )}
         </div>
       </div>
+
+      {directoryGroups.length > 0 && (
+        <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
+          <div className="spx-panel__head"><h2>All {sportMeta.label} Teams</h2></div>
+          <TeamDirectory sport={sport} groups={directoryGroups} />
+        </div>
+      )}
     </div>
   );
 }
