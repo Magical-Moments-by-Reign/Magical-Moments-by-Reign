@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
 import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchTeamRoster, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
+import { fetchNbaFirstGame } from "../providers/sportsdata";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -166,6 +167,75 @@ export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<Sport
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_regular_season" }), TTL_GAMES_UPCOMING, () =>
     fetchFirstRegularSeasonGame(sport, season));
   return cached?.data ?? null;
+}
+
+// Officially announced by the NBA itself (not derived from either provider).
+// Used only as the last-resort countdown target when NEITHER API-Sports nor
+// SportsDataIO has ingested next season's schedule yet — and only for the
+// date, never a matchup: no team names, logos, or scores are invented here.
+// The instant either provider returns a real game record, that record is
+// used instead and this constant stops being reachable for that phase.
+const KNOWN_NBA_DATES: { preseason: string; regular: string } = {
+  preseason: "2026-10-03T00:00:00Z",
+  regular: "2026-10-20T00:00:00Z",
+};
+
+export interface NbaHeroState {
+  phase: "preseason" | "regular";
+  /** A real matchup once a provider has one — null while only the known
+   *  league-wide date is available. */
+  game: SportsGameSummary | null;
+  targetISO: string;
+  source: "api-sports" | "sportsdata" | "known-date";
+}
+
+async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: SportsGameSummary | null; fallbackISO: string; source: "api-sports" | "sportsdata" | "known-date" }> {
+  const apiSportsGame = kind === "preseason" ? await getFirstPreseasonGame("nba") : await getFirstRegularSeasonGame("nba");
+  if (apiSportsGame) return { game: apiSportsGame, fallbackISO: KNOWN_NBA_DATES[kind], source: "api-sports" };
+
+  const now = new Date();
+  const startYear = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1; // same August season-start boundary as seasonParam()
+  const seasonKey = kind === "preseason" ? `${startYear}PRE` : `${startYear}`;
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", seasonKey, kind: "hero_opener" }), TTL_GAMES_UPCOMING, () =>
+    fetchNbaFirstGame(seasonKey));
+  const sdio = cached?.data;
+  if (sdio) {
+    const game: SportsGameSummary = {
+      externalId: sdio.externalId,
+      sport: "nba",
+      league: "12",
+      homeTeam: { id: "", name: sdio.homeTeam },
+      awayTeam: { id: "", name: sdio.awayTeam },
+      startsAt: sdio.startsAt,
+      status: "scheduled",
+    };
+    return { game, fallbackISO: KNOWN_NBA_DATES[kind], source: "sportsdata" };
+  }
+
+  return { game: null, fallbackISO: KNOWN_NBA_DATES[kind], source: "known-date" };
+}
+
+/** NBA hero state with a 3-tier source-priority fallback: (1) API-Sports,
+ *  (2) SportsDataIO, (3) the NBA's own officially-announced dates (date
+ *  only, never a fabricated matchup) — so the hero can show a real
+ *  countdown even on a day neither live provider has posted the season
+ *  yet. Whichever tier resolves the preseason opener also decides whether
+ *  the hero is still in its preseason phase; once that target passes (by
+ *  either a real game's kickoff or the known date), this flips to the
+ *  regular-season opener the same way. Returns null once the regular-season
+ *  target has also passed — the hero then steps aside for the page's
+ *  normal Today's Games / standings panels. */
+export async function getNbaHeroState(): Promise<NbaHeroState | null> {
+  const preseason = await getNbaOpener("preseason");
+  const preseasonTarget = preseason.game?.startsAt ?? preseason.fallbackISO;
+  if (+new Date(preseasonTarget) > Date.now()) {
+    return { phase: "preseason", game: preseason.game, targetISO: preseasonTarget, source: preseason.source };
+  }
+
+  const regular = await getNbaOpener("regular");
+  const regularTarget = regular.game?.startsAt ?? regular.fallbackISO;
+  if (+new Date(regularTarget) <= Date.now()) return null;
+  return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source };
 }
 
 /** A followed team's real current-season roster — we can't show injuries
