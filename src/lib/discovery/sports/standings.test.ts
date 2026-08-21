@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeStandingsBySport } from "./standings";
+import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "./standings";
 import type { SportsStanding } from "../providers/sports";
 
 function team(id: string, name: string): SportsStanding["team"] {
@@ -80,4 +80,35 @@ test("points-based sport (soccer) is left in provider order/rank, never re-sorte
   assert.deepEqual(groups[0].divisions[0].rows.map((r) => r.team.name), ["Team A", "Team B"]);
   assert.equal(groups[0].divisions[0].rows[0].displayRank, 1);
   assert.equal(groups[0].divisions[0].rows[0].gb, null);
+});
+
+test("determineSeasonPhase: before this season's schedule exists at all -> preseason (last completed season is what's shown)", () => {
+  const now = +new Date("2026-08-21");
+  assert.equal(determineSeasonPhase({ now }), "preseason");
+});
+
+test("determineSeasonPhase: preseason opener has passed, regular season hasn't -> preseason", () => {
+  const now = +new Date("2026-10-10");
+  assert.equal(determineSeasonPhase({ now, preseasonGameStartsAt: "2026-10-03T00:00:00Z", regularGameStartsAt: "2026-10-21T00:00:00Z" }), "preseason");
+});
+
+test("determineSeasonPhase: regular season opener has passed, postseason hasn't -> regular", () => {
+  const now = +new Date("2026-11-01");
+  assert.equal(determineSeasonPhase({ now, preseasonGameStartsAt: "2026-10-03T00:00:00Z", regularGameStartsAt: "2026-10-21T00:00:00Z" }), "regular");
+});
+
+test("determineSeasonPhase: postseason opener has passed -> postseason", () => {
+  const now = +new Date("2027-05-01");
+  assert.equal(determineSeasonPhase({ now, regularGameStartsAt: "2026-10-21T00:00:00Z", postseasonGameStartsAt: "2027-04-15T00:00:00Z" }), "postseason");
+});
+
+test("formatSeasonLabel: split-season string formats as en-dash short year, phase drives Final vs in-progress wording", () => {
+  assert.equal(formatSeasonLabel("2025-2026", "preseason"), "2025–26 Final Regular Season Standings");
+  assert.equal(formatSeasonLabel("2025-2026", "regular"), "2025–26 Regular Season Standings");
+  assert.equal(formatSeasonLabel("2025-2026", "postseason"), "2025–26 Final Regular Season Standings");
+});
+
+test("formatSeasonLabel: plain single-year season (NFL/MLB-style) is left as-is; null with no season", () => {
+  assert.equal(formatSeasonLabel("2026", "regular"), "2026 Regular Season Standings");
+  assert.equal(formatSeasonLabel(undefined, "regular"), null);
 });

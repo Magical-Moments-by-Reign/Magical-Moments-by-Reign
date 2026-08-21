@@ -91,6 +91,11 @@ export interface SportsStandingsResult {
    *  SportsDateResult.planRestricted, never conflated with a genuine
    *  "no standings yet" result. */
   planRestricted?: string;
+  /** The exact season string this result was actually queried with (e.g.
+   *  "2025-2026" or "2026") — so a caller can label what's on screen
+   *  precisely, rather than separately re-guessing the "current" season and
+   *  risking it disagreeing with what was actually fetched. */
+  season?: string;
 }
 
 export const PENDING_SPORTS_MESSAGE = "Live sports integration pending.";
@@ -418,7 +423,7 @@ export const ApiSportsProvider: SportsProvider = {
         } as SportsStanding;
       })
       .filter((s: SportsStanding | null): s is SportsStanding => s !== null);
-    return { standings, planRestricted };
+    return { standings, planRestricted, season: yr };
   },
 };
 

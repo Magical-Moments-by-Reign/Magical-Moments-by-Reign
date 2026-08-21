@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
-import { normalizeStandingsBySport } from "@/lib/discovery/sports/standings";
+import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
@@ -195,6 +195,21 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const standings = standingsResult.standings ?? [];
   const standingsRestricted = standingsResult.planRestricted;
   const standingsGroups = normalizeStandingsBySport(sport, standings);
+  // Real phase, from the same real dated openers used elsewhere on this
+  // page (never a separately-guessed "today's season") — "preseason" here
+  // covers both "before this season's preseason starts" and "we don't have
+  // this season's schedule yet," both of which mean the standings on
+  // screen are the last COMPLETED season's, labeled as Final. There is no
+  // verified preseason win-loss data from any connected provider, so that
+  // phase never gets its own standings table — only a truthful label on
+  // the regular-season one that's actually shown.
+  const standingsPhase = determineSeasonPhase({
+    now: Date.now(),
+    preseasonGameStartsAt: firstPreseasonGame?.startsAt,
+    regularGameStartsAt: firstRegularSeasonGame?.startsAt,
+    postseasonGameStartsAt: firstPostseasonGame?.startsAt,
+  });
+  const standingsSeasonLabel = formatSeasonLabel(standingsResult.season, standingsPhase);
 
   // The real season-opener countdown is the hero's dominant state. Once
   // its target passes, both this gate and CountdownClock's own internal
@@ -300,6 +315,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       <div className="spx-panels" style={{ gridTemplateColumns: "1.2fr 1fr" }}>
         <div className="spx-panel" id="standings">
           <div className="spx-panel__head"><h2>Standings</h2></div>
+          {standingsSeasonLabel && standings.length > 0 && <p className="spx-standings__season">{standingsSeasonLabel}</p>}
           {!connected || !hasLeague ? (
             <p className="spx-panel__empty">Standings aren&rsquo;t available for {sportMeta.label} yet.</p>
           ) : standingsRestricted ? (
