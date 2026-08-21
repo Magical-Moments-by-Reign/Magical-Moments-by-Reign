@@ -7,6 +7,7 @@ import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsFor
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
+import CountdownClock from "../CountdownClock";
 import "../../discovery.css";
 import "../sports-home.css";
 
@@ -94,11 +95,16 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         {firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0 && (
           <div className="spx-countdown">
             <span className="spx-countdown__label">{sportMeta.label} Regular Season Countdown</span>
-            <div className="spx-countdown__num"><b>{daysUntilKickoff}</b><span>{daysUntilKickoff === 1 ? "Day" : "Days"}</span></div>
-            <p className="spx-countdown__meta">
-              Kickoff {new Date(firstRegularSeasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              {" "}— {firstRegularSeasonGame.awayTeam.name} @ {firstRegularSeasonGame.homeTeam.name}
-            </p>
+            <div className="spx-countdown__matchup">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+              <b>{firstRegularSeasonGame.awayTeam.name}</b>
+              <span className="spx-countdown__at">at</span>
+              <b>{firstRegularSeasonGame.homeTeam.name}</b>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+            </div>
+            <CountdownClock targetISO={firstRegularSeasonGame.startsAt} />
           </div>
         )}
 
