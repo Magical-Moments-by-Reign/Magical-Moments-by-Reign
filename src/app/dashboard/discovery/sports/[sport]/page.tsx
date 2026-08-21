@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getFirstPreseasonGame, getFirstRegularSeasonGame } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -12,10 +12,6 @@ import "../../discovery.css";
 import "../sports-home.css";
 
 export const dynamic = "force-dynamic";
-
-// API-Sports doesn't reliably return usable league artwork for American
-// football — see the matching note in ../page.tsx.
-const STATIC_LOGO: Partial<Record<SportSlug, string>> = { nfl: "/discovery/leagues/nfl.png", ncaaf: "/discovery/leagues/ncaaf.png" };
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
@@ -35,14 +31,12 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = defaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame] = await Promise.all([
+  const [myTeams, searchResults, firstPreseasonGame, firstRegularSeasonGame] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
-    getLeagueLogos(),
     getFirstPreseasonGame(sport),
     getFirstRegularSeasonGame(sport),
   ]);
-  const leagueLogo = STATIC_LOGO[sport] ?? logos[sport];
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
   // Whole days until the real regular-season opener's kickoff — never
@@ -84,25 +78,16 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         <SportBackdrop sport={sport} />
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
         <div className="spx-sport-header__brand">
-          {leagueLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={leagueLogo} alt="" className="spx-sport-header__logo" />
-          ) : (
-            <span className="spx-sport-header__mark" aria-hidden="true">{sportMeta.label.slice(0, 3).toUpperCase()}</span>
-          )}
+          <span className="spx-sport-header__mark" aria-hidden="true">{sportMeta.label.slice(0, 3).toUpperCase()}</span>
           <h1>{sportMeta.label}</h1>
         </div>
         {firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0 && (
-          <div className="spx-countdown">
-            <span className="spx-countdown__label">{sportMeta.label} Regular Season Countdown</span>
-            <div className="spx-countdown__matchup">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+          <div className="spx-countdown spx-countdown--hero">
+            <span className="spx-countdown__title">{sportMeta.label} Regular Season Countdown</span>
+            <div className="spx-countdown__matchup spx-countdown__matchup--hero">
               <b>{firstRegularSeasonGame.awayTeam.name}</b>
               <span className="spx-countdown__at">at</span>
               <b>{firstRegularSeasonGame.homeTeam.name}</b>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
             </div>
             <CountdownClock targetISO={firstRegularSeasonGame.startsAt} />
           </div>
