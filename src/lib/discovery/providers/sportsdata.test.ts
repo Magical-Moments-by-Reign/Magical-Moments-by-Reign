@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { toSdioGame, fetchNbaFirstGame, toSdioStandingRow, fetchGamesByDate, fetchStandings, toSdioInjury, toSdioRanking } from "./sportsdata";
+import { toSdioGame, fetchNbaFirstGame, toSdioStandingRow, fetchGamesByDate, fetchStandings, toSdioInjury, toSdioRanking, toPlayer, fetchPlayerSeasonStats } from "./sportsdata";
 
 test("toSdioGame maps a real SportsDataIO Games row", () => {
   const g = toSdioGame({ GameID: 501, DateTime: "2026-10-03T19:30:00", HomeTeamName: "Toronto Raptors", AwayTeamName: "Miami Heat", Status: "Scheduled", Channel: "NBA TV" });
@@ -109,4 +109,54 @@ test("toSdioRanking maps a real Rankings row and rejects one missing a rank/team
     { rank: 3, team: "Georgia", teamId: "55", poll: "AP Top 25", points: 1400, previousRank: undefined },
   );
   assert.equal(toSdioRanking({ School: "Georgia" }), null);
+});
+
+test("toPlayer reads the extended bio/draft fields defensively, including a feet-inches height string", () => {
+  const p = toPlayer("nfl", {
+    PlayerID: 9, Name: "Test Player", Team: "NE", Position: "QB", Jersey: 13, Status: "Active",
+    Height: "6'2\"", Weight: 215, BirthCity: "Austin", BirthState: "TX", HighSchool: "Test High",
+    College: "Syracuse", CollegeDraftYear: 2024, CollegeDraftRound: 3, CollegeDraftPick: 88, CollegeDraftTeam: "Giants",
+  });
+  assert.equal(p?.heightInches, 74);
+  assert.equal(p?.weightLbs, 215);
+  assert.equal(p?.birthCity, "Austin");
+  assert.equal(p?.birthState, "TX");
+  assert.equal(p?.highSchool, "Test High");
+  assert.equal(p?.draftYear, 2024);
+  assert.equal(p?.draftRound, 3);
+  assert.equal(p?.draftPick, 88);
+  assert.equal(p?.draftTeam, "Giants");
+});
+
+test("toPlayer leaves extended fields undefined rather than guessing when the shape is unrecognized", () => {
+  const p = toPlayer("nfl", { PlayerID: 1, Name: "No Extras" });
+  assert.equal(p?.heightInches, undefined);
+  assert.equal(p?.weightLbs, undefined);
+  assert.equal(p?.draftYear, undefined);
+});
+
+test("fetchPlayerSeasonStats returns undefined when unconfigured", async () => {
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  delete process.env.SPORTSDATAIO_API_KEY;
+  try {
+    assert.equal(await fetchPlayerSeasonStats("nfl", "9", 2026), undefined);
+  } finally {
+    if (originalKey !== undefined) process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
+});
+
+test("fetchPlayerSeasonStats keeps only known numeric fields from a real response", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  global.fetch = (async () =>
+    new Response(JSON.stringify([{ PassingYards: 3842, PassingTouchdowns: 31, TeamName: "not a stat" }]), { status: 200 })) as typeof fetch;
+  try {
+    const stats = await fetchPlayerSeasonStats("nfl", "9", 2026);
+    assert.deepEqual(stats, { PassingYards: 3842, PassingTouchdowns: 31 });
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
 });

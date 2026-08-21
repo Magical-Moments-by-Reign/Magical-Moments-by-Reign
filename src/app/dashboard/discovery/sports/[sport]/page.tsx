@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
 import { normalizeStandingsBySport } from "@/lib/discovery/sports/standings";
+import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
@@ -116,6 +117,24 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       myTeamsForSport.map((t) => (t.follow.teamName ? getTeamInjuries(sport, t.follow.teamName) : Promise.resolve([]))),
     );
     myTeamsForSport.forEach((t, i) => injuries.set(t.follow.id, injuryResults[i]));
+  }
+
+  // Bridges each roster card to a real Player Profile — rosters here are
+  // usually API-Sports-sourced (a different id space than the SportsDataIO
+  // profile page needs), so each player is resolved to their real
+  // SportsDataIO playerId by exact name match, same discipline as every
+  // other cross-provider name match in this codebase. A player who doesn't
+  // resolve confidently just isn't clickable — never a broken/guessed link.
+  const sdioLeague = sdioLeagueFor(sport);
+  const profileLinks = new Map<string, string | null>();
+  if (allowSdio && sdioLeague) {
+    const allPlayers = Array.from(rosters.values()).flat();
+    await Promise.all(
+      allPlayers.map(async (p) => {
+        if (profileLinks.has(p.id)) return;
+        profileLinks.set(p.id, await findPlayerIdByName(sdioLeague, p.name));
+      })
+    );
   }
 
   // Which real game the hero countdown targets: for PRESEASON_PHASE_SPORTS,
@@ -343,14 +362,22 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                     <details className="spx-roster">
                       <summary>Roster ({roster.length})</summary>
                       <div className="spx-roster__grid">
-                        {roster.map((p) => (
-                          <div className="spx-roster__player" key={p.id}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <JerseyAvatar number={p.number} />}
-                            <span className="spx-roster__name">{p.name}</span>
-                            <span className="spx-roster__meta">{p.number != null ? `#${p.number}` : ""}{p.number != null && p.position ? " · " : ""}{p.position ?? ""}</span>
-                          </div>
-                        ))}
+                        {roster.map((p) => {
+                          const content = (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <JerseyAvatar number={p.number} />}
+                              <span className="spx-roster__name">{p.name}</span>
+                              <span className="spx-roster__meta">{p.number != null ? `#${p.number}` : ""}{p.number != null && p.position ? " · " : ""}{p.position ?? ""}</span>
+                            </>
+                          );
+                          const linkedId = profileLinks.get(p.id);
+                          return linkedId && sdioLeague ? (
+                            <Link href={`/dashboard/discovery/sports/player/${sdioLeague}/${linkedId}`} className="spx-roster__player" key={p.id}>{content}</Link>
+                          ) : (
+                            <div className="spx-roster__player" key={p.id}>{content}</div>
+                          );
+                        })}
                       </div>
                     </details>
                   )}

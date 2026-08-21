@@ -5,6 +5,7 @@
 // never fabricates a trade or roster move that didn't come back from the API.
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { trackPlayerAction, untrackPlayerAction } from "./actions";
 
 type League = "nfl" | "cfb" | "nba" | "wnba";
@@ -94,19 +95,21 @@ export default function PlayerSearch({ trackedKeys }: { trackedKeys: string[] })
             return (
             <div className="spx-search__card" key={p.playerId}>
               <div className="spx-search__top">
-                <div className="spx-search__photo">
-                  {p.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.photoUrl} alt="" />
-                  ) : (
-                    <span aria-hidden="true">{p.name.slice(0, 1)}</span>
-                  )}
-                </div>
-                <div className="spx-search__info">
-                  <b>{p.name}</b>
-                  <span>{[p.position, p.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
-                  {p.status && <span className="spx-search__status">{p.status}</span>}
-                </div>
+                <Link href={`/dashboard/discovery/sports/player/${p.league}/${p.playerId}`} className="spx-search__linkarea">
+                  <div className="spx-search__photo">
+                    {p.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.photoUrl} alt="" />
+                    ) : (
+                      <span aria-hidden="true">{p.name.slice(0, 1)}</span>
+                    )}
+                  </div>
+                  <div className="spx-search__info">
+                    <b>{p.name}</b>
+                    <span>{[p.position, p.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
+                    {p.status && <span className="spx-search__status">{p.status}</span>}
+                  </div>
+                </Link>
                 <form
                   action={isTracked ? untrackPlayerAction : trackPlayerAction}
                   onSubmit={() => setTracked((prev) => { const next = new Set(prev); if (isTracked) next.delete(key); else next.add(key); return next; })}

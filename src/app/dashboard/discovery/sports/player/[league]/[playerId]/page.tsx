@@ -1,0 +1,260 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAccount, isOwnerAccount } from "@/lib/guard";
+import { getPlayerProfile } from "@/lib/discovery/sports/player-profile";
+import { sdioConfigured, sdioCommercialMode, type SdioLeague } from "@/lib/discovery/providers/sportsdata";
+import JerseyAvatar from "../../../JerseyAvatar";
+import "../../../../discovery.css";
+import "../../../sports-home.css";
+
+export const dynamic = "force-dynamic";
+
+const LEAGUE_LABEL: Record<SdioLeague, string> = { nfl: "NFL", cfb: "College Football", nba: "NBA", wnba: "WNBA" };
+const isSdioLeague = (v: string): v is SdioLeague => v === "nfl" || v === "cfb" || v === "nba" || v === "wnba";
+
+// Every field below is a real, documented SportsDataIO PlayerSeasonStats
+// field name (see STRUCTURED_STAT_FIELDS in sportsdata.ts) — a short label
+// for display only, never a computed or invented stat.
+const STAT_LABEL: Record<string, string> = {
+  Games: "GP", Started: "GS",
+  Completions: "Comp", PassingAttempts: "Att", PassingYards: "Pass Yds", PassingTouchdowns: "Pass TD", PassingInterceptions: "INT", PassingCompletionPercentage: "Comp %",
+  RushingAttempts: "Carries", RushingYards: "Rush Yds", RushingYardsPerAttempt: "Yds/Att", RushingTouchdowns: "Rush TD",
+  Receptions: "Rec", ReceivingYards: "Rec Yds", ReceivingYardsPerReception: "Yds/Rec", ReceivingTouchdowns: "Rec TD",
+  Tackles: "Tackles", SoloTackles: "Solo", TacklesForLoss: "TFL", Sacks: "Sacks", Interceptions: "INT", PassesDefended: "PD", FumblesForced: "FF",
+  Minutes: "MIN", Points: "PTS", Rebounds: "REB", Assists: "AST", Steals: "STL", BlockedShots: "BLK", Turnovers: "TO",
+  FieldGoalsPercentage: "FG%", ThreePointersPercentage: "3P%", FreeThrowsPercentage: "FT%",
+};
+
+// Which stat fields to feature for a given position — the rest of a
+// player's real numbers are still shown, just further down, so a mapped
+// position never hides a real stat the provider actually returned.
+const POSITION_FEATURED: Record<string, string[]> = {
+  QB: ["Games", "Started", "Completions", "PassingAttempts", "PassingCompletionPercentage", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "RushingYards", "RushingTouchdowns"],
+  RB: ["Games", "Started", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards"],
+  FB: ["Games", "Started", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards"],
+  WR: ["Games", "Started", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns"],
+  TE: ["Games", "Started", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns"],
+};
+const DEFENSE_FEATURED = ["Games", "Started", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"];
+const DEFENSE_POSITIONS = new Set(["DE", "DT", "NT", "DL", "LB", "ILB", "OLB", "MLB", "CB", "S", "SS", "FS", "DB"]);
+const HOOPS_FEATURED = ["Games", "Minutes", "Points", "Rebounds", "Assists", "Steals", "BlockedShots", "Turnovers", "FieldGoalsPercentage", "ThreePointersPercentage", "FreeThrowsPercentage"];
+
+function featuredFields(league: SdioLeague, position?: string): string[] {
+  if (league === "nba" || league === "wnba") return HOOPS_FEATURED;
+  const pos = position?.toUpperCase();
+  if (pos && POSITION_FEATURED[pos]) return POSITION_FEATURED[pos];
+  if (pos && DEFENSE_POSITIONS.has(pos)) return DEFENSE_FEATURED;
+  return [];
+}
+
+function heightLabel(inches?: number): string | null {
+  if (!inches) return null;
+  return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+
+function formatDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function StatRow({ fields, stats }: { fields: string[]; stats: Record<string, number> }) {
+  const shown = fields.filter((f) => f in stats);
+  if (!shown.length) return null;
+  return (
+    <div className="spx-profile__stats-grid">
+      {shown.map((f) => (
+        <div key={f} className="spx-profile__stat">
+          <span className="spx-profile__stat-value">{stats[f].toLocaleString("en-US")}</span>
+          <span className="spx-profile__stat-label">{STAT_LABEL[f] ?? f}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ league: string; playerId: string }> }): Promise<Metadata> {
+  const { league } = await params;
+  return { title: isSdioLeague(league) ? `Player Profile — ${LEAGUE_LABEL[league]}` : "Player Profile", robots: { index: false } };
+}
+
+export default async function PlayerProfilePage({ params }: { params: Promise<{ league: string; playerId: string }> }) {
+  const account = await requireAccount("/dashboard/discovery/sports");
+  const { league: leagueParam, playerId } = await params;
+  if (!isSdioLeague(leagueParam)) notFound();
+  const league = leagueParam;
+
+  const isOwner = await isOwnerAccount(account.id);
+  const allowed = sdioConfigured() && (sdioCommercialMode() || isOwner);
+  if (!allowed) {
+    return (
+      <div className="spx spx-profile">
+        <div className="disc-pending">
+          <b>Player Profiles are in preview</b>
+          Live SportsDataIO player detail is on a trial plan with a known data-quality caveat, so this page stays limited to Owner/admin preview until that upgrades — see Sports Data Policy.
+        </div>
+        <Link href="/dashboard/discovery/sports">← Back to Sports</Link>
+      </div>
+    );
+  }
+
+  const profile = await getPlayerProfile(league, playerId);
+  if (!profile) notFound();
+
+  const featured = featuredFields(league, profile.position);
+  const currentStats = profile.currentSeasonStats;
+  const otherFields = currentStats ? Object.keys(currentStats).filter((f) => !featured.includes(f)) : [];
+
+  const journeySteps: string[] = [];
+  if (profile.highSchool) journeySteps.push(profile.highSchool);
+  if (profile.college) journeySteps.push(profile.college);
+  if (profile.draftYear) {
+    journeySteps.push(
+      `${profile.draftYear} ${LEAGUE_LABEL[league] === "College Football" ? "Draft" : "NFL Draft"}${profile.draftRound ? ` — Round ${profile.draftRound}` : ""}${profile.draftPick ? `, Pick ${profile.draftPick}` : ""}${profile.draftTeam ? ` (${profile.draftTeam})` : ""}`
+    );
+  }
+  const sortedTransactions = [...profile.transactions].sort((a, b) => +new Date(a.date ?? 0) - +new Date(b.date ?? 0));
+  for (const t of sortedTransactions) {
+    journeySteps.push(`${t.type ?? "Roster move"}${t.team ? ` — ${t.team}` : ""}`);
+  }
+  if (profile.team) journeySteps.push(`Current team: ${profile.team}`);
+
+  return (
+    <div className="spx spx-profile">
+      <Link href="/dashboard/discovery/sports" className="spx-profile__back">← Back to Sports</Link>
+
+      <section className="spx-profile__hero">
+        <div className="spx-profile__photo">
+          {profile.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.photoUrl} alt="" />
+          ) : (
+            <JerseyAvatar number={profile.number} />
+          )}
+        </div>
+        <div className="spx-profile__identity">
+          <h1>{profile.name}</h1>
+          <p className="spx-profile__subline">
+            {profile.position && <span>{profile.position}</span>}
+            {profile.position && profile.team && " · "}
+            {profile.team && (
+              <span className="spx-profile__team">
+                {profile.teamLogoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.teamLogoUrl} alt="" className="spx-profile__team-logo" />
+                )}
+                {profile.team}
+              </span>
+            )}
+          </p>
+          <dl className="spx-profile__bio">
+            {profile.number != null && <div><dt>Number</dt><dd>#{profile.number}</dd></div>}
+            {profile.status && <div><dt>Status</dt><dd>{profile.status}</dd></div>}
+            {heightLabel(profile.heightInches) && <div><dt>Height</dt><dd>{heightLabel(profile.heightInches)}</dd></div>}
+            {profile.weightLbs && <div><dt>Weight</dt><dd>{profile.weightLbs} lbs</dd></div>}
+            {profile.age && <div><dt>Age</dt><dd>{profile.age}</dd></div>}
+            {formatDate(profile.birthDate) && <div><dt>Born</dt><dd>{formatDate(profile.birthDate)}</dd></div>}
+            {(profile.birthCity || profile.birthState) && <div><dt>Hometown</dt><dd>{[profile.birthCity, profile.birthState].filter(Boolean).join(", ")}</dd></div>}
+            {typeof profile.experienceYears === "number" && <div><dt>Experience</dt><dd>{profile.experienceYears} season{profile.experienceYears === 1 ? "" : "s"}</dd></div>}
+          </dl>
+        </div>
+      </section>
+
+      {journeySteps.length > 0 && (
+        <section className="spx-panel spx-profile__section">
+          <div className="spx-panel__head"><h2>The Journey</h2></div>
+          <ol className="spx-profile__timeline">
+            {journeySteps.map((step, i) => <li key={i}>{step}</li>)}
+          </ol>
+        </section>
+      )}
+
+      <section className="spx-panel spx-profile__section">
+        <div className="spx-panel__head"><h2>College Career</h2></div>
+        {profile.college ? (
+          <div className="spx-panel__body">
+            <p><b>College:</b> {profile.college}</p>
+            <p className="spx-panel__empty">Year-by-year college statistics aren&rsquo;t available from our connected data providers yet — only the school itself is verified.</p>
+          </div>
+        ) : (
+          <p className="spx-panel__empty">College information isn&rsquo;t available for this player.</p>
+        )}
+      </section>
+
+      <section className="spx-panel spx-profile__section">
+        <div className="spx-panel__head"><h2>Professional Career — {profile.currentSeason} Season</h2></div>
+        {currentStats ? (
+          <div className="spx-panel__body">
+            <StatRow fields={featured.length ? featured : Object.keys(currentStats)} stats={currentStats} />
+            {featured.length > 0 && otherFields.length > 0 && (
+              <details className="spx-standings">
+                <summary>More stats</summary>
+                <StatRow fields={otherFields} stats={currentStats} />
+              </details>
+            )}
+          </div>
+        ) : (
+          <p className="spx-panel__empty">No {profile.currentSeason} season statistics available yet.</p>
+        )}
+        {profile.seasonsBySeason.length > 1 && (
+          <div className="spx-panel__body" style={{ marginTop: "1rem" }}>
+            <h3 className="spx-standings__group-label">By Season</h3>
+            {profile.seasonsBySeason.map((line) => (
+              <div key={line.season} style={{ marginBottom: ".6rem" }}>
+                <span className="spx-standings__division-label">{line.season}</span>
+                <StatRow fields={featured.length ? featured : Object.keys(line.stats)} stats={line.stats} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {profile.teamRecord && (
+        <section className="spx-panel spx-profile__section">
+          <div className="spx-panel__head"><h2>Current Season</h2></div>
+          <div className="spx-panel__body">
+            <p><b>{profile.team}</b> team record: {profile.teamRecord}</p>
+          </div>
+        </section>
+      )}
+
+      <section className="spx-panel spx-profile__section">
+        <div className="spx-panel__head"><h2>Achievements</h2></div>
+        {profile.awards.length > 0 ? (
+          <ul className="spx-panel__body">
+            {profile.awards.map((a, i) => (
+              <li key={i}>{a.label}{a.currentRank ? ` — currently #${a.currentRank}` : ""}{a.futuresConsensus ? ` (${a.futuresConsensus})` : ""}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="spx-panel__empty">No verified awards, honors, or futures-market appearances on record from our connected providers.</p>
+        )}
+      </section>
+
+      <section className="spx-panel spx-profile__section">
+        <div className="spx-panel__head"><h2>Recent Activity</h2></div>
+        <div className="spx-panel__body">
+          {profile.injuries.length > 0 && (
+            <div>
+              <span className="spx-search__label">Injury Report</span>
+              {profile.injuries.map((inj, i) => (
+                <p key={i}>{inj.status ?? "Status unknown"}{inj.bodyPart ? ` — ${inj.bodyPart}` : ""}</p>
+              ))}
+            </div>
+          )}
+          {sortedTransactions.length > 0 ? (
+            <div>
+              <span className="spx-search__label">Transactions</span>
+              {[...sortedTransactions].reverse().slice(0, 8).map((t, i) => (
+                <p key={i}>{formatDate(t.date) ? `${formatDate(t.date)}: ` : ""}{t.type ?? "Roster move"}{t.team ? ` — ${t.team}` : ""}{t.description ? `: ${t.description}` : ""}</p>
+              ))}
+            </div>
+          ) : (
+            profile.injuries.length === 0 && <p className="spx-panel__empty">No recent transactions or injuries on record.</p>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}

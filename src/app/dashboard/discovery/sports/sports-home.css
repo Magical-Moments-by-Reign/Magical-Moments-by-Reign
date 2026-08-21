@@ -124,7 +124,9 @@
 .spx-roster { margin-top: .5rem; }
 .spx-roster summary { cursor: pointer; color: var(--gold-soft); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .spx-roster__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; margin-top: .6rem; }
-.spx-roster__player { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .25rem; padding: .5rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); }
+.spx-roster__player { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .25rem; padding: .5rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); text-decoration: none; color: inherit; }
+a.spx-roster__player:hover { border-color: rgba(201,162,75,.4); background: rgba(224,182,81,.06); }
+a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-roster__player img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: rgba(224,182,81,.1); }
 .spx-roster__jersey { width: 48px; height: 48px; }
 .spx-roster__name { color: #f4f1ea; font-size: .72rem; font-weight: 700; line-height: 1.2; }
@@ -298,6 +300,8 @@
   border: 1px solid rgba(201,162,75,.28); background: linear-gradient(180deg, #14110b 0%, #0a0806 100%);
 }
 .spx-search__top { display: flex; gap: .8rem; align-items: flex-start; }
+.spx-search__linkarea { display: flex; gap: .8rem; align-items: flex-start; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
+.spx-search__linkarea:hover .spx-search__info b { color: var(--gold-soft); }
 .spx-search__photo {
   flex: none; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: #1c170e;
   display: flex; align-items: center; justify-content: center; color: var(--gold); font-weight: 800; font-size: 1.1rem;
@@ -359,3 +363,29 @@
 .spx-award__stats, .spx-award__record { color: #7a6f5b !important; }
 .spx-award__odds { flex: none; color: var(--gold-soft); font-size: .78rem; font-weight: 800; }
 .spx-award__foot { margin: .8rem 0 0; color: #6b6151; font-size: .62rem; font-style: italic; }
+
+/* ── Player Profile page ── */
+.spx-profile { max-width: 920px; margin-left: auto; margin-right: auto; display: flex; flex-direction: column; gap: 1.2rem; }
+.spx-profile__back { align-self: flex-start; color: #9c8f76; font-size: .74rem; font-weight: 700; text-decoration: none; }
+.spx-profile__back:hover { color: var(--gold-soft); }
+.spx-profile__hero {
+  display: flex; gap: 1.4rem; align-items: center; padding: 1.4rem;
+  background: linear-gradient(180deg, #1a1509 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.3); border-radius: 16px;
+}
+.spx-profile__photo { flex: none; width: 108px; height: 108px; border-radius: 50%; overflow: hidden; background: rgba(224,182,81,.08); display: flex; align-items: center; justify-content: center; }
+.spx-profile__photo img { width: 100%; height: 100%; object-fit: cover; }
+.spx-profile__photo .spx-roster__jersey { width: 76px; height: 76px; }
+.spx-profile__identity { flex: 1; min-width: 0; }
+.spx-profile__identity h1 { margin: 0 0 .3rem; color: #f4f1ea; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 900; }
+.spx-profile__subline { display: flex; align-items: center; gap: .4rem; margin: 0 0 .8rem; color: var(--gold-soft); font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.spx-profile__team { display: inline-flex; align-items: center; gap: .35rem; }
+.spx-profile__team-logo { width: 20px; height: 20px; object-fit: contain; }
+.spx-profile__bio { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .5rem .8rem; margin: 0; }
+.spx-profile__bio dt { color: #7a6f5b; font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
+.spx-profile__bio dd { color: #d9cdb8; font-size: .76rem; margin: 0; }
+.spx-profile__section { text-align: left; }
+.spx-profile__timeline { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .5rem; color: #d9cdb8; font-size: .8rem; line-height: 1.4; }
+.spx-profile__stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: .7rem; }
+.spx-profile__stat { display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .6rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); }
+.spx-profile__stat-value { color: var(--gold-soft); font-size: 1.05rem; font-weight: 800; }
+.spx-profile__stat-label { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
