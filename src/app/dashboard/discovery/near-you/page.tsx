@@ -5,6 +5,7 @@ import { getNearYouEvents, getTrendingNearYouEvents, getTrendingAttractions } fr
 import { getSavedEventIds } from "@/lib/discovery/saved-events";
 import { normalizeTicketmasterLocation, type EventCategory, type DiscoveredEvent } from "@/lib/discovery/providers/events";
 import { saveEventAction, unsaveEventAction } from "./actions";
+import NearYouSearchInput from "@/components/near-you/NearYouSearchInput";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState } from "../_components";
 import "../discovery.css";
@@ -115,33 +116,11 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
         </div>
         <div className="near-search__seg">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-          <div className="near-search__seg-text">
-            <label htmlFor="near-q">Search</label>
-            <input id="near-q" type="text" name="q" placeholder="Artist, event, or venue" defaultValue={q ?? ""} />
-          </div>
+          <NearYouSearchInput defaultValue={q ?? ""} />
         </div>
         {category && <input type="hidden" name="category" value={category} />}
         <button type="submit" className="near-search__btn">Search</button>
       </form>
-
-      {attractions.length > 0 && (
-        <section className="near-attractions">
-          <div className="near-attractions__head"><h2>Trending Artists &amp; Attractions</h2></div>
-          <div className="near-attractions__rail">
-            {attractions.map((a) => (
-              <a key={a.id} className="near-attractions__card" href={a.ticketUrl} target="_blank" rel="noopener noreferrer">
-                <div className="near-attractions__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
-                {a.genreLabel && <span className="near-attractions__genre">{a.genreLabel}</span>}
-                <b>{a.name}</b>
-                {typeof a.upcomingEventsCount === "number" && (
-                  <span className="near-attractions__count">{a.upcomingEventsCount} upcoming show{a.upcomingEventsCount === 1 ? "" : "s"}</span>
-                )}
-                <span className="near-attractions__cta">View on Ticketmaster →</span>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
 
       <div className="disc-filters">
         <a href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&q=${encodeURIComponent(keyword)}&radius=${radius}`} aria-current={!category ? "true" : undefined}>All</a>
@@ -178,6 +157,25 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
         ) : <DiscoveryEmptyState title="We couldn’t load events right now.">Please try again in a moment.</DiscoveryEmptyState>
       )}
       {result?.providerName && <p className="disc-empty">{result.attribution}</p>}
+
+      {attractions.length > 0 && (
+        <section className="near-attractions">
+          <div className="near-attractions__head"><h2>Trending Artists &amp; Attractions</h2></div>
+          <div className="near-attractions__rail">
+            {attractions.map((a) => (
+              <a key={a.id} className="near-attractions__card" href={a.ticketUrl} target="_blank" rel="noopener noreferrer">
+                <div className="near-attractions__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
+                {a.genreLabel && <span className="near-attractions__genre">{a.genreLabel}</span>}
+                <b>{a.name}</b>
+                {typeof a.upcomingEventsCount === "number" && (
+                  <span className="near-attractions__count">{a.upcomingEventsCount} upcoming show{a.upcomingEventsCount === 1 ? "" : "s"}</span>
+                )}
+                <span className="near-attractions__cta">View on Ticketmaster →</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {trending.length > 0 && (
         <section className="near-trending">
