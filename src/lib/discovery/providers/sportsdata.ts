@@ -32,6 +32,7 @@ export interface SdioPlayer {
   team?: string;
   teamId?: string;
   position?: string;
+  number?: number; // real jersey number, per the provider — never invented
   status?: string; // Active, Injured Reserve, Free Agent, etc. — provider's own label
   photoUrl?: string;
   age?: number;
@@ -111,6 +112,7 @@ function toPlayer(league: SdioLeague, p: any): SdioPlayer | null {
     team: p?.Team ?? p?.TeamName ?? undefined,
     teamId: p?.TeamID != null ? String(p.TeamID) : undefined,
     position: p?.Position ?? p?.FantasyPosition ?? undefined,
+    number: typeof p?.Jersey === "number" ? p.Jersey : typeof p?.JerseyNumber === "number" ? p.JerseyNumber : undefined,
     status: p?.Status ?? undefined,
     photoUrl: typeof p?.PhotoUrl === "string" && p.PhotoUrl.startsWith("http") ? p.PhotoUrl : undefined,
     age: deriveAge(p),
@@ -290,6 +292,43 @@ export async function fetchNbaFirstGame(seasonKey: string): Promise<SdioGame | n
   games.sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
   const now = Date.now();
   return games.find((g) => +new Date(g.startsAt) > now) ?? null;
+}
+
+/** Real NBA games scheduled for one calendar date ("YYYY-MM-DD") —
+ *  secondary source for the Today's Games panel when API-Sports has
+ *  nothing for that date yet. Returns null on missing config or a failed
+ *  call; [] only when the provider itself has no games that day. */
+export async function fetchNbaGamesByDate(dateISO: string): Promise<SdioGame[] | null> {
+  const json = await sdioFetch("nba", `/scores/json/GamesByDate/${dateISO}`);
+  if (!Array.isArray(json)) return null;
+  return json.map(toSdioGame).filter((g): g is SdioGame => g !== null);
+}
+
+export interface SdioStandingRow {
+  team: string;
+  teamId?: string;
+  wins: number;
+  losses: number;
+}
+
+// Exported for tests.
+export function toSdioStandingRow(t: any): SdioStandingRow | null {
+  const team = t?.Name ?? t?.Team;
+  const wins = t?.Wins;
+  const losses = t?.Losses;
+  if (!team || typeof wins !== "number" || typeof losses !== "number") return null;
+  return { team: String(team), teamId: t?.TeamID != null ? String(t.TeamID) : undefined, wins, losses };
+}
+
+/** Real NBA standings for a season — secondary source for the Standings
+ *  panel when API-Sports has nothing yet. Returns null on missing config,
+ *  a failed call, or a response with no usable win/loss rows — never a
+ *  guessed record. */
+export async function fetchNbaStandings(season: number): Promise<SdioStandingRow[] | null> {
+  const json = await sdioFetch("nba", `/scores/json/Standings/${season}`);
+  if (!Array.isArray(json)) return null;
+  const rows = json.map(toSdioStandingRow).filter((r): r is SdioStandingRow => r !== null);
+  return rows.length ? rows : null;
 }
 
 /** Best-effort "W-L" (or "W-L-T") record for a team from season standings.
