@@ -18,6 +18,7 @@ const TTL_GAMES_LIVE = 3; // 3m — live games refresh often
 const TTL_STANDINGS = 720; // 12h
 const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
 const TTL_ROSTER = 10080; // 1 week — a team's active roster barely moves day to day
+const TTL_TEAM_LOOKUP = 10080; // 1 week — team identity/logo rarely changes
 
 export const SPORT_CATALOG: { slug: SportSlug; label: string }[] = [
   { slug: "nfl", label: "NFL" },
@@ -172,12 +173,19 @@ export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<Sport
 // Officially announced by the NBA itself (not derived from either provider).
 // Used only as the last-resort countdown target when NEITHER API-Sports nor
 // SportsDataIO has ingested next season's schedule yet — and only for the
-// date, never a matchup: no team names, logos, or scores are invented here.
-// The instant either provider returns a real game record, that record is
-// used instead and this constant stops being reachable for that phase.
+// date, never a matchup: no team names, logos, times, or scores are
+// invented here. Deliberately a bare "YYYY-MM-DD" (no time, no "Z") — a
+// calendar date, not an instant. Attaching a fake midnight-UTC time and
+// converting that to the viewer's local timezone would roll the displayed
+// date backward for every timezone west of UTC (e.g. "October 3" showing
+// as "October 2, 7:00 PM CDT"). Callers must treat this as a date-only
+// value: no time-of-day is shown, and the countdown targets local midnight
+// on this date, not a UTC instant. The instant either provider returns a
+// real game record (with a real time), that record is used instead and
+// this constant stops being reachable for that phase.
 const KNOWN_NBA_DATES: { preseason: string; regular: string } = {
-  preseason: "2026-10-03T00:00:00Z",
-  regular: "2026-10-20T00:00:00Z",
+  preseason: "2026-10-03",
+  regular: "2026-10-20",
 };
 
 export interface NbaHeroState {
@@ -187,6 +195,31 @@ export interface NbaHeroState {
   game: SportsGameSummary | null;
   targetISO: string;
   source: "api-sports" | "sportsdata" | "known-date";
+  /** True only for the known-date tier: targetISO is a bare "YYYY-MM-DD"
+   *  calendar date with no real time attached — callers must not display
+   *  or count down to a fabricated time-of-day for it. */
+  dateOnly: boolean;
+}
+
+function normalizeTeamName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Resolves a team name from a secondary source (SportsDataIO's schedule
+ *  doesn't return logos) to its real API-Sports team record — so a game
+ *  sourced from that secondary provider still gets the real logo/id we
+ *  already have from the primary one, instead of a placeholder icon.
+ *  Cached per team name (team identity/logo rarely changes), so this is
+ *  only a live lookup the first time a given team name is seen. Returns
+ *  null when API-Sports has no confident match — never a guessed logo. */
+async function resolveNbaTeamByName(name: string): Promise<{ id: string; logoUrl?: string } | null> {
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport: "nba", teamNameLookup: normalizeTeamName(name) }), TTL_TEAM_LOOKUP, () =>
+    ApiSportsProvider.searchTeams("nba", name));
+  const candidates = cached?.data;
+  if (!candidates?.length) return null;
+  const target = normalizeTeamName(name);
+  const match = candidates.find((t) => normalizeTeamName(t.name) === target) ?? candidates[0];
+  return { id: match.id, logoUrl: match.logoUrl };
 }
 
 async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: SportsGameSummary | null; fallbackISO: string; source: "api-sports" | "sportsdata" | "known-date" }> {
@@ -200,12 +233,17 @@ async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: Spor
     fetchNbaFirstGame(seasonKey));
   const sdio = cached?.data;
   if (sdio) {
+    // SportsDataIO's schedule doesn't carry team logos — resolve each side
+    // against our own API-Sports team catalog so the game still shows real
+    // crests, not placeholders, even though the schedule itself came from
+    // the secondary provider.
+    const [home, away] = await Promise.all([resolveNbaTeamByName(sdio.homeTeam), resolveNbaTeamByName(sdio.awayTeam)]);
     const game: SportsGameSummary = {
       externalId: sdio.externalId,
       sport: "nba",
       league: "12",
-      homeTeam: { id: "", name: sdio.homeTeam },
-      awayTeam: { id: "", name: sdio.awayTeam },
+      homeTeam: { id: home?.id ?? "", name: sdio.homeTeam, logoUrl: home?.logoUrl },
+      awayTeam: { id: away?.id ?? "", name: sdio.awayTeam, logoUrl: away?.logoUrl },
       startsAt: sdio.startsAt,
       status: "scheduled",
     };
@@ -221,7 +259,7 @@ async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: Spor
  *  countdown even on a day neither live provider has posted the season
  *  yet. Whichever tier resolves the preseason opener also decides whether
  *  the hero is still in its preseason phase; once that target passes (by
- *  either a real game's kickoff or the known date), this flips to the
+ *  either a real game's tipoff or the known date), this flips to the
  *  regular-season opener the same way. Returns null once the regular-season
  *  target has also passed — the hero then steps aside for the page's
  *  normal Today's Games / standings panels. */
@@ -229,13 +267,13 @@ export async function getNbaHeroState(): Promise<NbaHeroState | null> {
   const preseason = await getNbaOpener("preseason");
   const preseasonTarget = preseason.game?.startsAt ?? preseason.fallbackISO;
   if (+new Date(preseasonTarget) > Date.now()) {
-    return { phase: "preseason", game: preseason.game, targetISO: preseasonTarget, source: preseason.source };
+    return { phase: "preseason", game: preseason.game, targetISO: preseasonTarget, source: preseason.source, dateOnly: preseason.source === "known-date" };
   }
 
   const regular = await getNbaOpener("regular");
   const regularTarget = regular.game?.startsAt ?? regular.fallbackISO;
   if (+new Date(regularTarget) <= Date.now()) return null;
-  return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source };
+  return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source, dateOnly: regular.source === "known-date" };
 }
 
 /** A followed team's real current-season roster — we can't show injuries

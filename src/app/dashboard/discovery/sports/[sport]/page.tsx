@@ -87,8 +87,21 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const preseasonNotYetStarted = preseasonKickoff !== null && preseasonKickoff > Date.now();
   const heroPhase: "preseason" | "regular" = PRESEASON_PHASE_SPORTS[sport] && preseasonNotYetStarted ? "preseason" : "regular";
   const heroGame = nbaHeroState ? nbaHeroState.game : heroPhase === "preseason" ? firstPreseasonGame : firstRegularSeasonGame;
-  const heroTitle = (nbaHeroState ? nbaHeroState.phase : heroPhase) === "preseason" ? "Preseason Countdown" : "Regular Season Countdown";
+  const resolvedHeroPhase = nbaHeroState ? nbaHeroState.phase : heroPhase;
+  const heroTitle = resolvedHeroPhase === "preseason" ? "Preseason Countdown" : "Regular Season Countdown";
   const heroTargetISO = nbaHeroState ? nbaHeroState.targetISO : heroGame?.startsAt;
+  // True only for NBA's known-date last resort: heroTargetISO is a bare
+  // calendar date with no real time attached, so the matchup area shows a
+  // plain "<phase> begins <date>" line instead of team blocks, and
+  // CountdownClock is told not to display or count down to a fabricated
+  // time of day.
+  const heroDateOnly = nbaHeroState?.dateOnly ?? false;
+  const heroTbdLabel = heroDateOnly
+    ? `${resolvedHeroPhase === "preseason" ? "Preseason" : "Regular season"} begins ${(() => {
+        const [y, m, d] = heroTargetISO!.split("-").map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+      })()}`
+    : "Matchup announced soon";
 
   // Whole days until the hero's target — never shown once it's passed (a
   // real game becomes a normal schedule entry, not a countdown target).
@@ -164,9 +177,9 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                 </div>
               </div>
             ) : (
-              <p className="spx-countdown__tbd">Matchup announced soon</p>
+              <p className="spx-countdown__tbd">{heroTbdLabel}</p>
             )}
-            <CountdownClock targetISO={heroTargetISO} />
+            <CountdownClock targetISO={heroTargetISO} dateOnly={heroDateOnly} />
           </div>
         ) : (
           <div className="spx-sport-header__brand">
