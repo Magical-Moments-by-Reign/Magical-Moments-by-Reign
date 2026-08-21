@@ -18,12 +18,20 @@ function formatDate(iso?: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
+/** Display-only relabeling for this site — TMDB's real status value
+ *  ("Ended") is unchanged everywhere it's stored or reasoned about;
+ *  only the badge text shown to members here reads "Last Season". */
+function displayStatus(status: string): string {
+  return status === "Ended" ? "Last Season" : status;
+}
+
 /** Honest renewal summary — only ever states what TMDB actually reports
  *  (a confirmed next-season premiere date, or that production is underway),
  *  and otherwise says the real date simply isn't announced yet. */
 function renewalStatus(show: Awaited<ReturnType<typeof getWatchDetails>>): string {
   if (!show) return "Stay tuned — renewal status not yet announced.";
-  if (show.status === "Ended" || show.status === "Canceled") return `Series ${show.status.toLowerCase()} — no additional seasons.`;
+  if (show.status === "Ended") return "Last Season — no additional seasons.";
+  if (show.status === "Canceled") return "Series canceled — no additional seasons.";
   if (show.nextEpisode?.airDate && show.nextEpisodeIsSeasonPremiere) {
     return `Renewed — Season ${show.nextEpisode.seasonNumber} premieres ${formatDate(show.nextEpisode.airDate)}.`;
   }
@@ -47,7 +55,7 @@ export default async function WatchDetailPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="disc-detail__meta">
-        {show.status && <span className="disc-badge">{show.status}</span>}
+        {show.status && <span className="disc-badge">{displayStatus(show.status)}</span>}
         {show.seasons ? <span className="disc-badge">{show.seasons} season{show.seasons === 1 ? "" : "s"}</span> : null}
         {show.voteAverage ? <span className="disc-badge">★ {show.voteAverage.toFixed(1)}</span> : null}
         {show.nextEpisode?.airDate && (
