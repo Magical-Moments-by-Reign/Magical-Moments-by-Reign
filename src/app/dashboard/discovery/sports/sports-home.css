@@ -72,6 +72,18 @@
 .spx-countdown__num span { color: var(--gold); font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .spx-countdown__meta { margin: 0; color: #d9cdb8; font-size: .76rem; }
 
+.spx-countdown__matchup { display: flex; align-items: center; justify-content: center; gap: .6rem; margin: .7rem 0 0; flex-wrap: wrap; }
+.spx-countdown__matchup img { width: 30px; height: 30px; object-fit: contain; }
+.spx-countdown__matchup b { color: #fffdf8; font-size: .95rem; font-weight: 800; }
+.spx-countdown__at { color: #9c8f76; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+
+.spx-clock { margin-top: .9rem; }
+.spx-clock__row { display: flex; align-items: stretch; gap: .7rem; justify-content: center; }
+.spx-clock__unit { display: flex; flex-direction: column; align-items: center; min-width: 56px; padding: .5rem .3rem; border-radius: 10px; background: rgba(224,182,81,.08); border: 1px solid rgba(224,182,81,.3); }
+.spx-clock__unit b { color: #fffdf8; font-weight: 900; font-size: clamp(1.5rem, 3.4vw, 2.1rem); line-height: 1; letter-spacing: -.01em; }
+.spx-clock__unit span { color: var(--gold-soft); font-size: .6rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin-top: .2rem; }
+.spx-clock__local { margin: .6rem 0 0; color: #9c8f76; font-size: .72rem; }
+
 /* ── "EXPLORE ALL SPORTS" divider ── */
 .spx-divider { display: flex; align-items: center; justify-content: center; margin: 0 0 1.2rem; }
 .spx-divider span {
