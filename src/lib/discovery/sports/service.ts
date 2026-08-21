@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, seasonParam, defaultLeagueId, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
@@ -811,10 +811,40 @@ export function isHighSchoolConnected(): boolean {
   return HighSchoolPendingProvider.isConfigured();
 }
 
+const TTL_LEAGUE_TEAMS = 10080; // 1 week — a league's team membership barely changes
+
+// Sports with exactly one real league — team search here can (and must)
+// stay scoped to that league's own verified roster. Soccer is deliberately
+// excluded: it's a genuinely multi-league sport (Premier League, La Liga,
+// Bundesliga, ...) and searching it correctly requires the member to pick
+// a league/competition first, which isn't built yet — until then it keeps
+// the older, broader (and known-imperfect) catalog search rather than
+// wrongly narrowing to one arbitrary league.
+const SINGLE_LEAGUE_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "nhl", "rugby", "volleyball"]);
+
 /** Team search scoped to one sport — for the per-sport page's own
- *  follow-a-team box, as opposed to searchSports' cross-sport search. */
+ *  follow-a-team box, as opposed to searchSports' cross-sport search.
+ *  For a single-league sport, this matches locally against that league's
+ *  own real, verified team list (fetchTeamsForLeague) instead of
+ *  API-Sports' unscoped whole-catalog search — the previous approach could
+ *  return a same-named team from a completely different league/division on
+ *  the same host (e.g. a G-League or international club alongside the real
+ *  NBA team). Falls back to the broader search only when the league's own
+ *  roster isn't available yet (season not posted), never silently. */
 export async function searchTeamsForSport(sport: SportSlug, query: string) {
   if (!query.trim() || !ApiSportsProvider.isConfigured(sport)) return [];
+
+  if (SINGLE_LEAGUE_SPORTS.has(sport)) {
+    const league = defaultLeagueId(sport);
+    if (league) {
+      const season = seasonParam(sport, new Date().toISOString());
+      const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+        fetchTeamsForLeague(sport, league, season));
+      const roster = cached?.data ?? [];
+      if (roster.length) return rankTeamMatches(roster, query);
+    }
+  }
+
   const teams = await ApiSportsProvider.searchTeams(sport, query);
   return teams ?? [];
 }

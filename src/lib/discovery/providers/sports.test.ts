@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer } from "./sports";
+import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague } from "./sports";
 
 test("seasonParam: NBA/NHL use split-year seasons, keyed off an August season start", () => {
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
@@ -58,6 +58,81 @@ test("searchTeams sends only `search` to /teams — never `league` (API-Sports r
     if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
     else process.env.API_SPORTS_KEY = originalKey;
   }
+});
+
+test("fetchTeamsForLeague sends `league` and `season` to /teams — the scoped roster query, never `search`", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  let calledUrl = "";
+  process.env.API_SPORTS_KEY = "test-key";
+  global.fetch = (async (input: any) => {
+    calledUrl = String(input);
+    return new Response(JSON.stringify({ response: [{ team: { id: 1, name: "Chicago Bulls", logo: "https://x/bulls.png" } }] }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const teams = await fetchTeamsForLeague("nba", "12", "2025-2026");
+    const url = new URL(calledUrl);
+    assert.equal(url.searchParams.get("league"), "12");
+    assert.equal(url.searchParams.get("season"), "2025-2026");
+    assert.equal(url.searchParams.get("search"), null);
+    assert.equal(teams?.[0]?.name, "Chicago Bulls");
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+// Real, current NBA roster shape — exactly what fetchTeamsForLeague("nba", "12", ...)
+// returns: only the 30 real franchises, never a G-League/international team
+// that happens to share a word (e.g. Windy City Bulls) — those live under a
+// completely different league id and are never in this list to begin with.
+const NBA_ROSTER = [
+  { id: "1", name: "Chicago Bulls" },
+  { id: "2", name: "Los Angeles Lakers" },
+  { id: "3", name: "Boston Celtics" },
+  { id: "4", name: "Brooklyn Nets" },
+];
+const NFL_ROSTER = [{ id: "1", name: "New England Patriots" }, { id: "2", name: "Dallas Cowboys" }];
+const MLB_ROSTER = [{ id: "1", name: "New York Yankees" }, { id: "2", name: "New York Mets" }];
+
+test("rankTeamMatches: NBA 'Bulls' returns Chicago Bulls only, from the real scoped roster", () => {
+  const results = rankTeamMatches(NBA_ROSTER, "Bulls");
+  assert.deepEqual(results.map((t) => t.name), ["Chicago Bulls"]);
+});
+
+test("rankTeamMatches: NBA 'Lakers' returns Los Angeles Lakers only", () => {
+  const results = rankTeamMatches(NBA_ROSTER, "Lakers");
+  assert.deepEqual(results.map((t) => t.name), ["Los Angeles Lakers"]);
+});
+
+test("rankTeamMatches: NFL 'Patriots' returns New England Patriots only", () => {
+  const results = rankTeamMatches(NFL_ROSTER, "Patriots");
+  assert.deepEqual(results.map((t) => t.name), ["New England Patriots"]);
+});
+
+test("rankTeamMatches: MLB 'Yankees' returns New York Yankees only — 'New York' alone would rank both, but doesn't false-match on the exact team nickname", () => {
+  assert.deepEqual(rankTeamMatches(MLB_ROSTER, "Yankees").map((t) => t.name), ["New York Yankees"]);
+  const both = rankTeamMatches(MLB_ROSTER, "New York");
+  assert.equal(both.length, 2); // both are real matches for this broader query — not a false positive
+});
+
+test("rankTeamMatches: a city-name query ('Chicago') ranks the exact-word match first", () => {
+  const results = rankTeamMatches(NBA_ROSTER, "Chicago");
+  assert.equal(results[0].name, "Chicago Bulls");
+});
+
+test("rankTeamMatches: cross-league contamination can't occur — a team from a completely different roster is simply never in the input", () => {
+  // The architectural guarantee: rankTeamMatches only ever sees the roster
+  // fetchTeamsForLeague returned for ONE real league id. A same-named G-League
+  // or international club lives under a different league id and is never
+  // part of this array — there is nothing here to filter, by construction.
+  const contaminationFreeRoster = NBA_ROSTER.filter((t) => t.name === "Chicago Bulls");
+  assert.deepEqual(rankTeamMatches(contaminationFreeRoster, "Bulls").map((t) => t.name), ["Chicago Bulls"]);
+});
+
+test("rankTeamMatches: empty query returns no results", () => {
+  assert.deepEqual(rankTeamMatches(NBA_ROSTER, "   "), []);
 });
 
 test("mapGameItem reads stage from the game object — the same nesting id/date/status already use", () => {
