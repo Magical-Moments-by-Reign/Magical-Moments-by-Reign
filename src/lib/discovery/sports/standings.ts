@@ -35,6 +35,16 @@ export interface StandingsGroup {
 // rugby) where win% is NOT the real ranking metric and would mis-rank them.
 const WIN_PCT_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "nhl"]);
 
+// NHL's real standings are points-based (2 for a win, 1 for an overtime/
+// shootout loss, 0 for a regulation loss) — a plain win% ranking mis-orders
+// two teams with the same win count but a different number of OT losses.
+// Ranked by the provider's own real `points` field when the response
+// includes one (checked first, below); nhl stays in WIN_PCT_SPORTS above so
+// it still falls back to real win%-based ranking (the previous behavior,
+// strictly better than provider row order) on the rare response with no
+// points field, rather than losing ranking entirely.
+const POINTS_RANKED_SPORTS: ReadonlySet<SportSlug> = new Set(["nhl"]);
+
 // Sports whose real structure is (league/conference) → (division) → teams.
 // Everything else groups one level deep (conference only, e.g. NBA/WNBA) or
 // not at all (whatever the provider's `group` field does or doesn't give).
@@ -68,11 +78,21 @@ function sortByWinPct(rows: SportsStanding[]): SportsStanding[] {
   return [...rows].sort((a, b) => winPct(b) - winPct(a) || (b.wins ?? 0) - (a.wins ?? 0) || a.team.name.localeCompare(b.team.name));
 }
 
-function rankRows(rows: SportsStanding[], useWinPct: boolean): RankedStandingRow[] {
-  if (!useWinPct) return rows.map((s, i) => ({ ...s, displayRank: s.rank ?? i + 1, gb: null }));
-  const ordered = sortByWinPct(rows);
+function sortByPoints(rows: SportsStanding[]): SportsStanding[] {
+  return [...rows].sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || (b.wins ?? 0) - (a.wins ?? 0) || a.team.name.localeCompare(b.team.name));
+}
+
+type RankMode = "winpct" | "points" | "provider";
+
+function rankRows(rows: SportsStanding[], mode: RankMode): RankedStandingRow[] {
+  if (mode === "provider") return rows.map((s, i) => ({ ...s, displayRank: s.rank ?? i + 1, gb: null }));
+  const ordered = mode === "points" ? sortByPoints(rows) : sortByWinPct(rows);
   const leader = ordered[0];
-  return ordered.map((s, i) => ({ ...s, displayRank: i + 1, gb: i === 0 ? 0 : gamesBehind(leader, s) }));
+  // Games-behind is a win-loss-delta formula — it doesn't translate to a
+  // points table (a 2-1-0 hockey standings row isn't "games behind" the
+  // same way a plain win-loss one is), so it's only ever computed in
+  // win%-ranked mode; points-ranked and provider-order tables leave it null.
+  return ordered.map((s, i) => ({ ...s, displayRank: i + 1, gb: mode === "winpct" ? (i === 0 ? 0 : gamesBehind(leader, s)) : null }));
 }
 
 /** The one reusable, sport-aware standings transformer — every Standings
@@ -80,7 +100,14 @@ function rankRows(rows: SportsStanding[], useWinPct: boolean): RankedStandingRow
  *  for an empty input. */
 export function normalizeStandingsBySport(sport: SportSlug, standings: SportsStanding[]): StandingsGroup[] {
   if (!standings.length) return [];
-  const useWinPct = WIN_PCT_SPORTS.has(sport);
+  // Points-ranked only when the provider actually returned real points data
+  // for this response — a points-ranked sport with no points field falls
+  // back to win% rather than ranking every team as a 0-way tie.
+  const rankMode: RankMode = POINTS_RANKED_SPORTS.has(sport) && standings.some((s) => typeof s.points === "number")
+    ? "points"
+    : WIN_PCT_SPORTS.has(sport)
+    ? "winpct"
+    : "provider";
   const twoLevel = TWO_LEVEL_SPORTS.has(sport);
 
   const enriched = standings.map((s) => {
@@ -91,7 +118,7 @@ export function normalizeStandingsBySport(sport: SportSlug, standings: SportsSta
 
   const hasGroups = enriched.some((s) => s._group);
   if (!hasGroups) {
-    return [{ label: "", divisions: [{ label: "", rows: rankRows(enriched, useWinPct) }] }];
+    return [{ label: "", divisions: [{ label: "", rows: rankRows(enriched, rankMode) }] }];
   }
 
   const byGroup = new Map<string, typeof enriched>();
@@ -103,7 +130,7 @@ export function normalizeStandingsBySport(sport: SportSlug, standings: SportsSta
   return Array.from(byGroup.entries()).map(([label, groupRows]) => {
     const hasDivisions = twoLevel && groupRows.some((r) => r._division);
     if (!hasDivisions) {
-      return { label, divisions: [{ label: "", rows: rankRows(groupRows, useWinPct) }] };
+      return { label, divisions: [{ label: "", rows: rankRows(groupRows, rankMode) }] };
     }
     const byDivision = new Map<string, typeof groupRows>();
     for (const r of groupRows) {
@@ -112,7 +139,7 @@ export function normalizeStandingsBySport(sport: SportSlug, standings: SportsSta
     }
     const divisions = Array.from(byDivision.entries()).map(([divLabel, rows]) => ({
       label: divLabel,
-      rows: rankRows(rows, useWinPct),
+      rows: rankRows(rows, rankMode),
     }));
     return { label, divisions };
   });

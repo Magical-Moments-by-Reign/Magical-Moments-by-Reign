@@ -82,6 +82,32 @@ test("points-based sport (soccer) is left in provider order/rank, never re-sorte
   assert.equal(groups[0].divisions[0].rows[0].gb, null);
 });
 
+test("NHL with real points data ranks by points (2/1/0), not win% — a team with more OT losses ranks correctly above a team with fewer points despite an equal or higher win%", () => {
+  const rows: SportsStanding[] = [
+    { team: team("1", "Team A"), wins: 40, losses: 30, points: 90, group: "Atlantic" }, // more wins, fewer real points
+    { team: team("2", "Team B"), wins: 38, losses: 28, points: 92, group: "Atlantic" }, // fewer wins, more real points (more OT losses)
+  ];
+  const groups = normalizeStandingsBySport("nhl", rows);
+  const rowsOut = groups[0].divisions[0].rows;
+  assert.deepEqual(rowsOut.map((r) => r.team.name), ["Team B", "Team A"]);
+  assert.equal(rowsOut[0].gb, null); // points tables don't compute a win-loss games-behind
+});
+
+test("NHL with no points data on the response falls back to win%-based ranking rather than a flat 0-way tie", () => {
+  const rows: SportsStanding[] = [
+    { team: team("1", "Team A"), wins: 20, losses: 40 },
+    { team: team("2", "Team B"), wins: 45, losses: 15 },
+  ];
+  const groups = normalizeStandingsBySport("nhl", rows);
+  assert.deepEqual(groups[0].divisions[0].rows.map((r) => r.team.name), ["Team B", "Team A"]);
+});
+
+test("soccer standings carry real points through to the ranked row when the provider returns one", () => {
+  const rows: SportsStanding[] = [{ team: team("1", "Team A"), wins: 10, losses: 2, ties: 3, points: 33, rank: 1 }];
+  const groups = normalizeStandingsBySport("soccer", rows);
+  assert.equal(groups[0].divisions[0].rows[0].points, 33);
+});
+
 test("determineSeasonPhase: before this season's schedule exists at all -> preseason (last completed season is what's shown)", () => {
   const now = +new Date("2026-08-21");
   assert.equal(determineSeasonPhase({ now }), "preseason");
