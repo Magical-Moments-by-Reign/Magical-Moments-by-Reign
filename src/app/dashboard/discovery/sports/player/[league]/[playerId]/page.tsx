@@ -20,7 +20,7 @@ const STAT_LABEL: Record<string, string> = {
   Games: "GP", Started: "GS",
   Completions: "Comp", PassingAttempts: "Att", PassingYards: "Pass Yds", PassingTouchdowns: "Pass TD", PassingInterceptions: "INT", PassingCompletionPercentage: "Comp %",
   RushingAttempts: "Carries", RushingYards: "Rush Yds", RushingYardsPerAttempt: "Yds/Att", RushingTouchdowns: "Rush TD",
-  Receptions: "Rec", ReceivingYards: "Rec Yds", ReceivingYardsPerReception: "Yds/Rec", ReceivingTouchdowns: "Rec TD",
+  Receptions: "Rec", ReceivingYards: "Rec Yds", ReceivingYardsPerReception: "Yds/Rec", ReceivingTouchdowns: "Rec TD", ReceivingLong: "Long", RushingLong: "Long",
   Tackles: "Tackles", SoloTackles: "Solo", TacklesForLoss: "TFL", Sacks: "Sacks", Interceptions: "INT", PassesDefended: "PD", FumblesForced: "FF",
   Minutes: "MIN", Points: "PTS", Rebounds: "REB", Assists: "AST", Steals: "STL", BlockedShots: "BLK", Turnovers: "TO",
   FieldGoalsPercentage: "FG%", ThreePointersPercentage: "3P%", FreeThrowsPercentage: "FT%",
@@ -31,10 +31,10 @@ const STAT_LABEL: Record<string, string> = {
 // position never hides a real stat the provider actually returned.
 const POSITION_FEATURED: Record<string, string[]> = {
   QB: ["Games", "Started", "Completions", "PassingAttempts", "PassingCompletionPercentage", "PassingYards", "PassingTouchdowns", "PassingInterceptions", "RushingYards", "RushingTouchdowns"],
-  RB: ["Games", "Started", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards"],
-  FB: ["Games", "Started", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingTouchdowns", "Receptions", "ReceivingYards"],
-  WR: ["Games", "Started", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns"],
-  TE: ["Games", "Started", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingTouchdowns"],
+  RB: ["Games", "Started", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingLong", "RushingTouchdowns", "Receptions", "ReceivingYards"],
+  FB: ["Games", "Started", "RushingAttempts", "RushingYards", "RushingYardsPerAttempt", "RushingLong", "RushingTouchdowns", "Receptions", "ReceivingYards"],
+  WR: ["Games", "Started", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingLong", "ReceivingTouchdowns"],
+  TE: ["Games", "Started", "Receptions", "ReceivingYards", "ReceivingYardsPerReception", "ReceivingLong", "ReceivingTouchdowns"],
 };
 const DEFENSE_FEATURED = ["Games", "Started", "Tackles", "SoloTackles", "TacklesForLoss", "Sacks", "Interceptions", "PassesDefended", "FumblesForced"];
 const DEFENSE_POSITIONS = new Set(["DE", "DT", "NT", "DL", "LB", "ILB", "OLB", "MLB", "CB", "S", "SS", "FS", "DB"]);
@@ -105,6 +105,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const featured = featuredFields(league, profile.position);
   const currentStats = profile.currentSeasonStats;
   const otherFields = currentStats ? Object.keys(currentStats).filter((f) => !featured.includes(f)) : [];
+  const seasonCount = new Set(profile.seasonsBySeason.map((s) => s.season)).size;
 
   const journeySteps: string[] = [];
   if (profile.highSchool) journeySteps.push(profile.highSchool);
@@ -116,7 +117,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   }
   const sortedTransactions = [...profile.transactions].sort((a, b) => +new Date(a.date ?? 0) - +new Date(b.date ?? 0));
   for (const t of sortedTransactions) {
-    journeySteps.push(`${t.type ?? "Roster move"}${t.team ? ` — ${t.team}` : ""}`);
+    journeySteps.push(`${formatDate(t.date) ? `${formatDate(t.date)} — ` : ""}${t.type ?? "Roster move"}${t.team ? `: ${t.team}` : ""}`);
   }
   if (profile.team) journeySteps.push(`Current team: ${profile.team}`);
 
@@ -183,30 +184,44 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       </section>
 
       <section className="spx-panel spx-profile__section">
-        <div className="spx-panel__head"><h2>Professional Career — {profile.currentSeason} Season</h2></div>
-        {currentStats ? (
+        <div className="spx-panel__head"><h2>Professional Career</h2></div>
+        {profile.careerTotals && (
           <div className="spx-panel__body">
-            <StatRow fields={featured.length ? featured : Object.keys(currentStats)} stats={currentStats} />
-            {featured.length > 0 && otherFields.length > 0 && (
-              <details className="spx-standings">
-                <summary>More stats</summary>
-                <StatRow fields={otherFields} stats={currentStats} />
-              </details>
-            )}
+            <h3 className="spx-standings__group-label">Career Totals — {seasonCount} Season{seasonCount === 1 ? "" : "s"}</h3>
+            <StatRow fields={featured.length ? featured.filter((f) => f in profile.careerTotals!) : Object.keys(profile.careerTotals)} stats={profile.careerTotals} />
           </div>
-        ) : (
-          <p className="spx-panel__empty">No {profile.currentSeason} season statistics available yet.</p>
         )}
-        {profile.seasonsBySeason.length > 1 && (
+
+        <div className="spx-panel__body" style={{ marginTop: profile.careerTotals ? "1rem" : 0 }}>
+          <h3 className="spx-standings__group-label">{profile.currentSeason} Season</h3>
+          {currentStats ? (
+            <>
+              <StatRow fields={featured.length ? featured : Object.keys(currentStats)} stats={currentStats} />
+              {featured.length > 0 && otherFields.length > 0 && (
+                <details className="spx-standings">
+                  <summary>More stats</summary>
+                  <StatRow fields={otherFields} stats={currentStats} />
+                </details>
+              )}
+            </>
+          ) : (
+            <p className="spx-panel__empty">No {profile.currentSeason} season statistics available yet.</p>
+          )}
+        </div>
+
+        {profile.seasonsBySeason.length > 0 && (
           <div className="spx-panel__body" style={{ marginTop: "1rem" }}>
             <h3 className="spx-standings__group-label">By Season</h3>
             {profile.seasonsBySeason.map((line) => (
-              <div key={line.season} style={{ marginBottom: ".6rem" }}>
-                <span className="spx-standings__division-label">{line.season}</span>
+              <div key={`${line.season}-${line.team ?? ""}`} style={{ marginBottom: ".6rem" }}>
+                <span className="spx-standings__division-label">{line.season}{line.team ? ` — ${line.team}` : ""}</span>
                 <StatRow fields={featured.length ? featured : Object.keys(line.stats)} stats={line.stats} />
               </div>
             ))}
           </div>
+        )}
+        {profile.seasonsBySeason.length === 0 && !currentStats && (
+          <p className="spx-panel__empty">No professional season statistics on record from our connected providers yet.</p>
         )}
       </section>
 

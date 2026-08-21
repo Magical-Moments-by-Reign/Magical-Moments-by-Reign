@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { toSdioGame, fetchNbaFirstGame, toSdioStandingRow, fetchGamesByDate, fetchStandings, toSdioInjury, toSdioRanking, toPlayer, fetchPlayerSeasonStats } from "./sportsdata";
+import { toSdioGame, fetchNbaFirstGame, toSdioStandingRow, fetchGamesByDate, fetchStandings, toSdioInjury, toSdioRanking, toPlayer, fetchPlayerSeasonStats, looksLikeScrambledStats } from "./sportsdata";
 
 test("toSdioGame maps a real SportsDataIO Games row", () => {
   const g = toSdioGame({ GameID: 501, DateTime: "2026-10-03T19:30:00", HomeTeamName: "Toronto Raptors", AwayTeamName: "Miami Heat", Status: "Scheduled", Channel: "NBA TV" });
@@ -135,25 +135,79 @@ test("toPlayer leaves extended fields undefined rather than guessing when the sh
   assert.equal(p?.draftYear, undefined);
 });
 
-test("fetchPlayerSeasonStats returns undefined when unconfigured", async () => {
+test("fetchPlayerSeasonStats returns [] when unconfigured", async () => {
   const originalKey = process.env.SPORTSDATAIO_API_KEY;
   delete process.env.SPORTSDATAIO_API_KEY;
   try {
-    assert.equal(await fetchPlayerSeasonStats("nfl", "9", 2026), undefined);
+    assert.deepEqual(await fetchPlayerSeasonStats("nfl", "9", 2026), []);
   } finally {
     if (originalKey !== undefined) process.env.SPORTSDATAIO_API_KEY = originalKey;
   }
 });
 
-test("fetchPlayerSeasonStats keeps only known numeric fields from a real response", async () => {
+test("fetchPlayerSeasonStats keeps only known numeric fields from a real response, and reads the row's Team", async () => {
   const originalFetch = global.fetch;
   const originalKey = process.env.SPORTSDATAIO_API_KEY;
   process.env.SPORTSDATAIO_API_KEY = "test-key";
   global.fetch = (async () =>
-    new Response(JSON.stringify([{ PassingYards: 3842, PassingTouchdowns: 31, TeamName: "not a stat" }]), { status: 200 })) as typeof fetch;
+    new Response(JSON.stringify([{ PassingYards: 3842, PassingTouchdowns: 31, Team: "NE", TeamName: "not a stat" }]), { status: 200 })) as typeof fetch;
   try {
     const stats = await fetchPlayerSeasonStats("nfl", "9", 2026);
-    assert.deepEqual(stats, { PassingYards: 3842, PassingTouchdowns: 31 });
+    assert.deepEqual(stats, [{ team: "NE", stats: { PassingYards: 3842, PassingTouchdowns: 31 } }]);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
+});
+
+test("looksLikeScrambledStats flags fractional receptions/yards/TDs — real completed-game counting stats are never decimals", () => {
+  // Mack Hollins' real 2025 line (46 rec, 550 yds, 2 TD) reported as a
+  // scrambled trial-data decimal — this is the exact shape that must be
+  // rejected rather than rendered as if it were real.
+  assert.equal(looksLikeScrambledStats("nfl", { Receptions: 60.6, ReceivingYards: 724.9, ReceivingTouchdowns: 3.5 }), true);
+  assert.equal(looksLikeScrambledStats("nfl", { Games: 15.2 }), true);
+});
+
+test("looksLikeScrambledStats does not flag real fractional sack/tackle-for-loss stats — those are legitimately scored in halves", () => {
+  assert.equal(looksLikeScrambledStats("nfl", { Sacks: 2.5, TacklesForLoss: 1.5, Tackles: 4.5, Receptions: 46, ReceivingYards: 550, ReceivingTouchdowns: 2 }), false);
+});
+
+test("looksLikeScrambledStats does not flag real rate/percentage fields", () => {
+  assert.equal(looksLikeScrambledStats("nfl", { PassingCompletionPercentage: 67.3, RushingYardsPerAttempt: 4.8, ReceivingYardsPerReception: 12.0, Receptions: 46 }), false);
+});
+
+test("fetchPlayerSeasonStats rejects a row with scrambled/projected-looking counting stats rather than displaying it", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  global.fetch = (async () =>
+    new Response(JSON.stringify([{ Receptions: 60.6, ReceivingYards: 724.9, ReceivingTouchdowns: 3.5, Team: "NE" }]), { status: 200 })) as typeof fetch;
+  try {
+    const stats = await fetchPlayerSeasonStats("nfl", "9", 2025);
+    assert.deepEqual(stats, []);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
+});
+
+test("fetchPlayerSeasonStats preserves two real per-team rows for a mid-season trade, keying each by its own Team", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  global.fetch = (async () =>
+    new Response(JSON.stringify([
+      { Team: "PHI", Receptions: 20, ReceivingYards: 240, ReceivingTouchdowns: 1 },
+      { Team: "MIA", Receptions: 26, ReceivingYards: 310, ReceivingTouchdowns: 1 },
+    ]), { status: 200 })) as typeof fetch;
+  try {
+    const stats = await fetchPlayerSeasonStats("nfl", "9", 2019);
+    assert.deepEqual(stats, [
+      { team: "PHI", stats: { Receptions: 20, ReceivingYards: 240, ReceivingTouchdowns: 1 } },
+      { team: "MIA", stats: { Receptions: 26, ReceivingYards: 310, ReceivingTouchdowns: 1 } },
+    ]);
   } finally {
     global.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
