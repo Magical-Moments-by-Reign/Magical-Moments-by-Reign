@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
@@ -77,6 +78,8 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   return (
     <div className="spx">
       <header className="spx-sport-header">
+        <Image src="/discovery/stadium.png" alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
+        <div className="spx-sport-header__shade" />
         <SportBackdrop sport={sport} />
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
         <div className="spx-sport-header__brand">

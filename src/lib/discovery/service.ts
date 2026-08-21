@@ -215,12 +215,27 @@ export interface PopularCategoryRail {
 
 /** One real, relevance-ranked Ticketmaster rail per featured category, for
  *  the "Popular Near You" section. Nationwide (no location required) so it
- *  always has something to show, same as Trending Now/Trending Artists. */
-export async function getPopularNearYouByCategory(limit = 10): Promise<PopularCategoryRail[]> {
+ *  always has something to show, same as Trending Now/Trending Artists.
+ *  A touring production (e.g. "Hamilton (Touring)") sells as a separate
+ *  real event per city/date, so an un-deduped relevance list is mostly the
+ *  same show repeated over and over — never what "popular" should look
+ *  like. Over-fetches, then keeps only the first (highest-relevance) real
+ *  listing per distinct event name, same as Ticketmaster's own rails show
+ *  one card per show rather than one per date. */
+export async function getPopularNearYouByCategory(limit = 10, rawLimit = 40): Promise<PopularCategoryRail[]> {
   const results = await Promise.all(
-    POPULAR_CATEGORIES.map((c) => getNearYouEvents({ category: c.id, sort: "relevance", limit })),
+    POPULAR_CATEGORIES.map((c) => getNearYouEvents({ category: c.id, sort: "relevance", limit: rawLimit })),
   );
-  return POPULAR_CATEGORIES.map((c, i) => ({ category: c.id, label: c.label, items: results[i].items })).filter((r) => r.items.length > 0);
+  return POPULAR_CATEGORIES.map((c, i) => {
+    const seen = new Set<string>();
+    const items = results[i].items.filter((e) => {
+      const key = e.name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, limit);
+    return { category: c.id, label: c.label, items };
+  }).filter((r) => r.items.length > 0);
 }
 
 export interface CuratedItem {

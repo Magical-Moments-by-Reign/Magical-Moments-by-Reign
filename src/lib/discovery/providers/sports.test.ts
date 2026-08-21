@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, detectPlanRestriction, ApiSportsProvider } from "./sports";
+import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem } from "./sports";
 
 test("seasonParam: NBA/NHL use split-year seasons, keyed off an August season start", () => {
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
@@ -58,4 +58,20 @@ test("searchTeams sends only `search` to /teams — never `league` (API-Sports r
     if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
     else process.env.API_SPORTS_KEY = originalKey;
   }
+});
+
+test("mapGameItem reads stage from the game object — the same nesting id/date/status already use", () => {
+  const g = mapGameItem("nfl", "1", {
+    game: { id: 5001, date: { date: "2026-08-21" }, status: { short: "NS" }, stage: "Pre Season" },
+    teams: { home: { id: 1, name: "Home Team" }, away: { id: 2, name: "Away Team" } },
+  });
+  assert.equal(g?.stage, "Pre Season");
+});
+
+test("mapGameItem never fabricates a stage when API-Sports doesn't report one", () => {
+  const g = mapGameItem("nfl", "1", {
+    game: { id: 5002, date: { date: "2026-08-21" }, status: { short: "NS" } },
+    teams: { home: { id: 1, name: "Home Team" }, away: { id: 2, name: "Away Team" } },
+  });
+  assert.equal(g?.stage, undefined);
 });
