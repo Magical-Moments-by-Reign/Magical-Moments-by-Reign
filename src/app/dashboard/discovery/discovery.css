@@ -626,6 +626,7 @@
 .amk-row { margin-bottom: 1.8rem; }
 .amk-row__head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
 .amk-row__head h2 { font-family: var(--font-display, Georgia, serif); color: var(--espresso); font-size: 1.1rem; margin: 0; }
+.amk-row__signin { display: inline-flex; align-items: center; gap: .35rem; color: var(--ink-soft); font-size: .72rem; font-weight: 600; margin-left: .2rem; }
 .amk-row__scroll { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: .4rem; scrollbar-width: thin; }
 
 .amk-tile { flex: 0 0 150px; text-decoration: none; color: inherit; }
