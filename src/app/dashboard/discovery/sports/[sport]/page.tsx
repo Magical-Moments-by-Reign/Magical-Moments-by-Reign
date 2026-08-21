@@ -20,10 +20,20 @@ export const dynamic = "force-dynamic";
 // Those sports fall back to the plain styled-text mark below instead.
 const NO_LEAGUE_LOGO: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 const BLUE_LEAGUE_TEXT: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
-// Football sports use the Owner-provided field photo (public/discovery/
-// football-field.png) as the hero backdrop instead of the generic stadium
-// shot — no team/league marks in that image, just a real field.
-const FIELD_BACKDROP: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
+// Sports with an Owner-provided backdrop photo (public/discovery/*) to use
+// as the hero background instead of the generic stadium shot — none of
+// these images carry team/league marks, just a real field/court.
+const HERO_BACKDROP_IMAGE: Partial<Record<SportSlug, string>> = {
+  nfl: "/discovery/football-field.png",
+  ncaaf: "/discovery/football-field.png",
+  nba: "/discovery/basketball-court.png",
+};
+// Sports whose hero countdown targets the real preseason opener until that
+// game's kickoff passes, then automatically flips to the real regular-
+// season opener — real dates/teams from API-Sports either way, never
+// computed or guessed. Off by default (football's hero always targets the
+// regular-season opener, with preseason as a separate footnote line).
+const PRESEASON_PHASE_SPORTS: Partial<Record<SportSlug, true>> = { nba: true };
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
@@ -64,11 +74,20 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     myTeamsForSport.forEach((t, i) => rosters.set(t.follow.id, rosterResults[i]));
   }
 
-  // Whole days until the real regular-season opener's kickoff — never
-  // shown once kickoff has passed (that game becomes a normal schedule
-  // entry, not a countdown target).
-  const daysUntilKickoff = firstRegularSeasonGame
-    ? Math.ceil((+new Date(firstRegularSeasonGame.startsAt) - Date.now()) / 86_400_000)
+  // Which real game the hero countdown targets: for PRESEASON_PHASE_SPORTS,
+  // the preseason opener until its kickoff passes, then the regular-season
+  // opener; every other sport always targets the regular-season opener.
+  const preseasonKickoff = firstPreseasonGame ? +new Date(firstPreseasonGame.startsAt) : null;
+  const preseasonNotYetStarted = preseasonKickoff !== null && preseasonKickoff > Date.now();
+  const heroPhase: "preseason" | "regular" = PRESEASON_PHASE_SPORTS[sport] && preseasonNotYetStarted ? "preseason" : "regular";
+  const heroGame = heroPhase === "preseason" ? firstPreseasonGame : firstRegularSeasonGame;
+  const heroTitle = heroPhase === "preseason" ? "Preseason Countdown" : "Regular Season Countdown";
+
+  // Whole days until the hero's target kickoff — never shown once kickoff
+  // has passed (that game becomes a normal schedule entry, not a countdown
+  // target).
+  const daysUntilKickoff = heroGame
+    ? Math.ceil((+new Date(heroGame.startsAt) - Date.now()) / 86_400_000)
     : null;
 
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
@@ -99,10 +118,10 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // that game's kickoff passes, both this gate and CountdownClock's own
   // internal clock guard turn it off — the header falls back to the plain
   // sport-identification brand row below rather than showing an expired
-  // 00:00:00:00 clock.
-  const showHeroCountdown = Boolean(firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0);
-  const showFieldBackdrop = showHeroCountdown && FIELD_BACKDROP[sport];
-  const backdropSrc = showFieldBackdrop ? "/discovery/football-field.png" : "/discovery/stadium.png";
+  // 00:00:00:00 clock. For PRESEASON_PHASE_SPORTS this re-evaluates on the
+  // regular-season opener once heroGame has already flipped to it above.
+  const showHeroCountdown = Boolean(heroGame && daysUntilKickoff !== null && daysUntilKickoff > 0);
+  const backdropSrc = (showHeroCountdown && HERO_BACKDROP_IMAGE[sport]) || "/discovery/stadium.png";
 
   return (
     <div className="spx">
@@ -112,24 +131,24 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         {!showHeroCountdown && <SportBackdrop sport={sport} />}
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
 
-        {showHeroCountdown && firstRegularSeasonGame ? (
+        {showHeroCountdown && heroGame ? (
           <div className="spx-countdown--hero">
             <span className={`spx-countdown__league${BLUE_LEAGUE_TEXT[sport] ? " spx-countdown__league--blue" : ""}`}>{sportMeta.label}</span>
-            <span className="spx-countdown__title">Regular Season Countdown</span>
+            <span className="spx-countdown__title">{heroTitle}</span>
             <div className="spx-countdown__matchup--hero">
               <div className="spx-countdown__side">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {firstRegularSeasonGame.awayTeam.logoUrl ? <img src={firstRegularSeasonGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                <b>{firstRegularSeasonGame.awayTeam.name}</b>
+                {heroGame.awayTeam.logoUrl ? <img src={heroGame.awayTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <b>{heroGame.awayTeam.name}</b>
               </div>
               <span className="spx-countdown__vs">VS</span>
               <div className="spx-countdown__side">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {firstRegularSeasonGame.homeTeam.logoUrl ? <img src={firstRegularSeasonGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                <b>{firstRegularSeasonGame.homeTeam.name}</b>
+                {heroGame.homeTeam.logoUrl ? <img src={heroGame.homeTeam.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <b>{heroGame.homeTeam.name}</b>
               </div>
             </div>
-            <CountdownClock targetISO={firstRegularSeasonGame.startsAt} />
+            <CountdownClock targetISO={heroGame.startsAt} />
           </div>
         ) : (
           <div className="spx-sport-header__brand">
@@ -143,7 +162,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           </div>
         )}
 
-        {firstPreseasonGame && (
+        {firstPreseasonGame && !PRESEASON_PHASE_SPORTS[sport] && (
           <p className="spx-sport-header__preseason">
             Preseason begins {new Date(firstPreseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             {" "}— {firstPreseasonGame.awayTeam.name} @ {firstPreseasonGame.homeTeam.name}
