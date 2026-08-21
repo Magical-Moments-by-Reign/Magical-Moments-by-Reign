@@ -100,7 +100,7 @@
 .disc-form input[type="text"] { flex: 1; min-width: 220px; padding: .8rem 1.05rem; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: .95rem; }
 .disc-form .btn, .disc-form button { padding: .8rem 1.5rem; font-size: .82rem; }
 
-.disc-detail__hero { border-radius: 16px; overflow: hidden; min-height: 260px; background-size: cover; background-position: center; background-color: #efe6d5; display: flex; align-items: flex-end; padding: 1.4rem; position: relative; }
+.disc-detail__hero { border-radius: 16px; overflow: hidden; min-height: 260px; background-size: cover; background-position: center 20%; background-color: #efe6d5; display: flex; align-items: flex-end; padding: 1.4rem; position: relative; }
 .disc-detail__hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(20,14,8,.82)); }
 .disc-detail__hero h1 { position: relative; color: #fff9ed; font-family: var(--font-display, Georgia, serif); font-size: clamp(1.5rem, 3vw, 2.1rem); margin: 0; }
 .disc-detail__body { margin-top: 1.2rem; max-width: 68ch; color: var(--ink-soft); line-height: 1.65; }
