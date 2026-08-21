@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
+import { normalizeStandingsBySport } from "@/lib/discovery/sports/standings";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
@@ -33,56 +34,25 @@ const HERO_BACKDROP_IMAGE: Partial<Record<SportSlug, string>> = {
 // regular-season opener, with preseason as a separate footnote line).
 const PRESEASON_PHASE_SPORTS: Partial<Record<SportSlug, true>> = { nba: true };
 
-type StandingRow = Awaited<ReturnType<typeof getStandings>>["standings"][number];
+// A few provider group labels get a friendlier, still-accurate display form
+// (e.g. a bare "east" becomes "Eastern Conference", matching how the league
+// itself refers to it) — every other label is just cased consistently.
+const GROUP_LABEL_OVERRIDES: Record<string, string> = { east: "Eastern Conference", west: "Western Conference" };
+const KNOWN_ABBR = new Set(["afc", "nfc", "al", "nl", "ncaa"]);
 
-function winPct(s: StandingRow): number {
-  const w = s.wins ?? 0, l = s.losses ?? 0;
-  return w + l > 0 ? w / (w + l) : 0;
-}
-
-/** Games behind the group's leader — standard GB math over each team's real
- *  wins/losses, never a provider field. Null when either side is missing a
- *  real win/loss count to compute from. */
-function gamesBehind(leader: StandingRow, team: StandingRow): number | null {
-  if (leader.wins == null || leader.losses == null || team.wins == null || team.losses == null) return null;
-  const gb = (leader.wins - team.wins + (team.losses - leader.losses)) / 2;
-  return gb;
-}
-
-/** Short provider labels ("AFC", "east") get title-cased for display; the
- *  string itself always comes straight from the provider — never invented
+/** Cases a provider label consistently — known abbreviations (AFC/NFC/AL/NL)
+ *  stay uppercase, everything else is title-cased — regardless of whatever
+ *  case the provider itself used. The string content always comes straight
+ *  from the provider (or, for a group derived from a division prefix, a
+ *  standard expansion of the provider's own abbreviation) — never invented
  *  or hardcoded by team name. */
 function formatGroupLabel(raw: string): string {
-  return raw.length <= 4 ? raw.toUpperCase() : raw.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-interface StandingsGroup {
-  label: string;
-  rows: (StandingRow & { displayRank: number; gb: number | null })[];
-}
-
-/** Splits real standings into their real conference/group buckets (per the
- *  provider's own `group` field — see SportsStanding.group's doc comment)
- *  and, only within a grouped bucket, re-ranks by real win percentage
- *  instead of trusting provider row order or a possibly division-scoped
- *  rank field. Ungrouped sports (most leagues here) pass through untouched,
- *  in the provider's own order — recomputing a win%-based rank there would
- *  actively mis-rank a points-based table like soccer's. */
-function buildStandingsGroups(standings: StandingRow[]): StandingsGroup[] {
-  const hasGroups = standings.some((s) => s.group);
-  if (!hasGroups) {
-    return [{ label: "", rows: standings.map((s, i) => ({ ...s, displayRank: s.rank ?? i + 1, gb: null })) }];
-  }
-  const byGroup = new Map<string, StandingRow[]>();
-  for (const s of standings) {
-    const key = s.group ?? "Other";
-    byGroup.set(key, [...(byGroup.get(key) ?? []), s]);
-  }
-  return Array.from(byGroup.entries()).map(([label, rows]) => {
-    const sorted = [...rows].sort((a, b) => winPct(b) - winPct(a) || (b.wins ?? 0) - (a.wins ?? 0) || a.team.name.localeCompare(b.team.name));
-    const leader = sorted[0];
-    return { label, rows: sorted.map((s, i) => ({ ...s, displayRank: i + 1, gb: i === 0 ? 0 : gamesBehind(leader, s) })) };
-  });
+  const key = raw.trim().toLowerCase();
+  if (GROUP_LABEL_OVERRIDES[key]) return GROUP_LABEL_OVERRIDES[key];
+  return raw
+    .split(/\s+/)
+    .map((word) => (KNOWN_ABBR.has(word.toLowerCase()) ? word.toUpperCase() : word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : word))
+    .join(" ");
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
@@ -205,7 +175,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const standingsResult = connected && hasLeague ? await getStandings(sport, league) : { standings: [] };
   const standings = standingsResult.standings ?? [];
   const standingsRestricted = standingsResult.planRestricted;
-  const standingsGroups = buildStandingsGroups(standings);
+  const standingsGroups = normalizeStandingsBySport(sport, standings);
 
   // The real season-opener countdown is the hero's dominant state. Once
   // its target passes, both this gate and CountdownClock's own internal
@@ -323,19 +293,24 @@ export default async function SportPage({ params, searchParams }: { params: Prom
               <div className="spx-panel__body">
                 {standingsGroups.map((g) => (
                   <div key={g.label || "flat"} className="spx-standings__group">
-                    {g.label && <h3 className="spx-standings__group-label">{formatGroupLabel(g.label)} Conference</h3>}
-                    <div className="spx-standings__cols">
-                      <span>Team</span><span>W-L</span><span>Win%</span>{g.label && <span>GB</span>}
-                    </div>
-                    {g.rows.map((s) => (
-                      <div className="spx-team-row" key={s.team.id}>
-                        <span style={{ color: "var(--gold)", fontSize: ".72rem", fontWeight: 800, width: 18 }}>{s.displayRank}</span>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {s.team.logoUrl ? <img src={s.team.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                        <b style={{ flex: 1 }}>{s.team.name}</b>
-                        <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 48, textAlign: "right" }}>{s.summary ?? `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}`}</span>
-                        <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 40, textAlign: "right" }}>{(winPct(s) * 100).toFixed(1)}</span>
-                        {g.label && <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 32, textAlign: "right" }}>{s.gb == null ? "—" : s.gb === 0 ? "-" : s.gb}</span>}
+                    {g.label && <h3 className="spx-standings__group-label">{formatGroupLabel(g.label)}</h3>}
+                    {g.divisions.map((d) => (
+                      <div key={d.label || "flat"} className="spx-standings__division">
+                        {d.label && <h4 className="spx-standings__division-label">{formatGroupLabel(d.label)}</h4>}
+                        <div className="spx-standings__cols">
+                          <span>Team</span><span>W-L</span><span>Win%</span>{d.rows.some((r) => r.gb != null) && <span>GB</span>}
+                        </div>
+                        {d.rows.map((s) => (
+                          <div className="spx-team-row" key={s.team.id}>
+                            <span style={{ color: "var(--gold)", fontSize: ".72rem", fontWeight: 800, width: 18 }}>{s.displayRank}</span>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {s.team.logoUrl ? <img src={s.team.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                            <b style={{ flex: 1 }}>{s.team.name}</b>
+                            <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 48, textAlign: "right" }}>{s.summary ?? `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}`}</span>
+                            <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 40, textAlign: "right" }}>{s.wins == null && s.losses == null ? "—" : `${(((s.wins ?? 0) / Math.max((s.wins ?? 0) + (s.losses ?? 0), 1)) * 100).toFixed(1)}`}</span>
+                            {d.rows.some((r) => r.gb != null) && <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 32, textAlign: "right" }}>{s.gb == null ? "—" : s.gb === 0 ? "-" : s.gb}</span>}
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

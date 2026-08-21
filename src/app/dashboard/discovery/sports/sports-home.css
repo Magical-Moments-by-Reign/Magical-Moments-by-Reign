@@ -138,6 +138,9 @@
 .spx-standings__group { margin-top: 1rem; }
 .spx-standings__group:first-of-type { margin-top: .8rem; }
 .spx-standings__group-label { margin: 0 0 .5rem; color: var(--gold); font-size: .74rem; font-weight: 800; letter-spacing: .04em; }
+.spx-standings__division { margin-top: .7rem; }
+.spx-standings__division:first-of-type { margin-top: .3rem; }
+.spx-standings__division-label { margin: 0 0 .35rem; color: var(--gold-soft); font-size: .64rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .spx-standings__cols { display: flex; align-items: center; gap: .6rem; padding: 0 0 .3rem; color: #776b52; font-size: .58rem; text-transform: uppercase; letter-spacing: .06em; }
 .spx-standings__cols span:first-child { flex: 1; margin-left: 42px; }
 .spx-standings__cols span:not(:first-child) { width: 48px; text-align: right; }
