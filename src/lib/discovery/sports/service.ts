@@ -21,17 +21,24 @@ const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
 const TTL_ROSTER = 10080; // 1 week — a team's active roster barely moves day to day
 const TTL_TEAM_LOOKUP = 10080; // 1 week — team identity/logo rarely changes
 
-export const SPORT_CATALOG: { slug: SportSlug; label: string }[] = [
-  { slug: "nfl", label: "NFL" },
-  { slug: "ncaaf", label: "College Football" },
-  { slug: "nba", label: "NBA" },
-  { slug: "mlb", label: "MLB" },
-  { slug: "soccer", label: "Soccer" },
-  { slug: "nhl", label: "NHL" },
-  { slug: "mma", label: "MMA" },
-  { slug: "rugby", label: "Rugby" },
-  { slug: "volleyball", label: "Volleyball" },
-  { slug: "f1", label: "Formula 1" },
+// Explore All Sports grid grouping — "pro" leagues, "college" sports, and
+// "world" for broad international/other-sport categories that span many
+// competitions rather than one league.
+export type SportCategory = "pro" | "college" | "world";
+
+export const SPORT_CATALOG: { slug: SportSlug; label: string; category: SportCategory }[] = [
+  { slug: "nfl", label: "NFL", category: "pro" },
+  { slug: "nba", label: "NBA", category: "pro" },
+  { slug: "wnba", label: "WNBA", category: "pro" },
+  { slug: "mlb", label: "MLB", category: "pro" },
+  { slug: "nhl", label: "NHL", category: "pro" },
+  { slug: "f1", label: "Formula 1", category: "pro" },
+  { slug: "ncaaf", label: "College Football", category: "college" },
+  { slug: "ncaab", label: "College Basketball", category: "college" },
+  { slug: "soccer", label: "Soccer", category: "world" },
+  { slug: "mma", label: "MMA", category: "world" },
+  { slug: "rugby", label: "Rugby", category: "world" },
+  { slug: "volleyball", label: "Volleyball", category: "world" },
 ];
 
 function sportLabel(sport: SportSlug): string {

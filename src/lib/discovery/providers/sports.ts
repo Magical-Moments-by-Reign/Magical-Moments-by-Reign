@@ -8,7 +8,7 @@
 // every method returns null on missing config or a failed/empty response.
 
 export type SportSlug =
-  | "nfl" | "ncaaf" | "nba" | "mlb" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
+  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
 
 export interface SportsTeam {
   id: string;
@@ -51,7 +51,7 @@ export interface SportsLeagueBrand {
  *  Pick / community-vote UI. F1 (a multi-entrant race, not head-to-head) and
  *  MMA (individual fighters, not team logos) are discoverable but excluded —
  *  "who you got" doesn't map cleanly onto either format. */
-export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "mlb", "soccer", "nhl", "rugby", "volleyball"];
+export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "soccer", "nhl", "rugby", "volleyball"];
 
 export interface SportsDateResult {
   games: SportsGameSummary[];
@@ -140,6 +140,8 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   nfl: { host: "v1.american-football.api-sports.io", shape: "games", defaultLeague: "1" },
   ncaaf: { host: "v1.american-football.api-sports.io", shape: "games", defaultLeague: "2" },
   nba: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "12" },
+  wnba: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "13" },
+  ncaab: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "116" },
   mlb: { host: "v1.baseball.api-sports.io", shape: "games", defaultLeague: "1" },
   soccer: { host: "v3.football.api-sports.io", shape: "fixtures", defaultLeague: "39" }, // Premier League
   nhl: { host: "v1.hockey.api-sports.io", shape: "games", defaultLeague: "57" },

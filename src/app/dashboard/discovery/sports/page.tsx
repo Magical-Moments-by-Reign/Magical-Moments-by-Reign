@@ -3,23 +3,20 @@ import Image from "next/image";
 import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { getAwardRace, AWARD_RACES } from "@/lib/discovery/sports/awards";
 import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { submitPickAction, untrackPlayerAction } from "./actions";
 import SportsIcon from "./SportsIcons";
+import SportGlyph from "./SportGlyph";
+import SportCardVisual from "./SportCardVisual";
+import { SPORT_VISUALS } from "./visuals";
 import PlayerSearch from "./PlayerSearch";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
 import "./sports-home.css";
-
-// American football doesn't get a league mark image — API-Sports doesn't
-// reliably return usable artwork for it, and the official NFL/NCAA shields
-// are trademarked marks we don't have rights to reproduce. Those cards fall
-// back to DiscoveryImage's plain styled-text mark instead.
-const NO_LEAGUE_LOGO: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Moments Sports", robots: { index: false } };
@@ -27,9 +24,15 @@ export const metadata: Metadata = { title: "Magical Moments Sports", robots: { i
 // Category word under each Explore card — presentational only, not provider
 // data. Matches the reference's FOOTBALL/BASKETBALL/etc. sub-labels.
 const SPORT_KIND: Record<SportSlug, string> = {
-  nfl: "Football", ncaaf: "Football", nba: "Basketball", mlb: "Baseball",
+  nfl: "Football", ncaaf: "Football", nba: "Basketball", wnba: "Basketball", ncaab: "Basketball", mlb: "Baseball",
   soccer: "Football", nhl: "Hockey", mma: "Mixed Martial Arts",
   rugby: "Rugby", volleyball: "Volleyball", f1: "Racing",
+};
+
+const CATEGORY_LABEL: Record<SportCategory, string> = {
+  pro: "Pro Leagues",
+  college: "College Sports",
+  world: "World & Other Sports",
 };
 
 type MyTeams = Awaited<ReturnType<typeof getMyTeams>>;
@@ -93,18 +96,34 @@ export default async function SportsPage() {
       </section>
 
       <div className="spx-divider"><span>Explore All Sports</span></div>
-      <div className="spx-grid">
-        {SPORT_CATALOG.map((s) => {
-          const logo = NO_LEAGUE_LOGO[s.slug] ? undefined : logos[s.slug];
-          return (
-            <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
-              <DiscoveryImage src={logo} alt={`${s.label} league mark`} fallback={s.label.slice(0, 3).toUpperCase()} />
-              <b>{s.label}</b>
-              <span>{SPORT_KIND[s.slug]}</span>
-            </Link>
-          );
-        })}
-      </div>
+      {(["pro", "college", "world"] as SportCategory[]).map((category) => (
+        <div key={category} className="spx-category">
+          <h3 className="spx-category__label">{CATEGORY_LABEL[category]}</h3>
+          <div className="spx-grid">
+            {SPORT_CATALOG.filter((s) => s.category === category).map((s) => {
+              const visual = SPORT_VISUALS[s.slug];
+              return (
+                <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
+                  <SportCardVisual
+                    src={visual.kind === "league-logo" ? logos[s.slug] : undefined}
+                    alt={`${s.label} mark`}
+                    glyph={visual.glyph}
+                  />
+                  <b>{s.label}</b>
+                  <span>{SPORT_KIND[s.slug]}</span>
+                </Link>
+              );
+            })}
+            {category === "world" && (
+              <span className="spx-card spx-card--soon" aria-disabled="true">
+                <SportGlyph sport="golf" />
+                <b>Golf</b>
+                <span>Coming Soon</span>
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
 
       {showSdio && (
         <>
