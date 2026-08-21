@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAccount } from "@/lib/guard";
+import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getTeamRoster, getNbaHeroState } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
+import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
 import CountdownClock from "../CountdownClock";
@@ -66,11 +67,21 @@ export default async function SportPage({ params, searchParams }: { params: Prom
 
   // Real rosters for followed teams — we can't show injuries (not part of
   // the connected plan), so this is the honest substitute: who's actually
-  // on the roster this season, straight from API-Sports.
+  // on the roster this season. API-Sports first; SportsDataIO second (NBA
+  // only) when API-Sports has nothing — gated to owner/admin preview or
+  // sdioCommercialMode, matching every other SportsDataIO-driven member
+  // surface, since player-team association is that provider's documented
+  // trial-data weak spot (see sdioCommercialMode's doc comment).
+  const isOwner = await isOwnerAccount(account.id);
+  const allowSdioRoster = sport === "nba" && sdioConfigured() && (sdioCommercialMode() || isOwner);
   const rosters = new Map<string, Awaited<ReturnType<typeof getTeamRoster>>>();
-  if (connected && myTeamsForSport.length) {
+  if (myTeamsForSport.length) {
     const rosterResults = await Promise.all(
-      myTeamsForSport.map((t) => (t.follow.teamExternalId ? getTeamRoster(sport, t.follow.teamExternalId) : Promise.resolve([]))),
+      myTeamsForSport.map((t) =>
+        t.follow.teamExternalId
+          ? getTeamRoster(sport, t.follow.teamExternalId, { teamName: t.follow.teamName ?? undefined, allowSecondarySource: allowSdioRoster })
+          : Promise.resolve([]),
+      ),
     );
     myTeamsForSport.forEach((t, i) => rosters.set(t.follow.id, rosterResults[i]));
   }

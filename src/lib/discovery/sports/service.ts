@@ -8,7 +8,8 @@
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
 import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchTeamRoster, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
-import { fetchNbaFirstGame } from "../providers/sportsdata";
+import { fetchNbaFirstGame, fetchNbaGamesByDate, fetchNbaStandings, fetchAllPlayers } from "../providers/sportsdata";
+import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -122,14 +123,25 @@ export async function getGamesByDate(sport: SportSlug, dateISO: string, league?:
     }
     return result;
   });
-  if (!cached) {
-    // Not connected/unreachable/plan-restricted — still surface anything
-    // already synced locally (e.g. an Owner-entered game) rather than an
-    // empty page.
-    return { games: await localGamesForDate(sport, dateISO), planRestricted: restriction };
+  if (cached?.data.games.length) {
+    const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
+    return { games: synced };
   }
-  const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
-  return { games: synced };
+
+  // Tier 2: SportsDataIO, when API-Sports had nothing for this date —
+  // empty, unconfigured, or plan-restricted. Wired for NBA only today, the
+  // only sport with a verified SportsDataIO schedule integration here.
+  if (sport === "nba") {
+    const secondary = await getNbaGamesByDateFromSportsData(dateISO);
+    if (secondary.length) {
+      const synced = await syncGamesToLocal(sport, league || "12", secondary);
+      return { games: synced };
+    }
+  }
+
+  // Neither tier had anything — still surface anything already synced
+  // locally (e.g. an Owner-entered game) rather than an empty page.
+  return { games: await localGamesForDate(sport, dateISO), planRestricted: restriction };
 }
 
 /** The real league logo API-Sports serves for each supported sport's default
@@ -170,35 +182,20 @@ export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<Sport
   return cached?.data ?? null;
 }
 
-// Officially announced by the NBA itself (not derived from either provider).
-// Used only as the last-resort countdown target when NEITHER API-Sports nor
-// SportsDataIO has ingested next season's schedule yet — and only for the
-// date, never a matchup: no team names, logos, times, or scores are
-// invented here. Deliberately a bare "YYYY-MM-DD" (no time, no "Z") — a
-// calendar date, not an instant. Attaching a fake midnight-UTC time and
-// converting that to the viewer's local timezone would roll the displayed
-// date backward for every timezone west of UTC (e.g. "October 3" showing
-// as "October 2, 7:00 PM CDT"). Callers must treat this as a date-only
-// value: no time-of-day is shown, and the countdown targets local midnight
-// on this date, not a UTC instant. The instant either provider returns a
-// real game record (with a real time), that record is used instead and
-// this constant stops being reachable for that phase.
-const KNOWN_NBA_DATES: { preseason: string; regular: string } = {
-  preseason: "2026-10-03",
-  regular: "2026-10-20",
-};
-
 export interface NbaHeroState {
   phase: "preseason" | "regular";
   /** A real matchup once a provider has one — null while only the known
    *  league-wide date is available. */
   game: SportsGameSummary | null;
   targetISO: string;
-  source: "api-sports" | "sportsdata" | "known-date";
-  /** True only for the known-date tier: targetISO is a bare "YYYY-MM-DD"
+  source: "api-sports" | "sportsdata" | "known-fact";
+  /** True only for the known-fact tier: targetISO is a bare "YYYY-MM-DD"
    *  calendar date with no real time attached — callers must not display
    *  or count down to a fabricated time-of-day for it. */
   dateOnly: boolean;
+  /** Full source-priority trail for this resolution — admin diagnostics
+   *  only, never shown to members. See officialSource.ts. */
+  sourceLog: SourceAttempt[];
 }
 
 function normalizeTeamName(s: string): string {
@@ -222,9 +219,84 @@ async function resolveNbaTeamByName(name: string): Promise<{ id: string; logoUrl
   return { id: match.id, logoUrl: match.logoUrl };
 }
 
-async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: SportsGameSummary | null; fallbackISO: string; source: "api-sports" | "sportsdata" | "known-date" }> {
+// SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
+// F/OT/Postponed/Canceled, per its docs) — mapped conservatively to our
+// three-state model; anything not clearly finished or live is treated as
+// scheduled rather than guessed.
+function sdioStatusToGameStatus(status: string | undefined): "scheduled" | "live" | "final" {
+  const s = (status || "").toLowerCase();
+  if (s.includes("final")) return "final";
+  if (s.includes("progress") || s === "live") return "live";
+  return "scheduled";
+}
+
+/** Real NBA games for one date from SportsDataIO — secondary source for
+ *  Today's Games when API-Sports has nothing for that date. Each team is
+ *  resolved to its real API-Sports logo the same way the hero countdown
+ *  does. Returns [] on missing config, a failed call, or a genuinely empty
+ *  schedule for that date. */
+async function getNbaGamesByDateFromSportsData(dateISO: string): Promise<SportsGameSummary[]> {
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", dateISO, kind: "games_by_date" }), TTL_GAMES_UPCOMING, () =>
+    fetchNbaGamesByDate(dateISO));
+  const games = cached?.data ?? [];
+  if (!games.length) return [];
+  return Promise.all(games.map(async (g): Promise<SportsGameSummary> => {
+    const [home, away] = await Promise.all([resolveNbaTeamByName(g.homeTeam), resolveNbaTeamByName(g.awayTeam)]);
+    return {
+      externalId: g.externalId,
+      sport: "nba",
+      league: "12",
+      homeTeam: { id: home?.id ?? "", name: g.homeTeam, logoUrl: home?.logoUrl },
+      awayTeam: { id: away?.id ?? "", name: g.awayTeam, logoUrl: away?.logoUrl },
+      startsAt: g.startsAt,
+      status: sdioStatusToGameStatus(g.status),
+    };
+  }));
+}
+
+/** Real NBA standings from SportsDataIO — secondary source when API-Sports
+ *  has nothing for the season yet. Each team is resolved to its real
+ *  API-Sports id/logo the same way the other NBA fallbacks do. Returns []
+ *  on missing config, a failed call, or no usable rows. */
+async function getNbaStandingsFromSportsData(season?: string): Promise<SportsStanding[]> {
+  const now = new Date();
+  const startYear = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+  const parsed = season ? parseInt(season.slice(0, 4), 10) : NaN;
+  const year = Number.isFinite(parsed) ? parsed : startYear;
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", year, kind: "standings" }), TTL_STANDINGS, () =>
+    fetchNbaStandings(year));
+  const rows = cached?.data ?? [];
+  if (!rows.length) return [];
+  return Promise.all(rows.map(async (r): Promise<SportsStanding> => {
+    const team = await resolveNbaTeamByName(r.team);
+    return { team: { id: team?.id ?? "", name: r.team, logoUrl: team?.logoUrl }, wins: r.wins, losses: r.losses };
+  }));
+}
+
+/** Real NBA roster players from SportsDataIO — secondary source when
+ *  API-Sports has nothing for a team. Matched by exact normalized team
+ *  name only (never a fuzzy abbreviation guess: SportsDataIO's player
+ *  records commonly carry a short team code like "BOS" rather than the
+ *  full name, and guessing that mapping risks exactly the kind of
+ *  wrong-team association this fallback is already gated to avoid — see
+ *  the allowSecondarySource caller). Returns [] when nothing matches
+ *  confidently, never a guessed roster. */
+async function getNbaRosterFromSportsData(teamName: string): Promise<SportsRosterPlayer[]> {
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", kind: "all_players" }), TTL_ROSTER, () =>
+    fetchAllPlayers("nba"));
+  const players = cached?.data ?? [];
+  if (!players.length) return [];
+  const target = normalizeTeamName(teamName);
+  return players
+    .filter((p) => p.team && normalizeTeamName(p.team) === target)
+    .map((p): SportsRosterPlayer => ({ id: p.playerId, name: p.name, position: p.position, number: p.number, photoUrl: p.photoUrl }));
+}
+
+async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: SportsGameSummary | null; fallbackISO: string | null; source: "api-sports" | "sportsdata" | "known-fact"; log: SourceAttempt[] }> {
+  const log: SourceAttempt[] = [];
   const apiSportsGame = kind === "preseason" ? await getFirstPreseasonGame("nba") : await getFirstRegularSeasonGame("nba");
-  if (apiSportsGame) return { game: apiSportsGame, fallbackISO: KNOWN_NBA_DATES[kind], source: "api-sports" };
+  log.push({ tier: "api-sports", outcome: apiSportsGame ? "hit" : "empty" });
+  if (apiSportsGame) return { game: apiSportsGame, fallbackISO: null, source: "api-sports", log };
 
   const now = new Date();
   const startYear = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1; // same August season-start boundary as seasonParam()
@@ -232,6 +304,7 @@ async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: Spor
   const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", seasonKey, kind: "hero_opener" }), TTL_GAMES_UPCOMING, () =>
     fetchNbaFirstGame(seasonKey));
   const sdio = cached?.data;
+  log.push({ tier: "sportsdata", outcome: sdio ? "hit" : "empty" });
   if (sdio) {
     // SportsDataIO's schedule doesn't carry team logos — resolve each side
     // against our own API-Sports team catalog so the game still shows real
@@ -247,45 +320,59 @@ async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: Spor
       startsAt: sdio.startsAt,
       status: "scheduled",
     };
-    return { game, fallbackISO: KNOWN_NBA_DATES[kind], source: "sportsdata" };
+    return { game, fallbackISO: null, source: "sportsdata", log };
   }
 
-  return { game: null, fallbackISO: KNOWN_NBA_DATES[kind], source: "known-date" };
+  const factKind = kind === "preseason" ? "preseason_opener_date" : "regular_season_opener_date";
+  const dateOnly = await resolveOfficialDate("nba", factKind, log);
+  return { game: null, fallbackISO: dateOnly, source: "known-fact", log };
 }
 
-/** NBA hero state with a 3-tier source-priority fallback: (1) API-Sports,
- *  (2) SportsDataIO, (3) the NBA's own officially-announced dates (date
- *  only, never a fabricated matchup) — so the hero can show a real
- *  countdown even on a day neither live provider has posted the season
- *  yet. Whichever tier resolves the preseason opener also decides whether
- *  the hero is still in its preseason phase; once that target passes (by
- *  either a real game's tipoff or the known date), this flips to the
- *  regular-season opener the same way. Returns null once the regular-season
- *  target has also passed — the hero then steps aside for the page's
- *  normal Today's Games / standings panels. */
+/** NBA hero state with the full Magical Sports source-priority fallback:
+ *  (1) API-Sports, (2) SportsDataIO, (3) a verified official feed, (4) a
+ *  manually confirmed officially-announced date (never a fabricated
+ *  matchup) — so the hero can show a real countdown even on a day no live
+ *  provider has posted the season yet. Whichever tier resolves the
+ *  preseason opener also decides whether the hero is still in its
+ *  preseason phase; once that target passes (by either a real game's
+ *  tipoff or the known date), this flips to the regular-season opener the
+ *  same way. Returns null once the regular-season target has also passed,
+ *  or once every tier is exhausted with nothing at all — the hero then
+ *  steps aside for the page's normal Today's Games / standings panels. */
 export async function getNbaHeroState(): Promise<NbaHeroState | null> {
   const preseason = await getNbaOpener("preseason");
   const preseasonTarget = preseason.game?.startsAt ?? preseason.fallbackISO;
-  if (+new Date(preseasonTarget) > Date.now()) {
-    return { phase: "preseason", game: preseason.game, targetISO: preseasonTarget, source: preseason.source, dateOnly: preseason.source === "known-date" };
+  if (preseasonTarget && +new Date(preseasonTarget) > Date.now()) {
+    return { phase: "preseason", game: preseason.game, targetISO: preseasonTarget, source: preseason.source, dateOnly: preseason.source === "known-fact", sourceLog: preseason.log };
   }
 
   const regular = await getNbaOpener("regular");
   const regularTarget = regular.game?.startsAt ?? regular.fallbackISO;
-  if (+new Date(regularTarget) <= Date.now()) return null;
-  return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source, dateOnly: regular.source === "known-date" };
+  if (!regularTarget || +new Date(regularTarget) <= Date.now()) return null;
+  return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source, dateOnly: regular.source === "known-fact", sourceLog: [...preseason.log, ...regular.log] };
 }
 
 /** A followed team's real current-season roster — we can't show injuries
  *  (not part of the connected API-Sports plan), so this is the honest
  *  substitute: real players, real jersey numbers/positions, straight from
- *  the provider. Never invents a name. */
-export async function getTeamRoster(sport: SportSlug, teamExternalId: string): Promise<SportsRosterPlayer[]> {
-  if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return [];
-  const season = seasonParam(sport, new Date().toISOString());
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, () =>
-    fetchTeamRoster(sport, teamExternalId, season));
-  return cached?.data ?? [];
+ *  the provider. Never invents a name. Falls back to SportsDataIO (NBA
+ *  only, and only when the caller passes `allowSecondarySource` — see
+ *  getNbaRosterFromSportsData's doc comment for why this one's gated more
+ *  cautiously than the schedule/standings fallbacks) when API-Sports has
+ *  nothing for this team. */
+export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<SportsRosterPlayer[]> {
+  if (ApiSportsProvider.isConfigured(sport) && teamExternalId) {
+    const season = seasonParam(sport, new Date().toISOString());
+    const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, () =>
+      fetchTeamRoster(sport, teamExternalId, season));
+    if (cached?.data?.length) return cached.data;
+  }
+
+  if (sport === "nba" && opts?.allowSecondarySource && opts.teamName) {
+    return getNbaRosterFromSportsData(opts.teamName);
+  }
+
+  return [];
 }
 
 /** Live + upcoming games across the given sports (typically the member's
@@ -419,8 +506,19 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     }
     return result;
   });
-  if (!cached) return { standings: [], planRestricted: restriction };
-  return { standings: cached.data.standings ?? [], planRestricted: cached.data.planRestricted };
+  if (cached?.data.standings?.length) {
+    return { standings: cached.data.standings, planRestricted: cached.data.planRestricted };
+  }
+
+  // Tier 2: SportsDataIO, when API-Sports had nothing for this season yet.
+  // Wired for NBA only today — the only sport with a verified SportsDataIO
+  // standings integration here.
+  if (sport === "nba") {
+    const secondary = await getNbaStandingsFromSportsData(season);
+    if (secondary.length) return { standings: secondary };
+  }
+
+  return { standings: [], planRestricted: restriction };
 }
 
 // ── Picks / voting ───────────────────────────────────────────────
