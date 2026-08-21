@@ -72,6 +72,18 @@
     linear-gradient(180deg, rgba(3,2,1,.4) 0%, rgba(3,2,1,.1) 25%, rgba(3,2,1,.15) 70%, rgba(3,2,1,.5) 100%);
 }
 
+/* Football-sport backdrop: a real green turf field with crisp white yard
+   lines, drawn in CSS (no photo, no AI-generated artwork) — fills the
+   whole hero, unlike the old thin decorative line overlay. */
+.spx-sport-header--field {
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.5) 0px, rgba(255,255,255,.5) 2px, transparent 2px, transparent 168px),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0 42px, rgba(0,0,0,.05) 42px 84px),
+    radial-gradient(ellipse 90% 70% at 50% 8%, rgba(255,241,204,.16) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 50% 105%, #1f4016 0%, #12280d 55%, #0a1707 100%);
+}
+.spx-sport-header--field .spx-sport-header__photo { display: none; }
+
 .spx-countdown--hero {
   position: relative; z-index: 1; margin-top: .6rem; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 720px;
 }
@@ -81,8 +93,9 @@
 }
 .spx-countdown__league--blue { color: #4f8bff; text-shadow: 0 2px 22px rgba(0,0,0,.65), 0 0 30px rgba(79,139,255,.35); }
 .spx-countdown__title {
-  color: #fffdf8; font-weight: 900; font-size: clamp(1.3rem, 3.6vw, 2.1rem); letter-spacing: .06em; text-transform: uppercase;
-  text-shadow: 0 2px 20px rgba(0,0,0,.65); text-align: center; margin-top: .3rem;
+  font-family: 'Anton', 'Arial Black', sans-serif; color: #fffdf8; font-weight: 400; font-size: clamp(1.5rem, 4.2vw, 2.5rem);
+  letter-spacing: .05em; text-transform: uppercase; text-shadow: 0 3px 0 rgba(0,0,0,.5), 0 2px 24px rgba(0,0,0,.65);
+  text-align: center; margin-top: .35rem;
 }
 
 .spx-countdown__matchup--hero { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 1.8rem 0; flex-wrap: wrap; }

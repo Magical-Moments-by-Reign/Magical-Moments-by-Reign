@@ -19,6 +19,10 @@ export const dynamic = "force-dynamic";
 // Those sports fall back to the plain styled-text mark below instead.
 const NO_LEAGUE_LOGO: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 const BLUE_LEAGUE_TEXT: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
+// Football sports get a real CSS-drawn turf field (green grass, crisp white
+// yard lines) as the hero backdrop instead of the generic stadium photo —
+// no photo file, no AI-generated artwork, just gradients.
+const FIELD_BACKDROP: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: true };
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
@@ -96,11 +100,12 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // sport-identification brand row below rather than showing an expired
   // 00:00:00:00 clock.
   const showHeroCountdown = Boolean(firstRegularSeasonGame && daysUntilKickoff !== null && daysUntilKickoff > 0);
+  const showFieldBackdrop = showHeroCountdown && FIELD_BACKDROP[sport];
 
   return (
     <div className="spx">
-      <header className={`spx-sport-header${showHeroCountdown ? " spx-sport-header--hero" : ""}`}>
-        <Image src="/discovery/stadium.png" alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
+      <header className={`spx-sport-header${showHeroCountdown ? " spx-sport-header--hero" : ""}${showFieldBackdrop ? " spx-sport-header--field" : ""}`}>
+        {!showFieldBackdrop && <Image src="/discovery/stadium.png" alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />}
         <div className="spx-sport-header__shade" />
         {!showHeroCountdown && <SportBackdrop sport={sport} />}
         <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
