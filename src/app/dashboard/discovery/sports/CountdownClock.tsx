@@ -29,20 +29,26 @@ export default function CountdownClock({ targetISO }: { targetISO: string }) {
   }, [target]);
 
   const kickoffLocal = new Date(targetISO).toLocaleString("en-US", {
-    weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+    weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
   });
 
   if (target - Date.now() <= 0) return null;
 
   return (
     <div className="spx-clock">
-      <div className="spx-clock__row">
-        <div className="spx-clock__unit"><b>{parts.days}</b><span>Days</span></div>
-        <div className="spx-clock__unit"><b>{String(parts.hours).padStart(2, "0")}</b><span>Hrs</span></div>
-        <div className="spx-clock__unit"><b>{String(parts.minutes).padStart(2, "0")}</b><span>Min</span></div>
-        <div className="spx-clock__unit"><b>{String(parts.seconds).padStart(2, "0")}</b><span>Sec</span></div>
+      <div className="spx-clock__digits">
+        <b>{String(parts.days).padStart(2, "0")}</b>
+        <span className="spx-clock__colon">:</span>
+        <b>{String(parts.hours).padStart(2, "0")}</b>
+        <span className="spx-clock__colon">:</span>
+        <b>{String(parts.minutes).padStart(2, "0")}</b>
+        <span className="spx-clock__colon">:</span>
+        <b>{String(parts.seconds).padStart(2, "0")}</b>
       </div>
-      <p className="spx-clock__local">Kickoff {kickoffLocal} — your local time</p>
+      <div className="spx-clock__labels">
+        <span>Days</span><span>Hrs</span><span>Min</span><span>Sec</span>
+      </div>
+      <p className="spx-clock__local">{kickoffLocal.replace(" at ", " • ")}</p>
     </div>
   );
 }
