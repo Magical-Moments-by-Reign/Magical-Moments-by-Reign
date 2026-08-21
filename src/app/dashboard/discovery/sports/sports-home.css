@@ -135,7 +135,8 @@
 .spx-roster summary { cursor: pointer; color: var(--gold-soft); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .spx-roster__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; margin-top: .6rem; }
 .spx-roster__player { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .25rem; padding: .5rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); }
-.spx-roster__player img, .spx-roster__ph { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: rgba(224,182,81,.1); }
+.spx-roster__player img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: rgba(224,182,81,.1); }
+.spx-roster__jersey { width: 48px; height: 48px; }
 .spx-roster__name { color: #f4f1ea; font-size: .72rem; font-weight: 700; line-height: 1.2; }
 .spx-roster__meta { color: #9c8f76; font-size: .64rem; }
 

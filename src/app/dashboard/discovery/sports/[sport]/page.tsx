@@ -8,6 +8,7 @@ import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discov
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
 import CountdownClock from "../CountdownClock";
+import JerseyAvatar from "../JerseyAvatar";
 import "../../discovery.css";
 import "../sports-home.css";
 
@@ -227,7 +228,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                         {roster.map((p) => (
                           <div className="spx-roster__player" key={p.id}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <div className="spx-roster__ph" />}
+                            {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <JerseyAvatar number={p.number} />}
                             <span className="spx-roster__name">{p.name}</span>
                             <span className="spx-roster__meta">{p.number != null ? `#${p.number}` : ""}{p.number != null && p.position ? " · " : ""}{p.position ?? ""}</span>
                           </div>
