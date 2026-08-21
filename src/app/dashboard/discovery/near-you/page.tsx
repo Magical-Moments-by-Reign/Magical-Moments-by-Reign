@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
-import { getNearYouEvents, getTrendingNearYouEvents, getTrendingAttractions } from "@/lib/discovery/service";
+import { getNearYouEvents, getTrendingNearYouEvents, getTrendingAttractions, getPopularNearYouByCategory } from "@/lib/discovery/service";
 import { getSavedEventIds } from "@/lib/discovery/saved-events";
 import { normalizeTicketmasterLocation, type EventCategory, type DiscoveredEvent } from "@/lib/discovery/providers/events";
 import { saveEventAction, unsaveEventAction } from "./actions";
 import NearYouSearchInput from "@/components/near-you/NearYouSearchInput";
+import RailScroller from "@/components/near-you/RailScroller";
 import DiscoveryNav from "../_nav";
 import { DiscoveryEmptyState } from "../_components";
 import "../discovery.css";
@@ -73,13 +74,14 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
   const normalizedLocation = location?.trim() ? normalizeTicketmasterLocation(location) : null;
   const invalidLocation = normalizedLocation?.kind === "invalid";
   const hasSearch = !invalidLocation && Boolean(location?.trim() || keyword);
-  const [result, savedIds, trendingRaw, attractions] = await Promise.all([
+  const [result, savedIds, trendingRaw, attractions, popularRails] = await Promise.all([
     hasSearch
       ? getNearYouEvents({ location: location?.trim() || undefined, keyword: keyword || undefined, category, radiusMiles: radius })
       : Promise.resolve(null),
     getSavedEventIds(account.id),
     getTrendingNearYouEvents(),
     getTrendingAttractions(),
+    getPopularNearYouByCategory(),
   ]);
   const hasEvents = Boolean(result?.items.length);
   const resultIds = new Set(result?.items.map((e) => e.id));
@@ -174,6 +176,38 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
               </a>
             ))}
           </div>
+        </section>
+      )}
+
+      {popularRails.length > 0 && (
+        <section className="near-popular">
+          <div className="near-popular__head">
+            <h2>Popular Near You</h2>
+            <span>Real, currently on-sale shows — ranked by Ticketmaster&rsquo;s own relevance</span>
+          </div>
+          {popularRails.map((rail) => (
+            <div className="near-popular__group" key={rail.category}>
+              <div className="near-popular__group-head">
+                <h3>{CATEGORY_LABEL[rail.category] ?? rail.label}</h3>
+                <Link href={`/dashboard/discovery/near-you?location=${encodeURIComponent(location ?? "")}&q=${encodeURIComponent(keyword)}&radius=${radius}&category=${rail.category}`}>See All →</Link>
+              </div>
+              <RailScroller>
+                {rail.items.map((e) => (
+                  <a key={e.id} className="near-popular__card" href={e.ticketUrl} target="_blank" rel="noopener noreferrer">
+                    <div className="near-popular__img" style={e.imageUrl ? { backgroundImage: `url(${e.imageUrl})` } : undefined} />
+                    <span className="near-popular__eyebrow">{e.category.replace("_", " & ")}</span>
+                    <b>{e.name}</b>
+                    {(e.localDate || e.startsAt) && (
+                      <span className="near-popular__date">
+                        {new Date(`${e.localDate ?? e.startsAt?.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {e.venueName ? ` · ${e.venueName}` : ""}
+                      </span>
+                    )}
+                  </a>
+                ))}
+              </RailScroller>
+            </div>
+          ))}
         </section>
       )}
 
