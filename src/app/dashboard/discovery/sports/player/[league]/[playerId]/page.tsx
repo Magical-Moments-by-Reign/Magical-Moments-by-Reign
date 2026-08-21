@@ -21,7 +21,7 @@ const STAT_LABEL: Record<string, string> = {
   Completions: "Comp", PassingAttempts: "Att", PassingYards: "Pass Yds", PassingTouchdowns: "Pass TD", PassingInterceptions: "INT", PassingCompletionPercentage: "Comp %",
   RushingAttempts: "Carries", RushingYards: "Rush Yds", RushingYardsPerAttempt: "Yds/Att", RushingTouchdowns: "Rush TD",
   Receptions: "Rec", ReceivingYards: "Rec Yds", ReceivingYardsPerReception: "Yds/Rec", ReceivingTouchdowns: "Rec TD", ReceivingLong: "Long", RushingLong: "Long",
-  Tackles: "Tackles", SoloTackles: "Solo", TacklesForLoss: "TFL", Sacks: "Sacks", Interceptions: "INT", PassesDefended: "PD", FumblesForced: "FF",
+  Tackles: "Tackles", SoloTackles: "Solo", TacklesForLoss: "TFL", Sacks: "Sacks", Interceptions: "INT", PassesDefended: "PD", FumblesForced: "FF", InterceptionReturnTouchdowns: "Pick-6",
   Minutes: "MIN", Points: "PTS", Rebounds: "REB", Assists: "AST", Steals: "STL", BlockedShots: "BLK", Turnovers: "TO",
   FieldGoalsPercentage: "FG%", ThreePointersPercentage: "3P%", FreeThrowsPercentage: "FT%",
 };
@@ -91,8 +91,8 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     return (
       <div className="spx spx-profile">
         <div className="disc-pending">
-          <b>Player Profiles are in preview</b>
-          Live SportsDataIO player detail is on a trial plan with a known data-quality caveat, so this page stays limited to Owner/admin preview until that upgrades — see Sports Data Policy.
+          <b>Player Profiles are coming soon</b>
+          Detailed player profiles aren&rsquo;t open to members yet.
         </div>
         <Link href="/dashboard/discovery/sports">← Back to Sports</Link>
       </div>
@@ -175,8 +175,34 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         <div className="spx-panel__head"><h2>College Career</h2></div>
         {profile.college ? (
           <div className="spx-panel__body">
-            <p><b>College:</b> {profile.college}</p>
-            <p className="spx-panel__empty">Year-by-year college statistics aren&rsquo;t available from our connected data providers yet — only the school itself is verified.</p>
+            <p><b>{profile.college}</b>{profile.collegeCareer?.seasonsAttended ? ` · ${profile.collegeCareer.seasonsAttended}` : ""}</p>
+            {profile.collegeCareer ? (
+              <>
+                {profile.collegeCareer.careerTotals && (
+                  <div style={{ marginTop: ".8rem" }}>
+                    <h3 className="spx-standings__group-label">Career Totals</h3>
+                    <StatRow fields={Object.keys(profile.collegeCareer.careerTotals)} stats={profile.collegeCareer.careerTotals} />
+                  </div>
+                )}
+                <div style={{ marginTop: "1rem" }}>
+                  <h3 className="spx-standings__group-label">By Season</h3>
+                  {profile.collegeCareer.seasons.map((line) => (
+                    <div key={line.season} style={{ marginBottom: ".6rem" }}>
+                      <span className="spx-standings__division-label">
+                        {line.season}{line.classYear ? ` — ${line.classYear}` : ""}
+                        {line.games != null ? ` · ${line.games} GP` : ""}{line.starts != null ? ` · ${line.starts} GS` : ""}
+                      </span>
+                      <StatRow fields={Object.keys(line.stats)} stats={line.stats} />
+                      {line.honors && line.honors.length > 0 && (
+                        <p style={{ color: "var(--gold-soft)", fontSize: ".7rem", margin: ".3rem 0 0" }}>{line.honors.join(" · ")}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="spx-panel__empty">Detailed college statistics aren&rsquo;t available for this player.</p>
+            )}
           </div>
         ) : (
           <p className="spx-panel__empty">College information isn&rsquo;t available for this player.</p>
@@ -221,7 +247,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
           </div>
         )}
         {profile.seasonsBySeason.length === 0 && !currentStats && (
-          <p className="spx-panel__empty">No professional season statistics on record from our connected providers yet.</p>
+          <p className="spx-panel__empty">No professional statistics on record for this player yet.</p>
         )}
       </section>
 
@@ -243,7 +269,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
             ))}
           </ul>
         ) : (
-          <p className="spx-panel__empty">No verified awards, honors, or futures-market appearances on record from our connected providers.</p>
+          <p className="spx-panel__empty">No awards, honors, or futures-market appearances on record for this player.</p>
         )}
       </section>
 

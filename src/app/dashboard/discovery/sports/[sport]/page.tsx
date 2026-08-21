@@ -316,11 +316,11 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       <div className="spx-panel" style={{ marginBottom: "1.4rem" }}>
         <div className="spx-panel__head"><h2>{gamesLabel}</h2></div>
         {!connected ? (
-          <div className="disc-pending"><b>Live {sportMeta.label} data pending</b>API-Sports isn&rsquo;t connected for this sport yet — nothing here is invented.</div>
+          <div className="disc-pending"><b>Live {sportMeta.label} data is coming soon</b></div>
         ) : !hasLeague ? (
-          <div className="disc-pending"><b>Live game data isn&rsquo;t mapped for {sportMeta.label} yet</b>Fight/race results aren&rsquo;t shaped like a standard games schedule in our current integration — this isn&rsquo;t a &ldquo;no events&rdquo; result, it&rsquo;s a real gap we haven&rsquo;t built yet.</div>
+          <div className="disc-pending"><b>{sportMeta.label} schedules aren&rsquo;t available yet</b></div>
         ) : planRestricted ? (
-          <div className="disc-pending"><b>{sportMeta.label} data isn&rsquo;t available on the connected plan</b>The provider reported a plan restriction: &ldquo;{planRestricted}&rdquo;. This isn&rsquo;t a &ldquo;no games&rdquo; result.</div>
+          <div className="disc-pending"><b>Live {sportMeta.label} schedule data isn&rsquo;t available right now</b>Check back soon.</div>
         ) : games.length === 0 ? (
           <p className="spx-panel__empty">No games found in the next week for {sportMeta.label}.</p>
         ) : (
@@ -349,9 +349,9 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           {!connected || !hasLeague ? (
             <p className="spx-panel__empty">Standings aren&rsquo;t available for {sportMeta.label} yet.</p>
           ) : standingsRestricted ? (
-            <p className="spx-panel__empty">Standings aren&rsquo;t available on the connected data plan for {sportMeta.label} right now.</p>
+            <p className="spx-panel__empty">Standings aren&rsquo;t available for {sportMeta.label} right now.</p>
           ) : standings.length === 0 ? (
-            <p className="spx-panel__empty">No standings data returned for the current season.</p>
+            <p className="spx-panel__empty">Standings aren&rsquo;t available for the current season yet.</p>
           ) : (
             <details className="spx-standings">
               <summary>View Standings ({standings.length} teams)</summary>
