@@ -338,6 +338,10 @@ export interface DiscoveredAttraction {
   /** Ticketmaster's own classification label (e.g. "Pop", "Wrestling",
    *  "Hip-Hop/Rap") — never a genre we've guessed ourselves. */
   genreLabel?: string;
+  /** Ticketmaster's own real count of this attraction's currently on-sale
+   *  events (their `upcomingEvents._total`) — omitted, never guessed, when
+   *  Ticketmaster doesn't report one. */
+  upcomingEventsCount?: number;
   ticketUrl: string; // the attraction's own real Ticketmaster page
 }
 
@@ -355,11 +359,13 @@ export function mapAttraction(a: any): DiscoveredAttraction | null {
   const genreLabel =
     typeof genreName === "string" && genreName !== "Undefined" ? genreName :
     typeof segmentName === "string" && segmentName !== "Undefined" ? segmentName : undefined;
+  const upcomingEventsCount = typeof a?.upcomingEvents?._total === "number" ? a.upcomingEvents._total : undefined;
   return {
     id: String(id),
     name: String(name),
     imageUrl: typeof bestImage?.url === "string" ? bestImage.url : undefined,
     genreLabel,
+    upcomingEventsCount,
     ticketUrl: String(url),
   };
 }

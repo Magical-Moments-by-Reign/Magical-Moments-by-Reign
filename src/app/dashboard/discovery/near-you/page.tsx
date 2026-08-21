@@ -118,6 +118,10 @@ export default async function NearYouPage({ searchParams }: { searchParams: Prom
                 <div className="near-attractions__img" style={a.imageUrl ? { backgroundImage: `url(${a.imageUrl})` } : undefined} />
                 {a.genreLabel && <span className="near-attractions__genre">{a.genreLabel}</span>}
                 <b>{a.name}</b>
+                {typeof a.upcomingEventsCount === "number" && (
+                  <span className="near-attractions__count">{a.upcomingEventsCount} upcoming show{a.upcomingEventsCount === 1 ? "" : "s"}</span>
+                )}
+                <span className="near-attractions__cta">View on Ticketmaster →</span>
               </a>
             ))}
           </div>
