@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getTeamRoster, getNbaHeroState } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
@@ -51,26 +51,28 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = defaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame, nbaHeroState] = await Promise.all([
+  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame, firstPostseasonGame, nbaHeroState] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
     getLeagueLogos(),
     getFirstPreseasonGame(sport),
     getFirstRegularSeasonGame(sport),
+    getFirstPostseasonGame(sport),
     sport === "nba" ? getNbaHeroState() : Promise.resolve(null),
   ]);
   const leagueLogo = SPORT_VISUALS[sport].kind === "league-logo" ? logos[sport] : undefined;
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
-  // Real rosters for followed teams — we can't show injuries (not part of
-  // the connected plan), so this is the honest substitute: who's actually
-  // on the roster this season. API-Sports first; SportsDataIO second (NBA
-  // only) when API-Sports has nothing — gated to owner/admin preview or
-  // sdioCommercialMode, matching every other SportsDataIO-driven member
-  // surface, since player-team association is that provider's documented
-  // trial-data weak spot (see sdioCommercialMode's doc comment).
+  // Real rosters for followed teams — the honest substitute where a real
+  // Injuries panel (below) has nothing for this team yet. API-Sports first;
+  // SportsDataIO second (any sport with a SportsDataIO product connected —
+  // see sdioLeagueFor) when API-Sports has nothing — gated to owner/admin
+  // preview or sdioCommercialMode, matching every other SportsDataIO-driven
+  // member surface, since player-team association is that provider's
+  // documented trial-data weak spot (see sdioCommercialMode's doc comment).
   const isOwner = await isOwnerAccount(account.id);
-  const allowSdioRoster = sport === "nba" && sdioConfigured() && (sdioCommercialMode() || isOwner);
+  const allowSdio = Boolean(sdioLeagueFor(sport)) && sdioConfigured() && (sdioCommercialMode() || isOwner);
+  const allowSdioRoster = allowSdio;
   const rosters = new Map<string, Awaited<ReturnType<typeof getTeamRoster>>>();
   if (myTeamsForSport.length) {
     const rosterResults = await Promise.all(
@@ -81,6 +83,17 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       ),
     );
     myTeamsForSport.forEach((t, i) => rosters.set(t.follow.id, rosterResults[i]));
+  }
+
+  // Real injury reports for followed teams — same SportsDataIO source/gate
+  // as the roster fallback above (owner/admin preview until commercial
+  // mode; see allowSdio's doc comment).
+  const injuries = new Map<string, Awaited<ReturnType<typeof getTeamInjuries>>>();
+  if (myTeamsForSport.length && allowSdio) {
+    const injuryResults = await Promise.all(
+      myTeamsForSport.map((t) => (t.follow.teamName ? getTeamInjuries(sport, t.follow.teamName) : Promise.resolve([]))),
+    );
+    myTeamsForSport.forEach((t, i) => injuries.set(t.follow.id, injuryResults[i]));
   }
 
   // Which real game the hero countdown targets: for PRESEASON_PHASE_SPORTS,
@@ -204,6 +217,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
             {" "}— {firstPreseasonGame.awayTeam.name} @ {firstPreseasonGame.homeTeam.name}
           </p>
         )}
+
+        {firstPostseasonGame && (
+          <p className="spx-sport-header__preseason">
+            Postseason begins {new Date(firstPostseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            {" "}— {firstPostseasonGame.awayTeam.name} @ {firstPostseasonGame.homeTeam.name}
+          </p>
+        )}
       </header>
 
       <div className="spx-panel" style={{ marginBottom: "1.4rem" }}>
@@ -266,6 +286,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
               <p className="spx-panel__empty">You haven&rsquo;t followed a {sportMeta.label} team yet.</p>
             ) : myTeamsForSport.map(({ follow }) => {
               const roster = rosters.get(follow.id) ?? [];
+              const teamInjuries = injuries.get(follow.id) ?? [];
               return (
                 <div key={follow.id} className="spx-my-team">
                   <div className="spx-team-row">
@@ -287,6 +308,20 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                             {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <JerseyAvatar number={p.number} />}
                             <span className="spx-roster__name">{p.name}</span>
                             <span className="spx-roster__meta">{p.number != null ? `#${p.number}` : ""}{p.number != null && p.position ? " · " : ""}{p.position ?? ""}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  {teamInjuries.length > 0 && (
+                    <details className="spx-roster">
+                      <summary>Injury Report ({teamInjuries.length})</summary>
+                      <div className="spx-roster__grid">
+                        {teamInjuries.map((inj) => (
+                          <div className="spx-roster__player" key={inj.playerId}>
+                            <JerseyAvatar />
+                            <span className="spx-roster__name">{inj.playerName}</span>
+                            <span className="spx-roster__meta">{inj.status ?? "Status unknown"}{inj.bodyPart ? ` · ${inj.bodyPart}` : ""}</span>
                           </div>
                         ))}
                       </div>

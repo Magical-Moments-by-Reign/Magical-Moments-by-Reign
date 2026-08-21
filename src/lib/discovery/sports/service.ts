@@ -7,8 +7,8 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchTeamRoster, seasonParam, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
-import { fetchNbaFirstGame, fetchNbaGamesByDate, fetchNbaStandings, fetchAllPlayers } from "../providers/sportsdata";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, seasonParam, defaultLeagueId, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
+import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
@@ -43,6 +43,32 @@ export const SPORT_CATALOG: { slug: SportSlug; label: string; category: SportCat
 
 function sportLabel(sport: SportSlug): string {
   return SPORT_CATALOG.find((s) => s.slug === sport)?.label ?? sport;
+}
+
+// Magical Sports Data Policy, tier 2: which of our SportsDataIO sports map
+// to which of our SportSlugs — null for every sport with no SportsDataIO
+// product connected, so getGamesByDate/getStandings/getTeamRoster below
+// only ever attempt the fallback where it's real. "ncaaf" is our slug for
+// college football; SportsDataIO calls the same league "cfb".
+export function sdioLeagueFor(sport: SportSlug): SdioLeague | null {
+  switch (sport) {
+    case "nfl": return "nfl";
+    case "ncaaf": return "cfb";
+    case "nba": return "nba";
+    case "wnba": return "wnba";
+    default: return null;
+  }
+}
+
+// SportsDataIO's own season-year convention for its football/basketball
+// products: the numeric year a fall-starting season began in (so a January
+// 2026 NFL/CFB/NBA game is still part of "2025"), confirmed already for NBA
+// via this project's own hero-countdown/standings fallback. WNBA plays a
+// single-calendar-year season (May-Oct), so it needs no August boundary.
+function sdioSeasonYear(league: SdioLeague): number {
+  const now = new Date();
+  if (league === "wnba") return now.getUTCFullYear();
+  return now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
 }
 
 // ── Follows (favorite sports / leagues / teams) ────────────────────
@@ -136,12 +162,12 @@ export async function getGamesByDate(sport: SportSlug, dateISO: string, league?:
   }
 
   // Tier 2: SportsDataIO, when API-Sports had nothing for this date —
-  // empty, unconfigured, or plan-restricted. Wired for NBA only today, the
-  // only sport with a verified SportsDataIO schedule integration here.
-  if (sport === "nba") {
-    const secondary = await getNbaGamesByDateFromSportsData(dateISO);
+  // empty, unconfigured, or plan-restricted. Only for sports with a
+  // SportsDataIO product connected (see sdioLeagueFor).
+  if (sdioLeagueFor(sport)) {
+    const secondary = await getGamesByDateFromSportsData(sport, dateISO);
     if (secondary.length) {
-      const synced = await syncGamesToLocal(sport, league || "12", secondary);
+      const synced = await syncGamesToLocal(sport, league || defaultLeagueId(sport), secondary);
       return { games: synced };
     }
   }
@@ -189,6 +215,18 @@ export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<Sport
   return cached?.data ?? null;
 }
 
+/** The real postseason/playoff opener — same real-stage-label sourcing as
+ *  getFirstPreseasonGame/getFirstRegularSeasonGame, never a computed/assumed
+ *  date. Null once the provider hasn't posted a postseason bracket yet (the
+ *  normal case for most of the regular season). */
+export async function getFirstPostseasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_postseason" }), TTL_GAMES_UPCOMING, () =>
+    fetchFirstPostseasonGame(sport, season));
+  return cached?.data ?? null;
+}
+
 export interface NbaHeroState {
   phase: "preseason" | "regular";
   /** A real matchup once a provider has one — null while only the known
@@ -213,12 +251,13 @@ function normalizeTeamName(s: string): string {
  *  doesn't return logos) to its real API-Sports team record — so a game
  *  sourced from that secondary provider still gets the real logo/id we
  *  already have from the primary one, instead of a placeholder icon.
- *  Cached per team name (team identity/logo rarely changes), so this is
- *  only a live lookup the first time a given team name is seen. Returns
- *  null when API-Sports has no confident match — never a guessed logo. */
-async function resolveNbaTeamByName(name: string): Promise<{ id: string; logoUrl?: string } | null> {
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport: "nba", teamNameLookup: normalizeTeamName(name) }), TTL_TEAM_LOOKUP, () =>
-    ApiSportsProvider.searchTeams("nba", name));
+ *  Cached per sport+team name (team identity/logo rarely changes), so this
+ *  is only a live lookup the first time a given team name is seen for that
+ *  sport. Returns null when API-Sports has no confident match — never a
+ *  guessed logo. */
+async function resolveTeamByName(sport: SportSlug, name: string): Promise<{ id: string; logoUrl?: string } | null> {
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, teamNameLookup: normalizeTeamName(name) }), TTL_TEAM_LOOKUP, () =>
+    ApiSportsProvider.searchTeams(sport, name));
   const candidates = cached?.data;
   if (!candidates?.length) return null;
   const target = normalizeTeamName(name);
@@ -237,22 +276,26 @@ function sdioStatusToGameStatus(status: string | undefined): "scheduled" | "live
   return "scheduled";
 }
 
-/** Real NBA games for one date from SportsDataIO — secondary source for
- *  Today's Games when API-Sports has nothing for that date. Each team is
- *  resolved to its real API-Sports logo the same way the hero countdown
- *  does. Returns [] on missing config, a failed call, or a genuinely empty
- *  schedule for that date. */
-async function getNbaGamesByDateFromSportsData(dateISO: string): Promise<SportsGameSummary[]> {
-  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", dateISO, kind: "games_by_date" }), TTL_GAMES_UPCOMING, () =>
-    fetchNbaGamesByDate(dateISO));
+/** Real games for one date from SportsDataIO, for any sport with a
+ *  SportsDataIO product connected (see sdioLeagueFor) — secondary source
+ *  for Today's Games when API-Sports has nothing for that date. Each team
+ *  is resolved to its real API-Sports logo the same way the hero countdown
+ *  does. Returns [] on missing config, an unsupported sport, a failed
+ *  call, or a genuinely empty schedule for that date. */
+async function getGamesByDateFromSportsData(sport: SportSlug, dateISO: string): Promise<SportsGameSummary[]> {
+  const league = sdioLeagueFor(sport);
+  if (!league) return [];
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, dateISO, kind: "games_by_date" }), TTL_GAMES_UPCOMING, () =>
+    fetchSdioGamesByDate(league, dateISO));
   const games = cached?.data ?? [];
   if (!games.length) return [];
+  const defaultLeague = defaultLeagueId(sport);
   return Promise.all(games.map(async (g): Promise<SportsGameSummary> => {
-    const [home, away] = await Promise.all([resolveNbaTeamByName(g.homeTeam), resolveNbaTeamByName(g.awayTeam)]);
+    const [home, away] = await Promise.all([resolveTeamByName(sport, g.homeTeam), resolveTeamByName(sport, g.awayTeam)]);
     return {
       externalId: g.externalId,
-      sport: "nba",
-      league: "12",
+      sport,
+      league: defaultLeague,
       homeTeam: { id: home?.id ?? "", name: g.homeTeam, logoUrl: home?.logoUrl },
       awayTeam: { id: away?.id ?? "", name: g.awayTeam, logoUrl: away?.logoUrl },
       startsAt: g.startsAt,
@@ -261,36 +304,39 @@ async function getNbaGamesByDateFromSportsData(dateISO: string): Promise<SportsG
   }));
 }
 
-/** Real NBA standings from SportsDataIO — secondary source when API-Sports
- *  has nothing for the season yet. Each team is resolved to its real
- *  API-Sports id/logo the same way the other NBA fallbacks do. Returns []
- *  on missing config, a failed call, or no usable rows. */
-async function getNbaStandingsFromSportsData(season?: string): Promise<SportsStanding[]> {
-  const now = new Date();
-  const startYear = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+/** Real standings from SportsDataIO for any sport with a SportsDataIO
+ *  product connected — secondary source when API-Sports has nothing for
+ *  the season yet. Each team is resolved to its real API-Sports id/logo
+ *  the same way the other fallbacks do. Returns [] on missing config, an
+ *  unsupported sport, a failed call, or no usable rows. */
+async function getStandingsFromSportsData(sport: SportSlug, season?: string): Promise<SportsStanding[]> {
+  const league = sdioLeagueFor(sport);
+  if (!league) return [];
   const parsed = season ? parseInt(season.slice(0, 4), 10) : NaN;
-  const year = Number.isFinite(parsed) ? parsed : startYear;
-  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", year, kind: "standings" }), TTL_STANDINGS, () =>
-    fetchNbaStandings(year));
+  const year = Number.isFinite(parsed) ? parsed : sdioSeasonYear(league);
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, year, kind: "standings" }), TTL_STANDINGS, () =>
+    fetchSdioStandings(league, year));
   const rows = cached?.data ?? [];
   if (!rows.length) return [];
   return Promise.all(rows.map(async (r): Promise<SportsStanding> => {
-    const team = await resolveNbaTeamByName(r.team);
+    const team = await resolveTeamByName(sport, r.team);
     return { team: { id: team?.id ?? "", name: r.team, logoUrl: team?.logoUrl }, wins: r.wins, losses: r.losses };
   }));
 }
 
-/** Real NBA roster players from SportsDataIO — secondary source when
- *  API-Sports has nothing for a team. Matched by exact normalized team
- *  name only (never a fuzzy abbreviation guess: SportsDataIO's player
- *  records commonly carry a short team code like "BOS" rather than the
- *  full name, and guessing that mapping risks exactly the kind of
- *  wrong-team association this fallback is already gated to avoid — see
- *  the allowSecondarySource caller). Returns [] when nothing matches
- *  confidently, never a guessed roster. */
-async function getNbaRosterFromSportsData(teamName: string): Promise<SportsRosterPlayer[]> {
-  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport: "nba", kind: "all_players" }), TTL_ROSTER, () =>
-    fetchAllPlayers("nba"));
+/** Real roster players from SportsDataIO for any sport with a SportsDataIO
+ *  product connected — secondary source when API-Sports has nothing for a
+ *  team. Matched by exact normalized team name only (never a fuzzy
+ *  abbreviation guess: SportsDataIO's player records commonly carry a
+ *  short team code like "BOS" rather than the full name, and guessing that
+ *  mapping risks exactly the kind of wrong-team association this fallback
+ *  is already gated to avoid — see the allowSecondarySource caller).
+ *  Returns [] when nothing matches confidently, never a guessed roster. */
+async function getRosterFromSportsData(sport: SportSlug, teamName: string): Promise<SportsRosterPlayer[]> {
+  const league = sdioLeagueFor(sport);
+  if (!league) return [];
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, kind: "all_players" }), TTL_ROSTER, () =>
+    fetchAllPlayers(league));
   const players = cached?.data ?? [];
   if (!players.length) return [];
   const target = normalizeTeamName(teamName);
@@ -317,7 +363,7 @@ async function getNbaOpener(kind: "preseason" | "regular"): Promise<{ game: Spor
     // against our own API-Sports team catalog so the game still shows real
     // crests, not placeholders, even though the schedule itself came from
     // the secondary provider.
-    const [home, away] = await Promise.all([resolveNbaTeamByName(sdio.homeTeam), resolveNbaTeamByName(sdio.awayTeam)]);
+    const [home, away] = await Promise.all([resolveTeamByName("nba", sdio.homeTeam), resolveTeamByName("nba", sdio.awayTeam)]);
     const game: SportsGameSummary = {
       externalId: sdio.externalId,
       sport: "nba",
@@ -375,11 +421,33 @@ export async function getTeamRoster(sport: SportSlug, teamExternalId: string, op
     if (cached?.data?.length) return cached.data;
   }
 
-  if (sport === "nba" && opts?.allowSecondarySource && opts.teamName) {
-    return getNbaRosterFromSportsData(opts.teamName);
+  if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName) {
+    return getRosterFromSportsData(sport, opts.teamName);
   }
 
   return [];
+}
+
+const TTL_INJURIES = 60; // 1h — a real injury report changes daily during the season, faster-moving than the roster/standings caches
+
+/** Real current injuries for one followed team, from SportsDataIO's
+ *  league-wide injury list — the piece of the Magical Sports Data Policy
+ *  the codebase previously had no source for at all. Filtered to the team
+ *  by exact normalized name match, the same match discipline (and the same
+ *  wrong-team-association caution) as getRosterFromSportsData; gate this
+ *  behind the same allowSecondarySource/owner-preview rule as the roster
+ *  fallback at the call site. Returns [] when nothing matches, the sport
+ *  has no SportsDataIO product connected, or the call fails — never a
+ *  guessed injury. */
+export async function getTeamInjuries(sport: SportSlug, teamName: string): Promise<SdioInjury[]> {
+  const league = sdioLeagueFor(sport);
+  if (!league) return [];
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ sport, kind: "injuries" }), TTL_INJURIES, () =>
+    fetchInjuries(league));
+  const injuries = cached?.data ?? [];
+  if (!injuries.length) return [];
+  const target = normalizeTeamName(teamName);
+  return injuries.filter((i) => i.team && normalizeTeamName(i.team) === target);
 }
 
 /** Live + upcoming games across the given sports (typically the member's
@@ -517,11 +585,10 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     return { standings: cached.data.standings, planRestricted: cached.data.planRestricted };
   }
 
-  // Tier 2: SportsDataIO, when API-Sports had nothing for this season yet.
-  // Wired for NBA only today — the only sport with a verified SportsDataIO
-  // standings integration here.
-  if (sport === "nba") {
-    const secondary = await getNbaStandingsFromSportsData(season);
+  // Tier 2: SportsDataIO, when API-Sports had nothing for this season yet —
+  // any sport with a SportsDataIO product connected (see sdioLeagueFor).
+  if (sdioLeagueFor(sport)) {
+    const secondary = await getStandingsFromSportsData(sport, season);
     if (secondary.length) return { standings: secondary };
   }
 
