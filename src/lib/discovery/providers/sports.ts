@@ -374,16 +374,13 @@ export const ApiSportsProvider: SportsProvider = {
     // specific season's roster), so combining it with `search` here (a
     // name lookup across all of a sport's teams) silently returned zero
     // results for every query, e.g. "New England Patriots" under the NFL.
+    // This is deliberately a LAST-RESORT, unscoped search across the
+    // sport's ENTIRE catalog (every league/division API-Sports has on that
+    // host — G-League, international, women's leagues, everything) — real
+    // callers should prefer fetchTeamsForLeague + local matching (see
+    // service.ts's searchTeamsForSport) so results never cross leagues.
     const json = await apiSportsFetch(sport, "/teams", { search: query });
-    const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
-    if (!list) return null;
-    return list
-      .map((item: any) => {
-        const t = item?.team ?? item;
-        if (!t?.id || !t?.name) return null;
-        return { id: String(t.id), name: t.name, logoUrl: t.logo || undefined } as SportsTeam;
-      })
-      .filter((t: SportsTeam | null): t is SportsTeam => t !== null);
+    return mapTeamsResponse(json);
   },
 
   async standings(sport, league, season): Promise<SportsStandingsResult | null> {
@@ -436,6 +433,59 @@ export const ApiSportsProvider: SportsProvider = {
  *  Exported standalone (not on SportsProvider) since only the Explore Sports
  *  grid needs it — caching lives in the service layer, matching every other
  *  provider call in this file. */
+function mapTeamsResponse(json: unknown): SportsTeam[] | null {
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  if (!list) return null;
+  return list
+    .map((item: any) => {
+      const t = item?.team ?? item;
+      if (!t?.id || !t?.name) return null;
+      return { id: String(t.id), name: t.name, logoUrl: t.logo || undefined } as SportsTeam;
+    })
+    .filter((t: SportsTeam | null): t is SportsTeam => t !== null);
+}
+
+/** Ranks a real, already league-scoped team list against a query — never
+ *  filters IN a team that doesn't belong; the scoping happens upstream by
+ *  only ever calling this against a roster fetched via fetchTeamsForLeague
+ *  (or an equivalent verified list), never the unscoped catalog search.
+ *  Exact name match first, then an exact word match ("Bulls" inside
+ *  "Chicago Bulls"), then a name that starts with the query, then any
+ *  other substring match — so "Bulls" ranks "Chicago Bulls" first even
+ *  though nothing else in a real single-league roster would match it
+ *  anyway. Exported for tests. */
+export function rankTeamMatches(roster: SportsTeam[], query: string): SportsTeam[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return roster
+    .map((t) => {
+      const name = t.name.toLowerCase();
+      let score = -1;
+      if (name === q) score = 0;
+      else if (name.split(/\s+/).includes(q)) score = 1;
+      else if (name.startsWith(q)) score = 2;
+      else if (name.includes(q)) score = 3;
+      return { t, score };
+    })
+    .filter((r) => r.score >= 0)
+    .sort((a, b) => a.score - b.score || a.t.name.localeCompare(b.t.name))
+    .map((r) => r.t);
+}
+
+/** Every team in one league for one season — the real, verified roster
+ *  (e.g. exactly the NBA's 30 current franchises when league="12"), never
+ *  mixed with other leagues/divisions on the same host. This is the
+ *  correct scoped source for team search: fetch it once (cached at the
+ *  call site), then match locally — see searchTeamsForSport in service.ts.
+ *  Returns null on missing config, a failed call, or an empty response
+ *  (e.g. the season hasn't been posted for this league yet). */
+export async function fetchTeamsForLeague(sport: SportSlug, league: string, season?: string): Promise<SportsTeam[] | null> {
+  if (!ApiSportsProvider.isConfigured(sport)) return null;
+  const yr = season || seasonParam(sport, new Date().toISOString());
+  const json = await apiSportsFetch(sport, "/teams", { league, season: yr });
+  return mapTeamsResponse(json);
+}
+
 export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const cfg = SPORT_CONFIG[sport];
