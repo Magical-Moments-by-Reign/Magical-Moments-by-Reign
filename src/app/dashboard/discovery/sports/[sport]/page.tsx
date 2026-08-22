@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, sdioLeagueFor } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor } from "@/lib/discovery/sports/service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
@@ -220,13 +220,40 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     : standingsResult.standings ?? [];
   const standingsGroups = normalizeStandingsBySport(sport, standings);
   // Playoff Picture — real, current-standings projections via the
-  // PostseasonRuleEngine (postseason.ts), NFL first. Shown only during the
-  // real regular season and never presented as an official bracket — see
-  // getNflPlayoffPicture's own disclosed limitation (no division
-  // tiebreaker data yet).
-  const [afcPicture, nfcPicture] = sport === "nfl" && standingsPhase === "regular" && standings.length > 0
-    ? await Promise.all([getNflPlayoffPicture("AFC"), getNflPlayoffPicture("NFC")])
-    : [null, null];
+  // PostseasonRuleEngine (postseason.ts). Shown only during the real
+  // regular season and never presented as an official bracket — see each
+  // sport's own service function for its disclosed limitations (no
+  // division tiebreaker data for any of them yet). Every sport's own real
+  // seed/tag shape is normalized into one common row shape here so the
+  // render below stays one piece of markup, not five near-duplicates.
+  let playoffPictureGroups: { label: string; rows: { teamId: string; teamName: string; teamLogoUrl?: string; seed?: number; tag?: string; clinched: boolean }[] }[] = [];
+  if (standingsPhase === "regular" && standings.length > 0) {
+    if (sport === "nfl") {
+      const [afc, nfc] = await Promise.all([getNflPlayoffPicture("AFC"), getNflPlayoffPicture("NFC")]);
+      playoffPictureGroups = [afc && { label: "AFC", seeds: afc }, nfc && { label: "NFC", seeds: nfc }]
+        .filter((g): g is { label: string; seeds: NonNullable<typeof afc> } => !!g)
+        .map((g) => ({ label: g.label, rows: g.seeds.map((s) => ({ teamId: s.teamId, teamName: s.teamName, teamLogoUrl: s.teamLogoUrl, seed: s.seed, tag: s.isDivisionWinner ? "Division Leader" : undefined, clinched: s.clinched })) }));
+    } else if (sport === "mlb") {
+      const [al, nl] = await Promise.all([getMlbPlayoffPicture("AL"), getMlbPlayoffPicture("NL")]);
+      playoffPictureGroups = [al && { label: "AL", seeds: al }, nl && { label: "NL", seeds: nl }]
+        .filter((g): g is { label: string; seeds: NonNullable<typeof al> } => !!g)
+        .map((g) => ({ label: g.label, rows: g.seeds.map((s) => ({ teamId: s.teamId, teamName: s.teamName, teamLogoUrl: s.teamLogoUrl, seed: s.seed, tag: s.isDivisionWinner ? "Division Leader" : undefined, clinched: s.clinched })) }));
+    } else if (sport === "nhl") {
+      const [east, west] = await Promise.all([getNhlPlayoffPicture("Eastern"), getNhlPlayoffPicture("Western")]);
+      playoffPictureGroups = [east && { label: "Eastern", seeds: east }, west && { label: "Western", seeds: west }]
+        .filter((g): g is { label: string; seeds: NonNullable<typeof east> } => !!g)
+        .map((g) => ({ label: g.label, rows: g.seeds.map((s) => ({ teamId: s.teamId, teamName: s.teamName, teamLogoUrl: s.teamLogoUrl, seed: s.seed, tag: s.isTopThreeInDivision ? "Top 3 in Division" : undefined, clinched: s.clinched })) }));
+    } else if (sport === "nba") {
+      const [east, west] = await Promise.all([getNbaPlayoffPicture("Eastern"), getNbaPlayoffPicture("Western")]);
+      const tagFor = (status: string) => status === "DIRECT_BERTH" ? undefined : status === "PLAY_IN" ? "Play-In" : "Outside the Field";
+      playoffPictureGroups = [east && { label: "Eastern", seeds: east }, west && { label: "Western", seeds: west }]
+        .filter((g): g is { label: string; seeds: NonNullable<typeof east> } => !!g)
+        .map((g) => ({ label: g.label, rows: g.seeds.filter((s) => s.status !== "OUTSIDE").map((s) => ({ teamId: s.teamId, teamName: s.teamName, teamLogoUrl: s.teamLogoUrl, seed: s.seed, tag: tagFor(s.status), clinched: s.clinched })) }));
+    } else if (sport === "wnba") {
+      const field = await getWnbaPlayoffPicture();
+      if (field) playoffPictureGroups = [{ label: "", rows: field.filter((f) => f.inField).map((f) => ({ teamId: f.teamId, teamName: f.teamName, teamLogoUrl: f.teamLogoUrl, clinched: f.clinched })) }];
+    }
+  }
   // No provider returned a season string in the verified-fallback case
   // (both tiers came back empty) — fall back to the real year off whichever
   // real dated opener we already have (never a guess), labeled for the
@@ -351,28 +378,26 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         )}
       </div>
 
-      {(afcPicture || nfcPicture) && (
+      {playoffPictureGroups.length > 0 && (
         <div className="spx-panel spx-playoff-picture">
           <div className="spx-panel__head"><h2>Playoff Picture</h2></div>
           <p className="spx-panel__empty" style={{ marginTop: 0 }}>IF THE PLAYOFFS STARTED TODAY — projected from current standings, not an official bracket.</p>
           <div className="spx-playoff-picture__confs">
-            {[{ label: "AFC", seeds: afcPicture }, { label: "NFC", seeds: nfcPicture }].map(({ label, seeds }) =>
-              seeds ? (
-                <div key={label} className="spx-playoff-picture__conf">
-                  <h3>{label}</h3>
-                  {seeds.map((s) => (
-                    <div key={s.teamId} className="spx-playoff-picture__row">
-                      <span className="spx-playoff-picture__seed">{s.seed}</span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {s.teamLogoUrl ? <img src={s.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
-                      <b>{s.teamName}</b>
-                      {s.isDivisionWinner && <span className="spx-playoff-picture__tag">Division Leader</span>}
-                      {s.clinched && <span className="spx-playoff-picture__tag spx-playoff-picture__tag--clinched">Clinched</span>}
-                    </div>
-                  ))}
-                </div>
-              ) : null
-            )}
+            {playoffPictureGroups.map((g) => (
+              <div key={g.label || "field"} className="spx-playoff-picture__conf">
+                {g.label && <h3>{g.label}</h3>}
+                {g.rows.map((s) => (
+                  <div key={s.teamId} className="spx-playoff-picture__row">
+                    {s.seed != null && <span className="spx-playoff-picture__seed">{s.seed}</span>}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {s.teamLogoUrl ? <img src={s.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                    <b>{s.teamName}</b>
+                    {s.tag && <span className="spx-playoff-picture__tag">{s.tag}</span>}
+                    {s.clinched && <span className="spx-playoff-picture__tag spx-playoff-picture__tag--clinched">Clinched</span>}
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       )}

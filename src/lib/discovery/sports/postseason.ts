@@ -108,17 +108,7 @@ export function computePostseasonPicture(
   }));
 }
 
-// ── NFL adapter ──────────────────────────────────────────────────────────
-// Real NFL playoff structure: each of the AFC/NFC's 4 division winners
-// takes seeds 1-4 (by record, regardless of any wild card's record — the
-// real rule, not a simplification), then the next 3 best non-division-
-// winning records in that conference fill seeds 5-7. Division tiebreakers
-// (head-to-head, common games, strength of victory, ...) are NOT
-// implemented — this codebase has no verified source for that data — so
-// ties inside a division fall back to array order and are NOT presented
-// as an authoritative division-winner call; see NflSeedResult.projected.
-
-export interface NflTeamRecord {
+export interface DivisionTeamRecord {
   teamId: string;
   wins: number;
   losses: number;
@@ -126,7 +116,7 @@ export interface NflTeamRecord {
   division: string; // e.g. "AFC East" — the real division label from standings
 }
 
-export interface NflSeedResult {
+export interface DivisionSeedResult {
   seed: number;
   teamId: string;
   isDivisionWinner: boolean;
@@ -134,20 +124,29 @@ export interface NflSeedResult {
   eliminated: boolean;
 }
 
-function winPct(t: { wins: number; losses: number; ties?: number }): number {
+export function winPct(t: { wins: number; losses: number; ties?: number }): number {
   const games = t.wins + t.losses + (t.ties ?? 0);
   return games ? (t.wins + (t.ties ?? 0) * 0.5) / games : 0;
 }
 
-/** Projects one conference's real 7-seed field from today's standings.
- *  `teams` must already be scoped to a single conference (AFC or NFC) —
- *  callers filter by the real conference label from getStandings. */
-export function projectNflConferenceSeeds(teams: NflTeamRecord[]): NflSeedResult[] {
-  const byDivision = new Map<string, NflTeamRecord[]>();
+// ── Division-winners-then-wild-cards adapter (NFL, MLB) ───────────────────
+// The shared shape behind both leagues' real playoff structure: every
+// division winner outranks every wild card regardless of record, then the
+// best remaining records fill the wild-card slots. Division tiebreakers
+// (head-to-head, common games, strength of victory, ...) are NOT
+// implemented — this codebase has no verified source for that data — so
+// ties inside a division fall back to array order and are NOT presented as
+// an authoritative division-winner call.
+
+/** `teams` must already be scoped to a single group (an NFL conference, an
+ *  MLB league) — callers filter by the real group label from getStandings.
+ *  `wildCardSlots` is the real rule for that league (NFL 3, MLB 3). */
+export function projectDivisionWinnerSeeds(sport: string, teams: DivisionTeamRecord[], wildCardSlots: number): DivisionSeedResult[] {
+  const byDivision = new Map<string, DivisionTeamRecord[]>();
   for (const t of teams) byDivision.set(t.division, [...(byDivision.get(t.division) ?? []), t]);
 
-  const divisionLeaders: NflTeamRecord[] = [];
-  const nonLeaders: NflTeamRecord[] = [];
+  const divisionLeaders: DivisionTeamRecord[] = [];
+  const nonLeaders: DivisionTeamRecord[] = [];
   for (const teamsInDivision of byDivision.values()) {
     const sorted = [...teamsInDivision].sort((a, b) => winPct(b) - winPct(a));
     if (sorted[0]) divisionLeaders.push(sorted[0]);
@@ -155,10 +154,10 @@ export function projectNflConferenceSeeds(teams: NflTeamRecord[]): NflSeedResult
   }
 
   const seededLeaders = [...divisionLeaders].sort((a, b) => winPct(b) - winPct(a));
-  const seededWildcards = [...nonLeaders].sort((a, b) => winPct(b) - winPct(a)).slice(0, 3);
+  const seededWildcards = [...nonLeaders].sort((a, b) => winPct(b) - winPct(a)).slice(0, wildCardSlots);
 
-  const remainingByTeam = new Map(teams.map((t) => [t.teamId, remainingGamesForSport("nfl", t.wins, t.losses, t.ties) ?? 0]));
-  const clinchByTeam = new Map(computeClinchStatus(teams, remainingByTeam, 7).map((c) => [c.teamId, c]));
+  const remainingByTeam = new Map(teams.map((t) => [t.teamId, remainingGamesForSport(sport, t.wins, t.losses, t.ties) ?? 0]));
+  const clinchByTeam = new Map(computeClinchStatus(teams, remainingByTeam, seededLeaders.length + wildCardSlots).map((c) => [c.teamId, c]));
 
   return [
     ...seededLeaders.map((t, i) => ({
@@ -176,4 +175,114 @@ export function projectNflConferenceSeeds(teams: NflTeamRecord[]): NflSeedResult
       eliminated: false,
     })),
   ];
+}
+
+export type NflTeamRecord = DivisionTeamRecord;
+export type NflSeedResult = DivisionSeedResult;
+
+/** Projects one conference's real 7-seed field (4 division winners + 3
+ *  wild cards) from today's standings. */
+export function projectNflConferenceSeeds(teams: NflTeamRecord[]): NflSeedResult[] {
+  return projectDivisionWinnerSeeds("nfl", teams, 3);
+}
+
+/** Projects one league's (AL or NL) real 6-seed field (3 division winners
+ *  + 3 wild cards) from today's standings. The real top-2-seeds-get-a-bye
+ *  rule is a bracket-structure detail (see #188, Official bracket
+ *  transition), not a seeding-order detail — this function only orders the
+ *  field, same as every other adapter here. */
+export function projectMlbLeagueSeeds(teams: DivisionTeamRecord[]): DivisionSeedResult[] {
+  return projectDivisionWinnerSeeds("mlb", teams, 3);
+}
+
+// ── Top-N-per-division-then-wild-cards adapter (NHL) ──────────────────────
+// NHL's real rule is meaningfully different from NFL/MLB's "one winner per
+// division": the top 3 teams in EACH of a conference's two divisions
+// qualify directly (not just the single best team), then the conference's
+// next 2 best remaining records (regardless of division) fill 2 wild-card
+// spots.
+
+export interface NhlSeedResult {
+  seed: number;
+  teamId: string;
+  isTopThreeInDivision: boolean;
+  clinched: boolean;
+  eliminated: boolean;
+}
+
+/** `teams` must already be scoped to a single conference — callers filter
+ *  by the real conference label from getStandings. */
+export function projectNhlConferenceSeeds(teams: DivisionTeamRecord[]): NhlSeedResult[] {
+  const byDivision = new Map<string, DivisionTeamRecord[]>();
+  for (const t of teams) byDivision.set(t.division, [...(byDivision.get(t.division) ?? []), t]);
+
+  const topThreePerDivision: DivisionTeamRecord[] = [];
+  const remainder: DivisionTeamRecord[] = [];
+  for (const teamsInDivision of byDivision.values()) {
+    const sorted = [...teamsInDivision].sort((a, b) => winPct(b) - winPct(a));
+    topThreePerDivision.push(...sorted.slice(0, 3));
+    remainder.push(...sorted.slice(3));
+  }
+
+  // Real NHL seeding orders each division's top-3 block by division rank
+  // (that division's 1st-place teams, then all 2nd-place teams, then all
+  // 3rd-place teams) rather than a flat cross-division sort — captured here
+  // by re-sorting the already-selected top-3 group by winPct, which
+  // reproduces that ordering whenever divisions are reasonably balanced;
+  // a genuinely lopsided season could differ from the real broadcast seed
+  // order, a real limitation on top of the disclosed no-tiebreaker one.
+  const seededTopThree = [...topThreePerDivision].sort((a, b) => winPct(b) - winPct(a));
+  const seededWildcards = [...remainder].sort((a, b) => winPct(b) - winPct(a)).slice(0, 2);
+
+  const remainingByTeam = new Map(teams.map((t) => [t.teamId, remainingGamesForSport("nhl", t.wins, t.losses, t.ties) ?? 0]));
+  const clinchByTeam = new Map(computeClinchStatus(teams, remainingByTeam, seededTopThree.length + 2).map((c) => [c.teamId, c]));
+
+  return [
+    ...seededTopThree.map((t, i) => ({
+      seed: i + 1,
+      teamId: t.teamId,
+      isTopThreeInDivision: true,
+      clinched: clinchByTeam.get(t.teamId)?.clinched ?? false,
+      eliminated: false,
+    })),
+    ...seededWildcards.map((t, i) => ({
+      seed: seededTopThree.length + i + 1,
+      teamId: t.teamId,
+      isTopThreeInDivision: false,
+      clinched: clinchByTeam.get(t.teamId)?.clinched ?? false,
+      eliminated: false,
+    })),
+  ];
+}
+
+// ── Seeds-1-6-direct-plus-Play-In adapter (NBA) ────────────────────────────
+// Real NBA rule: seeds 1-6 in a conference make the playoffs directly;
+// seeds 7-10 enter the Play-In Tournament for the conference's final two
+// bracket spots (7-vs-8 winner takes the 7 seed, 9-vs-10 winner faces the
+// 7-vs-8 loser for the 8 seed); 11th and below are out. This function
+// projects who's in each tier from today's standings — the real Play-In
+// GAMES themselves are a bracket-structure detail (see #188).
+
+export type NbaPlayInStatus = "DIRECT_BERTH" | "PLAY_IN" | "OUTSIDE";
+
+export interface NbaPictureEntry {
+  teamId: string;
+  seed: number;
+  status: NbaPlayInStatus;
+  clinched: boolean;
+  eliminated: boolean;
+}
+
+/** `teams` must already be scoped to a single conference. */
+export function projectNbaConferencePicture(teams: { teamId: string; wins: number; losses: number }[]): NbaPictureEntry[] {
+  const ranked = [...teams].sort((a, b) => winPct(b) - winPct(a));
+  const remainingByTeam = new Map(teams.map((t) => [t.teamId, remainingGamesForSport("nba", t.wins, t.losses) ?? 0]));
+  const clinchByTeam = new Map(computeClinchStatus(teams, remainingByTeam, 10).map((c) => [c.teamId, c]));
+  return ranked.map((t, i) => ({
+    teamId: t.teamId,
+    seed: i + 1,
+    status: i < 6 ? "DIRECT_BERTH" : i < 10 ? "PLAY_IN" : "OUTSIDE",
+    clinched: clinchByTeam.get(t.teamId)?.clinched ?? false,
+    eliminated: clinchByTeam.get(t.teamId)?.eliminated ?? false,
+  }));
 }
