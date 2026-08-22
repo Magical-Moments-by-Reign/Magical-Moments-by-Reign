@@ -30,6 +30,7 @@ import {
   type RosterPlayer,
   type FantasyStandingsEntry,
 } from "./fantasy";
+import { getSdioTeamDirectory } from "./team-identity";
 
 const ROSTER_TTL = 360; // 6h — the same pool tracked-players.ts already caches at this TTL
 // Short — this is the same feed a future live-during-games poll (Live
@@ -399,4 +400,58 @@ export async function getFantasyStandings(accountId: string, leagueId: string): 
   return {
     entries: entries.map((e) => ({ ...e, teamName: nameById.get(e.teamId) ?? "Team", isMe: accountByTeam.get(e.teamId) === accountId })),
   };
+}
+
+// ── Live Game Center integration ─────────────────────────────────────────
+
+export interface MyFantasyPlayerInGame {
+  playerId: string;
+  playerName: string;
+  position: string;
+  points: number;
+  leagueId: string;
+  leagueName: string;
+  fantasyTeamId: string;
+  fantasyTeamName: string;
+  isStarter: boolean;
+}
+
+/** Every player on any of the viewer's fantasy rosters, across every
+ *  league, who's part of THIS specific real NFL game — with their real
+ *  current-week fantasy points. Resolves the game's real API-Sports team
+ *  names to SportsDataIO's short team key via the cross-provider Team
+ *  Identity Resolver (the same bridge rosters/injuries already use) —
+ *  never a raw string comparison of "Buffalo Bills" against "BUF". Returns
+ *  [] when the viewer has no fantasy rosters, this isn't an NFL game, or
+ *  neither team resolves. */
+export async function getMyFantasyPlayersInGame(accountId: string, homeTeamName: string, awayTeamName: string, season: number): Promise<MyFantasyPlayerInGame[]> {
+  const directory = await getSdioTeamDirectory("nfl");
+  if (!directory.length) return [];
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const keyFor = (name: string) => directory.find((t) => normalize(t.fullName) === normalize(name))?.key;
+  const homeKey = keyFor(homeTeamName);
+  const awayKey = keyFor(awayTeamName);
+  if (!homeKey && !awayKey) return [];
+  const gameTeams = [homeKey, awayKey].filter((k): k is string => Boolean(k));
+
+  const rosterSlots = await prisma.fantasyRosterSlot.findMany({
+    where: { nflTeam: { in: gameTeams }, team: { accountId } },
+    include: { team: { include: { league: true } } },
+  });
+  if (!rosterSlots.length) return [];
+
+  const { week } = await getCurrentNflWeekAndSeason(season);
+  const { players, defense } = await getWeekScoreMaps(season, week);
+
+  return rosterSlots.map((r) => ({
+    playerId: r.playerId,
+    playerName: r.playerName,
+    position: r.position,
+    points: r.position === "DST" || r.position === "DEF" ? (r.nflTeam ? defense.get(r.nflTeam) ?? 0 : 0) : players.get(r.playerId) ?? 0,
+    leagueId: r.team.leagueId,
+    leagueName: r.team.league.name,
+    fantasyTeamId: r.teamId,
+    fantasyTeamName: r.team.teamName,
+    isStarter: r.lineupSlot !== "BENCH",
+  }));
 }
