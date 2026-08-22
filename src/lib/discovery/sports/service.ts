@@ -11,7 +11,7 @@ import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeag
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
-import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, gradeRacePicks, type VoteTally, type PicksSummary } from "./picks";
+import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
@@ -1040,10 +1040,11 @@ export interface LeaderboardEntry {
  *  adult accounts have no guardian links at all, so most viewers get a
  *  solo one-row result; `hasFamily` tells the page whether to show the
  *  "Family Leaderboard" framing or fall back to "My Picks".
- *  `range: "week"` counts only picks on games that started this week
- *  (Sunday-anchored, see startOfWeek); `"all"` counts every correct pick
- *  ever. */
-export async function getFamilyPicksLeaderboard(accountId: string, range: "week" | "all" = "week"): Promise<{ entries: LeaderboardEntry[]; hasFamily: boolean }> {
+ *  `range` is one of the real Today/This Week/This Month/Season/All Time
+ *  leaderboard periods (see leaderboardPeriodStart) — Season and All Time
+ *  both currently show full history since this codebase has no single
+ *  cross-sport season-year boundary yet. */
+export async function getFamilyPicksLeaderboard(accountId: string, range: LeaderboardPeriod = "week"): Promise<{ entries: LeaderboardEntry[]; hasFamily: boolean }> {
   const me = await prisma.account.findUnique({ where: { id: accountId }, select: { guardianAccountId: true, firstName: true } });
   const householdRootId = me?.guardianAccountId ?? accountId;
   const household = await prisma.account.findMany({
@@ -1052,7 +1053,11 @@ export async function getFamilyPicksLeaderboard(accountId: string, range: "week"
   });
   const familyAccounts = household.length ? household : [{ id: accountId, firstName: me?.firstName ?? "You" }];
 
-  const since = range === "week" ? startOfWeek(new Date()) : undefined;
+  // "season" resolves to no lower bound here too — this codebase has no
+  // single cross-sport season-year concept (see leaderboardPeriodStart's
+  // own note); Today/This Week/This Month are real, Season/All Time both
+  // show the member's full real pick history rather than guess a boundary.
+  const since = leaderboardPeriodStart(range, new Date());
   const correctPicks = await prisma.sportsPick.findMany({
     where: {
       accountId: { in: familyAccounts.map((a) => a.id) },
