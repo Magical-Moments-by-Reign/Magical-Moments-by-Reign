@@ -671,3 +671,119 @@ export async function fetchTeamRoster(sport: SportSlug, teamExternalId: string, 
   if (!list) return null;
   return list.map(mapRosterPlayer).filter((p: SportsRosterPlayer | null): p is SportsRosterPlayer => p !== null);
 }
+
+// ── Game-level box score / team + player stats (NFL/NCAAF today) ──────────
+// Real, confirmed endpoint paths — /games/statistics/teams and
+// /games/statistics/players on the american-football host are named
+// explicitly in API-Sports' own public documentation and search-indexed
+// references. This sandbox has no live API_SPORTS_KEY to confirm the exact
+// response field names against, though, so every mapper below is
+// deliberately defensive: it reads whichever of the two real conventions
+// this provider's product line is documented to use (a flat {type|name,
+// value} stat entry, or a named-field object whose own keys ARE the stats —
+// the same {player:{...}, statistics:[...]} envelope already confirmed
+// working for /players just above) and otherwise returns nothing for that
+// row rather than fabricate a stat the response didn't actually contain.
+// Confirm the exact shape against API-Sports' live docs once a key is
+// active, the same disclosed-until-verified posture SPORT_CONFIG's league
+// ids already carry.
+
+export interface GameStatLine {
+  label: string;
+  value: string | number;
+}
+
+function humanizeStatKey(key: string): string {
+  const spaced = key.replace(/_/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+const STAT_ENTRY_META_KEYS = new Set(["type", "name", "category", "group", "id"]);
+
+/** Pure: one raw stat entry → real label/value pairs, tolerant of either
+ *  documented convention. Exported for tests. */
+export function flattenStatEntry(entry: unknown): GameStatLine[] {
+  if (entry == null || typeof entry !== "object") return [];
+  const e = entry as Record<string, unknown>;
+  const label = typeof e.type === "string" ? e.type : typeof e.name === "string" ? e.name : undefined;
+  if (label && "value" in e && (typeof e.value === "number" || typeof e.value === "string")) {
+    return [{ label, value: e.value as string | number }];
+  }
+  return Object.entries(e)
+    .filter(([k, v]) => !STAT_ENTRY_META_KEYS.has(k) && (typeof v === "number" || typeof v === "string"))
+    .map(([k, v]) => ({ label: humanizeStatKey(k), value: v as string | number }));
+}
+
+export interface TeamGameStats {
+  team: SportsTeam;
+  stats: GameStatLine[];
+}
+
+/** Pure: one team's row from /games/statistics/teams → our shape. Exported for tests. */
+export function mapTeamGameStats(item: unknown): TeamGameStats | null {
+  const it = item as Record<string, any> | null | undefined;
+  const t = it?.team;
+  if (!t?.id || !t?.name) return null;
+  const rawStats: unknown[] = Array.isArray(it?.statistics) ? it.statistics : [];
+  const stats = rawStats.flatMap(flattenStatEntry);
+  return { team: { id: String(t.id), name: t.name, logoUrl: t.logo || undefined }, stats };
+}
+
+export async function fetchGameTeamStats(sport: SportSlug, gameExternalId: string): Promise<TeamGameStats[] | null> {
+  if (!ApiSportsProvider.isConfigured(sport) || (sport !== "nfl" && sport !== "ncaaf") || !gameExternalId) return null;
+  const json = await apiSportsFetch(sport, "/games/statistics/teams", { id: gameExternalId });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  if (!list) return null;
+  return list.map(mapTeamGameStats).filter((t: TeamGameStats | null): t is TeamGameStats => t !== null);
+}
+
+export interface PlayerGameStatLine {
+  player: { id: string; name: string };
+  category?: string;
+  stats: GameStatLine[];
+}
+
+export interface TeamPlayerGameStats {
+  team: SportsTeam;
+  players: PlayerGameStatLine[];
+}
+
+/** Pure: one team's row from /games/statistics/players → our shape.
+ *  Handles both a players array directly under the team and players nested
+ *  under named statistical groups (Passing, Rushing, ...) — real
+ *  conventions this provider family uses elsewhere for per-category
+ *  breakdowns. Exported for tests. */
+export function mapTeamPlayerGameStats(item: unknown): TeamPlayerGameStats | null {
+  const it = item as Record<string, any> | null | undefined;
+  const t = it?.team;
+  if (!t?.id || !t?.name) return null;
+  const players: PlayerGameStatLine[] = [];
+
+  const readPlayerRow = (p: any, category?: string) => {
+    const player = p?.player;
+    if (!player?.id || !player?.name) return;
+    const rawStats: unknown[] = Array.isArray(p?.statistics) ? p.statistics : [];
+    const stats = rawStats.flatMap(flattenStatEntry);
+    if (stats.length) players.push({ player: { id: String(player.id), name: player.name }, category, stats });
+  };
+
+  const direct: any[] = Array.isArray(it?.players) ? it.players : [];
+  for (const p of direct) readPlayerRow(p);
+
+  const groups: any[] = Array.isArray(it?.groups) ? it.groups : [];
+  for (const g of groups) {
+    const category = typeof g?.name === "string" ? g.name : undefined;
+    const groupPlayers: any[] = Array.isArray(g?.players) ? g.players : [];
+    for (const p of groupPlayers) readPlayerRow(p, category);
+  }
+
+  return { team: { id: String(t.id), name: t.name, logoUrl: t.logo || undefined }, players };
+}
+
+export async function fetchGamePlayerStats(sport: SportSlug, gameExternalId: string): Promise<TeamPlayerGameStats[] | null> {
+  if (!ApiSportsProvider.isConfigured(sport) || (sport !== "nfl" && sport !== "ncaaf") || !gameExternalId) return null;
+  const json = await apiSportsFetch(sport, "/games/statistics/players", { id: gameExternalId });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  if (!list) return null;
+  return list.map(mapTeamPlayerGameStats).filter((t: TeamPlayerGameStats | null): t is TeamPlayerGameStats => t !== null);
+}

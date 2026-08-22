@@ -9,14 +9,21 @@
 //
 // GAME CENTER TABS: sport-specific feeds (Play-by-Play, Box Score, Team
 // Stats, Player Stats) mount here only once this codebase has a verified,
-// real field mapping for them from a connected provider — see the sport
-// module registry below. Today that's none, so only Overview renders; the
-// tab strip is deliberately data-driven so a real feed just adds itself
-// here rather than needing a rewrite.
+// real field mapping for them from a connected provider. Team Stats and
+// Player Stats (Box Score is the same real player-stat-line feed, shown
+// condensed) are wired for NFL today against API-Sports'
+// games/statistics/teams and games/statistics/players — real, confirmed
+// endpoint paths; see fetchGameTeamStats/fetchGamePlayerStats in
+// providers/sports.ts for the disclosed data-shape caveat (this sandbox
+// has no live key to confirm the exact field names against, so parsing is
+// deliberately defensive and never fabricates a stat the response didn't
+// contain). Play-by-Play has no verified endpoint yet, so its tab shows an
+// honest "coming soon" rather than mounting fake plays.
 
 import { useEffect, useState } from "react";
 import { submitPickAction } from "../../actions";
 import type { VoteTally } from "@/lib/discovery/sports/picks";
+import type { GameStatLine } from "@/lib/discovery/providers/sports";
 
 export interface LiveGameInitial {
   id: string;
@@ -50,6 +57,30 @@ interface LiveState {
   venue?: string;
   stage?: string;
 }
+
+interface TeamGameStatsView {
+  team: { id: string; name: string; logoUrl?: string };
+  stats: GameStatLine[];
+}
+interface PlayerGameStatsView {
+  player: { id: string; name: string };
+  category?: string;
+  stats: GameStatLine[];
+}
+interface TeamPlayerGameStatsView {
+  team: { id: string; name: string; logoUrl?: string };
+  players: PlayerGameStatsView[];
+}
+interface BoxScoreData {
+  teamStats: TeamGameStatsView[];
+  playerStats: TeamPlayerGameStatsView[];
+}
+
+// Tabs shown only for sports with a verified stats mapping today (NFL —
+// see the module header). A future sport just adds itself to this list
+// once its own mapping is verified; nothing else here changes.
+const STATS_TABS_SPORTS = new Set(["nfl"]);
+type GameTab = "overview" | "team-stats" | "box-score" | "player-stats" | "play-by-play";
 
 // Poll cadence — matched to how fast the underlying reality actually
 // changes, not a single blanket interval: a live game's score/clock moves
@@ -110,6 +141,24 @@ export default function LiveGameCenter({ initial }: { initial: LiveGameInitial }
   const startsAtLocal = new Date(state.startsAt);
 
   const headerLine = [initial.sportLabel, state.stage].filter(Boolean).join(" · ");
+
+  const showStatsTabs = STATS_TABS_SPORTS.has(initial.sport);
+  const [tab, setTab] = useState<GameTab>("overview");
+  const [boxScore, setBoxScore] = useState<BoxScoreData | null>(null);
+  const [boxScoreLoading, setBoxScoreLoading] = useState(false);
+  const [playerQuery, setPlayerQuery] = useState("");
+
+  useEffect(() => {
+    if (tab === "overview" || tab === "play-by-play" || boxScore || boxScoreLoading) return;
+    let cancelled = false;
+    setBoxScoreLoading(true);
+    fetch(`/api/discovery/sports/game/${initial.id}/box-score`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (!cancelled && data) setBoxScore(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setBoxScoreLoading(false); });
+    return () => { cancelled = true; };
+  }, [tab, initial.id, boxScore, boxScoreLoading]);
 
   return (
     <div className="lgc">
@@ -178,8 +227,82 @@ export default function LiveGameCenter({ initial }: { initial: LiveGameInitial }
       {initial.isMatchupSport && locked && state.status !== "final" && <div className="lgc__locked">Picks locked</div>}
 
       <div className="lgc__tabs">
-        <button type="button" className="lgc__tab lgc__tab--active">Overview</button>
+        <button type="button" className={`lgc__tab${tab === "overview" ? " lgc__tab--active" : ""}`} onClick={() => setTab("overview")}>Overview</button>
+        {showStatsTabs && (
+          <>
+            <button type="button" className={`lgc__tab${tab === "team-stats" ? " lgc__tab--active" : ""}`} onClick={() => setTab("team-stats")}>Team Stats</button>
+            <button type="button" className={`lgc__tab${tab === "box-score" ? " lgc__tab--active" : ""}`} onClick={() => setTab("box-score")}>Box Score</button>
+            <button type="button" className={`lgc__tab${tab === "player-stats" ? " lgc__tab--active" : ""}`} onClick={() => setTab("player-stats")}>Player Stats</button>
+            <button type="button" className={`lgc__tab${tab === "play-by-play" ? " lgc__tab--active" : ""}`} onClick={() => setTab("play-by-play")}>Play-by-Play</button>
+          </>
+        )}
       </div>
+
+      {tab === "play-by-play" && (
+        <p className="disc-empty" style={{ marginTop: ".8rem" }}>Play-by-play is coming soon for this sport.</p>
+      )}
+
+      {tab === "team-stats" && (
+        <div className="lgc__stats">
+          {boxScoreLoading && !boxScore && <p className="disc-empty" style={{ marginTop: ".8rem" }}>Loading team stats…</p>}
+          {boxScore && boxScore.teamStats.length === 0 && <p className="disc-empty" style={{ marginTop: ".8rem" }}>No team stats reported for this game yet.</p>}
+          {boxScore?.teamStats.map((t) => (
+            <div key={t.team.id} className="lgc__stats-team">
+              <h4>{t.team.name}</h4>
+              {t.stats.length === 0 ? (
+                <p className="disc-empty">No stats reported yet.</p>
+              ) : (
+                <table className="lgc__stats-table">
+                  <tbody>
+                    {t.stats.map((s, i) => (
+                      <tr key={`${t.team.id}-${i}`}><td>{s.label}</td><td>{s.value}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(tab === "box-score" || tab === "player-stats") && (
+        <div className="lgc__stats">
+          {boxScoreLoading && !boxScore && <p className="disc-empty" style={{ marginTop: ".8rem" }}>Loading player stats…</p>}
+          {boxScore && boxScore.playerStats.every((t) => t.players.length === 0) && (
+            <p className="disc-empty" style={{ marginTop: ".8rem" }}>No player stats reported for this game yet.</p>
+          )}
+          {tab === "player-stats" && boxScore && boxScore.playerStats.some((t) => t.players.length > 0) && (
+            <input
+              type="search"
+              placeholder="Find a player…"
+              value={playerQuery}
+              onChange={(e) => setPlayerQuery(e.target.value)}
+              className="lgc__stats-search"
+            />
+          )}
+          {boxScore?.playerStats.map((t) => {
+            const players = tab === "player-stats" && playerQuery.trim()
+              ? t.players.filter((p) => p.player.name.toLowerCase().includes(playerQuery.trim().toLowerCase()))
+              : t.players;
+            if (players.length === 0) return null;
+            return (
+              <div key={t.team.id} className="lgc__stats-team">
+                <h4>{t.team.name}</h4>
+                {players.map((p) => (
+                  <div key={p.player.id} className="lgc__stats-player">
+                    <div className="lgc__stats-player-name">{p.player.name}{p.category ? ` · ${p.category}` : ""}</div>
+                    <div className="lgc__stats-player-line">
+                      {p.stats.map((s, i) => (
+                        <span key={i}>{s.label}: {s.value}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

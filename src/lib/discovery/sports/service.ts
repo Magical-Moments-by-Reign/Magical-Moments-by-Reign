@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
@@ -18,6 +18,8 @@ import { dispatchNotification } from "@/lib/notify";
 const TTL_GAMES_UPCOMING = 180; // 3h — schedules barely move
 const TTL_GAMES_LIVE = 3; // 3m — live games refresh often
 const TTL_GAME_DETAIL_LIVE = 1; // 1m — the shortest TTL withCache supports; a single game someone is actively watching
+const TTL_GAME_BOX_SCORE_LIVE = 1; // 1m while live — a box score updates play by play
+const TTL_GAME_BOX_SCORE_FINAL = 10080; // 1 week — a final game's stat line never changes again
 const TTL_STANDINGS = 720; // 12h
 const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
 const TTL_ROSTER = 10080; // 1 week — a team's active roster barely moves day to day
@@ -657,6 +659,34 @@ export async function getLiveGameState(gameId: string): Promise<LiveGameState | 
     venue: live.venue,
     stage: live.stage,
   };
+}
+
+/** Real team-level box score stats for one game (NFL/NCAAF today — see
+ *  fetchGameTeamStats). Cached like getLiveGameState: a final game's stats
+ *  never change again so they're cached for a week; a live game's are
+ *  refetched on the shortest TTL withCache supports. Returns null for any
+ *  game this provider doesn't have a verified stats mapping for yet — never
+ *  fabricates a stat line. */
+export async function getGameTeamStats(gameId: string): Promise<TeamGameStats[] | null> {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  if (!game || !game.externalId) return null;
+  const sport = game.sport as SportSlug;
+  const ttl = game.status === "final" ? TTL_GAME_BOX_SCORE_FINAL : TTL_GAME_BOX_SCORE_LIVE;
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, externalId: game.externalId, kind: "game_team_stats" }), ttl, () =>
+    fetchGameTeamStats(sport, game.externalId!));
+  return cached?.data ?? null;
+}
+
+/** Real player-level box score stats for one game (NFL/NCAAF today — see
+ *  fetchGamePlayerStats). Same tiered cache policy as getGameTeamStats. */
+export async function getGamePlayerStats(gameId: string): Promise<TeamPlayerGameStats[] | null> {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  if (!game || !game.externalId) return null;
+  const sport = game.sport as SportSlug;
+  const ttl = game.status === "final" ? TTL_GAME_BOX_SCORE_FINAL : TTL_GAME_BOX_SCORE_LIVE;
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, externalId: game.externalId, kind: "game_player_stats" }), ttl, () =>
+    fetchGamePlayerStats(sport, game.externalId!));
+  return cached?.data ?? null;
 }
 
 // ── My Teams / My Sports ────────────────────────────────────────────
