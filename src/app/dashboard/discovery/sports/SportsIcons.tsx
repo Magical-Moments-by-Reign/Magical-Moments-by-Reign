@@ -9,6 +9,7 @@ const PATHS: Record<string, React.ReactNode> = {
   people: <><circle cx="8.5" cy="8" r="2.6" /><circle cx="16" cy="9.5" r="2.2" /><path d="M3.5 20a5 5 0 0 1 10 0" /><path d="M13 20a4.5 4.5 0 0 1 8-2.4" /></>,
   star: <path d="M12 4 14.3 9 20 9.5 15.7 13.4 17 19 12 16 7 19 8.3 13.4 4 9.5 9.7 9z" />,
   bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" /><path d="M10 20a2 2 0 0 0 4 0" /></>,
+  grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
 };
 
 export default function SportsIcon({ name }: { name: string }) {

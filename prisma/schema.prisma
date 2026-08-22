@@ -1120,6 +1120,8 @@ model Account {
   sportsBadgesEarned   SportsBadgeEarned[]
   pickGroupsOwned      PickGroup[]        @relation("pickGroupOwner")
   pickGroupMemberships PickGroupMember[]
+  fantasyLeaguesCommissioned FantasyLeague[] @relation("fantasyCommissioner")
+  fantasyTeams         FantasyTeam[]      @relation("fantasyTeams")
   socialShares         SocialShare[]
   // Vendor Portal: the marketplace business record(s) this account manages
   // (one-to-one enforced in application logic; see src/lib/vendor-auth.ts).
@@ -2808,6 +2810,60 @@ model PickGroupMember {
 
   @@unique([groupId, accountId])
   @@index([accountId])
+}
+
+// Fantasy Football — a separate product from Magical Picks. We own the
+// league rules and this schema (roster slots, draft order, lineup) end to
+// end; SportsDataIO/API-Sports only ever supplies the real players and
+// (in a later phase) the real weekly stats used to score them — never a
+// packaged "fantasy game" product of their own.
+model FantasyLeague {
+  id                     String   @id @default(cuid())
+  name                   String
+  season                 Int
+  commissionerAccountId  String
+  commissioner           Account  @relation("fantasyCommissioner", fields: [commissionerAccountId], references: [id], onDelete: Cascade)
+  inviteCode             String   @unique
+  rosterSlots            Json     // ordered starting-lineup slot labels, e.g. ["QB","RB","RB","WR","WR","TE","FLEX","DST","K"] — our own rules, not a provider format
+  benchSize              Int      @default(6)
+  draftStatus            String   @default("scheduled") // "scheduled" | "in_progress" | "complete"
+  draftOrder             Json?    // FantasyTeam id[] — the round-1 pick order; set once when the draft starts
+  currentPickIndex       Int      @default(0) // index into the flattened snake sequence (round*teamCount)
+  createdAt              DateTime @default(now())
+
+  teams                  FantasyTeam[]
+
+  @@index([commissionerAccountId])
+}
+
+model FantasyTeam {
+  id         String   @id @default(cuid())
+  leagueId   String
+  league     FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  accountId  String
+  account    Account  @relation("fantasyTeams", fields: [accountId], references: [id], onDelete: Cascade)
+  teamName   String
+  joinedAt   DateTime @default(now())
+
+  roster     FantasyRosterSlot[]
+
+  @@unique([leagueId, accountId])
+  @@index([leagueId])
+}
+
+model FantasyRosterSlot {
+  id          String   @id @default(cuid())
+  teamId      String
+  team        FantasyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerId    String   // the real provider PlayerID (SportsDataIO), stored as a string
+  playerName  String
+  position    String   // the real provider position (e.g. "RB", "DST")
+  lineupSlot  String   @default("BENCH") // one of the league's rosterSlots labels, or "BENCH"
+  draftedAt   DateTime @default(now())
+
+  @@unique([teamId, playerId])
+  @@index([teamId])
+  @@index([playerId])
 }
 
 // A member's connected Spotify account (OAuth Authorization Code flow).

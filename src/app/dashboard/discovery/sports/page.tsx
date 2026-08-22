@@ -336,7 +336,7 @@ export default async function SportsPage() {
         <Link href={`/dashboard/discovery/sports/${followedSports[0] ?? "nfl"}#standings`} className="spx-bar__item"><SportsIcon name="chart" /><span><b>Stats &amp; Standings</b><i>In-depth stats and league standings</i></span></Link>
         <Link href="/dashboard/discovery/sports/picks" className="spx-bar__item"><SportsIcon name="trophy" /><span><b>Magical Picks</b><i>Make picks, create polls and win together</i></span></Link>
         <Link href="/dashboard/discovery/sports/schedule" className="spx-bar__item"><SportsIcon name="play" /><span><b>Live Games</b><i>Follow live action as it happens</i></span></Link>
-        <Link href="/dashboard/discovery/sports/picks" className="spx-bar__item"><SportsIcon name="people" /><span><b>Community</b><i>Share moments, challenge friends</i></span></Link>
+        <Link href="/dashboard/discovery/sports/fantasy" className="spx-bar__item"><SportsIcon name="grid" /><span><b>Fantasy Football</b><i>Draft real NFL players, run your own league</i></span></Link>
         <Link href="/dashboard" className="spx-bar__item"><SportsIcon name="star" /><span><b>Magical Moments</b><i>Make every game unforgettable</i></span></Link>
         <span className="spx-bar__item spx-bar__item--soon"><SportsIcon name="play" /><span><b>Highlights</b><i>Relive the action</i></span><span className="spx-bar__soon-pill">Coming Soon</span></span>
       </nav>
