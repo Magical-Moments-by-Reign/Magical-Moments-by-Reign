@@ -16,6 +16,8 @@
 // just not yet warned about in the lineup UI. Playoffs are the next
 // phase — this schema/engine is built so it's additive, not a rebuild.
 
+import { computeClinchStatus, type ClinchStatus } from "./postseason";
+
 /** The starting lineup this codebase runs today. Not configurable per
  *  league yet — a real, single, well-known 9-starter standard format
  *  (single QB, 2 RB, 2 WR, 1 TE, 1 FLEX, 1 DST, 1 K), so every league a
@@ -437,32 +439,14 @@ export function advancePlayoffBracket(games: PlayoffBracketGame[]): PlayoffBrack
   return updated;
 }
 
-export interface PlayoffClinchStatus {
-  teamId: string;
-  clinched: boolean;
-  eliminated: boolean;
-}
+export type PlayoffClinchStatus = ClinchStatus;
 
 /** Real, verified playoff-clinch math from current standings and each
- *  team's own real remaining-game count — never a guess. A team is
- *  CLINCHED once fewer than `playoffTeams` other teams could possibly
- *  still finish with more wins than it already has (even if it loses
- *  every remaining game, it can't be pushed out). A team is ELIMINATED
- *  once `playoffTeams` other teams have already clinched more wins than
- *  it could possibly reach even by winning out. Deliberately conservative
- *  on ties (no fantasy tiebreaker rule is assumed) — it will never
- *  mislabel a team CLINCHED or ELIMINATED, only decline to call an
- *  unresolved tie either way yet. */
+ *  team's own real remaining-game count — never a guess. Thin Fantasy-
+ *  named wrapper over the shared PostseasonRuleEngine's computeClinchStatus
+ *  (postseason.ts) — the same math real-sports-league standings use, so
+ *  Fantasy playoffs and real playoff pictures never carry two competing
+ *  implementations of "is this team clinched." */
 export function computePlayoffClinchStatus(standings: FantasyStandingsEntry[], remainingGamesByTeam: Map<string, number>, playoffTeams: number): PlayoffClinchStatus[] {
-  const maxPossibleWins = new Map(standings.map((s) => [s.teamId, s.wins + (remainingGamesByTeam.get(s.teamId) ?? 0)]));
-  return standings.map((team) => {
-    const others = standings.filter((s) => s.teamId !== team.teamId);
-    const couldStillPass = others.filter((o) => (maxPossibleWins.get(o.teamId) ?? o.wins) > team.wins).length;
-    const alreadyPastMyMax = others.filter((o) => o.wins > (maxPossibleWins.get(team.teamId) ?? team.wins)).length;
-    return {
-      teamId: team.teamId,
-      clinched: couldStillPass < playoffTeams,
-      eliminated: alreadyPastMyMax >= playoffTeams,
-    };
-  });
+  return computeClinchStatus(standings, remainingGamesByTeam, playoffTeams);
 }

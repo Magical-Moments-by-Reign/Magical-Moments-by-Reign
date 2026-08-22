@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, sdioLeagueFor } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, sdioLeagueFor } from "@/lib/discovery/sports/service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
@@ -219,6 +219,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     ? await getVerifiedStandingsFallback(sport, standingsResult.standings ?? [], standingsPhase === "preseason").catch(() => standingsResult.standings ?? [])
     : standingsResult.standings ?? [];
   const standingsGroups = normalizeStandingsBySport(sport, standings);
+  // Playoff Picture — real, current-standings projections via the
+  // PostseasonRuleEngine (postseason.ts), NFL first. Shown only during the
+  // real regular season and never presented as an official bracket — see
+  // getNflPlayoffPicture's own disclosed limitation (no division
+  // tiebreaker data yet).
+  const [afcPicture, nfcPicture] = sport === "nfl" && standingsPhase === "regular" && standings.length > 0
+    ? await Promise.all([getNflPlayoffPicture("AFC"), getNflPlayoffPicture("NFC")])
+    : [null, null];
   // No provider returned a season string in the verified-fallback case
   // (both tiers came back empty) — fall back to the real year off whichever
   // real dated opener we already have (never a guess), labeled for the
@@ -342,6 +350,32 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           </div>
         )}
       </div>
+
+      {(afcPicture || nfcPicture) && (
+        <div className="spx-panel spx-playoff-picture">
+          <div className="spx-panel__head"><h2>Playoff Picture</h2></div>
+          <p className="spx-panel__empty" style={{ marginTop: 0 }}>IF THE PLAYOFFS STARTED TODAY — projected from current standings, not an official bracket.</p>
+          <div className="spx-playoff-picture__confs">
+            {[{ label: "AFC", seeds: afcPicture }, { label: "NFC", seeds: nfcPicture }].map(({ label, seeds }) =>
+              seeds ? (
+                <div key={label} className="spx-playoff-picture__conf">
+                  <h3>{label}</h3>
+                  {seeds.map((s) => (
+                    <div key={s.teamId} className="spx-playoff-picture__row">
+                      <span className="spx-playoff-picture__seed">{s.seed}</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {s.teamLogoUrl ? <img src={s.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                      <b>{s.teamName}</b>
+                      {s.isDivisionWinner && <span className="spx-playoff-picture__tag">Division Leader</span>}
+                      {s.clinched && <span className="spx-playoff-picture__tag spx-playoff-picture__tag--clinched">Clinched</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : null
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="spx-panels" style={{ gridTemplateColumns: "1.2fr 1fr" }}>
         <div className="spx-panel" id="standings">
