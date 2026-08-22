@@ -195,6 +195,16 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-panel__head a:hover { color: var(--gold-soft); }
 .spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: auto 0; }
 .spx-panel__body { display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+
+.spx-playoff-picture { margin-bottom: 1.6rem; }
+.spx-playoff-picture__confs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+.spx-playoff-picture__conf h3 { margin: 0 0 .6rem; color: var(--gold-soft); font-size: .74rem; font-weight: 800; letter-spacing: .1em; }
+.spx-playoff-picture__row { display: flex; align-items: center; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid rgba(201,162,75,.14); }
+.spx-playoff-picture__seed { width: 18px; color: var(--gold); font-size: .72rem; font-weight: 800; }
+.spx-playoff-picture__row img, .spx-playoff-picture__row .spx-team-row__ph { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
+.spx-playoff-picture__row b { flex: 1; color: #f4ead1; font-size: .8rem; }
+.spx-playoff-picture__tag { font-size: .6rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #9c8f76; border: 1px solid rgba(201,162,75,.3); border-radius: 999px; padding: .15rem .5rem; white-space: nowrap; }
+.spx-playoff-picture__tag--clinched { color: #0a0806; background: var(--gold); border-color: var(--gold); }
 .spx-panel__cta {
   display: block; text-align: center; margin-top: .9rem; padding: .55rem; border-radius: 8px;
   border: 1px solid rgba(201,162,75,.5); color: var(--gold); font-size: .72rem; font-weight: 800;

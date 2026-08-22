@@ -12,6 +12,7 @@ import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStand
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, gradeRacePicks, type VoteTally, type PicksSummary } from "./picks";
+import { projectNflConferenceSeeds } from "./postseason";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -762,6 +763,42 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
   }
 
   return { standings: [], planRestricted: restriction };
+}
+
+export interface NflPlayoffPictureSeed {
+  teamId: string;
+  teamName: string;
+  teamLogoUrl?: string;
+  seed: number;
+  isDivisionWinner: boolean;
+  clinched: boolean;
+}
+
+/** "IF THE PLAYOFFS STARTED TODAY" for one NFL conference — real, current
+ *  standings run through the PostseasonRuleEngine's NFL seed projector
+ *  (postseason.ts). Never presented as an official bracket; see that
+ *  module's own disclosed limitation (no division tiebreaker data). Returns
+ *  null when this conference's standings aren't available (never a
+ *  fabricated field). */
+export async function getNflPlayoffPicture(conference: "AFC" | "NFC", season?: string): Promise<NflPlayoffPictureSeed[] | null> {
+  const { standings } = await getStandings("nfl", defaultLeagueId("nfl"), season);
+  const teams = standings.filter(
+    (s): s is SportsStanding & { wins: number; losses: number; division: string } =>
+      s.group === conference && typeof s.wins === "number" && typeof s.losses === "number" && typeof s.division === "string"
+  );
+  if (!teams.length) return null;
+  const seeds = projectNflConferenceSeeds(
+    teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
+  );
+  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  return seeds.map((s) => ({
+    teamId: s.teamId,
+    teamName: teamById.get(s.teamId)?.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    seed: s.seed,
+    isDivisionWinner: s.isDivisionWinner,
+    clinched: s.clinched,
+  }));
 }
 
 /** Real win-loss(-tie) records for the two teams in one matchup, resolved
