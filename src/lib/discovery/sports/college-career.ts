@@ -2,26 +2,33 @@
 // A pro player's college career is a real, permanent historical record —
 // but SportsDataIO's CFB product reliably covers current/recent college
 // rosters, not a player who left school years before turning pro. Full
-// real source chain, same discipline as the rest of Magical Sports:
+// real, AUTOMATED source chain, same discipline as the rest of Magical
+// Sports — no per-player hand-maintained entries in the normal path:
 //   1. SportsDataIO CFB (real season stats), matched by the player's real
 //      name — works whenever the provider still has that player's college
-//      seasons on file.
+//      seasons on file. The only tier with full season-by-season stat
+//      lines today.
 //   2. API-Sports NCAA football player-level stats — no such product is
 //      wired into this codebase today; this tier is a documented no-op,
 //      never a guess standing in for it.
-//   3/4. A verified official college athletics source, curated as real,
-//      owner-confirmed season lines — the same "tier 4" discipline
-//      officialSource.ts already uses for season-opener dates, applied
-//      here to full college season stat lines. Every entry is sourced
-//      from the player's own school's official athletics site; nothing
-//      here is guessed, extrapolated, or auto-generated.
-// A caller only shows a plain "not available" message once every tier
-// above has genuinely returned nothing — and only that plain message,
-// never which tier failed or why (that belongs in admin diagnostics, not
-// in front of a member).
+//   3. The Player Knowledge Provider (player-knowledge.ts) — Wikidata's
+//      real, structured "educated at" claim with its real attended-years
+//      qualifiers. This confirms the real college and real years attended
+//      even when no provider has season-level stats — genuinely automated
+//      for any real player, not a curated list.
+//   4. CURATED_COLLEGE_CAREERS below is an OVERRIDE/CORRECTION layer only
+//      — a small number of real, owner-verified season-stat entries for
+//      cases where a human has specifically confirmed detailed stats
+//      against a school's official athletics site. It is never the normal
+//      path for a new player; the automated tiers above are.
+// A caller only shows a plain "not available" message (or, per policy,
+// omits the subsection) once every tier above has genuinely returned
+// nothing — and never explains which tier failed or why (that belongs in
+// admin diagnostics, not in front of a member).
 
 import { fetchAllPlayers, fetchPlayerSeasonStats, type SdioPlayer } from "../providers/sportsdata";
 import { withCache, cacheKeyFor } from "../cache";
+import { getPlayerKnowledge } from "./player-knowledge";
 
 const TTL_CFB_ROSTER = 360; // minutes — matches the roster-list TTL used elsewhere
 const TTL_CFB_HISTORICAL = 60 * 24 * 365; // ~1 year — a completed college season never changes
@@ -39,10 +46,14 @@ export interface CollegeSeasonLine {
 export interface CollegeCareerProfile {
   college: string;
   position?: string;
-  seasonsAttended: string; // e.g. "2017–2019", from real season lines
+  seasonsAttended: string; // e.g. "2017–2019", from a real source
+  /** Full season-by-season stat lines when a tier has them — [] when we
+   *  only know the real college/years (Wikidata tier) but no detailed
+   *  stats exist anywhere yet. The UI shows the stats subsection only when
+   *  this is non-empty; an empty array here is not itself an error. */
   seasons: CollegeSeasonLine[];
   careerTotals?: Record<string, number>;
-  source: "sportsdataio" | "curated";
+  source: "sportsdataio" | "wikidata" | "curated";
 }
 
 function normalize(name: string): string {
@@ -64,11 +75,13 @@ function seasonsAttendedLabel(seasons: CollegeSeasonLine[]): string {
   return years.length === 1 ? String(years[0]) : `${years[0]}–${years[years.length - 1]}`;
 }
 
-// Tier 3/4/5 registry — curated, real, owner-verified college career
-// records, each sourced from the player's own school's official athletics
-// site. Keyed by normalized player name. Geno Stone is this resolver's
-// validation entry, not a special case in the code path below — just data;
-// add more real, verified entries here as they're confirmed.
+// Override/correction registry ONLY — real, owner-verified college career
+// stat lines for cases where a human has specifically confirmed detailed
+// stats against a school's official athletics site and the automated
+// tiers above don't have season-level detail. Keyed by normalized player
+// name. Geno Stone is this resolver's original validation entry, kept as
+// an example of the override shape — this is deliberately NOT how new
+// players get real college data; see the module doc comment above.
 const CURATED_COLLEGE_CAREERS: Record<string, CollegeCareerProfile> = {
   "geno stone": {
     college: "Iowa",
@@ -96,9 +109,10 @@ const CURATED_COLLEGE_CAREERS: Record<string, CollegeCareerProfile> = {
 
 /** Resolves a real player's real college career through the full tiered
  *  source chain, stopping at the first tier with real data — never
- *  blending a guessed season into a partial real record. Returns null
- *  only when every tier genuinely has nothing. */
-export async function getCollegeCareerProfile(name: string, college?: string): Promise<CollegeCareerProfile | null> {
+ *  blending a guessed season into a partial real record. `league` selects
+ *  the right sport keywords for the Wikidata disambiguation tier. Returns
+ *  null only when every tier genuinely has nothing. */
+export async function getCollegeCareerProfile(name: string, league: "nfl" | "cfb" | "nba" | "wnba", college?: string): Promise<CollegeCareerProfile | null> {
   const target = normalize(name);
 
   // Tier 1: SportsDataIO CFB, matched by real name.
@@ -132,7 +146,25 @@ export async function getCollegeCareerProfile(name: string, college?: string): P
   // Tier 2 (API-Sports NCAA player stats) has no product wired into this
   // codebase — documented gap, not attempted.
 
-  // Tier 3/4/5: curated, owner-verified official-source record.
+  // Tier 3: Player Knowledge Provider (Wikidata) — real "educated at" claim
+  // with real attended-years qualifiers. No season-level stats, but a real,
+  // automated confirmation of the college and years for any real player
+  // Wikidata documents, not just the ones in the override registry below.
+  const knowledge = await getPlayerKnowledge(name, league).catch(() => null);
+  if (knowledge?.college && (!college || normalize(knowledge.college.name) === normalize(college) || normalize(knowledge.college.name).includes(normalize(college)))) {
+    return {
+      college: knowledge.college.name,
+      seasonsAttended: knowledge.college.startYear
+        ? knowledge.college.endYear && knowledge.college.endYear !== knowledge.college.startYear
+          ? `${knowledge.college.startYear}–${knowledge.college.endYear}`
+          : String(knowledge.college.startYear)
+        : "",
+      seasons: [],
+      source: "wikidata",
+    };
+  }
+
+  // Tier 4: override/correction registry (see doc comment above).
   const curated = CURATED_COLLEGE_CAREERS[target];
   if (curated && (!college || normalize(curated.college) === normalize(college))) {
     return { ...curated, careerTotals: curated.careerTotals ?? sumSeasons(curated.seasons) };

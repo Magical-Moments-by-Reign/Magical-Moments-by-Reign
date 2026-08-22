@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { getPlayerProfile } from "@/lib/discovery/sports/player-profile";
+import { generateJourneyNarrative, type JourneyFacts } from "@/lib/discovery/sports/journey-narrative";
 import { sdioConfigured, sdioCommercialMode, type SdioLeague } from "@/lib/discovery/providers/sportsdata";
 import JerseyAvatar from "../../../JerseyAvatar";
 import "../../../../discovery.css";
@@ -107,6 +108,8 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const otherFields = currentStats ? Object.keys(currentStats).filter((f) => !featured.includes(f)) : [];
   const seasonCount = new Set(profile.seasonsBySeason.map((s) => s.season)).size;
 
+  const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
   const journeySteps: string[] = [];
   if (profile.highSchool) journeySteps.push(profile.highSchool);
   if (profile.college) journeySteps.push(profile.college);
@@ -116,10 +119,52 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     );
   }
   const sortedTransactions = [...profile.transactions].sort((a, b) => +new Date(a.date ?? 0) - +new Date(b.date ?? 0));
+
+  // Real, dated career stops merged from two independent verified sources —
+  // SportsDataIO's transaction feed (often thin on a trial plan's historical
+  // depth) and Wikidata's real team-membership history — sorted together
+  // chronologically so a real stop neither source alone had isn't silently
+  // dropped from the timeline.
+  const datedStops: { year: number; label: string }[] = [];
+  const transactionTeamNames = new Set(sortedTransactions.map((t) => t.team && normalizeName(t.team)).filter(Boolean));
   for (const t of sortedTransactions) {
-    journeySteps.push(`${formatDate(t.date) ? `${formatDate(t.date)} — ` : ""}${t.type ?? "Roster move"}${t.team ? `: ${t.team}` : ""}`);
+    const year = t.date ? new Date(t.date).getUTCFullYear() : null;
+    const label = `${formatDate(t.date) ? `${formatDate(t.date)} — ` : ""}${t.type ?? "Roster move"}${t.team ? `: ${t.team}` : ""}`;
+    if (year != null) datedStops.push({ year, label });
+    else journeySteps.push(label); // no real date to sort by — keep in narrative order
   }
+  for (const th of profile.teamHistory) {
+    if (!th.startYear) continue; // only a real, dated stop is worth adding here
+    const key = normalizeName(th.teamLabel);
+    if (profile.college && key.includes(normalizeName(profile.college))) continue; // already the college line above
+    if (transactionTeamNames.has(key)) continue; // already represented by a real transaction
+    const range = th.endYear && th.endYear !== th.startYear ? `${th.startYear}–${th.endYear}` : String(th.startYear);
+    datedStops.push({ year: th.startYear, label: `${range} — ${th.teamLabel}` });
+    transactionTeamNames.add(key);
+  }
+  datedStops.sort((a, b) => a.year - b.year);
+  journeySteps.push(...datedStops.map((s) => s.label));
+
   if (profile.team) journeySteps.push(`Current team: ${profile.team}`);
+
+  // The AI narrative layer — rewrites/organizes ONLY the real facts above
+  // into warm prose; never a source of new facts. The itemized timeline
+  // below always renders too, so the verified record stays fully visible
+  // regardless of whether a narrative could be generated.
+  const journeyFacts: JourneyFacts = {
+    name: profile.name,
+    highSchool: profile.highSchool,
+    college: profile.college,
+    collegeSeasonsAttended: profile.collegeCareer?.seasonsAttended,
+    collegeHonors: profile.collegeCareer?.seasons.flatMap((s) => s.honors ?? []),
+    draftYear: profile.draftYear,
+    draftRound: profile.draftRound,
+    draftPick: profile.draftPick,
+    draftTeam: profile.draftTeam,
+    careerStops: journeySteps,
+    currentTeam: profile.team,
+  };
+  const journeyNarrative = journeySteps.length > 0 ? await generateJourneyNarrative(journeyFacts) : null;
 
   return (
     <div className="spx spx-profile">
@@ -165,6 +210,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       {journeySteps.length > 0 && (
         <section className="spx-panel spx-profile__section">
           <div className="spx-panel__head"><h2>The Journey</h2></div>
+          {journeyNarrative && <p className="spx-profile__narrative">{journeyNarrative}</p>}
           <ol className="spx-profile__timeline">
             {journeySteps.map((step, i) => <li key={i}>{step}</li>)}
           </ol>
@@ -184,21 +230,23 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                     <StatRow fields={Object.keys(profile.collegeCareer.careerTotals)} stats={profile.collegeCareer.careerTotals} />
                   </div>
                 )}
-                <div style={{ marginTop: "1rem" }}>
-                  <h3 className="spx-standings__group-label">By Season</h3>
-                  {profile.collegeCareer.seasons.map((line) => (
-                    <div key={line.season} style={{ marginBottom: ".6rem" }}>
-                      <span className="spx-standings__division-label">
-                        {line.season}{line.classYear ? ` — ${line.classYear}` : ""}
-                        {line.games != null ? ` · ${line.games} GP` : ""}{line.starts != null ? ` · ${line.starts} GS` : ""}
-                      </span>
-                      <StatRow fields={Object.keys(line.stats)} stats={line.stats} />
-                      {line.honors && line.honors.length > 0 && (
-                        <p style={{ color: "var(--gold-soft)", fontSize: ".7rem", margin: ".3rem 0 0" }}>{line.honors.join(" · ")}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                {profile.collegeCareer.seasons.length > 0 && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <h3 className="spx-standings__group-label">By Season</h3>
+                    {profile.collegeCareer.seasons.map((line) => (
+                      <div key={line.season} style={{ marginBottom: ".6rem" }}>
+                        <span className="spx-standings__division-label">
+                          {line.season}{line.classYear ? ` — ${line.classYear}` : ""}
+                          {line.games != null ? ` · ${line.games} GP` : ""}{line.starts != null ? ` · ${line.starts} GS` : ""}
+                        </span>
+                        <StatRow fields={Object.keys(line.stats)} stats={line.stats} />
+                        {line.honors && line.honors.length > 0 && (
+                          <p style={{ color: "var(--gold-soft)", fontSize: ".7rem", margin: ".3rem 0 0" }}>{line.honors.join(" · ")}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             ) : (
               <p className="spx-panel__empty">Detailed college statistics aren&rsquo;t available for this player.</p>

@@ -25,6 +25,8 @@ import {
 import { AWARD_RACES, getAwardRace } from "./awards";
 import { resolveTeamByName, sportSlugForSdio } from "./service";
 import { getCollegeCareerProfile, type CollegeCareerProfile } from "./college-career";
+import { getPlayerKnowledge } from "./player-knowledge";
+import type { TeamMembership } from "../providers/wikidata";
 
 const TTL_ROSTER = 360; // minutes — matches the roster-list TTL used elsewhere for this same endpoint
 const TTL_STATS = 180; // minutes — the live, still-moving current season
@@ -113,6 +115,12 @@ export interface PlayerProfile {
   /** Real award-race appearances (Heisman/MVP watch) this player shows up
    *  in, if any. */
   awards: PlayerAwardAppearance[];
+  /** Real historical team memberships (college and pro) Wikidata documents
+   *  for this player, with real start/end years where known — a second,
+   *  independent real source for "The Journey" beyond SportsDataIO's own
+   *  transaction feed, since that feed's trial-plan depth is limited. []
+   *  when no confident Wikidata match exists for this player. */
+  teamHistory: TeamMembership[];
 }
 
 /** NFL/CFB/NBA seasons are named for the year they start; WNBA plays a
@@ -167,7 +175,7 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
   const seasonsToCheck: number[] = [];
   for (let yr = season; yr >= startYear; yr--) seasonsToCheck.push(yr);
 
-  const [team, teamRecord, seasonLines, transactionsBySeason, injuriesAll, awardRaces, collegeCareer] = await Promise.all([
+  const [team, teamRecord, seasonLines, transactionsBySeason, injuriesAll, awardRaces, collegeCareer, knowledge] = await Promise.all([
     player.team ? resolveTeamByName(sport, player.team) : Promise.resolve(null),
     fetchTeamRecord(league, player.teamId ?? player.team, season),
     Promise.all(
@@ -197,7 +205,8 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     // A "college career" section only makes sense for a pro-league player
     // (nfl/nba/wnba) — a cfb league profile IS the college record itself,
     // shown in the main Professional Career section already.
-    league !== "cfb" && player.college ? getCollegeCareerProfile(player.name, player.college) : Promise.resolve(undefined),
+    league !== "cfb" ? getCollegeCareerProfile(player.name, league, player.college) : Promise.resolve(undefined),
+    getPlayerKnowledge(player.name, league).catch(() => null),
   ]);
 
   return {
@@ -232,6 +241,7 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     transactions: transactionsBySeason.flatMap((rows) => rows ?? []).filter((t) => t.playerId === playerId),
     injuries: (injuriesAll?.data ?? []).filter((i) => i.playerId === playerId),
     awards: awardRaces,
+    teamHistory: knowledge?.teamHistory ?? [],
   };
 }
 
