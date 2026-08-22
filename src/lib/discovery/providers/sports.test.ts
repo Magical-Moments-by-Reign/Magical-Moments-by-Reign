@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague } from "./sports";
+import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats } from "./sports";
 
 test("seasonParam: NBA/NHL use split-year seasons, keyed off an August season start", () => {
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
@@ -220,4 +220,68 @@ test("mapRosterPlayer returns null when the provider omits an id or name", () =>
 test("mapRosterPlayer rejects a non-https photo URL rather than rendering it", () => {
   const p = mapRosterPlayer({ player: { id: 2, name: "Sketchy Photo", photo: "javascript:alert(1)" } });
   assert.equal(p?.photoUrl, undefined);
+});
+
+test("flattenStatEntry reads the flat {type, value} convention", () => {
+  assert.deepEqual(flattenStatEntry({ type: "Passing Yards", value: 287 }), [{ label: "Passing Yards", value: 287 }]);
+  assert.deepEqual(flattenStatEntry({ name: "Turnovers", value: "2" }), [{ label: "Turnovers", value: "2" }]);
+});
+
+test("flattenStatEntry reads a named-field object as its own stats, humanizing keys", () => {
+  const lines = flattenStatEntry({ category: "passing", completions: 18, attempts: 25, yardsPerAttempt: 9.2 });
+  assert.deepEqual(lines, [
+    { label: "Completions", value: 18 },
+    { label: "Attempts", value: 25 },
+    { label: "Yards Per Attempt", value: 9.2 },
+  ]);
+});
+
+test("flattenStatEntry never fabricates a stat from a non-object or empty entry", () => {
+  assert.deepEqual(flattenStatEntry(null), []);
+  assert.deepEqual(flattenStatEntry("garbage"), []);
+  assert.deepEqual(flattenStatEntry({ type: "No Value Reported" }), []);
+});
+
+test("mapTeamGameStats reads real team identity + flattens its statistics list", () => {
+  const row = mapTeamGameStats({
+    team: { id: 5, name: "Buffalo Bills", logo: "https://x/bills.png" },
+    statistics: [{ type: "Total Yards", value: 412 }, { type: "Turnovers", value: 1 }],
+  });
+  assert.deepEqual(row, {
+    team: { id: "5", name: "Buffalo Bills", logoUrl: "https://x/bills.png" },
+    stats: [{ label: "Total Yards", value: 412 }, { label: "Turnovers", value: 1 }],
+  });
+});
+
+test("mapTeamGameStats returns null when the provider omits team identity", () => {
+  assert.equal(mapTeamGameStats({ statistics: [] }), null);
+});
+
+test("mapTeamPlayerGameStats reads players nested directly under the team", () => {
+  const row = mapTeamPlayerGameStats({
+    team: { id: 5, name: "Buffalo Bills" },
+    players: [{ player: { id: 100, name: "Josh Allen" }, statistics: [{ type: "Passing Yards", value: 287 }] }],
+  });
+  assert.deepEqual(row, {
+    team: { id: "5", name: "Buffalo Bills", logoUrl: undefined },
+    players: [{ player: { id: "100", name: "Josh Allen" }, category: undefined, stats: [{ label: "Passing Yards", value: 287 }] }],
+  });
+});
+
+test("mapTeamPlayerGameStats reads players nested under named statistical groups", () => {
+  const row = mapTeamPlayerGameStats({
+    team: { id: 5, name: "Buffalo Bills" },
+    groups: [{ name: "Rushing", players: [{ player: { id: 101, name: "James Cook" }, statistics: [{ type: "Rushing Yards", value: 94 }] }] }],
+  });
+  assert.equal(row?.players.length, 1);
+  assert.equal(row?.players[0].category, "Rushing");
+  assert.deepEqual(row?.players[0].stats, [{ label: "Rushing Yards", value: 94 }]);
+});
+
+test("mapTeamPlayerGameStats never fabricates a player whose real statistics are empty", () => {
+  const row = mapTeamPlayerGameStats({
+    team: { id: 5, name: "Buffalo Bills" },
+    players: [{ player: { id: 102, name: "No Stats Player" }, statistics: [] }],
+  });
+  assert.deepEqual(row?.players, []);
 });
