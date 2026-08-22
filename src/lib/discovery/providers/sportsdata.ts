@@ -374,6 +374,127 @@ export async function fetchPlayerSeasonStats(league: SdioLeague, playerId: strin
   return out;
 }
 
+// ── NFL weekly player/defense stats — Fantasy Football scoring ──────────
+// Field names verified against SportsDataIO's own published NFL Stats API
+// OpenAPI spec (sportsdataio-nfl-v3-stats-api-openapi.yml) rather than
+// guessed — this sandbox has no live SPORTSDATAIO_API_KEY to smoke-test
+// against, so treat this as high-confidence-but-unverified-live the same
+// way other provider-schema work in this codebase is disclosed, and
+// smoke-test once deployed with a real key.
+
+export interface SdioPlayerWeekStats {
+  playerId: string;
+  name: string;
+  team?: string;
+  position?: string;
+  played: boolean;
+  isGameOver: boolean;
+  passingYards: number;
+  passingTouchdowns: number;
+  passingInterceptions: number;
+  rushingYards: number;
+  rushingTouchdowns: number;
+  receptions: number;
+  receivingYards: number;
+  receivingTouchdowns: number;
+  fumblesLost: number;
+  fieldGoalsMade: number;
+  extraPointsMade: number;
+  /** The provider's own computed standard fantasy points — kept for
+   *  reference/cross-check only. Magical Fantasy scores from the raw
+   *  counting stats above via our own rules (fantasy.ts computeFantasyPoints)
+   *  rather than trusting this number as the scored result, per "we own the
+   *  game rules." */
+  providerFantasyPoints?: number;
+}
+
+function num(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
+/** Real per-player stats for one NFL week — updates live as games are
+ *  played (per SportsDataIO's own docs), so this is the right endpoint for
+ *  both a live-during-games poll and the final weekly score once every
+ *  game has gone final. Returns [] on missing config or a failed call —
+ *  never fabricated stats. */
+export async function fetchPlayerGameStatsByWeek(season: number, week: number): Promise<SdioPlayerWeekStats[]> {
+  const json = await sdioFetch("nfl", `/stats/json/PlayerGameStatsByWeek/${season}/${week}`);
+  if (!Array.isArray(json)) return [];
+  return json
+    .map((p: any): SdioPlayerWeekStats | null => {
+      if (p?.PlayerID == null || typeof p?.Name !== "string") return null;
+      return {
+        playerId: String(p.PlayerID),
+        name: p.Name,
+        team: typeof p.Team === "string" ? p.Team : undefined,
+        position: typeof p.Position === "string" ? p.Position : undefined,
+        played: Boolean(p.Played),
+        isGameOver: Boolean(p.IsGameOver),
+        passingYards: num(p.PassingYards),
+        passingTouchdowns: num(p.PassingTouchdowns),
+        passingInterceptions: num(p.PassingInterceptions),
+        rushingYards: num(p.RushingYards),
+        rushingTouchdowns: num(p.RushingTouchdowns),
+        receptions: num(p.Receptions),
+        receivingYards: num(p.ReceivingYards),
+        receivingTouchdowns: num(p.ReceivingTouchdowns),
+        fumblesLost: num(p.FumblesLost),
+        fieldGoalsMade: num(p.FieldGoalsMade),
+        extraPointsMade: num(p.ExtraPointsMade),
+        providerFantasyPoints: typeof p.FantasyPoints === "number" ? p.FantasyPoints : undefined,
+      };
+    })
+    .filter((p): p is SdioPlayerWeekStats => p !== null);
+}
+
+export interface SdioTeamDefenseWeekStats {
+  team: string;
+  sacks: number;
+  interceptions: number;
+  fumblesRecovered: number;
+  touchdownsScored: number;
+  pointsAllowed: number;
+  safeties: number;
+}
+
+/** Real team defense/special-teams stats for one NFL week — the DST slot's
+ *  scoring source (a team defense isn't a row in PlayerGameStatsByWeek).
+ *  Returns [] on missing config or a failed call. */
+export async function fetchTeamDefenseGameStatsByWeek(season: number, week: number): Promise<SdioTeamDefenseWeekStats[]> {
+  const json = await sdioFetch("nfl", `/stats/json/FantasyDefenseByGame/${season}/${week}`);
+  if (!Array.isArray(json)) return [];
+  return json
+    .map((d: any): SdioTeamDefenseWeekStats | null => {
+      const team = typeof d?.Team === "string" ? d.Team : undefined;
+      if (!team) return null;
+      return {
+        team,
+        sacks: num(d.Sacks),
+        interceptions: num(d.Interceptions),
+        fumblesRecovered: num(d.FumblesRecovered),
+        touchdownsScored: num(d.TouchdownsScored),
+        pointsAllowed: num(d.PointsAllowed),
+        safeties: num(d.Safeties),
+      };
+    })
+    .filter((d): d is SdioTeamDefenseWeekStats => d !== null);
+}
+
+/** The real, provider-reported current NFL week/season — never inferred
+ *  from today's date (NFL weeks run Tue–Mon, not Sun–Sat, and preseason/
+ *  postseason numbering doesn't follow a simple calendar formula, so a
+ *  guessed week risks scoring the wrong week entirely). Returns null on
+ *  missing config or a failed call. */
+export async function fetchCurrentNflWeek(): Promise<number | null> {
+  const json = await sdioFetch("nfl", "/scores/json/CurrentWeek");
+  return typeof json === "number" ? json : null;
+}
+
+export async function fetchCurrentNflSeason(): Promise<number | null> {
+  const json = await sdioFetch("nfl", "/scores/json/CurrentSeason");
+  return typeof json === "number" ? json : null;
+}
+
 export interface SdioGame {
   externalId: string;
   homeTeam: string;

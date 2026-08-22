@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
-import { getFantasyLeagueDetail, getAvailablePlayers, getFantasyTeamRoster } from "@/lib/discovery/sports/fantasy-service";
+import {
+  getFantasyLeagueDetail,
+  getAvailablePlayers,
+  getFantasyTeamRoster,
+  getFantasyMatchupsForWeek,
+  getFantasyStandings,
+  getCurrentNflWeekAndSeason,
+} from "@/lib/discovery/sports/fantasy-service";
 import { draftPickLabel } from "@/lib/discovery/sports/fantasy";
-import { startFantasyDraftAction, draftPlayerAction, setLineupSlotAction } from "../actions";
+import { startFantasyDraftAction, draftPlayerAction, setLineupSlotAction, syncFantasyWeekScoresAction } from "../actions";
 import "../../../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +19,10 @@ export const metadata: Metadata = { title: "Fantasy League — Magical Discovery
 
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DST"];
 
-export default async function FantasyLeaguePage({ params, searchParams }: { params: Promise<{ leagueId: string }>; searchParams: Promise<{ pos?: string; team?: string }> }) {
+export default async function FantasyLeaguePage({ params, searchParams }: { params: Promise<{ leagueId: string }>; searchParams: Promise<{ pos?: string; team?: string; week?: string }> }) {
   const account = await requireAccount("/dashboard/discovery/sports/fantasy");
   const { leagueId } = await params;
-  const { pos: posParam, team: teamParam } = await searchParams;
+  const { pos: posParam, team: teamParam, week: weekParam } = await searchParams;
   const league = await getFantasyLeagueDetail(account.id, leagueId);
   if (!league) notFound();
 
@@ -54,7 +61,10 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
       )}
 
       {league.draftStatus === "complete" && (
-        <FantasyRostersView league={league} leagueId={leagueId} teamParam={teamParam} accountId={account.id} />
+        <>
+          <FantasyMatchupsAndStandings accountId={account.id} leagueId={leagueId} season={league.season} weekParam={weekParam} />
+          <FantasyRostersView league={league} leagueId={leagueId} teamParam={teamParam} accountId={account.id} />
+        </>
       )}
     </div>
   );
@@ -96,6 +106,69 @@ async function FantasyDraftBoard({ league, leagueId, pos }: { league: NonNullabl
         ))}
       </div>
     </div>
+  );
+}
+
+async function FantasyMatchupsAndStandings({ accountId, leagueId, season, weekParam }: { accountId: string; leagueId: string; season: number; weekParam?: string }) {
+  const parsedWeek = weekParam ? Number(weekParam) : NaN;
+  const defaultWeek = Number.isFinite(parsedWeek) && parsedWeek >= 1 ? parsedWeek : (await getCurrentNflWeekAndSeason(season)).week;
+  const [matchups, standings] = await Promise.all([
+    getFantasyMatchupsForWeek(accountId, leagueId, defaultWeek),
+    getFantasyStandings(accountId, leagueId),
+  ]);
+
+  return (
+    <>
+      <div className="disc-section">
+        <div className="disc-section__head">
+          <h2>Week {defaultWeek} Matchups</h2>
+          <div style={{ display: "flex", gap: ".4rem" }}>
+            <Link href={`?week=${Math.max(1, defaultWeek - 1)}`} className="btn btn--sm">← Prev</Link>
+            <Link href={`?week=${defaultWeek + 1}`} className="btn btn--sm">Next →</Link>
+          </div>
+        </div>
+        {!matchups || matchups.length === 0 ? (
+          <p className="disc-empty">No matchups scheduled for week {defaultWeek}.</p>
+        ) : (
+          <>
+            <div className="disc-chart">
+              {matchups.map((m) => (
+                <div className="disc-chart__row" key={m.id}>
+                  <div className="disc-chart__song">
+                    <b>{m.awayTeamName} @ {m.homeTeamName}</b>
+                    <span>{m.final ? "Final" : "In progress"}</span>
+                  </div>
+                  <span className="disc-badge">{m.awayScore.toFixed(2)} – {m.homeScore.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <form action={syncFantasyWeekScoresAction} style={{ marginTop: ".8rem" }}>
+              <input type="hidden" name="leagueId" value={leagueId} />
+              <input type="hidden" name="week" value={defaultWeek} />
+              <button type="submit" className="btn btn--sm">Sync This Week&apos;s Scores</button>
+            </form>
+          </>
+        )}
+      </div>
+
+      <div className="disc-section">
+        <div className="disc-section__head"><h2>Standings</h2></div>
+        {!standings || standings.entries.length === 0 ? (
+          <p className="disc-empty">No games played yet this season.</p>
+        ) : (
+          <div className="disc-chart">
+            {standings.entries.map((e) => (
+              <div className="disc-chart__row" key={e.teamId}>
+                <div className="disc-chart__song">
+                  <b>#{e.rank} {e.isMe ? "You" : e.teamName}</b>
+                  <span>{e.wins}-{e.losses}{e.ties ? `-${e.ties}` : ""} · {e.pointsFor.toFixed(1)} PF · {e.pointsAgainst.toFixed(1)} PA</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

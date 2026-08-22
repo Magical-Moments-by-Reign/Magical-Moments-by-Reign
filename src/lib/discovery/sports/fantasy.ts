@@ -6,10 +6,10 @@
 // lineup shape, draft order, which positions can fill which slot — is our
 // own, explicit, and testable without touching a provider or a database.
 //
-// Scope for this phase: league creation, snake draft, rosters, and lineup
-// management. Weekly scoring from real player stats, waivers, and playoffs
-// are the next phases — this schema/engine is built so they're additive,
-// not a rebuild (see the module comment on the Prisma models).
+// This phase adds weekly scoring from real player stats, a round-robin
+// matchup schedule, and standings. Waivers, trades, IR, bye weeks, and
+// playoffs are the next phases — this schema/engine is built so they're
+// additive, not a rebuild (see the module comment on the Prisma models).
 
 /** The starting lineup this codebase runs today. Not configurable per
  *  league yet — a real, single, well-known 9-starter standard format
@@ -116,4 +116,167 @@ export function generateLeagueInviteCode(random: () => number = Math.random): st
   let code = "";
   for (let i = 0; i < 6; i++) code += CODE_ALPHABET[Math.floor(random() * CODE_ALPHABET.length)];
   return code;
+}
+
+// ── Weekly scoring ───────────────────────────────────────────────────────
+// Standard, non-PPR fantasy scoring — a real, widely-recognized default
+// format (the same shape ESPN/Yahoo call "Standard"), computed from the
+// provider's raw counting stats rather than trusting any single provider's
+// own pre-computed FantasyPoints number, per "we own the game rules; the
+// sports APIs provide the verified statistics used to score it."
+
+export interface PlayerWeekStats {
+  passingYards: number;
+  passingTouchdowns: number;
+  passingInterceptions: number;
+  rushingYards: number;
+  rushingTouchdowns: number;
+  receptions: number;
+  receivingYards: number;
+  receivingTouchdowns: number;
+  fumblesLost: number;
+  fieldGoalsMade: number;
+  extraPointsMade: number;
+}
+
+export function computeFantasyPoints(s: PlayerWeekStats): number {
+  const points =
+    s.passingYards / 25 +
+    s.passingTouchdowns * 4 -
+    s.passingInterceptions * 2 +
+    s.rushingYards / 10 +
+    s.rushingTouchdowns * 6 +
+    s.receivingYards / 10 +
+    s.receivingTouchdowns * 6 -
+    s.fumblesLost * 2 +
+    s.fieldGoalsMade * 3 +
+    s.extraPointsMade * 1;
+  return Math.round(points * 100) / 100;
+}
+
+export interface DefenseWeekStats {
+  sacks: number;
+  interceptions: number;
+  fumblesRecovered: number;
+  touchdownsScored: number;
+  pointsAllowed: number;
+  safeties: number;
+}
+
+/** Points-allowed is scored in tiers, the same real, standard convention
+ *  most fantasy platforms default a team defense to — fewer points allowed
+ *  scores more. */
+function pointsAllowedScore(pointsAllowed: number): number {
+  if (pointsAllowed === 0) return 10;
+  if (pointsAllowed <= 6) return 7;
+  if (pointsAllowed <= 13) return 4;
+  if (pointsAllowed <= 20) return 1;
+  if (pointsAllowed <= 27) return 0;
+  if (pointsAllowed <= 34) return -1;
+  return -4;
+}
+
+export function computeDefensePoints(s: DefenseWeekStats): number {
+  const points =
+    s.sacks * 1 +
+    s.interceptions * 2 +
+    s.fumblesRecovered * 2 +
+    s.touchdownsScored * 6 +
+    s.safeties * 2 +
+    pointsAllowedScore(s.pointsAllowed);
+  return Math.round(points * 100) / 100;
+}
+
+// ── Weekly matchup schedule ──────────────────────────────────────────────
+
+export interface FantasyMatchupPairing {
+  week: number;
+  homeTeamId: string;
+  awayTeamId: string;
+}
+
+/** A real round-robin schedule — every team plays every other team once
+ *  before repeating, the standard way a fixed group schedules a season
+ *  with no outside opponents. An odd team count gets a "bye" (paired with
+ *  a null placeholder that's simply dropped) each round it draws the
+ *  phantom opponent, exactly like a real odd-team league. Runs for
+ *  `weeks` weeks, cycling the round-robin again after everyone has played
+ *  everyone once, if the league runs longer than teams.length - 1 weeks. */
+export function generateRoundRobinSchedule(teamIds: string[], weeks: number): FantasyMatchupPairing[] {
+  if (teamIds.length < 2 || weeks < 1) return [];
+  const ids = teamIds.length % 2 === 0 ? [...teamIds] : [...teamIds, null as unknown as string];
+  const n = ids.length;
+  const roundsPerCycle = n - 1;
+  const pairings: FantasyMatchupPairing[] = [];
+  const rotating = [...ids];
+  for (let week = 1; week <= weeks; week++) {
+    const roundIndex = (week - 1) % roundsPerCycle;
+    if (roundIndex === 0 && week > 1) {
+      // Re-seed the rotation each time a new cycle starts so a longer
+      // season replays the same fair pairing order rather than drifting.
+      rotating.splice(0, rotating.length, ...ids);
+    }
+    for (let i = 0; i < n / 2; i++) {
+      const home = rotating[i];
+      const away = rotating[n - 1 - i];
+      if (home && away) pairings.push({ week, homeTeamId: home, awayTeamId: away });
+    }
+    // Standard round-robin rotation: fix the first element, rotate the rest.
+    const fixed = rotating[0];
+    const rest = rotating.slice(1);
+    rest.unshift(rest.pop() as string);
+    rotating.splice(0, rotating.length, fixed, ...rest);
+  }
+  return pairings;
+}
+
+// ── Standings ────────────────────────────────────────────────────────────
+
+export interface FantasyMatchupResult {
+  week: number;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number;
+  awayScore: number;
+  final: boolean;
+}
+
+export interface FantasyStandingsEntry {
+  teamId: string;
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  rank: number;
+}
+
+/** Real standings from real completed matchup results — wins first, then
+ *  total points scored (the standard fantasy tiebreaker when head-to-head
+ *  record ties). An in-progress (final:false) matchup doesn't count toward
+ *  W/L yet, but its live score still accrues into points for/against so
+ *  the table reflects what's actually on the board. */
+export function computeFantasyStandings(teamIds: string[], results: FantasyMatchupResult[]): FantasyStandingsEntry[] {
+  const base = new Map<string, { wins: number; losses: number; ties: number; pointsFor: number; pointsAgainst: number }>();
+  for (const id of teamIds) base.set(id, { wins: 0, losses: 0, ties: 0, pointsFor: 0, pointsAgainst: 0 });
+  for (const r of results) {
+    const home = base.get(r.homeTeamId);
+    const away = base.get(r.awayTeamId);
+    if (home) { home.pointsFor += r.homeScore; home.pointsAgainst += r.awayScore; }
+    if (away) { away.pointsFor += r.awayScore; away.pointsAgainst += r.homeScore; }
+    if (!r.final) continue;
+    if (r.homeScore === r.awayScore) {
+      if (home) home.ties += 1;
+      if (away) away.ties += 1;
+    } else {
+      const winner = r.homeScore > r.awayScore ? home : away;
+      const loser = r.homeScore > r.awayScore ? away : home;
+      if (winner) winner.wins += 1;
+      if (loser) loser.losses += 1;
+    }
+  }
+  return [...base.entries()]
+    .map(([teamId, s]) => ({ teamId, ...s }))
+    .sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor)
+    .map((e, i) => ({ ...e, rank: i + 1 }));
 }

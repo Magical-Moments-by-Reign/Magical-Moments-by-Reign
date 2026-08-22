@@ -10,7 +10,13 @@ import {
   applyLineupChange,
   hasCompleteStartingLineup,
   generateLeagueInviteCode,
+  computeFantasyPoints,
+  computeDefensePoints,
+  generateRoundRobinSchedule,
+  computeFantasyStandings,
   type RosterPlayer,
+  type PlayerWeekStats,
+  type DefenseWeekStats,
 } from "./fantasy";
 
 test("isEligibleForSlot: exact-position slots only accept their own position", () => {
@@ -114,4 +120,104 @@ test("generateLeagueInviteCode: 6 unambiguous characters, deterministic with an 
   assert.equal(code.length, 6);
   assert.match(code, /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/);
   assert.equal(generateLeagueInviteCode(() => 0), "AAAAAA");
+});
+
+function zeroStats(): PlayerWeekStats {
+  return { passingYards: 0, passingTouchdowns: 0, passingInterceptions: 0, rushingYards: 0, rushingTouchdowns: 0, receptions: 0, receivingYards: 0, receivingTouchdowns: 0, fumblesLost: 0, fieldGoalsMade: 0, extraPointsMade: 0 };
+}
+
+test("computeFantasyPoints: a real, verified statline scores correctly under standard (non-PPR) rules", () => {
+  // 300 passing yards, 3 passing TDs, 1 INT, 20 rushing yards -> 12 + 12 - 2 + 2 = 24
+  const s: PlayerWeekStats = { ...zeroStats(), passingYards: 300, passingTouchdowns: 3, passingInterceptions: 1, rushingYards: 20 };
+  assert.equal(computeFantasyPoints(s), 24);
+});
+
+test("computeFantasyPoints: receptions alone score nothing under standard (non-PPR) rules", () => {
+  const s: PlayerWeekStats = { ...zeroStats(), receptions: 10, receivingYards: 0 };
+  assert.equal(computeFantasyPoints(s), 0);
+});
+
+test("computeFantasyPoints: a receiving TD plus yardage plus a lost fumble", () => {
+  // 50 receiving yards (5) + 1 receiving TD (6) - 1 fumble lost (-2) = 9
+  const s: PlayerWeekStats = { ...zeroStats(), receivingYards: 50, receivingTouchdowns: 1, fumblesLost: 1 };
+  assert.equal(computeFantasyPoints(s), 9);
+});
+
+test("computeFantasyPoints: kicking — field goals and extra points made", () => {
+  const s: PlayerWeekStats = { ...zeroStats(), fieldGoalsMade: 2, extraPointsMade: 3 };
+  assert.equal(computeFantasyPoints(s), 9); // 2*3 + 3*1
+});
+
+test("computeDefensePoints: sacks/INT/fumble recoveries/TD/safety plus a shutout points-allowed tier", () => {
+  const s: DefenseWeekStats = { sacks: 3, interceptions: 2, fumblesRecovered: 1, touchdownsScored: 1, pointsAllowed: 0, safeties: 1 };
+  // 3*1 + 2*2 + 1*2 + 1*6 + 1*2 + 10 (shutout) = 27
+  assert.equal(computeDefensePoints(s), 27);
+});
+
+test("computeDefensePoints: points-allowed tiers score progressively worse as the defense allows more", () => {
+  const base: DefenseWeekStats = { sacks: 0, interceptions: 0, fumblesRecovered: 0, touchdownsScored: 0, safeties: 0, pointsAllowed: 0 };
+  assert.equal(computeDefensePoints({ ...base, pointsAllowed: 0 }), 10);
+  assert.equal(computeDefensePoints({ ...base, pointsAllowed: 6 }), 7);
+  assert.equal(computeDefensePoints({ ...base, pointsAllowed: 20 }), 1);
+  assert.equal(computeDefensePoints({ ...base, pointsAllowed: 35 }), -4);
+});
+
+test("generateRoundRobinSchedule: every team plays every other team exactly once across a full cycle (4 teams, 3 weeks)", () => {
+  const teams = ["a", "b", "c", "d"];
+  const schedule = generateRoundRobinSchedule(teams, 3);
+  assert.equal(schedule.length, 6); // 3 weeks * 2 games/week
+  const seenPairs = new Set(schedule.map((g) => [g.homeTeamId, g.awayTeamId].sort().join("-")));
+  assert.equal(seenPairs.size, 6); // C(4,2) = 6 unique pairings, no repeats within one cycle
+  for (const team of teams) {
+    const gamesPlayed = schedule.filter((g) => g.homeTeamId === team || g.awayTeamId === team);
+    assert.equal(gamesPlayed.length, 3); // each team plays all 3 others exactly once
+  }
+});
+
+test("generateRoundRobinSchedule: an odd team count gives everyone a real bye each round rather than a fabricated opponent", () => {
+  const teams = ["a", "b", "c"];
+  const schedule = generateRoundRobinSchedule(teams, 3);
+  // 3 teams -> 1 game per week (one team byes) -> 3 games across 3 weeks
+  assert.equal(schedule.length, 3);
+  for (let week = 1; week <= 3; week++) {
+    assert.equal(schedule.filter((g) => g.week === week).length, 1);
+  }
+});
+
+test("generateRoundRobinSchedule: fewer than 2 teams or fewer than 1 week produces no schedule", () => {
+  assert.deepEqual(generateRoundRobinSchedule(["a"], 5), []);
+  assert.deepEqual(generateRoundRobinSchedule(["a", "b"], 0), []);
+});
+
+test("computeFantasyStandings: ranks by wins, then by total points scored on a tie", () => {
+  const results = [
+    { week: 1, homeTeamId: "a", awayTeamId: "b", homeScore: 100, awayScore: 90, final: true },
+    { week: 1, homeTeamId: "c", awayTeamId: "d", homeScore: 80, awayScore: 120, final: true },
+    { week: 2, homeTeamId: "a", awayTeamId: "c", homeScore: 95, awayScore: 60, final: true },
+    { week: 2, homeTeamId: "b", awayTeamId: "d", homeScore: 70, awayScore: 130, final: true },
+  ];
+  // a: 2-0, 195 pts. d: 2-0, 250 pts. b: 0-2, 160 pts. c: 0-2, 140 pts.
+  // a and d are both 2-0, but d outscores a, so d ranks first on the tiebreaker.
+  const standings = computeFantasyStandings(["a", "b", "c", "d"], results);
+  assert.equal(standings[0].teamId, "d");
+  assert.equal(standings[0].wins, 2);
+  assert.equal(standings[1].teamId, "a");
+  assert.equal(standings[1].wins, 2);
+  assert.equal(standings[2].teamId, "b"); // 0-2, but outscores c
+  assert.equal(standings[3].teamId, "c");
+});
+
+test("computeFantasyStandings: a live (non-final) matchup's score still accrues into points for/against, but not into W/L", () => {
+  const results = [{ week: 3, homeTeamId: "a", awayTeamId: "b", homeScore: 40, awayScore: 35, final: false }];
+  const standings = computeFantasyStandings(["a", "b"], results);
+  const a = standings.find((s) => s.teamId === "a")!;
+  assert.equal(a.wins, 0);
+  assert.equal(a.pointsFor, 40);
+});
+
+test("computeFantasyStandings: an equal final score is a real tie, not a fabricated winner", () => {
+  const results = [{ week: 1, homeTeamId: "a", awayTeamId: "b", homeScore: 100, awayScore: 100, final: true }];
+  const standings = computeFantasyStandings(["a", "b"], results);
+  assert.equal(standings.find((s) => s.teamId === "a")!.ties, 1);
+  assert.equal(standings.find((s) => s.teamId === "a")!.wins, 0);
 });

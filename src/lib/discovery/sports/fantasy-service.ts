@@ -7,7 +7,14 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { fetchAllPlayers, type SdioPlayer } from "../providers/sportsdata";
+import {
+  fetchAllPlayers,
+  fetchPlayerGameStatsByWeek,
+  fetchTeamDefenseGameStatsByWeek,
+  fetchCurrentNflWeek,
+  fetchCurrentNflSeason,
+  type SdioPlayer,
+} from "../providers/sportsdata";
 import {
   STANDARD_LINEUP_SLOTS,
   STANDARD_BENCH_SIZE,
@@ -16,10 +23,20 @@ import {
   isDraftComplete,
   applyLineupChange,
   generateLeagueInviteCode,
+  generateRoundRobinSchedule,
+  computeFantasyPoints,
+  computeDefensePoints,
+  computeFantasyStandings,
   type RosterPlayer,
+  type FantasyStandingsEntry,
 } from "./fantasy";
 
 const ROSTER_TTL = 360; // 6h — the same pool tracked-players.ts already caches at this TTL
+// Short — this is the same feed a future live-during-games poll (Live
+// Game Center integration) will reuse, so it's cached for a real few
+// minutes, not the week-long TTLs historical stats get.
+const TTL_WEEK_SCORES = 2;
+const TTL_CURRENT_WEEK = 60; // 1h — the real current week/season rarely changes mid-hour
 
 // Fantasy skill positions only — a real NFL roster includes OL/DL/LB/etc.
 // that no standard fantasy format ever drafts, so the draft pool is
@@ -189,17 +206,35 @@ export async function draftPlayer(accountId: string, leagueId: string, playerId:
   const player = pool.find((p) => p.playerId === playerId);
   if (!player) return { ok: false, reason: "That player isn't available for this draft" };
 
+  const draftCompletesNow = isDraftComplete(fullSequence, league.currentPickIndex + 1);
   await prisma.$transaction([
-    prisma.fantasyRosterSlot.create({ data: { teamId: myTeam.id, playerId: player.playerId, playerName: player.name, position: player.position ?? "", lineupSlot: "BENCH" } }),
+    prisma.fantasyRosterSlot.create({ data: { teamId: myTeam.id, playerId: player.playerId, playerName: player.name, position: player.position ?? "", nflTeam: player.team, lineupSlot: "BENCH" } }),
     prisma.fantasyLeague.update({
       where: { id: leagueId },
       data: {
         currentPickIndex: league.currentPickIndex + 1,
-        draftStatus: isDraftComplete(fullSequence, league.currentPickIndex + 1) ? "complete" : "in_progress",
+        draftStatus: draftCompletesNow ? "complete" : "in_progress",
       },
     }),
   ]);
+  if (draftCompletesNow) await scheduleFantasySeason(leagueId);
   return { ok: true };
+}
+
+/** Generates the league's real round-robin weekly matchup schedule the
+ *  moment the draft finishes — a no-op if a schedule already exists (so a
+ *  retry, or draftPlayer somehow being called again, never double-books
+ *  the season). */
+export async function scheduleFantasySeason(leagueId: string): Promise<void> {
+  const existing = await prisma.fantasyMatchup.count({ where: { leagueId } });
+  if (existing > 0) return;
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || league.teams.length < 2) return;
+  const pairings = generateRoundRobinSchedule(league.teams.map((t) => t.id), league.regularSeasonWeeks);
+  if (!pairings.length) return;
+  await prisma.fantasyMatchup.createMany({
+    data: pairings.map((p) => ({ leagueId, week: p.week, homeTeamId: p.homeTeamId, awayTeamId: p.awayTeamId })),
+  });
 }
 
 export interface FantasyTeamRoster {
@@ -236,4 +271,132 @@ export async function setLineupSlot(accountId: string, teamId: string, playerId:
       .map((p) => prisma.fantasyRosterSlot.update({ where: { teamId_playerId: { teamId, playerId: p.playerId } }, data: { lineupSlot: p.lineupSlot } }))
   );
   return true;
+}
+
+// ── Weekly scoring ───────────────────────────────────────────────────────
+
+/** The real, provider-reported current NFL week/season — cached for an
+ *  hour since it only changes a handful of times all year. Falls back to
+ *  the league's own season when the provider call fails, and week 1 when
+ *  even that isn't resolvable — never a guessed week. */
+export async function getCurrentNflWeekAndSeason(fallbackSeason: number): Promise<{ week: number; season: number }> {
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ kind: "nfl_current_week" }), TTL_CURRENT_WEEK, async () => {
+    const [week, season] = await Promise.all([fetchCurrentNflWeek(), fetchCurrentNflSeason()]);
+    return week != null && season != null ? { week, season } : null;
+  });
+  return cached?.data ?? { week: 1, season: fallbackSeason };
+}
+
+async function getWeekScoreMaps(season: number, week: number): Promise<{ players: Map<string, number>; defense: Map<string, number> }> {
+  const cached = await withCache("sports", "sportsdataio", cacheKeyFor({ season, week, kind: "fantasy_week_scores" }), TTL_WEEK_SCORES, async () => {
+    const [players, defense] = await Promise.all([fetchPlayerGameStatsByWeek(season, week), fetchTeamDefenseGameStatsByWeek(season, week)]);
+    return { players, defense };
+  });
+  const players = new Map<string, number>();
+  for (const p of cached?.data.players ?? []) players.set(p.playerId, computeFantasyPoints(p));
+  const defense = new Map<string, number>();
+  for (const d of cached?.data.defense ?? []) defense.set(d.team, computeDefensePoints(d));
+  return { players, defense };
+}
+
+/** Real weekly fantasy score for one team — the sum of every STARTER's
+ *  (never bench) real computed points for that week. A DST starter scores
+ *  from the real team-defense stats (looked up by the NFL team abbreviation
+ *  recorded at draft time), every other position from the real player
+ *  stats. A starter with no stat row this week (bye, inactive, no game
+ *  yet) simply contributes 0 — never guessed. */
+async function computeTeamWeekScore(teamId: string, season: number, week: number): Promise<number> {
+  const [roster, { players, defense }] = await Promise.all([
+    prisma.fantasyRosterSlot.findMany({ where: { teamId, lineupSlot: { not: "BENCH" } } }),
+    getWeekScoreMaps(season, week),
+  ]);
+  let total = 0;
+  for (const r of roster) {
+    if (r.position === "DST" || r.position === "DEF") {
+      total += r.nflTeam ? defense.get(r.nflTeam) ?? 0 : 0;
+    } else {
+      total += players.get(r.playerId) ?? 0;
+    }
+  }
+  return Math.round(total * 100) / 100;
+}
+
+/** Recomputes every matchup's real score for one week from real player/
+ *  defense stats, and marks a matchup final once every starter on both
+ *  sides either has a completed game (IsGameOver) or simply has no stat
+ *  row at all this week (bye/inactive — nothing left to wait for). Safe
+ *  to call repeatedly (e.g. on a poll or a page load during the week) —
+ *  it only ever overwrites with the current real computed total. */
+export async function syncFantasyWeekScores(leagueId: string, week: number): Promise<void> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId } }).catch(() => null);
+  if (!league) return;
+  const matchups = await prisma.fantasyMatchup.findMany({ where: { leagueId, week } });
+  if (!matchups.length) return;
+
+  const [{ players }, allRosters] = await Promise.all([
+    getWeekScoreMaps(league.season, week),
+    prisma.fantasyRosterSlot.findMany({ where: { team: { leagueId }, lineupSlot: { not: "BENCH" } } }),
+  ]);
+  const gameStatus = await fetchPlayerGameStatsByWeek(league.season, week).catch(() => []);
+  const isGameOverByPlayer = new Map(gameStatus.map((p) => [p.playerId, p.isGameOver]));
+  const hasStatRow = new Set(players.keys());
+  const rostersByTeam = new Map<string, typeof allRosters>();
+  for (const r of allRosters) rostersByTeam.set(r.teamId, [...(rostersByTeam.get(r.teamId) ?? []), r]);
+
+  await Promise.all(matchups.map(async (m) => {
+    const [homeScore, awayScore] = await Promise.all([
+      computeTeamWeekScore(m.homeTeamId, league.season, week),
+      computeTeamWeekScore(m.awayTeamId, league.season, week),
+    ]);
+    const starters = [...(rostersByTeam.get(m.homeTeamId) ?? []), ...(rostersByTeam.get(m.awayTeamId) ?? [])];
+    const final = starters.every((r) => !hasStatRow.has(r.playerId) || isGameOverByPlayer.get(r.playerId) === true);
+    await prisma.fantasyMatchup.update({ where: { id: m.id }, data: { homeScore, awayScore, final } });
+  }));
+}
+
+export interface FantasyMatchupView {
+  id: string;
+  homeTeamId: string;
+  homeTeamName: string;
+  awayTeamId: string;
+  awayTeamName: string;
+  homeScore: number;
+  awayScore: number;
+  final: boolean;
+}
+
+export async function getFantasyMatchupsForWeek(accountId: string, leagueId: string, week: number): Promise<FantasyMatchupView[] | null> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
+  const nameById = new Map(league.teams.map((t) => [t.id, t.teamName]));
+  const matchups = await prisma.fantasyMatchup.findMany({ where: { leagueId, week }, orderBy: { id: "asc" } });
+  return matchups.map((m) => ({
+    id: m.id,
+    homeTeamId: m.homeTeamId,
+    homeTeamName: nameById.get(m.homeTeamId) ?? "Team",
+    awayTeamId: m.awayTeamId,
+    awayTeamName: nameById.get(m.awayTeamId) ?? "Team",
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+    final: m.final,
+  }));
+}
+
+export interface FantasyStandingsView {
+  entries: (FantasyStandingsEntry & { teamName: string; isMe: boolean })[];
+}
+
+export async function getFantasyStandings(accountId: string, leagueId: string): Promise<FantasyStandingsView | null> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
+  const matchups = await prisma.fantasyMatchup.findMany({ where: { leagueId } });
+  const entries = computeFantasyStandings(
+    league.teams.map((t) => t.id),
+    matchups.map((m) => ({ week: m.week, homeTeamId: m.homeTeamId, awayTeamId: m.awayTeamId, homeScore: m.homeScore, awayScore: m.awayScore, final: m.final }))
+  );
+  const nameById = new Map(league.teams.map((t) => [t.id, t.teamName]));
+  const accountByTeam = new Map(league.teams.map((t) => [t.id, t.accountId]));
+  return {
+    entries: entries.map((e) => ({ ...e, teamName: nameById.get(e.teamId) ?? "Team", isMe: accountByTeam.get(e.teamId) === accountId })),
+  };
 }
