@@ -48,6 +48,19 @@ export default async function FantasyFootballPage() {
           <form action={createFantasyLeagueAction} className="disc-form disc-form--compact" style={{ flexDirection: "column", alignItems: "stretch" }}>
             <input type="text" name="name" placeholder="League name, e.g. Turner Family League" maxLength={60} required />
             <input type="text" name="teamName" placeholder="Your team name" maxLength={40} required />
+            <label style={{ fontSize: "0.8rem", opacity: 0.8 }}>
+              Playoff teams
+              <select name="playoffTeams" defaultValue="4" style={{ display: "block", width: "100%", marginTop: "0.25rem" }}>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+              </select>
+            </label>
+            <label style={{ fontSize: "0.8rem", opacity: 0.8 }}>
+              Regular season weeks
+              <input type="number" name="regularSeasonWeeks" min={1} max={17} defaultValue={14} style={{ display: "block", width: "100%", marginTop: "0.25rem" }} />
+            </label>
             <button type="submit" className="btn btn--sm">Create League</button>
           </form>
           <form action={joinFantasyLeagueAction} className="disc-form disc-form--compact" style={{ flexDirection: "column", alignItems: "stretch" }}>
@@ -59,8 +72,9 @@ export default async function FantasyFootballPage() {
       </div>
 
       <p className="disc-empty">
-        This phase covers league creation, a real snake draft over the current NFL player pool, rosters, and lineup management.
-        Weekly scoring from live stats, waivers, and playoffs are coming in a follow-up phase.
+        League creation, a real snake draft over the current NFL player pool, rosters and lineup management, weekly scoring
+        from verified stats, waivers, trades, and a commissioner-configured playoff bracket that auto-seeds once the
+        regular season ends.
       </p>
     </div>
   );

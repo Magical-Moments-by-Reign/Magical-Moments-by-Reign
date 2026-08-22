@@ -17,9 +17,14 @@ import {
   initialWaiverOrder,
   resolveWaiverClaims,
   isValidTradeProposal,
+  nextPowerOfTwo,
+  seedPlayoffBracket,
+  advancePlayoffBracket,
+  computePlayoffClinchStatus,
   type RosterPlayer,
   type PlayerWeekStats,
   type DefenseWeekStats,
+  type FantasyStandingsEntry,
 } from "./fantasy";
 
 test("isEligibleForSlot: exact-position slots only accept their own position", () => {
@@ -284,4 +289,80 @@ test("isValidTradeProposal: rejects an empty offer on either side", () => {
 
 test("isValidTradeProposal: rejects the same player listed twice on one side", () => {
   assert.equal(isValidTradeProposal(["p1", "p2"], ["p3"], ["p1", "p1"], ["p3"]), false);
+});
+
+function standing(teamId: string, wins: number, pointsFor = 0): FantasyStandingsEntry {
+  return { teamId, wins, losses: 0, ties: 0, pointsFor, pointsAgainst: 0, rank: 0 };
+}
+
+test("nextPowerOfTwo: rounds up to the nearest real power of two", () => {
+  assert.equal(nextPowerOfTwo(1), 1);
+  assert.equal(nextPowerOfTwo(4), 4);
+  assert.equal(nextPowerOfTwo(5), 8);
+  assert.equal(nextPowerOfTwo(6), 8);
+  assert.equal(nextPowerOfTwo(8), 8);
+});
+
+test("seedPlayoffBracket: a 4-team field seeds 1v4 and 2v3 in round 1, with round 2 (the final) TBD", () => {
+  const standings = [standing("a", 10), standing("b", 8), standing("c", 6), standing("d", 4)];
+  const bracket = seedPlayoffBracket(standings, 4);
+  const round1 = bracket.filter((g) => g.round === 1).sort((x, y) => x.slot - y.slot);
+  assert.deepEqual(round1.map((g) => [g.teamAId, g.teamBId]), [["a", "d"], ["b", "c"]]);
+  assert.equal(round1.every((g) => g.winnerId === null), true);
+  const round2 = bracket.filter((g) => g.round === 2);
+  assert.equal(round2.length, 1);
+  assert.equal(round2[0].teamAId, null);
+  assert.equal(round2[0].teamBId, null);
+});
+
+test("seedPlayoffBracket: a 6-team field gives the top 2 seeds a real bye into round 2, not a fabricated round-1 opponent", () => {
+  const standings = [1, 2, 3, 4, 5, 6].map((n) => standing(`team${n}`, 10 - n));
+  const bracket = seedPlayoffBracket(standings, 6);
+  const round1 = bracket.filter((g) => g.round === 1).sort((x, y) => x.slot - y.slot);
+  // Bracket-of-8 seeding: 1v8, 4v5, 2v7, 3v6 — seeds 7 and 8 don't exist (only 6 real teams),
+  // so those two games are real byes: seed 1 and seed 2 auto-advance with no round-1 opponent.
+  const byeGames = round1.filter((g) => g.winnerId !== null);
+  assert.equal(byeGames.length, 2);
+  assert.deepEqual(byeGames.map((g) => g.winnerId).sort(), ["team1", "team2"]);
+  // Those byes should already be propagated into round 2 by seedPlayoffBracket's own call to advancePlayoffBracket.
+  const round2 = bracket.filter((g) => g.round === 2);
+  const round2Teams = round2.flatMap((g) => [g.teamAId, g.teamBId]).filter(Boolean);
+  assert.deepEqual(round2Teams.sort(), ["team1", "team2"]);
+});
+
+test("advancePlayoffBracket: a decided round-1 game fills the real winner into round 2's waiting slot", () => {
+  const games = [
+    { round: 1, slot: 0, teamAId: "a", teamBId: "d", winnerId: "a" },
+    { round: 1, slot: 1, teamAId: "b", teamBId: "c", winnerId: null },
+    { round: 2, slot: 0, teamAId: null, teamBId: null, winnerId: null },
+  ];
+  const advanced = advancePlayoffBracket(games);
+  const final = advanced.find((g) => g.round === 2)!;
+  assert.equal(final.teamAId, "a");
+  assert.equal(final.teamBId, null); // the other semifinal isn't decided yet — still real TBD, not guessed
+});
+
+test("computePlayoffClinchStatus: the leader with an insurmountable lead is CLINCHED", () => {
+  const standings = [standing("a", 10), standing("b", 4), standing("c", 3), standing("d", 2)];
+  // Only 1 game left for everyone; nobody but "a" could ever reach 10+ wins with 1 more win each.
+  const remaining = new Map([["a", 1], ["b", 1], ["c", 1], ["d", 1]]);
+  const status = computePlayoffClinchStatus(standings, remaining, 2);
+  assert.equal(status.find((s) => s.teamId === "a")!.clinched, true);
+});
+
+test("computePlayoffClinchStatus: a team mathematically eliminated from the playoff field", () => {
+  const standings = [standing("a", 10), standing("b", 9), standing("c", 8), standing("d", 1)];
+  const remaining = new Map([["a", 0], ["b", 0], ["c", 0], ["d", 1]]); // d can win out and only reach 2
+  const status = computePlayoffClinchStatus(standings, remaining, 2);
+  assert.equal(status.find((s) => s.teamId === "d")!.eliminated, true);
+});
+
+test("computePlayoffClinchStatus: a genuinely contested race is neither clinched nor eliminated for the bubble teams", () => {
+  const standings = [standing("a", 8), standing("b", 6), standing("c", 6), standing("d", 5)];
+  const remaining = new Map([["a", 2], ["b", 2], ["c", 2], ["d", 2]]);
+  const status = computePlayoffClinchStatus(standings, remaining, 2);
+  assert.equal(status.find((s) => s.teamId === "b")!.clinched, false);
+  assert.equal(status.find((s) => s.teamId === "b")!.eliminated, false);
+  assert.equal(status.find((s) => s.teamId === "c")!.clinched, false);
+  assert.equal(status.find((s) => s.teamId === "c")!.eliminated, false);
 });

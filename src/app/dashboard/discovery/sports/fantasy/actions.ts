@@ -21,6 +21,8 @@ import {
   proposeTrade,
   respondToTrade,
   vetoTrade,
+  seedFantasyPlayoffs,
+  syncFantasyPlayoffRound,
 } from "@/lib/discovery/sports/fantasy-service";
 
 export async function createFantasyLeagueAction(formData: FormData): Promise<void> {
@@ -28,8 +30,10 @@ export async function createFantasyLeagueAction(formData: FormData): Promise<voi
   const name = String(formData.get("name") || "").trim();
   const teamName = String(formData.get("teamName") || "").trim();
   const season = new Date().getFullYear();
+  const playoffTeams = Number(formData.get("playoffTeams")) || 4;
+  const regularSeasonWeeks = Number(formData.get("regularSeasonWeeks")) || 14;
   if (!name || !teamName) return;
-  await createFantasyLeague(account.id, name.slice(0, 60), season, teamName.slice(0, 40));
+  await createFantasyLeague(account.id, name.slice(0, 60), season, teamName.slice(0, 40), playoffTeams, regularSeasonWeeks);
   revalidatePath("/dashboard/discovery/sports/fantasy");
 }
 
@@ -136,5 +140,22 @@ export async function vetoTradeAction(formData: FormData): Promise<void> {
   const tradeId = String(formData.get("tradeId") || "");
   if (!leagueId || !tradeId) return;
   await vetoTrade(account.id, tradeId);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function seedFantasyPlayoffsAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  if (!leagueId) return;
+  await seedFantasyPlayoffs(account.id, leagueId);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function syncFantasyPlayoffRoundAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const round = Number(formData.get("round"));
+  if (!leagueId || !Number.isFinite(round)) return;
+  await syncFantasyPlayoffRound(account.id, leagueId, round);
   revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
 }

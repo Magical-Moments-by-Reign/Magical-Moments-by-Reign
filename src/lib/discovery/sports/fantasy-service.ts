@@ -29,8 +29,12 @@ import {
   computeFantasyStandings,
   resolveWaiverClaims,
   isValidTradeProposal,
+  seedPlayoffBracket,
+  advancePlayoffBracket,
+  computePlayoffClinchStatus,
   type RosterPlayer,
   type FantasyStandingsEntry,
+  type PlayoffBracketGame,
 } from "./fantasy";
 import { getSdioTeamDirectory } from "./team-identity";
 
@@ -79,7 +83,7 @@ export async function getMyFantasyLeagues(accountId: string): Promise<FantasyLea
   }));
 }
 
-export async function createFantasyLeague(accountId: string, name: string, season: number, teamName: string): Promise<FantasyLeagueSummary> {
+export async function createFantasyLeague(accountId: string, name: string, season: number, teamName: string, playoffTeams: number = 4, regularSeasonWeeks: number = 14): Promise<FantasyLeagueSummary> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const inviteCode = generateLeagueInviteCode();
     try {
@@ -91,6 +95,8 @@ export async function createFantasyLeague(accountId: string, name: string, seaso
           inviteCode,
           rosterSlots: STANDARD_LINEUP_SLOTS,
           benchSize: STANDARD_BENCH_SIZE,
+          playoffTeams: Math.min(Math.max(playoffTeams, 2), 8),
+          regularSeasonWeeks: Math.min(Math.max(regularSeasonWeeks, 1), 17),
           teams: { create: { accountId, teamName } },
         },
       });
@@ -130,6 +136,9 @@ export interface FantasyLeagueDetail {
   onTheClockTeamId: string | null;
   draftPickIndex: number;
   totalPicks: number;
+  playoffTeams: number;
+  regularSeasonWeeks: number;
+  playoffStatus: string;
 }
 
 export async function getFantasyLeagueDetail(accountId: string, leagueId: string): Promise<FantasyLeagueDetail | null> {
@@ -160,6 +169,9 @@ export async function getFantasyLeagueDetail(accountId: string, leagueId: string
     onTheClockTeamId: league.draftStatus === "in_progress" ? teamOnTheClock(fullSequence, league.currentPickIndex) : null,
     draftPickIndex: league.currentPickIndex,
     totalPicks: fullSequence.length,
+    playoffTeams: league.playoffTeams,
+    regularSeasonWeeks: league.regularSeasonWeeks,
+    playoffStatus: league.playoffStatus,
   };
 }
 
@@ -666,4 +678,174 @@ export async function vetoTrade(accountId: string, tradeId: string): Promise<boo
   if (!trade || trade.status !== "pending" || trade.league.commissionerAccountId !== accountId) return false;
   await prisma.fantasyTrade.update({ where: { id: tradeId }, data: { status: "vetoed", resolvedAt: new Date() } });
   return true;
+}
+
+// ── Playoffs ─────────────────────────────────────────────────────────────
+
+export interface FantasyPlayoffPictureEntry extends FantasyStandingsEntry {
+  teamName: string;
+  isMe: boolean;
+  clinched: boolean;
+  eliminated: boolean;
+}
+
+/** The real "IF THE PLAYOFFS STARTED TODAY" picture during the regular
+ *  season — current standings plus real, verified clinch/elimination math
+ *  (computePlayoffClinchStatus) from each team's actual remaining
+ *  regular-season games. Returns null once the playoffs have already
+ *  started (the real bracket is the source of truth then, not a
+ *  projection). */
+export async function getFantasyPlayoffPicture(accountId: string, leagueId: string): Promise<{ entries: FantasyPlayoffPictureEntry[]; playoffTeams: number } | null> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
+  if (league.playoffStatus !== "not_started") return null;
+
+  const matchups = await prisma.fantasyMatchup.findMany({ where: { leagueId, week: { lte: league.regularSeasonWeeks } } });
+  const standings = computeFantasyStandings(
+    league.teams.map((t) => t.id),
+    matchups.map((m) => ({ week: m.week, homeTeamId: m.homeTeamId, awayTeamId: m.awayTeamId, homeScore: m.homeScore, awayScore: m.awayScore, final: m.final }))
+  );
+  const remainingByTeam = new Map<string, number>();
+  for (const t of league.teams) {
+    const remaining = matchups.filter((m) => !m.final && (m.homeTeamId === t.id || m.awayTeamId === t.id)).length;
+    remainingByTeam.set(t.id, remaining);
+  }
+  const clinchStatus = new Map(computePlayoffClinchStatus(standings, remainingByTeam, league.playoffTeams).map((c) => [c.teamId, c]));
+  const nameById = new Map(league.teams.map((t) => [t.id, t.teamName]));
+  const accountByTeam = new Map(league.teams.map((t) => [t.id, t.accountId]));
+
+  return {
+    playoffTeams: league.playoffTeams,
+    entries: standings.map((s) => ({
+      ...s,
+      teamName: nameById.get(s.teamId) ?? "Team",
+      isMe: accountByTeam.get(s.teamId) === accountId,
+      clinched: clinchStatus.get(s.teamId)?.clinched ?? false,
+      eliminated: clinchStatus.get(s.teamId)?.eliminated ?? false,
+    })),
+  };
+}
+
+/** Commissioner-triggered — seeds the real single-elimination bracket from
+ *  final regular-season standings once every regular-season week has been
+ *  synced final. Refuses if the regular season isn't actually complete yet
+ *  or the bracket has already been seeded (never reseeds over live
+ *  results). */
+export async function seedFantasyPlayoffs(accountId: string, leagueId: string): Promise<{ ok: boolean; reason?: string }> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league) return { ok: false, reason: "League not found" };
+  if (league.commissionerAccountId !== accountId) return { ok: false, reason: "Only the commissioner can seed the playoffs" };
+  if (league.playoffStatus !== "not_started") return { ok: false, reason: "Playoffs already seeded" };
+
+  const regularSeasonMatchups = await prisma.fantasyMatchup.findMany({ where: { leagueId, week: { lte: league.regularSeasonWeeks } } });
+  if (regularSeasonMatchups.some((m) => !m.final)) return { ok: false, reason: "Not every regular-season week is final yet" };
+
+  const standings = computeFantasyStandings(
+    league.teams.map((t) => t.id),
+    regularSeasonMatchups.map((m) => ({ week: m.week, homeTeamId: m.homeTeamId, awayTeamId: m.awayTeamId, homeScore: m.homeScore, awayScore: m.awayScore, final: m.final }))
+  );
+  const games = seedPlayoffBracket(standings, league.playoffTeams);
+
+  await prisma.$transaction([
+    prisma.fantasyPlayoffGame.createMany({
+      data: games.map((g) => ({ leagueId, round: g.round, slot: g.slot, teamAId: g.teamAId, teamBId: g.teamBId, winnerId: g.winnerId, final: g.winnerId !== null })),
+    }),
+    prisma.fantasyLeague.update({ where: { id: leagueId }, data: { playoffStatus: "in_progress" } }),
+  ]);
+  return { ok: true };
+}
+
+export interface FantasyPlayoffGameView {
+  id: string;
+  round: number;
+  slot: number;
+  teamAId: string | null;
+  teamAName: string | null;
+  teamBId: string | null;
+  teamBName: string | null;
+  teamAScore: number;
+  teamBScore: number;
+  winnerId: string | null;
+  winnerName: string | null;
+  final: boolean;
+}
+
+export async function getFantasyPlayoffBracket(accountId: string, leagueId: string): Promise<{ games: FantasyPlayoffGameView[]; champion: string | null } | null> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
+  if (league.playoffStatus === "not_started") return null;
+
+  const games = await prisma.fantasyPlayoffGame.findMany({ where: { leagueId }, orderBy: [{ round: "asc" }, { slot: "asc" }] });
+  const nameById = new Map(league.teams.map((t) => [t.id, t.teamName]));
+  const maxRound = games.reduce((m, g) => Math.max(m, g.round), 1);
+  const finalGame = games.find((g) => g.round === maxRound);
+
+  return {
+    games: games.map((g) => ({
+      id: g.id,
+      round: g.round,
+      slot: g.slot,
+      teamAId: g.teamAId,
+      teamAName: g.teamAId ? nameById.get(g.teamAId) ?? "Team" : null,
+      teamBId: g.teamBId,
+      teamBName: g.teamBId ? nameById.get(g.teamBId) ?? "Team" : null,
+      teamAScore: g.teamAScore,
+      teamBScore: g.teamBScore,
+      winnerId: g.winnerId,
+      winnerName: g.winnerId ? nameById.get(g.winnerId) ?? "Team" : null,
+      final: g.final,
+    })),
+    champion: finalGame?.final ? finalGame.winnerId ?? null : null,
+  };
+}
+
+/** Commissioner-triggered — recomputes every real, decided playoff game's
+ *  score for one round from real weekly stats (the same computeTeamWeekScore
+ *  every regular-season sync uses, at week = regularSeasonWeeks + round),
+ *  marks a game final once both teams' games are over, records the real
+ *  winner, and propagates it into the next round via advancePlayoffBracket. */
+export async function syncFantasyPlayoffRound(accountId: string, leagueId: string, round: number): Promise<{ ok: boolean; reason?: string }> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId } }).catch(() => null);
+  if (!league) return { ok: false, reason: "League not found" };
+  if (league.playoffStatus === "not_started") return { ok: false, reason: "Playoffs haven't been seeded yet" };
+
+  const week = league.regularSeasonWeeks + round;
+  const roundGames = await prisma.fantasyPlayoffGame.findMany({ where: { leagueId, round } });
+  const gameStatus = await fetchPlayerGameStatsByWeek(league.season, week).catch(() => []);
+  const isGameOverByPlayer = new Map(gameStatus.map((p) => [p.playerId, p.isGameOver]));
+  const hasStatRow = new Set(gameStatus.map((p) => p.playerId));
+
+  const allStarters = await prisma.fantasyRosterSlot.findMany({ where: { team: { leagueId }, lineupSlot: { not: "BENCH" } } });
+  const startersByTeam = new Map<string, typeof allStarters>();
+  for (const r of allStarters) startersByTeam.set(r.teamId, [...(startersByTeam.get(r.teamId) ?? []), r]);
+
+  for (const g of roundGames) {
+    if (g.final || !g.teamAId || !g.teamBId) continue; // already decided, or still waiting on a prior round (real TBD)
+    const [teamAScore, teamBScore] = await Promise.all([
+      computeTeamWeekScore(g.teamAId, league.season, week),
+      computeTeamWeekScore(g.teamBId, league.season, week),
+    ]);
+    const starters = [...(startersByTeam.get(g.teamAId) ?? []), ...(startersByTeam.get(g.teamBId) ?? [])];
+    const final = starters.every((r) => !hasStatRow.has(r.playerId) || isGameOverByPlayer.get(r.playerId) === true);
+    const winnerId = final ? (teamAScore === teamBScore ? null : teamAScore > teamBScore ? g.teamAId : g.teamBId) : null;
+    await prisma.fantasyPlayoffGame.update({ where: { id: g.id }, data: { teamAScore, teamBScore, final, winnerId: winnerId ?? g.winnerId } });
+  }
+
+  // Propagate any newly-decided winners into the next round's TBD slots.
+  const allGames = await prisma.fantasyPlayoffGame.findMany({ where: { leagueId } });
+  const advanced = advancePlayoffBracket(allGames.map((g) => ({ round: g.round, slot: g.slot, teamAId: g.teamAId, teamBId: g.teamBId, winnerId: g.winnerId })));
+  await prisma.$transaction(
+    advanced
+      .filter((g) => {
+        const original = allGames.find((o) => o.round === g.round && o.slot === g.slot)!;
+        return original.teamAId !== g.teamAId || original.teamBId !== g.teamBId;
+      })
+      .map((g) => prisma.fantasyPlayoffGame.updateMany({ where: { leagueId, round: g.round, slot: g.slot }, data: { teamAId: g.teamAId, teamBId: g.teamBId } }))
+  );
+
+  const maxRound = allGames.reduce((m, g) => Math.max(m, g.round), 1);
+  const finalGame = await prisma.fantasyPlayoffGame.findFirst({ where: { leagueId, round: maxRound } });
+  if (finalGame?.final) await prisma.fantasyLeague.update({ where: { id: leagueId }, data: { playoffStatus: "complete" } });
+
+  return { ok: true };
 }

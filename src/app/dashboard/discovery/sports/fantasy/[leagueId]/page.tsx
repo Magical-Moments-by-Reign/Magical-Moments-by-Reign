@@ -11,6 +11,8 @@ import {
   getCurrentNflWeekAndSeason,
   getWaiverClaims,
   getFantasyTrades,
+  getFantasyPlayoffPicture,
+  getFantasyPlayoffBracket,
 } from "@/lib/discovery/sports/fantasy-service";
 import { draftPickLabel } from "@/lib/discovery/sports/fantasy";
 import {
@@ -24,6 +26,8 @@ import {
   proposeTradeAction,
   respondToTradeAction,
   vetoTradeAction,
+  seedFantasyPlayoffsAction,
+  syncFantasyPlayoffRoundAction,
 } from "../actions";
 import "../../../discovery.css";
 
@@ -76,6 +80,7 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
       {league.draftStatus === "complete" && (
         <>
           <FantasyMatchupsAndStandings accountId={account.id} leagueId={leagueId} season={league.season} weekParam={weekParam} />
+          <FantasyPlayoffs league={league} leagueId={leagueId} accountId={account.id} />
           <FantasyRostersView league={league} leagueId={leagueId} teamParam={teamParam} accountId={account.id} />
           <FantasyFreeAgents league={league} leagueId={leagueId} pos={posParam && POSITIONS.includes(posParam.toUpperCase()) ? posParam.toUpperCase() : "QB"} />
           <FantasyWaivers league={league} leagueId={leagueId} accountId={account.id} />
@@ -185,6 +190,78 @@ async function FantasyMatchupsAndStandings({ accountId, leagueId, season, weekPa
         )}
       </div>
     </>
+  );
+}
+
+async function FantasyPlayoffs({ league, leagueId, accountId }: { league: NonNullable<Awaited<ReturnType<typeof getFantasyLeagueDetail>>>; leagueId: string; accountId: string }) {
+  if (league.playoffStatus === "not_started") {
+    const picture = await getFantasyPlayoffPicture(accountId, leagueId);
+    return (
+      <div className="disc-section">
+        <div className="disc-section__head"><h2>Playoff Picture</h2></div>
+        <p className="disc-empty" style={{ marginTop: 0 }}>IF THE PLAYOFFS STARTED TODAY — top {league.playoffTeams} teams make it. Projected, not official, until the regular season ends.</p>
+        {!picture || picture.entries.length === 0 ? (
+          <p className="disc-empty">No games played yet this season.</p>
+        ) : (
+          <div className="disc-chart">
+            {picture.entries.map((e, i) => (
+              <div className="disc-chart__row" key={e.teamId}>
+                <div className="disc-chart__song">
+                  <b>#{e.rank} {e.isMe ? "You" : e.teamName}</b>
+                  <span>{e.wins}-{e.losses}{e.ties ? `-${e.ties}` : ""} · {e.pointsFor.toFixed(1)} PF{i < league.playoffTeams ? " · In the playoff field" : " · On the outside"}</span>
+                </div>
+                <span className="disc-badge">{e.clinched ? "CLINCHED" : e.eliminated ? "ELIMINATED" : "PROJECTED"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {league.isCommissioner && (
+          <form action={seedFantasyPlayoffsAction} style={{ marginTop: ".8rem" }}>
+            <input type="hidden" name="leagueId" value={leagueId} />
+            <button type="submit" className="btn btn--sm">Seed Playoffs (once week {league.regularSeasonWeeks} is final)</button>
+          </form>
+        )}
+      </div>
+    );
+  }
+
+  const bracket = await getFantasyPlayoffBracket(accountId, leagueId);
+  if (!bracket) return null;
+  const rounds = [...new Set(bracket.games.map((g) => g.round))].sort((a, b) => a - b);
+  const championName = bracket.champion ? bracket.games.find((g) => g.winnerId === bracket.champion)?.winnerName : null;
+
+  return (
+    <div className="disc-section">
+      <div className="disc-section__head"><h2>Playoff Bracket</h2></div>
+      {championName && <p className="disc-badge" style={{ marginBottom: "1rem" }}>🏆 Season Champion: {championName}</p>}
+      {rounds.map((round) => (
+        <div key={round} style={{ marginBottom: "1rem" }}>
+          <h3>{round === rounds[rounds.length - 1] ? "Championship" : `Round ${round}`}</h3>
+          <div className="disc-chart">
+            {bracket.games.filter((g) => g.round === round).map((g) => (
+              <div className="disc-chart__row" key={g.id}>
+                <div className="disc-chart__song">
+                  <b>{g.teamAName ?? "TBD"} vs {g.teamBName ?? "TBD"}</b>
+                  <span>{g.final ? `Final — winner: ${g.winnerName}` : "In progress"}</span>
+                </div>
+                <span className="disc-badge">{g.teamAScore.toFixed(2)} – {g.teamBScore.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {league.isCommissioner && league.playoffStatus === "in_progress" && (
+        <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
+          {rounds.map((round) => (
+            <form action={syncFantasyPlayoffRoundAction} key={round}>
+              <input type="hidden" name="leagueId" value={leagueId} />
+              <input type="hidden" name="round" value={round} />
+              <button type="submit" className="btn btn--sm">Sync Round {round}</button>
+            </form>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

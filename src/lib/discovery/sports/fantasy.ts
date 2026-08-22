@@ -358,3 +358,111 @@ export function isValidTradeProposal(
   if (new Set(recipientGivingIds).size !== recipientGivingIds.length) return false;
   return proposerGivingIds.every((id) => proposerSet.has(id)) && recipientGivingIds.every((id) => recipientSet.has(id));
 }
+
+// ── Playoffs ─────────────────────────────────────────────────────────────
+
+export function nextPowerOfTwo(n: number): number {
+  let p = 1;
+  while (p < n) p *= 2;
+  return p;
+}
+
+/** The standard single-elimination bracket seeding order for a bracket of
+ *  `size` (a power of two) — 1 plays the lowest seed, 2 plays the next
+ *  lowest, and so on, the same seeding convention every real single-
+ *  elimination tournament uses. Returns seed NUMBERS (1-indexed) in
+ *  bracket-slot order, e.g. size=4 → [1,4,2,3] (1v4, 2v3); size=8 →
+ *  [1,8,4,5,2,7,3,6]. */
+function bracketSeedOrder(size: number): number[] {
+  if (size <= 1) return [1];
+  if (size === 2) return [1, 2];
+  const half = bracketSeedOrder(size / 2);
+  const order: number[] = [];
+  for (const s of half) order.push(s, size + 1 - s);
+  return order;
+}
+
+export interface PlayoffBracketGame {
+  round: number;
+  slot: number; // position within the round, 0-indexed
+  teamAId: string | null; // null = a bye, or a later round awaiting a prior winner
+  teamBId: string | null;
+  winnerId: string | null; // set once decided — a bye is decided immediately at seeding
+}
+
+/** Seeds a real single-elimination playoff bracket from final regular-
+ *  season standings (already rank-sorted by computeFantasyStandings) —
+ *  the top `playoffTeams` teams, standard seeding (1v-lowest, etc). When
+ *  `playoffTeams` isn't a power of two, the top seeds get a real bye
+ *  (auto-win, no opponent) in round 1 rather than a fabricated matchup.
+ *  Every later round's games start as TBD (both teams null) until
+ *  advancePlayoffBracket fills them in from real decided results. */
+export function seedPlayoffBracket(standings: FantasyStandingsEntry[], playoffTeams: number): PlayoffBracketGame[] {
+  const seeds = standings.slice(0, playoffTeams);
+  const bracketSize = nextPowerOfTwo(Math.max(playoffTeams, 1));
+  const rounds = Math.max(1, Math.log2(bracketSize));
+  const order = bracketSeedOrder(bracketSize);
+  const round1Teams: (string | null)[] = order.map((seedNum) => seeds[seedNum - 1]?.teamId ?? null);
+
+  const games: PlayoffBracketGame[] = [];
+  for (let i = 0; i < bracketSize / 2; i++) {
+    const teamA = round1Teams[i * 2];
+    const teamB = round1Teams[i * 2 + 1];
+    const winner = teamA && !teamB ? teamA : !teamA && teamB ? teamB : null;
+    games.push({ round: 1, slot: i, teamAId: teamA, teamBId: teamB, winnerId: winner });
+  }
+  for (let r = 2; r <= rounds; r++) {
+    const gamesInRound = bracketSize / Math.pow(2, r);
+    for (let i = 0; i < gamesInRound; i++) games.push({ round: r, slot: i, teamAId: null, teamBId: null, winnerId: null });
+  }
+  return advancePlayoffBracket(games); // propagates any round-1 byes straight into round 2 immediately
+}
+
+/** Fills in every round's TBD slots from the prior round's real decided
+ *  winners — safe to call after any single game is marked decided; a slot
+ *  that already has a team recorded is left untouched. */
+export function advancePlayoffBracket(games: PlayoffBracketGame[]): PlayoffBracketGame[] {
+  const updated = games.map((g) => ({ ...g }));
+  const maxRound = updated.reduce((m, g) => Math.max(m, g.round), 1);
+  for (let r = 1; r < maxRound; r++) {
+    const thisRound = updated.filter((g) => g.round === r).sort((a, b) => a.slot - b.slot);
+    const nextRound = updated.filter((g) => g.round === r + 1).sort((a, b) => a.slot - b.slot);
+    for (let i = 0; i < nextRound.length; i++) {
+      const feederA = thisRound[i * 2];
+      const feederB = thisRound[i * 2 + 1];
+      if (feederA?.winnerId && nextRound[i].teamAId == null) nextRound[i].teamAId = feederA.winnerId;
+      if (feederB?.winnerId && nextRound[i].teamBId == null) nextRound[i].teamBId = feederB.winnerId;
+    }
+  }
+  return updated;
+}
+
+export interface PlayoffClinchStatus {
+  teamId: string;
+  clinched: boolean;
+  eliminated: boolean;
+}
+
+/** Real, verified playoff-clinch math from current standings and each
+ *  team's own real remaining-game count — never a guess. A team is
+ *  CLINCHED once fewer than `playoffTeams` other teams could possibly
+ *  still finish with more wins than it already has (even if it loses
+ *  every remaining game, it can't be pushed out). A team is ELIMINATED
+ *  once `playoffTeams` other teams have already clinched more wins than
+ *  it could possibly reach even by winning out. Deliberately conservative
+ *  on ties (no fantasy tiebreaker rule is assumed) — it will never
+ *  mislabel a team CLINCHED or ELIMINATED, only decline to call an
+ *  unresolved tie either way yet. */
+export function computePlayoffClinchStatus(standings: FantasyStandingsEntry[], remainingGamesByTeam: Map<string, number>, playoffTeams: number): PlayoffClinchStatus[] {
+  const maxPossibleWins = new Map(standings.map((s) => [s.teamId, s.wins + (remainingGamesByTeam.get(s.teamId) ?? 0)]));
+  return standings.map((team) => {
+    const others = standings.filter((s) => s.teamId !== team.teamId);
+    const couldStillPass = others.filter((o) => (maxPossibleWins.get(o.teamId) ?? o.wins) > team.wins).length;
+    const alreadyPastMyMax = others.filter((o) => o.wins > (maxPossibleWins.get(team.teamId) ?? team.wins)).length;
+    return {
+      teamId: team.teamId,
+      clinched: couldStillPass < playoffTeams,
+      eliminated: alreadyPastMyMax >= playoffTeams,
+    };
+  });
+}
