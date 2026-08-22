@@ -36,7 +36,7 @@ export function MatchupCard({
   return (
     <div className="sports-matchup">
       <div className="sports-matchup__meta">
-        <span>{sportLabel} · {game.league}</span>
+        <span>{sportLabel}</span>
         <span>{game.status === "live" ? "LIVE NOW" : game.status === "final" ? "FINAL" : when.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
       </div>
 
