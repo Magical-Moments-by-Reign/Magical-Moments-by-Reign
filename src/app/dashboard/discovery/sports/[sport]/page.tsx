@@ -215,7 +215,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // or an honest "—" otherwise. Skipped when the plan itself is
   // restricted, since that's a different, already-honest message.
   const standings = !standingsRestricted && hasVerifiedReference(sport)
-    ? await getVerifiedStandingsFallback(sport, standingsResult.standings ?? [], standingsPhase === "preseason")
+    ? await getVerifiedStandingsFallback(sport, standingsResult.standings ?? [], standingsPhase === "preseason").catch(() => standingsResult.standings ?? [])
     : standingsResult.standings ?? [];
   const standingsGroups = normalizeStandingsBySport(sport, standings);
   // No provider returned a season string in the verified-fallback case
@@ -232,7 +232,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // every other sport reuses the exact grouping/logos already resolved for
   // the Standings panel above rather than a second fetch.
   const directoryGroups: DirectoryGroup[] = hasVerifiedReference(sport)
-    ? await getTeamDirectory(sport)
+    ? await getTeamDirectory(sport).catch(() => [])
     : standingsGroups.map((g) => ({
         label: g.label || sportMeta.label,
         divisions: g.divisions.map((d) => ({
