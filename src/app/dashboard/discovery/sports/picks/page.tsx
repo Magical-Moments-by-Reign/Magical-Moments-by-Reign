@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getMagicalPicksProfile, getFamilyPicksLeaderboard } from "@/lib/discovery/sports/service";
+import { getMyPickGroups } from "@/lib/discovery/sports/pickem-groups-service";
 import { SPORTS_BADGES } from "@/lib/discovery/sports/badges";
+import { createPickGroupAction, joinPickGroupAction } from "../actions";
 import "../../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +14,10 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
   const account = await requireAccount("/dashboard/discovery/sports/picks");
   const { range: rangeParam } = await searchParams;
   const range: "week" | "all" = rangeParam === "all" ? "all" : "week";
-  const [profile, leaderboard] = await Promise.all([
+  const [profile, leaderboard, groups] = await Promise.all([
     getMagicalPicksProfile(account.id),
     getFamilyPicksLeaderboard(account.id, range),
+    getMyPickGroups(account.id),
   ]);
   const earnedIds = new Set(profile.badges.map((b) => b.id));
 
@@ -68,6 +71,31 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
       {profile.total === 0 && (
         <p className="disc-empty">Make your first pick on a matchup to start your Magical Picks profile.</p>
       )}
+
+      <div className="disc-section">
+        <div className="disc-section__head"><h2>Pick&apos;em Groups</h2></div>
+        <p className="disc-empty" style={{ marginTop: 0 }}>Private groups you create and invite family or friends into — entertainment predictions only, never wagering.</p>
+        {groups.length > 0 && (
+          <div className="disc-chart">
+            {groups.map((g) => (
+              <Link href={`/dashboard/discovery/sports/picks/groups/${g.id}`} key={g.id} className="disc-chart__row" style={{ textDecoration: "none" }}>
+                <div className="disc-chart__song"><b>{g.name}</b><span>{g.memberCount} member{g.memberCount === 1 ? "" : "s"} · code {g.inviteCode}</span></div>
+                <span className="disc-badge">{g.isOwner ? "Owner" : "Member"}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
+          <form action={createPickGroupAction} className="disc-form disc-form--compact">
+            <input type="text" name="name" placeholder="e.g. Turner Family NFL Picks" maxLength={60} required />
+            <button type="submit" className="btn btn--sm">Create Group</button>
+          </form>
+          <form action={joinPickGroupAction} className="disc-form disc-form--compact">
+            <input type="text" name="code" placeholder="Invite code" maxLength={6} required style={{ textTransform: "uppercase" }} />
+            <button type="submit" className="btn btn--sm">Join Group</button>
+          </form>
+        </div>
+      </div>
 
       <div className="disc-section">
         <div className="disc-section__head">

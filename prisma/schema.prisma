@@ -1118,6 +1118,8 @@ model Account {
   sportsFollows        SportsFollow[]
   sportsPicks          SportsPick[]
   sportsBadgesEarned   SportsBadgeEarned[]
+  pickGroupsOwned      PickGroup[]        @relation("pickGroupOwner")
+  pickGroupMemberships PickGroupMember[]
   socialShares         SocialShare[]
   // Vendor Portal: the marketplace business record(s) this account manages
   // (one-to-one enforced in application logic; see src/lib/vendor-auth.ts).
@@ -2775,6 +2777,36 @@ model SportsBadgeEarned {
   note      String?  // optional context, e.g. which team/streak triggered it
 
   @@unique([accountId, badgeId])
+  @@index([accountId])
+}
+
+// Magical Picks — Family & Friend Pick'em Group: a private group a member
+// creates and invites people into by code, so a household/friend circle can
+// see each other's real pick record side by side. Entertainment/community
+// prediction only — no wagering, spreads, or betting odds are ever computed
+// from this model.
+model PickGroup {
+  id             String   @id @default(cuid())
+  name           String
+  ownerAccountId String
+  owner          Account  @relation("pickGroupOwner", fields: [ownerAccountId], references: [id], onDelete: Cascade)
+  inviteCode     String   @unique
+  createdAt      DateTime @default(now())
+
+  members        PickGroupMember[]
+
+  @@index([ownerAccountId])
+}
+
+model PickGroupMember {
+  id        String    @id @default(cuid())
+  groupId   String
+  group     PickGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  accountId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime  @default(now())
+
+  @@unique([groupId, accountId])
   @@index([accountId])
 }
 

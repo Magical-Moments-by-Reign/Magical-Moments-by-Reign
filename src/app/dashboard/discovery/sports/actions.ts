@@ -7,9 +7,11 @@
 // through any of these — a pick is a free-text choice, never a transaction.
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAccount, requireOwner } from "@/lib/guard";
 import { followSport, followTeam, unfollow, submitPick, gradeGame, setFinalScore } from "@/lib/discovery/sports/service";
 import { trackPlayer, untrackPlayer } from "@/lib/discovery/sports/tracked-players";
+import { createPickGroup, joinPickGroupByCode, leavePickGroup } from "@/lib/discovery/sports/pickem-groups-service";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
 import type { SdioLeague } from "@/lib/discovery/providers/sportsdata";
 
@@ -102,4 +104,31 @@ export async function enterFinalScoreAction(formData: FormData): Promise<void> {
   await setFinalScore(gameId, homeScore, awayScore);
   revalidatePath(`/dashboard/discovery/sports/game/${gameId}`);
   revalidatePath("/dashboard/discovery/admin");
+}
+
+// ── Pick'em Groups ────────────────────────────────────────────────
+
+export async function createPickGroupAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/picks");
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return;
+  await createPickGroup(account.id, name.slice(0, 60));
+  revalidatePath("/dashboard/discovery/sports/picks");
+}
+
+export async function joinPickGroupAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/picks");
+  const code = String(formData.get("code") || "");
+  if (!code) return;
+  await joinPickGroupByCode(account.id, code);
+  revalidatePath("/dashboard/discovery/sports/picks");
+}
+
+export async function leavePickGroupAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/picks");
+  const groupId = String(formData.get("groupId") || "");
+  if (!groupId) return;
+  await leavePickGroup(account.id, groupId);
+  revalidatePath("/dashboard/discovery/sports/picks");
+  redirect("/dashboard/discovery/sports/picks");
 }
