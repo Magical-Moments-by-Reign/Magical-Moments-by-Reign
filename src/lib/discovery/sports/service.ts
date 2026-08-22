@@ -264,18 +264,56 @@ function normalizeTeamName(s: string): string {
  *  doesn't return logos) to its real API-Sports team record — so a game
  *  sourced from that secondary provider still gets the real logo/id we
  *  already have from the primary one, instead of a placeholder icon.
- *  Cached per sport+team name (team identity/logo rarely changes), so this
- *  is only a live lookup the first time a given team name is seen for that
- *  sport. Returns null when API-Sports has no confident match — never a
- *  guessed logo. */
+ *
+ *  For a single-league sport (NBA, NFL, ...) this matches locally against
+ *  ONE bulk, week-cached league roster (fetchTeamsForLeague) instead of
+ *  issuing a separate live, UNSCOPED `/teams?search=` call per team name.
+ *  A page resolving an entire league's worth of teams (Standings, the All
+ *  Teams directory — up to 30+ names in one Promise.all) used to fire that
+ *  many concurrent unscoped searches; a real provider rate limit throttling
+ *  even a few of them left those specific teams' logos blank, and which
+ *  ones came up empty varied run to run since nothing about the failure
+ *  was cached (see withCache — it never caches a null). Falls back to the
+ *  old unscoped per-name search only when the sport isn't single-league or
+ *  the bulk roster comes back empty. Returns null when nothing matches —
+ *  never a guessed logo. */
 export async function resolveTeamByName(sport: SportSlug, name: string): Promise<{ id: string; logoUrl?: string } | null> {
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, teamNameLookup: normalizeTeamName(name) }), TTL_TEAM_LOOKUP, () =>
-    ApiSportsProvider.searchTeams(sport, name));
-  const candidates = cached?.data;
-  if (!candidates?.length) return null;
   const target = normalizeTeamName(name);
+
+  const rosterMap = await getLeagueTeamRosterMap(sport);
+  if (rosterMap) {
+    const match = rosterMap.get(target);
+    if (match) return match;
+    if (rosterMap.size) return null; // a real, complete league roster with no match — not a guess
+  }
+
+  const searched = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, teamNameLookup: target }), TTL_TEAM_LOOKUP, () =>
+    ApiSportsProvider.searchTeams(sport, name));
+  const candidates = searched?.data;
+  if (!candidates?.length) return null;
   const match = candidates.find((t) => normalizeTeamName(t.name) === target) ?? candidates[0];
   return { id: match.id, logoUrl: match.logoUrl };
+}
+
+/** The ONE bulk, week-cached roster lookup every single-league sport's
+ *  team-name resolution shares — a whole page resolving 30+ team names
+ *  (Standings, the All Teams directory) prefetches this map exactly once
+ *  and does synchronous local lookups from it, instead of each of those 30
+ *  names independently racing its own live call (see resolveTeamByName's
+ *  doc comment for what that race used to do to logos). Returns null for a
+ *  sport with no single-league roster to prefetch — callers fall back to
+ *  resolveTeamByName's per-name search path for those. */
+export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<string, { id: string; logoUrl?: string }> | null> {
+  if (!SINGLE_LEAGUE_SPORTS.has(sport)) return null;
+  const league = defaultLeagueId(sport);
+  if (!league) return null;
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+    fetchTeamsForLeague(sport, league, season));
+  const roster = cached?.data ?? [];
+  const map = new Map<string, { id: string; logoUrl?: string }>();
+  for (const t of roster) map.set(normalizeTeamName(t.name), { id: t.id, logoUrl: t.logoUrl });
+  return map;
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
@@ -675,8 +713,9 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     // Falls back to the standings row's own logo only when the catalog
     // lookup itself comes back empty — never a blank card over a real (if
     // imperfect) provider-supplied logo.
+    const rosterMap = await getLeagueTeamRosterMap(sport);
     const resolvedStandings = await Promise.all(result.standings.map(async (s) => {
-      const resolved = await resolveTeamByName(sport, s.team.name);
+      const resolved = rosterMap ? rosterMap.get(normalizeTeamName(s.team.name)) ?? null : await resolveTeamByName(sport, s.team.name);
       return resolved?.logoUrl ? { ...s, team: { ...s.team, logoUrl: resolved.logoUrl } } : s;
     }));
     return { ...result, standings: resolvedStandings };

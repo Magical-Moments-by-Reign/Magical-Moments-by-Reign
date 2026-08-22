@@ -22,8 +22,11 @@ export interface GroupLeaderboardEntry {
   weeklyCorrect: number;
   weeklyRecord: string; // "3-1" (correct-incorrect) for the current week
   seasonCorrect: number;
+  seasonWins: number; // same value as seasonCorrect, named for the W/L display
+  seasonLosses: number;
   winPct: number; // season accuracy across all graded picks
   currentStreak: number;
+  longestStreak: number;
   rank: number;
   isMe: boolean;
 }
@@ -44,8 +47,9 @@ export function buildGroupLeaderboard(
   const unranked = members.map((m) => {
     const graded = m.picks.filter((p) => p.isCorrect !== null);
     const seasonCorrect = graded.filter((p) => p.isCorrect).length;
+    const seasonLosses = graded.length - seasonCorrect;
     const winPct = graded.length ? Math.round((seasonCorrect / graded.length) * 100) : 0;
-    const { currentStreak } = streaksFromGraded(graded);
+    const { currentStreak, longestStreak } = streaksFromGraded(graded);
     const weekly = graded.filter((p) => p.gameStartsAt.getTime() >= weekStart.getTime());
     const weeklyCorrect = weekly.filter((p) => p.isCorrect).length;
     const weeklyIncorrect = weekly.length - weeklyCorrect;
@@ -55,8 +59,11 @@ export function buildGroupLeaderboard(
       weeklyCorrect,
       weeklyRecord: `${weeklyCorrect}-${weeklyIncorrect}`,
       seasonCorrect,
+      seasonWins: seasonCorrect,
+      seasonLosses,
       winPct,
       currentStreak,
+      longestStreak,
       isMe: m.accountId === viewerAccountId,
     };
   });
@@ -66,6 +73,28 @@ export function buildGroupLeaderboard(
   return unranked
     .sort((a, b) => primary(a, b) || b.winPct - a.winPct || b.currentStreak - a.currentStreak)
     .map((e, i) => ({ ...e, rank: i + 1 }));
+}
+
+/** The group's Weekly Champion — whoever has the most correct picks this
+ *  week among entries ranked by `range: "week"` (ties broken the same way
+ *  buildGroupLeaderboard already breaks them: win %, then streak — so this
+ *  is always the rank-1 entry of that ranking). Returns null when nobody
+ *  in the group has a graded pick yet this week — there's no real
+ *  champion to name over an empty week. */
+export function weeklyChampion(weekRankedEntries: GroupLeaderboardEntry[]): GroupLeaderboardEntry | null {
+  const top = weekRankedEntries.find((e) => e.rank === 1);
+  return top && top.weeklyCorrect > 0 ? top : null;
+}
+
+/** Privacy rule: a group member's specific pick is hidden from everyone
+ *  else in the group until the real game locks (kickoff) — so nobody can
+ *  see and copy another person's selection. Once locked, every locked
+ *  pick becomes visible to the whole group, including a pick made and
+ *  then left unchanged. Returns null (hidden) pre-lock regardless of
+ *  whether a pick exists; `hasPicked` still tells the UI whether to show
+ *  "Picked" vs "No pick yet" without revealing which team. */
+export function revealGroupPick(teamPick: "home" | "away" | null, locked: boolean): { revealed: boolean; teamPick: "home" | "away" | null; hasPicked: boolean } {
+  return { revealed: locked, teamPick: locked ? teamPick : null, hasPicked: teamPick !== null };
 }
 
 // No 0/O/1/I — a member reading this code aloud, or squinting at a small

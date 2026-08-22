@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getGroupLeaderboard } from "@/lib/discovery/sports/pickem-groups-service";
+import { weeklyChampion } from "@/lib/discovery/sports/pickem-groups";
 import { leavePickGroupAction } from "../../../actions";
 import "../../../../discovery.css";
 
@@ -16,6 +17,8 @@ export default async function PickGroupPage({ params, searchParams }: { params: 
   const range: "week" | "season" = rangeParam === "week" ? "week" : "season";
   const board = await getGroupLeaderboard(account.id, groupId, range);
   if (!board) notFound();
+  const weekBoard = range === "week" ? board : await getGroupLeaderboard(account.id, groupId, "week");
+  const champion = weekBoard ? weeklyChampion(weekBoard.entries) : null;
 
   return (
     <div className="disc">
@@ -25,6 +28,12 @@ export default async function PickGroupPage({ params, searchParams }: { params: 
         <p className="pg-sub">Entertainment predictions only — no money, wagering, spreads, or betting odds.</p>
       </div>
       <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Magical Picks</Link>
+
+      {champion && (
+        <p className="disc-empty" style={{ marginTop: 0, fontWeight: 700 }}>
+          🏆 This Week&apos;s Champion: {champion.isMe ? "You" : champion.name} ({champion.weeklyRecord})
+        </p>
+      )}
 
       <div className="disc-section">
         <div className="disc-section__head">
@@ -39,9 +48,12 @@ export default async function PickGroupPage({ params, searchParams }: { params: 
             <div className="disc-chart__row" key={e.accountId}>
               <div className="disc-chart__song">
                 <b>#{e.rank} {e.isMe ? "You" : e.name}</b>
-                <span>Weekly {e.weeklyRecord} · Season {e.seasonCorrect} correct · {e.winPct}% · {e.currentStreak > 0 ? `🔥 ${e.currentStreak} streak` : "no active streak"}</span>
+                <span>
+                  Weekly {e.weeklyRecord} · Season {e.seasonWins}-{e.seasonLosses} ({e.winPct}%) ·
+                  {" "}{e.currentStreak > 0 ? `🔥 ${e.currentStreak} current streak` : "no active streak"} · Longest streak {e.longestStreak}
+                </span>
               </div>
-              <span className="disc-badge">{range === "week" ? `${e.weeklyCorrect} this week` : `${e.seasonCorrect} pts`}</span>
+              <span className="disc-badge">{range === "week" ? `${e.weeklyCorrect} this week` : `Rank #${e.rank} · ${e.seasonCorrect} pts`}</span>
             </div>
           ))}
         </div>
