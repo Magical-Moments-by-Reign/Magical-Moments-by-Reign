@@ -89,40 +89,53 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
   const totalRealTeams = spec.reduce((n, s) => n + s.teams.length, 0);
   if (liveRows.length >= totalRealTeams) return liveRows;
 
-  const liveByName = new Map(liveRows.map((r) => [normalize(r.team.name), r]));
-  const merged: SportsStanding[] = [];
-  for (const { conference, division, teams } of spec) {
-    for (const name of teams) {
-      const live = liveByName.get(normalize(name));
-      if (live) {
-        merged.push({ ...live, group: live.group ?? conference, division: live.division ?? division });
-        continue;
+  try {
+    const liveByName = new Map(liveRows.map((r) => [normalize(r.team.name), r]));
+    const merged: SportsStanding[] = [];
+    for (const { conference, division, teams } of spec) {
+      for (const name of teams) {
+        const live = liveByName.get(normalize(name));
+        if (live) {
+          merged.push({ ...live, group: live.group ?? conference, division: live.division ?? division });
+          continue;
+        }
+        const team = await resolveTeamByName(sport, name).catch(() => null);
+        merged.push({
+          team: { id: team?.id ?? name, name, logoUrl: team?.logoUrl },
+          wins: allowZeroFill ? 0 : undefined,
+          losses: allowZeroFill ? 0 : undefined,
+          group: conference,
+          division,
+        });
       }
-      const team = await resolveTeamByName(sport, name);
-      merged.push({
-        team: { id: team?.id ?? name, name, logoUrl: team?.logoUrl },
-        wins: allowZeroFill ? 0 : undefined,
-        losses: allowZeroFill ? 0 : undefined,
-        group: conference,
-        division,
-      });
     }
+    return merged;
+  } catch {
+    // A live team-resolution call failing unexpectedly must never take the
+    // whole Standings panel down with it — fall back to whatever real rows
+    // the primary/secondary providers already returned.
+    return liveRows;
   }
-  return merged;
 }
 
 async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[]): Promise<DirectoryGroup[]> {
-  const byConference = new Map<string, DirectoryDivision[]>();
-  for (const { conference, division, teams } of spec) {
-    const resolved = await Promise.all(teams.map(async (name): Promise<DirectoryTeam> => {
-      const team = await resolveTeamByName(sport, name);
-      return { id: team?.id ?? name, name, logoUrl: team?.logoUrl };
-    }));
-    const divisions = byConference.get(conference) ?? [];
-    divisions.push({ label: division, teams: resolved });
-    byConference.set(conference, divisions);
+  try {
+    const byConference = new Map<string, DirectoryDivision[]>();
+    for (const { conference, division, teams } of spec) {
+      const resolved = await Promise.all(teams.map(async (name): Promise<DirectoryTeam> => {
+        const team = await resolveTeamByName(sport, name).catch(() => null);
+        return { id: team?.id ?? name, name, logoUrl: team?.logoUrl };
+      }));
+      const divisions = byConference.get(conference) ?? [];
+      divisions.push({ label: division, teams: resolved });
+      byConference.set(conference, divisions);
+    }
+    return Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions }));
+  } catch {
+    // A live team-resolution call failing unexpectedly must never take the
+    // All Teams directory down with it.
+    return [];
   }
-  return Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions }));
 }
 
 /** Every team in the league under its real conference/division, with a
