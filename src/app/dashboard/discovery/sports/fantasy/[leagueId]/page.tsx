@@ -9,9 +9,22 @@ import {
   getFantasyMatchupsForWeek,
   getFantasyStandings,
   getCurrentNflWeekAndSeason,
+  getWaiverClaims,
+  getFantasyTrades,
 } from "@/lib/discovery/sports/fantasy-service";
 import { draftPickLabel } from "@/lib/discovery/sports/fantasy";
-import { startFantasyDraftAction, draftPlayerAction, setLineupSlotAction, syncFantasyWeekScoresAction } from "../actions";
+import {
+  startFantasyDraftAction,
+  draftPlayerAction,
+  setLineupSlotAction,
+  syncFantasyWeekScoresAction,
+  dropPlayerAction,
+  submitWaiverClaimAction,
+  processWaiversAction,
+  proposeTradeAction,
+  respondToTradeAction,
+  vetoTradeAction,
+} from "../actions";
 import "../../../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +77,9 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
         <>
           <FantasyMatchupsAndStandings accountId={account.id} leagueId={leagueId} season={league.season} weekParam={weekParam} />
           <FantasyRostersView league={league} leagueId={leagueId} teamParam={teamParam} accountId={account.id} />
+          <FantasyFreeAgents league={league} leagueId={leagueId} pos={posParam && POSITIONS.includes(posParam.toUpperCase()) ? posParam.toUpperCase() : "QB"} />
+          <FantasyWaivers league={league} leagueId={leagueId} accountId={account.id} />
+          <FantasyTrades league={league} leagueId={leagueId} accountId={account.id} />
         </>
       )}
     </div>
@@ -216,22 +232,190 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
           <div className="disc-chart__row" key={p.playerId}>
             <div className="disc-chart__song"><b>{p.playerName}</b><span>{p.position}</span></div>
             {isMyTeam && (
-              <form action={setLineupSlotAction}>
+              <div style={{ display: "flex", gap: ".4rem" }}>
+                <form action={setLineupSlotAction}>
+                  <input type="hidden" name="leagueId" value={leagueId} />
+                  <input type="hidden" name="teamId" value={roster.teamId} />
+                  <input type="hidden" name="playerId" value={p.playerId} />
+                  <select name="slot" defaultValue="">
+                    <option value="" disabled>Move to…</option>
+                    {league.rosterSlots.filter((s, i, arr) => arr.indexOf(s) === i).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <button type="submit" className="btn btn--sm">Start</button>
+                </form>
+                <form action={dropPlayerAction}>
+                  <input type="hidden" name="leagueId" value={leagueId} />
+                  <input type="hidden" name="teamId" value={roster.teamId} />
+                  <input type="hidden" name="playerId" value={p.playerId} />
+                  <button type="submit" className="btn btn--sm">Drop</button>
+                </form>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function FantasyFreeAgents({ league, leagueId, pos }: { league: NonNullable<Awaited<ReturnType<typeof getFantasyLeagueDetail>>>; leagueId: string; pos: string }) {
+  const available = await getAvailablePlayers(leagueId);
+  const filtered = available.filter((p) => p.position === pos).slice(0, 60);
+  const myTeam = league.teams.find((t) => t.id === league.myTeamId);
+  const myRoster = myTeam ? await getFantasyTeamRoster(myTeam.accountId, leagueId, myTeam.id) : null;
+
+  return (
+    <div className="disc-section">
+      <div className="disc-section__head"><h2>Free Agents</h2></div>
+      <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+        {POSITIONS.map((p) => (
+          <Link key={p} href={`?pos=${p}`} className="btn btn--sm" aria-current={pos === p}>{p}</Link>
+        ))}
+      </div>
+      <div className="disc-chart">
+        {filtered.length === 0 && <p className="disc-empty">No available {pos}s right now.</p>}
+        {filtered.map((p) => (
+          <div className="disc-chart__row" key={p.playerId}>
+            <div className="disc-chart__song"><b>{p.name}</b><span>{p.position} · {p.team ?? "Free Agent"}</span></div>
+            {league.myTeamId && (
+              <form action={submitWaiverClaimAction} style={{ display: "flex", gap: ".4rem" }}>
                 <input type="hidden" name="leagueId" value={leagueId} />
-                <input type="hidden" name="teamId" value={roster.teamId} />
-                <input type="hidden" name="playerId" value={p.playerId} />
-                <select name="slot" defaultValue="">
-                  <option value="" disabled>Move to…</option>
-                  {league.rosterSlots.filter((s, i, arr) => arr.indexOf(s) === i).map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <button type="submit" className="btn btn--sm">Start</button>
+                <input type="hidden" name="teamId" value={league.myTeamId} />
+                <input type="hidden" name="addPlayerId" value={p.playerId} />
+                {myRoster && myRoster.players.length > 0 && (
+                  <select name="dropPlayerId" defaultValue="">
+                    <option value="">No drop</option>
+                    {myRoster.players.map((r) => (
+                      <option key={r.playerId} value={r.playerId}>Drop {r.playerName}</option>
+                    ))}
+                  </select>
+                )}
+                <button type="submit" className="btn btn--sm">Claim</button>
               </form>
             )}
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+async function FantasyWaivers({ league, leagueId, accountId }: { league: NonNullable<Awaited<ReturnType<typeof getFantasyLeagueDetail>>>; leagueId: string; accountId: string }) {
+  const claims = await getWaiverClaims(accountId, leagueId);
+  if (!claims) return null;
+
+  return (
+    <div className="disc-section">
+      <div className="disc-section__head"><h2>Waiver Claims</h2></div>
+      {claims.length === 0 ? (
+        <p className="disc-empty">No pending waiver claims.</p>
+      ) : (
+        <div className="disc-chart">
+          {claims.map((c) => (
+            <div className="disc-chart__row" key={c.id}>
+              <div className="disc-chart__song"><b>{c.isMine ? "You" : c.teamName}</b><span>Claiming {c.addPlayerName} · {c.addPosition}</span></div>
+              <span className="disc-badge">Pending</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {league.isCommissioner && claims.length > 0 && (
+        <form action={processWaiversAction} style={{ marginTop: ".8rem" }}>
+          <input type="hidden" name="leagueId" value={leagueId} />
+          <button type="submit" className="btn btn--sm">Process Waivers</button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+async function FantasyTrades({ league, leagueId, accountId }: { league: NonNullable<Awaited<ReturnType<typeof getFantasyLeagueDetail>>>; leagueId: string; accountId: string }) {
+  const trades = await getFantasyTrades(accountId, leagueId);
+  if (!trades) return null;
+  const myTeam = league.teams.find((t) => t.id === league.myTeamId);
+  const myRoster = myTeam ? await getFantasyTeamRoster(accountId, leagueId, myTeam.id) : null;
+  const partners = myTeam ? league.teams.filter((t) => t.id !== myTeam.id) : [];
+  const partnerRosters: Map<string, Awaited<ReturnType<typeof getFantasyTeamRoster>>> = myTeam
+    ? new Map(await Promise.all(partners.map(async (t) => [t.id, await getFantasyTeamRoster(accountId, leagueId, t.id)] as const)))
+    : new Map();
+
+  return (
+    <div className="disc-section">
+      <div className="disc-section__head"><h2>Trades</h2></div>
+      {trades.length === 0 && <p className="disc-empty" style={{ marginTop: 0 }}>No pending trades.</p>}
+      <div className="disc-chart">
+        {trades.map((t) => (
+          <div className="disc-chart__row" key={t.id}>
+            <div className="disc-chart__song">
+              <b>{t.proposerTeamName} ⇄ {t.recipientTeamName}</b>
+              <span>{t.proposerTeamName} gives {t.proposerPlayerNames.join(", ") || "—"} for {t.recipientPlayerNames.join(", ") || "—"}</span>
+            </div>
+            <div style={{ display: "flex", gap: ".4rem" }}>
+              {t.isForMe && (
+                <>
+                  <form action={respondToTradeAction}>
+                    <input type="hidden" name="leagueId" value={leagueId} />
+                    <input type="hidden" name="tradeId" value={t.id} />
+                    <input type="hidden" name="accept" value="true" />
+                    <button type="submit" className="btn btn--sm">Accept</button>
+                  </form>
+                  <form action={respondToTradeAction}>
+                    <input type="hidden" name="leagueId" value={leagueId} />
+                    <input type="hidden" name="tradeId" value={t.id} />
+                    <input type="hidden" name="accept" value="false" />
+                    <button type="submit" className="btn btn--sm">Reject</button>
+                  </form>
+                </>
+              )}
+              {league.isCommissioner && (
+                <form action={vetoTradeAction}>
+                  <input type="hidden" name="leagueId" value={leagueId} />
+                  <input type="hidden" name="tradeId" value={t.id} />
+                  <button type="submit" className="btn btn--sm">Veto</button>
+                </form>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {myTeam && myRoster && partners.length > 0 && (
+        <div style={{ marginTop: "1.2rem" }}>
+          <h3>Propose a Trade</h3>
+          {partners.map((partner) => {
+            const partnerRoster = partnerRosters.get(partner.id);
+            return (
+              <form action={proposeTradeAction} key={partner.id} style={{ marginTop: ".8rem", padding: ".8rem", border: "1px solid var(--line)", borderRadius: "10px" }}>
+                <input type="hidden" name="leagueId" value={leagueId} />
+                <input type="hidden" name="proposerTeamId" value={myTeam.id} />
+                <input type="hidden" name="recipientTeamId" value={partner.id} />
+                <b>{partner.teamName}</b>
+                <div style={{ display: "flex", gap: "1.5rem", marginTop: ".5rem", flexWrap: "wrap" }}>
+                  <fieldset style={{ border: "none", padding: 0 }}>
+                    <legend style={{ fontSize: ".7rem", textTransform: "uppercase", color: "var(--ink-soft)" }}>You give</legend>
+                    {myRoster.players.map((p) => (
+                      <label key={p.playerId} style={{ display: "block", fontSize: ".82rem" }}>
+                        <input type="checkbox" name="proposerPlayerIds" value={p.playerId} /> {p.playerName} · {p.position}
+                      </label>
+                    ))}
+                  </fieldset>
+                  <fieldset style={{ border: "none", padding: 0 }}>
+                    <legend style={{ fontSize: ".7rem", textTransform: "uppercase", color: "var(--ink-soft)" }}>You get</legend>
+                    {partnerRoster?.players.map((p) => (
+                      <label key={p.playerId} style={{ display: "block", fontSize: ".82rem" }}>
+                        <input type="checkbox" name="recipientPlayerIds" value={p.playerId} /> {p.playerName} · {p.position}
+                      </label>
+                    ))}
+                  </fieldset>
+                </div>
+                <button type="submit" className="btn btn--sm" style={{ marginTop: ".6rem" }}>Propose to {partner.teamName}</button>
+              </form>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

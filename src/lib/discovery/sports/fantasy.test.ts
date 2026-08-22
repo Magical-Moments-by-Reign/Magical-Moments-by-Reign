@@ -14,6 +14,9 @@ import {
   computeDefensePoints,
   generateRoundRobinSchedule,
   computeFantasyStandings,
+  initialWaiverOrder,
+  resolveWaiverClaims,
+  isValidTradeProposal,
   type RosterPlayer,
   type PlayerWeekStats,
   type DefenseWeekStats,
@@ -220,4 +223,65 @@ test("computeFantasyStandings: an equal final score is a real tie, not a fabrica
   const standings = computeFantasyStandings(["a", "b"], results);
   assert.equal(standings.find((s) => s.teamId === "a")!.ties, 1);
   assert.equal(standings.find((s) => s.teamId === "a")!.wins, 0);
+});
+
+test("initialWaiverOrder: worst record picks first, ties broken by fewer points scored", () => {
+  const standings = [
+    { teamId: "a", wins: 3, losses: 1, ties: 0, pointsFor: 400, pointsAgainst: 300, rank: 1 },
+    { teamId: "b", wins: 1, losses: 3, ties: 0, pointsFor: 350, pointsAgainst: 400, rank: 2 },
+    { teamId: "c", wins: 1, losses: 3, ties: 0, pointsFor: 300, pointsAgainst: 420, rank: 3 },
+  ];
+  assert.deepEqual(initialWaiverOrder(standings), ["c", "b", "a"]);
+});
+
+test("resolveWaiverClaims: the top-priority claimant on a contested player wins; everyone else loses that claim", () => {
+  const order = ["team1", "team2", "team3"];
+  const claims = [
+    { id: "claim-a", teamId: "team2", playerId: "playerX" },
+    { id: "claim-b", teamId: "team1", playerId: "playerX" },
+    { id: "claim-c", teamId: "team3", playerId: "playerX" },
+  ];
+  const result = resolveWaiverClaims(order, claims);
+  assert.deepEqual(result.wonClaimIds, ["claim-b"]);
+  assert.deepEqual(result.lostClaimIds.sort(), ["claim-a", "claim-c"]);
+  // team1 won, so it drops to the back of the order.
+  assert.deepEqual(result.newPriorityOrder, ["team2", "team3", "team1"]);
+});
+
+test("resolveWaiverClaims: uncontested claims on different players can each win, processed in priority order", () => {
+  const order = ["team1", "team2", "team3"];
+  const claims = [
+    { id: "claim-a", teamId: "team2", playerId: "playerY" },
+    { id: "claim-b", teamId: "team1", playerId: "playerX" },
+  ];
+  const result = resolveWaiverClaims(order, claims);
+  assert.deepEqual(result.wonClaimIds.sort(), ["claim-a", "claim-b"]);
+  assert.deepEqual(result.lostClaimIds, []);
+  // team1 (highest priority) processes first and drops to the back; team2 then wins uncontested and also drops back.
+  assert.deepEqual(result.newPriorityOrder, ["team3", "team1", "team2"]);
+});
+
+test("resolveWaiverClaims: no claims leaves the priority order untouched", () => {
+  const order = ["a", "b"];
+  const result = resolveWaiverClaims(order, []);
+  assert.deepEqual(result, { wonClaimIds: [], lostClaimIds: [], newPriorityOrder: ["a", "b"] });
+});
+
+test("isValidTradeProposal: a real, legal trade where each side actually rosters what they're offering", () => {
+  const ok = isValidTradeProposal(["p1", "p2"], ["p3", "p4"], ["p1"], ["p3"]);
+  assert.equal(ok, true);
+});
+
+test("isValidTradeProposal: rejects a side offering a player they don't actually roster", () => {
+  const bad = isValidTradeProposal(["p1", "p2"], ["p3", "p4"], ["p9"], ["p3"]);
+  assert.equal(bad, false);
+});
+
+test("isValidTradeProposal: rejects an empty offer on either side", () => {
+  assert.equal(isValidTradeProposal(["p1"], ["p3"], [], ["p3"]), false);
+  assert.equal(isValidTradeProposal(["p1"], ["p3"], ["p1"], []), false);
+});
+
+test("isValidTradeProposal: rejects the same player listed twice on one side", () => {
+  assert.equal(isValidTradeProposal(["p1", "p2"], ["p3"], ["p1", "p1"], ["p3"]), false);
 });

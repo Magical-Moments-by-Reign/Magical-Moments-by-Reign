@@ -2834,20 +2834,26 @@ model FantasyLeague {
 
   teams                  FantasyTeam[]
   matchups               FantasyMatchup[]
+  waiverClaims           FantasyWaiverClaim[]
+  trades                 FantasyTrade[]
 
   @@index([commissionerAccountId])
 }
 
 model FantasyTeam {
-  id         String   @id @default(cuid())
-  leagueId   String
-  league     FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  accountId  String
-  account    Account  @relation("fantasyTeams", fields: [accountId], references: [id], onDelete: Cascade)
-  teamName   String
-  joinedAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  leagueId       String
+  league         FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        Account  @relation("fantasyTeams", fields: [accountId], references: [id], onDelete: Cascade)
+  teamName       String
+  waiverPriority Int      @default(0) // lower = picks first; set to reverse-standings order once the season's underway, advances on each won claim
+  joinedAt       DateTime @default(now())
 
-  roster     FantasyRosterSlot[]
+  roster         FantasyRosterSlot[]
+  waiverClaims   FantasyWaiverClaim[]
+  tradesOffered  FantasyTrade[] @relation("tradeProposer")
+  tradesReceived FantasyTrade[] @relation("tradeRecipient")
 
   @@unique([leagueId, accountId])
   @@index([leagueId])
@@ -2888,6 +2894,48 @@ model FantasyMatchup {
 
   @@unique([leagueId, week, homeTeamId])
   @@index([leagueId, week])
+}
+
+// A team's real, pending-then-resolved claim on a real available player —
+// resolveWaiverClaims (fantasy.ts) is the only place a claim is decided.
+model FantasyWaiverClaim {
+  id            String      @id @default(cuid())
+  leagueId      String
+  league        FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  teamId        String
+  team          FantasyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  addPlayerId   String
+  addPlayerName String
+  addPosition   String
+  addNflTeam    String?
+  dropPlayerId  String? // optional — only required if the roster is already full
+  status        String      @default("pending") // "pending" | "won" | "lost" | "cancelled"
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+
+  @@index([leagueId, status])
+  @@index([teamId])
+}
+
+// A proposed team-to-team trade — isValidTradeProposal (fantasy.ts)
+// validates the offer shape; the service layer re-checks the real current
+// roster at accept time in case something changed since the trade was
+// proposed (a player already traded/dropped elsewhere, etc).
+model FantasyTrade {
+  id                 String      @id @default(cuid())
+  leagueId           String
+  league             FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  proposerTeamId     String
+  proposerTeam       FantasyTeam @relation("tradeProposer", fields: [proposerTeamId], references: [id], onDelete: Cascade)
+  recipientTeamId    String
+  recipientTeam      FantasyTeam @relation("tradeRecipient", fields: [recipientTeamId], references: [id], onDelete: Cascade)
+  proposerPlayerIds  Json // string[] of FantasyRosterSlot.playerId the proposer is giving up
+  recipientPlayerIds Json // string[] of FantasyRosterSlot.playerId the recipient is giving up
+  status             String      @default("pending") // "pending" | "accepted" | "rejected" | "vetoed" | "cancelled"
+  createdAt          DateTime    @default(now())
+  resolvedAt          DateTime?
+
+  @@index([leagueId, status])
 }
 
 // A member's connected Spotify account (OAuth Authorization Code flow).

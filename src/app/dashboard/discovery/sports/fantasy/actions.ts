@@ -15,6 +15,12 @@ import {
   draftPlayer,
   setLineupSlot,
   syncFantasyWeekScores,
+  dropPlayer,
+  submitWaiverClaim,
+  processWaivers,
+  proposeTrade,
+  respondToTrade,
+  vetoTrade,
 } from "@/lib/discovery/sports/fantasy-service";
 
 export async function createFantasyLeagueAction(formData: FormData): Promise<void> {
@@ -70,5 +76,65 @@ export async function syncFantasyWeekScoresAction(formData: FormData): Promise<v
   const week = Number(formData.get("week"));
   if (!leagueId || !Number.isFinite(week)) return;
   await syncFantasyWeekScores(leagueId, week);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function dropPlayerAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const teamId = String(formData.get("teamId") || "");
+  const playerId = String(formData.get("playerId") || "");
+  if (!leagueId || !teamId || !playerId) return;
+  await dropPlayer(account.id, teamId, playerId);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function submitWaiverClaimAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const teamId = String(formData.get("teamId") || "");
+  const addPlayerId = String(formData.get("addPlayerId") || "");
+  const dropPlayerId = String(formData.get("dropPlayerId") || "") || undefined;
+  if (!leagueId || !teamId || !addPlayerId) return;
+  await submitWaiverClaim(account.id, teamId, addPlayerId, dropPlayerId);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function processWaiversAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  if (!leagueId) return;
+  await processWaivers(account.id, leagueId);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function proposeTradeAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const proposerTeamId = String(formData.get("proposerTeamId") || "");
+  const recipientTeamId = String(formData.get("recipientTeamId") || "");
+  const proposerPlayerIds = formData.getAll("proposerPlayerIds").map(String).filter(Boolean);
+  const recipientPlayerIds = formData.getAll("recipientPlayerIds").map(String).filter(Boolean);
+  if (!leagueId || !proposerTeamId || !recipientTeamId) return;
+  await proposeTrade(account.id, leagueId, proposerTeamId, recipientTeamId, proposerPlayerIds, recipientPlayerIds);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function respondToTradeAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const tradeId = String(formData.get("tradeId") || "");
+  const accept = formData.get("accept") === "true";
+  if (!leagueId || !tradeId) return;
+  await respondToTrade(account.id, tradeId, accept);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function vetoTradeAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const tradeId = String(formData.get("tradeId") || "");
+  if (!leagueId || !tradeId) return;
+  await vetoTrade(account.id, tradeId);
   revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
 }
