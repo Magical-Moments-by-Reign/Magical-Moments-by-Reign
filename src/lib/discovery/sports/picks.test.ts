@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek } from "./picks";
+import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek, gradeRacePicks, tallyRaceVotes, startOfMonth, startOfDay, leaderboardPeriodStart } from "./picks";
 
 test("gradeGamePicks returns null until the game is final with real scores", () => {
   assert.equal(gradeGamePicks({ status: "live", homeScore: 10, awayScore: 7 }, []), null);
@@ -64,4 +64,42 @@ test("startOfWeek returns midnight on the most recent Sunday", () => {
   assert.deepEqual(startOfWeek(new Date(2025, 7, 20, 15, 30)), new Date(2025, 7, 17, 0, 0, 0, 0));
   // A Sunday itself returns that same day at midnight.
   assert.deepEqual(startOfWeek(new Date(2025, 7, 17, 23, 59)), new Date(2025, 7, 17, 0, 0, 0, 0));
+});
+
+test("startOfMonth returns midnight on the 1st of the month", () => {
+  assert.deepEqual(startOfMonth(new Date(2025, 7, 20, 15, 30)), new Date(2025, 7, 1, 0, 0, 0, 0));
+});
+
+test("startOfDay returns midnight on the given day", () => {
+  assert.deepEqual(startOfDay(new Date(2025, 7, 20, 15, 30)), new Date(2025, 7, 20, 0, 0, 0, 0));
+});
+
+test("leaderboardPeriodStart resolves today/week/month, and undefined for season/all_time", () => {
+  const now = new Date(2025, 7, 20, 15, 30);
+  assert.deepEqual(leaderboardPeriodStart("today", now), new Date(2025, 7, 20, 0, 0, 0, 0));
+  assert.deepEqual(leaderboardPeriodStart("week", now), new Date(2025, 7, 17, 0, 0, 0, 0));
+  assert.deepEqual(leaderboardPeriodStart("month", now), new Date(2025, 7, 1, 0, 0, 0, 0));
+  assert.equal(leaderboardPeriodStart("season", now), undefined);
+  assert.equal(leaderboardPeriodStart("all_time", now), undefined);
+});
+
+test("gradeRacePicks returns null until a real winning participant is known", () => {
+  assert.equal(gradeRacePicks(null, [{ id: "p1", selectionId: "driver-1" }]), null);
+});
+
+test("gradeRacePicks grades correctly against the real winning participant", () => {
+  const result = gradeRacePicks("driver-1", [
+    { id: "p1", selectionId: "driver-1" },
+    { id: "p2", selectionId: "driver-2" },
+  ]);
+  assert.deepEqual(result, [{ id: "p1", isCorrect: true }, { id: "p2", isCorrect: false }]);
+});
+
+test("tallyRaceVotes counts votes per participant from stored picks", () => {
+  const tally = tallyRaceVotes([{ selectionId: "d1" }, { selectionId: "d1" }, { selectionId: "d2" }]);
+  assert.deepEqual(tally, { total: 3, byParticipant: { d1: { count: 2, pct: 67 }, d2: { count: 1, pct: 33 } } });
+});
+
+test("tallyRaceVotes handles zero votes without dividing by zero", () => {
+  assert.deepEqual(tallyRaceVotes([]), { total: 0, byParticipant: {} });
 });

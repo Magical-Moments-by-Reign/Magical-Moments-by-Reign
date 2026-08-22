@@ -11,7 +11,7 @@ import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeag
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
-import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, type VoteTally, type PicksSummary } from "./picks";
+import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, gradeRacePicks, type VoteTally, type PicksSummary } from "./picks";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -585,7 +585,7 @@ export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string,
   const games = allGames.slice(0, limit);
   const contexts = await Promise.all(
     games.map(async (game) => {
-      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id }, select: { teamPick: true, accountId: true, isCorrect: true } });
+      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
       const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
       const mine = typed.find((p) => p.accountId === accountId);
       return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
@@ -603,7 +603,7 @@ export async function getMatchup(gameId: string, accountId?: string): Promise<{
 } | null> {
   const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
   if (!game) return null;
-  const picks = await prisma.sportsPick.findMany({ where: { gameId }, select: { teamPick: true, accountId: true, isCorrect: true } });
+  const picks = await prisma.sportsPick.findMany({ where: { gameId, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
   const typedPicks = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
   const tally = tallyVotes(typedPicks);
   const mine = accountId ? typedPicks.find((p) => p.accountId === accountId) : undefined;
@@ -787,11 +787,28 @@ export async function getGameTeamRecords(sport: SportSlug, league: string, homeT
 export async function submitPick(accountId: string, gameId: string, teamPick: "home" | "away") {
   const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
   if (!game) throw new Error("Matchup not found");
+  if (game.eventType !== "HEAD_TO_HEAD") throw new Error("This event doesn't take a home/away pick");
   if (isPickLocked(game)) throw new Error("Picks are locked for this matchup");
   return prisma.sportsPick.upsert({
     where: { gameId_accountId: { gameId, accountId } },
-    create: { gameId, accountId, teamPick },
+    create: { gameId, accountId, pickType: "HEAD_TO_HEAD", teamPick },
     update: { teamPick },
+  });
+}
+
+/** RACE_WINNER counterpart to submitPick (F1) — selectionId must be a real
+ *  entrant already recorded on this event's SportsGameParticipant rows;
+ *  never accepts an unverified driver id. */
+export async function submitRacePick(accountId: string, gameId: string, selectionId: string) {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId }, include: { participants: true } });
+  if (!game) throw new Error("Event not found");
+  if (game.eventType !== "RACE_WINNER") throw new Error("This event doesn't take a race-winner pick");
+  if (isPickLocked(game)) throw new Error("Picks are locked for this event");
+  if (!game.participants.some((p) => p.participantId === selectionId)) throw new Error("That entrant isn't in this event's field");
+  return prisma.sportsPick.upsert({
+    where: { gameId_accountId: { gameId, accountId } },
+    create: { gameId, accountId, pickType: "RACE_WINNER", selectionId },
+    update: { selectionId },
   });
 }
 
@@ -799,10 +816,15 @@ export async function submitPick(accountId: string, gameId: string, teamPick: "h
  *  for every affected account. Called from the grading action (Owner-run or
  *  scheduled) — never guesses a result on its own. */
 export async function gradeGame(gameId: string): Promise<number> {
-  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId }, include: { participants: true } });
   if (!game) return 0;
   const picks = await prisma.sportsPick.findMany({ where: { gameId, isCorrect: null } });
-  const graded = gradeGamePicks(game, picks.map((p) => ({ id: p.id, teamPick: p.teamPick as "home" | "away" })));
+  const graded = game.eventType === "RACE_WINNER"
+    ? gradeRacePicks(
+        game.participants.find((p) => p.finishPosition === 1)?.participantId ?? null,
+        picks.map((p) => ({ id: p.id, selectionId: p.selectionId ?? "" }))
+      )
+    : gradeGamePicks(game, picks.map((p) => ({ id: p.id, teamPick: p.teamPick as "home" | "away" })));
   if (!graded) return 0;
   await Promise.all(graded.map((g) => prisma.sportsPick.update({ where: { id: g.id }, data: { isCorrect: g.isCorrect } })));
   await Promise.all(

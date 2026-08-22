@@ -9,7 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAccount, requireOwner } from "@/lib/guard";
-import { followSport, followTeam, unfollow, submitPick, gradeGame, setFinalScore } from "@/lib/discovery/sports/service";
+import { followSport, followTeam, unfollow, submitPick, submitRacePick, gradeGame, setFinalScore } from "@/lib/discovery/sports/service";
 import { trackPlayer, untrackPlayer } from "@/lib/discovery/sports/tracked-players";
 import { createPickGroup, joinPickGroupByCode, leavePickGroup } from "@/lib/discovery/sports/pickem-groups-service";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
@@ -51,6 +51,18 @@ export async function submitPickAction(formData: FormData): Promise<void> {
   const teamPick = String(formData.get("teamPick") || "");
   if (!gameId || (teamPick !== "home" && teamPick !== "away")) return;
   await submitPick(account.id, gameId, teamPick);
+  revalidatePath(`/dashboard/discovery/sports/game/${gameId}`);
+  revalidatePath("/dashboard/discovery/sports/picks");
+}
+
+/** RACE_WINNER counterpart to submitPickAction (F1) — one driver selected
+ *  from the event's real, verified field. */
+export async function submitRacePickAction(formData: FormData): Promise<void> {
+  const account = await requireAccount("/dashboard/discovery/sports");
+  const gameId = String(formData.get("gameId") || "");
+  const selectionId = String(formData.get("selectionId") || "");
+  if (!gameId || !selectionId) return;
+  await submitRacePick(account.id, gameId, selectionId);
   revalidatePath(`/dashboard/discovery/sports/game/${gameId}`);
   revalidatePath("/dashboard/discovery/sports/picks");
 }

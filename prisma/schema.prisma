@@ -2725,6 +2725,14 @@ model SportsGame {
   sport         String
   league        String
   externalId    String?   // provider's game id; null for a hand-entered exhibition/admin game
+  // "HEAD_TO_HEAD" (default) covers every two-side event — team sports AND
+  // MMA fights, since a fight is just a head-to-head between two named
+  // participants (Fighter A/Fighter B live in the same home/away fields a
+  // team sport uses; no separate "fighter" fields needed). "RACE_WINNER"
+  // (F1) is the one shape that genuinely doesn't fit two sides — it picks
+  // one winner from an arbitrary-size field, tracked in SportsGameParticipant
+  // below rather than the home/away pair.
+  eventType     String    @default("HEAD_TO_HEAD")
   homeTeamId    String?   // provider team id, when known
   homeTeamName  String
   homeTeamLogoUrl String?
@@ -2742,29 +2750,58 @@ model SportsGame {
   createdAt     DateTime  @default(now())
 
   picks         SportsPick[]
+  participants  SportsGameParticipant[]
 
   @@unique([sport, externalId])
   @@index([sport, league, startsAt])
   @@index([status, startsAt])
 }
 
+// One entrant in a RACE_WINNER event (F1) — real, verified field entrants
+// only, never a guessed/incomplete grid. finishPosition stays null until
+// the race is graded final; a pick is correct when its selectionId matches
+// the participant whose finishPosition is 1. Not used for HEAD_TO_HEAD
+// events (team sports/MMA), which stay on SportsGame's home/away pair.
+model SportsGameParticipant {
+  id             String     @id @default(cuid())
+  gameId         String
+  game           SportsGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  participantId  String     // provider's driver/entrant id
+  name           String
+  teamName       String?    // constructor, when the provider reports one
+  logoUrl        String?
+  sortOrder      Int        @default(0)
+  finishPosition Int?
+
+  @@unique([gameId, participantId])
+  @@index([gameId])
+}
+
 // One member's pick for one matchup — doubles as their prediction (graded
 // after the game goes final) and as a ballot in the community vote tally
-// (aggregated live by teamPick). One row per member per game.
+// (aggregated live by teamPick/selectionId). One row per member per game.
+// pickType mirrors the game's eventType at the moment the pick was made
+// (denormalized — an event's type never changes once games are underway) so
+// grading/tallying know which field to read without a join back to the
+// game every time. Exactly one of teamPick/selectionId is set, matching
+// pickType.
 model SportsPick {
-  id         String    @id @default(cuid())
-  gameId     String
-  game       SportsGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  accountId  String
-  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  teamPick   String    // "home" | "away"
-  isCorrect  Boolean?  // null until the game is graded final
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  gameId      String
+  game        SportsGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  pickType    String    @default("HEAD_TO_HEAD") // "HEAD_TO_HEAD" | "RACE_WINNER"
+  teamPick    String?   // "home" | "away" — HEAD_TO_HEAD picks only
+  selectionId String?   // SportsGameParticipant.participantId — RACE_WINNER picks only
+  isCorrect   Boolean?  // null until the game is graded final
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([gameId, accountId])
   @@index([accountId, isCorrect])
   @@index([gameId, teamPick])
+  @@index([gameId, selectionId])
 }
 
 // A badge a member has actually earned (the catalog of badge definitions is

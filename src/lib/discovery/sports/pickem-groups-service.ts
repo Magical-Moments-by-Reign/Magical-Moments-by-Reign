@@ -151,7 +151,7 @@ export async function getGroupPicksForGame(accountId: string, gameId: string): P
   if (!groups.length) return [];
 
   const allMemberIds = [...new Set(groups.flatMap((g) => g.members.map((m) => m.accountId)))];
-  const picks = await prisma.sportsPick.findMany({ where: { gameId, accountId: { in: allMemberIds } }, select: { accountId: true, teamPick: true } });
+  const picks = await prisma.sportsPick.findMany({ where: { gameId, accountId: { in: allMemberIds }, pickType: "HEAD_TO_HEAD" }, select: { accountId: true, teamPick: true } });
   const pickByAccount = new Map(picks.map((p) => [p.accountId, p.teamPick as "home" | "away"]));
 
   return groups.map((g) => ({
