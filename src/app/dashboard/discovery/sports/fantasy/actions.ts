@@ -14,6 +14,7 @@ import {
   startFantasyDraft,
   draftPlayer,
   setLineupSlot,
+  syncFantasyWeekScores,
 } from "@/lib/discovery/sports/fantasy-service";
 
 export async function createFantasyLeagueAction(formData: FormData): Promise<void> {
@@ -60,5 +61,14 @@ export async function setLineupSlotAction(formData: FormData): Promise<void> {
   const slot = String(formData.get("slot") || "");
   if (!leagueId || !teamId || !playerId || !slot) return;
   await setLineupSlot(account.id, teamId, playerId, slot);
+  revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
+}
+
+export async function syncFantasyWeekScoresAction(formData: FormData): Promise<void> {
+  await requireAccount("/dashboard/discovery/sports/fantasy");
+  const leagueId = String(formData.get("leagueId") || "");
+  const week = Number(formData.get("week"));
+  if (!leagueId || !Number.isFinite(week)) return;
+  await syncFantasyWeekScores(leagueId, week);
   revalidatePath(`/dashboard/discovery/sports/fantasy/${leagueId}`);
 }

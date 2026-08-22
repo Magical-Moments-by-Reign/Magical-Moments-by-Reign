@@ -2829,9 +2829,11 @@ model FantasyLeague {
   draftStatus            String   @default("scheduled") // "scheduled" | "in_progress" | "complete"
   draftOrder             Json?    // FantasyTeam id[] — the round-1 pick order; set once when the draft starts
   currentPickIndex       Int      @default(0) // index into the flattened snake sequence (round*teamCount)
+  regularSeasonWeeks     Int      @default(14) // weeks scheduled once the draft completes; playoff weeks come later
   createdAt              DateTime @default(now())
 
   teams                  FantasyTeam[]
+  matchups               FantasyMatchup[]
 
   @@index([commissionerAccountId])
 }
@@ -2858,12 +2860,34 @@ model FantasyRosterSlot {
   playerId    String   // the real provider PlayerID (SportsDataIO), stored as a string
   playerName  String
   position    String   // the real provider position (e.g. "RB", "DST")
+  nflTeam     String?  // the real provider NFL team abbreviation at draft time — DST scoring is looked up by team, not player id
   lineupSlot  String   @default("BENCH") // one of the league's rosterSlots labels, or "BENCH"
   draftedAt   DateTime @default(now())
 
   @@unique([teamId, playerId])
   @@index([teamId])
   @@index([playerId])
+}
+
+// One real weekly head-to-head matchup between two of a league's teams —
+// generated once (generateRoundRobinSchedule) when the draft completes.
+// homeScore/awayScore are the real, computed sum of each team's starting
+// lineup's real weekly fantasy points (see fantasy-service.ts) — never a
+// provider's own fantasy total, and never fabricated.
+model FantasyMatchup {
+  id         String        @id @default(cuid())
+  leagueId   String
+  league     FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  week       Int
+  homeTeamId String
+  awayTeamId String
+  homeScore  Float         @default(0)
+  awayScore  Float         @default(0)
+  final      Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  @@unique([leagueId, week, homeTeamId])
+  @@index([leagueId, week])
 }
 
 // A member's connected Spotify account (OAuth Authorization Code flow).
