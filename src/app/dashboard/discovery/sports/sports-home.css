@@ -385,6 +385,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-profile__bio dt { color: #7a6f5b; font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
 .spx-profile__bio dd { color: #d9cdb8; font-size: .76rem; margin: 0; }
 .spx-profile__section { text-align: left; }
+.spx-profile__narrative { color: #f4f1ea; font-size: .84rem; line-height: 1.55; margin: 0 0 .9rem; padding: .8rem .9rem; border-radius: 10px; background: rgba(224,182,81,.06); border: 1px solid rgba(201,162,75,.18); }
 .spx-profile__timeline { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .5rem; color: #d9cdb8; font-size: .8rem; line-height: 1.4; }
 .spx-profile__stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: .7rem; }
 .spx-profile__stat { display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .6rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); }
