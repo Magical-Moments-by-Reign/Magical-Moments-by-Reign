@@ -2830,11 +2830,14 @@ model FantasyLeague {
   draftOrder             Json?    // FantasyTeam id[] — the round-1 pick order; set once when the draft starts
   currentPickIndex       Int      @default(0) // index into the flattened snake sequence (round*teamCount)
   regularSeasonWeeks     Int      @default(14) // weeks scheduled once the draft completes; playoff weeks come later
+  playoffTeams           Int      @default(4)  // how many teams make the playoff bracket, chosen at league creation
+  playoffStatus          String   @default("not_started") // "not_started" | "in_progress" | "complete"
   createdAt              DateTime @default(now())
 
   teams                  FantasyTeam[]
   matchups               FantasyMatchup[]
   waiverClaims           FantasyWaiverClaim[]
+  playoffGames           FantasyPlayoffGame[]
   trades                 FantasyTrade[]
 
   @@index([commissionerAccountId])
@@ -2936,6 +2939,29 @@ model FantasyTrade {
   resolvedAt          DateTime?
 
   @@index([leagueId, status])
+}
+
+// One real single-elimination playoff bracket game — seedPlayoffBracket/
+// advancePlayoffBracket (fantasy.ts) are the only places a game's teams or
+// winner are decided. teamAId/teamBId are null for a later round's game
+// until a prior round's real winner is filled in (see advancePlayoffBracket);
+// a round-1 bye is recorded with only one side ever set and winnerId
+// already equal to it — never a fabricated opponent.
+model FantasyPlayoffGame {
+  id         String        @id @default(cuid())
+  leagueId   String
+  league     FantasyLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  round      Int
+  slot       Int
+  teamAId    String?
+  teamBId    String?
+  teamAScore Float         @default(0)
+  teamBScore Float         @default(0)
+  winnerId   String?
+  final      Boolean       @default(false)
+
+  @@unique([leagueId, round, slot])
+  @@index([leagueId])
 }
 
 // A member's connected Spotify account (OAuth Authorization Code flow).
