@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAccount } from "@/lib/guard";
 import { getMagicalPicksProfile, getFamilyPicksLeaderboard } from "@/lib/discovery/sports/service";
+import type { LeaderboardPeriod } from "@/lib/discovery/sports/picks";
 import { getMyPickGroups } from "@/lib/discovery/sports/pickem-groups-service";
 import { SPORTS_BADGES } from "@/lib/discovery/sports/badges";
 import { createPickGroupAction, joinPickGroupAction } from "../actions";
@@ -13,7 +14,8 @@ export const metadata: Metadata = { title: "Magical Picks — Magical Discovery"
 export default async function MagicalPicksPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const account = await requireAccount("/dashboard/discovery/sports/picks");
   const { range: rangeParam } = await searchParams;
-  const range: "week" | "all" = rangeParam === "all" ? "all" : "week";
+  const VALID_RANGES: LeaderboardPeriod[] = ["today", "week", "month", "season", "all_time"];
+  const range: LeaderboardPeriod = VALID_RANGES.includes(rangeParam as LeaderboardPeriod) ? (rangeParam as LeaderboardPeriod) : "week";
   const [profile, leaderboard, groups] = await Promise.all([
     getMagicalPicksProfile(account.id),
     getFamilyPicksLeaderboard(account.id, range),
@@ -100,9 +102,12 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
       <div className="disc-section">
         <div className="disc-section__head">
           <h2>{leaderboard.hasFamily ? "Family Leaderboard" : "My Picks"}</h2>
-          <div style={{ display: "flex", gap: ".4rem" }}>
+          <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
+            <Link href="?range=today" className="btn btn--sm" aria-current={range === "today"}>Today</Link>
             <Link href="?range=week" className="btn btn--sm" aria-current={range === "week"}>This Week</Link>
-            <Link href="?range=all" className="btn btn--sm" aria-current={range === "all"}>All Time</Link>
+            <Link href="?range=month" className="btn btn--sm" aria-current={range === "month"}>This Month</Link>
+            <Link href="?range=season" className="btn btn--sm" aria-current={range === "season"}>Season</Link>
+            <Link href="?range=all_time" className="btn btn--sm" aria-current={range === "all_time"}>All Time</Link>
           </div>
         </div>
         <div className="disc-chart">
