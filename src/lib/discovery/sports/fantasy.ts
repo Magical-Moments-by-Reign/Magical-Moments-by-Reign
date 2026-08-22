@@ -6,10 +6,15 @@
 // lineup shape, draft order, which positions can fill which slot — is our
 // own, explicit, and testable without touching a provider or a database.
 //
-// This phase adds weekly scoring from real player stats, a round-robin
-// matchup schedule, and standings. Waivers, trades, IR, bye weeks, and
-// playoffs are the next phases — this schema/engine is built so they're
-// additive, not a rebuild (see the module comment on the Prisma models).
+// This phase adds free-agent add/drop, a real reverse-priority rolling
+// waiver wire, and team-to-team trades. IR and bye-week UI warnings are
+// deferred — IR needs verified per-player injury designations this
+// codebase doesn't resolve yet (see the MagicalAthleteStatus work), and a
+// proactive bye-week warning needs a verified bye-week field neither
+// provider tier here currently supplies; scoring already nets a bye
+// starter to 0 correctly (computeTeamWeekScore), so nothing is wrong,
+// just not yet warned about in the lineup UI. Playoffs are the next
+// phase — this schema/engine is built so it's additive, not a rebuild.
 
 /** The starting lineup this codebase runs today. Not configurable per
  *  league yet — a real, single, well-known 9-starter standard format
@@ -279,4 +284,77 @@ export function computeFantasyStandings(teamIds: string[], results: FantasyMatch
     .map(([teamId, s]) => ({ teamId, ...s }))
     .sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor)
     .map((e, i) => ({ ...e, rank: i + 1 }));
+}
+
+/** The real, standard initial waiver order — worst record picks first, so
+ *  the team that needs the most help gets the first shot at any player.
+ *  Ties broken by fewer points scored (also worse). */
+export function initialWaiverOrder(standings: FantasyStandingsEntry[]): string[] {
+  return [...standings]
+    .sort((a, b) => a.wins - b.wins || a.pointsFor - b.pointsFor)
+    .map((s) => s.teamId);
+}
+
+// ── Waivers ──────────────────────────────────────────────────────────────
+
+export interface WaiverClaimInput {
+  id: string;
+  teamId: string;
+  playerId: string;
+}
+
+export interface WaiverResolution {
+  wonClaimIds: string[];
+  lostClaimIds: string[];
+  newPriorityOrder: string[];
+}
+
+/** Resolves every pending waiver claim in one processing pass — the real
+ *  "rolling reverse-priority" convention most fantasy platforms default
+ *  to: the highest-priority team among everyone who claimed a given
+ *  player wins that player, every other claim on that same player is
+ *  lost, and the winning team drops to the back of the priority order
+ *  (so the same team can't sweep every contested player in one pass).
+ *  A team with multiple claims on DIFFERENT players can still win more
+ *  than one — each is resolved independently against the order as it
+ *  stands at that moment, exactly like a real waiver period processing
+ *  claims one at a time in priority order. */
+export function resolveWaiverClaims(priorityOrder: string[], claims: WaiverClaimInput[]): WaiverResolution {
+  const won: string[] = [];
+  const lost: string[] = [];
+  let order = [...priorityOrder];
+  let remaining = [...claims];
+  while (remaining.length) {
+    remaining.sort((a, b) => order.indexOf(a.teamId) - order.indexOf(b.teamId));
+    const winner = remaining[0];
+    won.push(winner.id);
+    const losers = remaining.filter((c) => c.playerId === winner.playerId && c.id !== winner.id);
+    for (const l of losers) lost.push(l.id);
+    const consumed = new Set([winner.id, ...losers.map((c) => c.id)]);
+    remaining = remaining.filter((c) => !consumed.has(c.id));
+    order = [...order.filter((t) => t !== winner.teamId), winner.teamId];
+  }
+  return { wonClaimIds: won, lostClaimIds: lost, newPriorityOrder: order };
+}
+
+// ── Trades ───────────────────────────────────────────────────────────────
+
+/** A trade is legal only when every player named on each side is real
+ *  (actually rostered by the team offering them) and neither side offers
+ *  the same player twice or offers a player the other side already has.
+ *  Pure validation — the service layer still re-checks against the real
+ *  DB roster at accept time in case something changed since the trade was
+ *  proposed. */
+export function isValidTradeProposal(
+  proposerRosterIds: string[],
+  recipientRosterIds: string[],
+  proposerGivingIds: string[],
+  recipientGivingIds: string[]
+): boolean {
+  if (!proposerGivingIds.length || !recipientGivingIds.length) return false;
+  const proposerSet = new Set(proposerRosterIds);
+  const recipientSet = new Set(recipientRosterIds);
+  if (new Set(proposerGivingIds).size !== proposerGivingIds.length) return false;
+  if (new Set(recipientGivingIds).size !== recipientGivingIds.length) return false;
+  return proposerGivingIds.every((id) => proposerSet.has(id)) && recipientGivingIds.every((id) => recipientSet.has(id));
 }

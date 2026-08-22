@@ -27,6 +27,8 @@ import {
   computeFantasyPoints,
   computeDefensePoints,
   computeFantasyStandings,
+  resolveWaiverClaims,
+  isValidTradeProposal,
   type RosterPlayer,
   type FantasyStandingsEntry,
 } from "./fantasy";
@@ -233,9 +235,18 @@ export async function scheduleFantasySeason(leagueId: string): Promise<void> {
   if (!league || league.teams.length < 2) return;
   const pairings = generateRoundRobinSchedule(league.teams.map((t) => t.id), league.regularSeasonWeeks);
   if (!pairings.length) return;
-  await prisma.fantasyMatchup.createMany({
-    data: pairings.map((p) => ({ leagueId, week: p.week, homeTeamId: p.homeTeamId, awayTeamId: p.awayTeamId })),
-  });
+  await prisma.$transaction([
+    prisma.fantasyMatchup.createMany({
+      data: pairings.map((p) => ({ leagueId, week: p.week, homeTeamId: p.homeTeamId, awayTeamId: p.awayTeamId })),
+    }),
+    // Initial waiver order is the reverse of the real snake draft's round-1
+    // order — the team that picked last (presumably weakest draft position)
+    // gets first crack at the waiver wire, the standard convention before
+    // any real season standings exist to base an order on.
+    ...([...(Array.isArray(league.draftOrder) ? (league.draftOrder as string[]) : league.teams.map((t) => t.id))]
+      .reverse()
+      .map((teamId, i) => prisma.fantasyTeam.update({ where: { id: teamId }, data: { waiverPriority: i } }))),
+  ]);
 }
 
 export interface FantasyTeamRoster {
@@ -454,4 +465,205 @@ export async function getMyFantasyPlayersInGame(accountId: string, homeTeamName:
     fantasyTeamName: r.team.teamName,
     isStarter: r.lineupSlot !== "BENCH",
   }));
+}
+
+// ── Free agents / drop / waivers ─────────────────────────────────────────
+
+/** Drops a rostered player immediately — the vacated roster spot is open,
+ *  and the player becomes available again (waiver claim or, once no claim
+ *  contests them, a future direct add — this codebase routes every
+ *  addition through a waiver claim rather than a separate instant-add
+ *  path, so an uncontested claim just wins on the very next processing
+ *  pass). Refuses (returns false) for a team that isn't the caller's own. */
+export async function dropPlayer(accountId: string, teamId: string, playerId: string): Promise<boolean> {
+  const team = await prisma.fantasyTeam.findUnique({ where: { id: teamId } }).catch(() => null);
+  if (!team || team.accountId !== accountId) return false;
+  const deleted = await prisma.fantasyRosterSlot.deleteMany({ where: { teamId, playerId } });
+  return deleted.count > 0;
+}
+
+export interface WaiverClaimView {
+  id: string;
+  teamId: string;
+  teamName: string;
+  addPlayerName: string;
+  addPosition: string;
+  dropPlayerId: string | null;
+  status: string;
+  isMine: boolean;
+}
+
+/** Submits a waiver claim on a real available (not currently rostered)
+ *  player — every addition goes through this, whether or not another team
+ *  is also likely to want the same player, so there's exactly one
+ *  mechanism rather than a separate "instant free agent" path that could
+ *  race a claim on the same player. `dropPlayerId` is required only when
+ *  the roster is already full. */
+export async function submitWaiverClaim(accountId: string, teamId: string, addPlayerId: string, dropPlayerId?: string): Promise<{ ok: boolean; reason?: string }> {
+  const team = await prisma.fantasyTeam.findUnique({ where: { id: teamId }, include: { league: true, roster: true } }).catch(() => null);
+  if (!team || team.accountId !== accountId) return { ok: false, reason: "Not your team" };
+  const alreadyTaken = await prisma.fantasyRosterSlot.findFirst({ where: { team: { leagueId: team.leagueId }, playerId: addPlayerId } });
+  if (alreadyTaken) return { ok: false, reason: "That player is already rostered in this league" };
+  const rosterSlots = Array.isArray(team.league.rosterSlots) ? (team.league.rosterSlots as string[]) : STANDARD_LINEUP_SLOTS;
+  const capacity = rosterSlots.length + team.league.benchSize;
+  if (team.roster.length >= capacity && !dropPlayerId) return { ok: false, reason: "Your roster is full — choose a player to drop" };
+  if (dropPlayerId && !team.roster.some((r) => r.playerId === dropPlayerId)) return { ok: false, reason: "You don't roster that player" };
+
+  const pool = await getFantasyPlayerPool();
+  const player = pool.find((p) => p.playerId === addPlayerId);
+  if (!player) return { ok: false, reason: "That player isn't a real available player" };
+
+  await prisma.fantasyWaiverClaim.create({
+    data: { leagueId: team.leagueId, teamId, addPlayerId, addPlayerName: player.name, addPosition: player.position ?? "", addNflTeam: player.team, dropPlayerId },
+  });
+  return { ok: true };
+}
+
+export async function getWaiverClaims(accountId: string, leagueId: string): Promise<WaiverClaimView[] | null> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
+  const claims = await prisma.fantasyWaiverClaim.findMany({ where: { leagueId, status: "pending" }, include: { team: true }, orderBy: { createdAt: "asc" } });
+  return claims.map((c) => ({
+    id: c.id,
+    teamId: c.teamId,
+    teamName: c.team.teamName,
+    addPlayerName: c.addPlayerName,
+    addPosition: c.addPosition,
+    dropPlayerId: c.dropPlayerId,
+    status: c.status,
+    isMine: c.team.accountId === accountId,
+  }));
+}
+
+/** Commissioner-triggered — resolves every pending claim in the league in
+ *  one real reverse-priority pass (resolveWaiverClaims), applies each
+ *  winning claim to the real roster (dropping the named player first when
+ *  one was offered), and persists the new priority order so a team that
+ *  just won moves to the back for next time. */
+export async function processWaivers(accountId: string, leagueId: string): Promise<{ ok: boolean; reason?: string; processed?: number }> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league) return { ok: false, reason: "League not found" };
+  if (league.commissionerAccountId !== accountId) return { ok: false, reason: "Only the commissioner can process waivers" };
+
+  const claims = await prisma.fantasyWaiverClaim.findMany({ where: { leagueId, status: "pending" } });
+  if (!claims.length) return { ok: true, processed: 0 };
+
+  const order = [...league.teams].sort((a, b) => a.waiverPriority - b.waiverPriority).map((t) => t.id);
+  const resolution = resolveWaiverClaims(order, claims.map((c) => ({ id: c.id, teamId: c.teamId, playerId: c.addPlayerId })));
+  const byId = new Map(claims.map((c) => [c.id, c]));
+
+  const ops = [];
+  for (const claimId of resolution.wonClaimIds) {
+    const claim = byId.get(claimId)!;
+    if (claim.dropPlayerId) ops.push(prisma.fantasyRosterSlot.deleteMany({ where: { teamId: claim.teamId, playerId: claim.dropPlayerId } }));
+    ops.push(prisma.fantasyRosterSlot.create({ data: { teamId: claim.teamId, playerId: claim.addPlayerId, playerName: claim.addPlayerName, position: claim.addPosition, nflTeam: claim.addNflTeam, lineupSlot: "BENCH" } }));
+    ops.push(prisma.fantasyWaiverClaim.update({ where: { id: claimId }, data: { status: "won", resolvedAt: new Date() } }));
+  }
+  for (const claimId of resolution.lostClaimIds) {
+    ops.push(prisma.fantasyWaiverClaim.update({ where: { id: claimId }, data: { status: "lost", resolvedAt: new Date() } }));
+  }
+  for (let i = 0; i < resolution.newPriorityOrder.length; i++) {
+    ops.push(prisma.fantasyTeam.update({ where: { id: resolution.newPriorityOrder[i] }, data: { waiverPriority: i } }));
+  }
+  await prisma.$transaction(ops);
+  return { ok: true, processed: resolution.wonClaimIds.length + resolution.lostClaimIds.length };
+}
+
+// ── Trades ───────────────────────────────────────────────────────────────
+
+export interface FantasyTradeView {
+  id: string;
+  proposerTeamId: string;
+  proposerTeamName: string;
+  recipientTeamId: string;
+  recipientTeamName: string;
+  proposerPlayerNames: string[];
+  recipientPlayerNames: string[];
+  status: string;
+  isMyOffer: boolean;
+  isForMe: boolean;
+}
+
+/** Proposes a trade — validated against each side's real current roster
+ *  (isValidTradeProposal) before anything is written. Neither side's
+ *  roster changes until the recipient accepts. */
+export async function proposeTrade(accountId: string, leagueId: string, proposerTeamId: string, recipientTeamId: string, proposerPlayerIds: string[], recipientPlayerIds: string[]): Promise<{ ok: boolean; reason?: string }> {
+  const [proposerTeam, recipientTeam] = await Promise.all([
+    prisma.fantasyTeam.findUnique({ where: { id: proposerTeamId }, include: { roster: true } }),
+    prisma.fantasyTeam.findUnique({ where: { id: recipientTeamId }, include: { roster: true } }),
+  ]);
+  if (!proposerTeam || proposerTeam.accountId !== accountId) return { ok: false, reason: "Not your team" };
+  if (!recipientTeam || recipientTeam.leagueId !== leagueId || proposerTeam.leagueId !== leagueId) return { ok: false, reason: "Invalid trade partner" };
+  const valid = isValidTradeProposal(proposerTeam.roster.map((r) => r.playerId), recipientTeam.roster.map((r) => r.playerId), proposerPlayerIds, recipientPlayerIds);
+  if (!valid) return { ok: false, reason: "Trade offer isn't valid — check that both sides actually roster the players offered" };
+
+  await prisma.fantasyTrade.create({
+    data: { leagueId, proposerTeamId, recipientTeamId, proposerPlayerIds, recipientPlayerIds },
+  });
+  return { ok: true };
+}
+
+export async function getFantasyTrades(accountId: string, leagueId: string): Promise<FantasyTradeView[] | null> {
+  const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
+  if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
+  const trades = await prisma.fantasyTrade.findMany({ where: { leagueId, status: "pending" }, include: { proposerTeam: { include: { roster: true } }, recipientTeam: { include: { roster: true } } }, orderBy: { createdAt: "desc" } });
+  const nameFor = (roster: { playerId: string; playerName: string }[], ids: unknown) =>
+    (Array.isArray(ids) ? (ids as string[]) : []).map((id) => roster.find((r) => r.playerId === id)?.playerName ?? id);
+  return trades.map((t) => ({
+    id: t.id,
+    proposerTeamId: t.proposerTeamId,
+    proposerTeamName: t.proposerTeam.teamName,
+    recipientTeamId: t.recipientTeamId,
+    recipientTeamName: t.recipientTeam.teamName,
+    proposerPlayerNames: nameFor(t.proposerTeam.roster, t.proposerPlayerIds),
+    recipientPlayerNames: nameFor(t.recipientTeam.roster, t.recipientPlayerIds),
+    status: t.status,
+    isMyOffer: t.proposerTeam.accountId === accountId,
+    isForMe: t.recipientTeam.accountId === accountId,
+  }));
+}
+
+/** Only the recipient team's own owner may accept/reject their trade.
+ *  Re-validates both rosters at accept time (isValidTradeProposal) in case
+ *  either side traded, dropped, or lost a named player to waivers since
+ *  the trade was proposed — never executes a trade against a stale
+ *  roster snapshot. Both traded players land on the receiving team's
+ *  BENCH, never silently inserted into a starting slot. */
+export async function respondToTrade(accountId: string, tradeId: string, accept: boolean): Promise<{ ok: boolean; reason?: string }> {
+  const trade = await prisma.fantasyTrade.findUnique({
+    where: { id: tradeId },
+    include: { proposerTeam: { include: { roster: true } }, recipientTeam: { include: { roster: true } } },
+  }).catch(() => null);
+  if (!trade || trade.status !== "pending") return { ok: false, reason: "Trade not found or already resolved" };
+  if (trade.recipientTeam.accountId !== accountId) return { ok: false, reason: "Only the receiving team can respond to this trade" };
+
+  if (!accept) {
+    await prisma.fantasyTrade.update({ where: { id: tradeId }, data: { status: "rejected", resolvedAt: new Date() } });
+    return { ok: true };
+  }
+
+  const proposerIds = Array.isArray(trade.proposerPlayerIds) ? (trade.proposerPlayerIds as string[]) : [];
+  const recipientIds = Array.isArray(trade.recipientPlayerIds) ? (trade.recipientPlayerIds as string[]) : [];
+  const stillValid = isValidTradeProposal(trade.proposerTeam.roster.map((r) => r.playerId), trade.recipientTeam.roster.map((r) => r.playerId), proposerIds, recipientIds);
+  if (!stillValid) {
+    await prisma.fantasyTrade.update({ where: { id: tradeId }, data: { status: "cancelled", resolvedAt: new Date() } });
+    return { ok: false, reason: "This trade is no longer valid — a player's roster status changed since it was proposed" };
+  }
+
+  await prisma.$transaction([
+    ...proposerIds.map((playerId) => prisma.fantasyRosterSlot.update({ where: { teamId_playerId: { teamId: trade.proposerTeamId, playerId } }, data: { teamId: trade.recipientTeamId, lineupSlot: "BENCH" } })),
+    ...recipientIds.map((playerId) => prisma.fantasyRosterSlot.update({ where: { teamId_playerId: { teamId: trade.recipientTeamId, playerId } }, data: { teamId: trade.proposerTeamId, lineupSlot: "BENCH" } })),
+    prisma.fantasyTrade.update({ where: { id: tradeId }, data: { status: "accepted", resolvedAt: new Date() } }),
+  ]);
+  return { ok: true };
+}
+
+/** Commissioner-only veto of a pending trade — the one commissioner
+ *  control this phase adds; league-settings editing and mid-season team
+ *  removal are follow-up work. */
+export async function vetoTrade(accountId: string, tradeId: string): Promise<boolean> {
+  const trade = await prisma.fantasyTrade.findUnique({ where: { id: tradeId }, include: { league: true } }).catch(() => null);
+  if (!trade || trade.status !== "pending" || trade.league.commissionerAccountId !== accountId) return false;
+  await prisma.fantasyTrade.update({ where: { id: tradeId }, data: { status: "vetoed", resolvedAt: new Date() } });
+  return true;
 }
