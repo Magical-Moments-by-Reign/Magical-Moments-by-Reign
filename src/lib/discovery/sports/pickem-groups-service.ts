@@ -7,7 +7,8 @@
 // tracked-players.ts.
 
 import { prisma } from "@/lib/db";
-import { buildGroupLeaderboard, generateInviteCode, type GroupLeaderboardEntry } from "./pickem-groups";
+import { buildGroupLeaderboard, generateInviteCode, revealGroupPick, type GroupLeaderboardEntry } from "./pickem-groups";
+import { isPickLocked } from "./picks";
 import type { GradedPick } from "./badges";
 
 export interface PickGroupSummary {
@@ -114,4 +115,52 @@ export async function getGroupLeaderboard(accountId: string, groupId: string, ra
   }));
 
   return { groupName: group.name, entries: buildGroupLeaderboard(members, accountId, new Date(), range) };
+}
+
+export interface GroupGamePick {
+  accountId: string;
+  name: string;
+  isMe: boolean;
+  revealed: boolean;
+  hasPicked: boolean;
+  teamPick: "home" | "away" | null; // null pre-lock even if hasPicked is true — see revealGroupPick
+}
+
+export interface GroupGamePicks {
+  groupId: string;
+  groupName: string;
+  locked: boolean;
+  picks: GroupGamePick[];
+}
+
+/** Every real Pick'em Group the viewer belongs to, each with that group's
+ *  members' picks for one specific game — hidden pre-kickoff (see
+ *  revealGroupPick), revealed once the game locks. A group with no
+ *  members who picked this game is still included (empty picks list, or
+ *  every entry hasPicked:false) so the member can see who in their group
+ *  hasn't picked yet. */
+export async function getGroupPicksForGame(accountId: string, gameId: string): Promise<GroupGamePicks[]> {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } }).catch(() => null);
+  if (!game) return [];
+  const locked = isPickLocked(game);
+
+  const groups = await prisma.pickGroup.findMany({
+    where: { members: { some: { accountId } } },
+    include: { members: { include: { account: { select: { id: true, firstName: true } } } } },
+  }).catch(() => []);
+  if (!groups.length) return [];
+
+  const allMemberIds = [...new Set(groups.flatMap((g) => g.members.map((m) => m.accountId)))];
+  const picks = await prisma.sportsPick.findMany({ where: { gameId, accountId: { in: allMemberIds } }, select: { accountId: true, teamPick: true } });
+  const pickByAccount = new Map(picks.map((p) => [p.accountId, p.teamPick as "home" | "away"]));
+
+  return groups.map((g) => ({
+    groupId: g.id,
+    groupName: g.name,
+    locked,
+    picks: g.members.map((m) => {
+      const { revealed, teamPick, hasPicked } = revealGroupPick(pickByAccount.get(m.accountId) ?? null, locked);
+      return { accountId: m.accountId, name: m.account.firstName || "Member", isMe: m.accountId === accountId, revealed, hasPicked, teamPick };
+    }),
+  }));
 }

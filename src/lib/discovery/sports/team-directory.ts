@@ -9,7 +9,7 @@
 // quota fetching all 30+ rosters on every page view.
 
 import type { SportSlug, SportsStanding } from "../providers/sports";
-import { resolveTeamByName } from "./service";
+import { resolveTeamByName, getLeagueTeamRosterMap } from "./service";
 
 export interface DirectoryTeam {
   id: string;
@@ -91,6 +91,11 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
 
   try {
     const liveByName = new Map(liveRows.map((r) => [normalize(r.team.name), r]));
+    // Prefetched ONCE for the whole league rather than once per team — see
+    // getLeagueTeamRosterMap's doc comment for why resolving 30 team names
+    // via 30 separate concurrent live calls left different teams' logos
+    // randomly blank from one page load to the next.
+    const rosterMap = await getLeagueTeamRosterMap(sport).catch(() => null);
     const merged: SportsStanding[] = [];
     for (const { conference, division, teams } of spec) {
       for (const name of teams) {
@@ -99,7 +104,7 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
           merged.push({ ...live, group: live.group ?? conference, division: live.division ?? division });
           continue;
         }
-        const team = await resolveTeamByName(sport, name).catch(() => null);
+        const team = rosterMap ? rosterMap.get(normalize(name)) ?? null : await resolveTeamByName(sport, name).catch(() => null);
         merged.push({
           team: { id: team?.id ?? name, name, logoUrl: team?.logoUrl },
           wins: allowZeroFill ? 0 : undefined,
@@ -120,10 +125,11 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
 
 async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[]): Promise<DirectoryGroup[]> {
   try {
+    const rosterMap = await getLeagueTeamRosterMap(sport).catch(() => null);
     const byConference = new Map<string, DirectoryDivision[]>();
     for (const { conference, division, teams } of spec) {
       const resolved = await Promise.all(teams.map(async (name): Promise<DirectoryTeam> => {
-        const team = await resolveTeamByName(sport, name).catch(() => null);
+        const team = rosterMap ? rosterMap.get(normalize(name)) ?? null : await resolveTeamByName(sport, name).catch(() => null);
         return { id: team?.id ?? name, name, logoUrl: team?.logoUrl };
       }));
       const divisions = byConference.get(conference) ?? [];

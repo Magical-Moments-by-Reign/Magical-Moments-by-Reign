@@ -243,6 +243,10 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-team-row b { display: block; color: #f4f1ea; font-size: .78rem; }
 .spx-team-row span { color: #9c8f76; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; }
 .spx-team-row__icons { margin-left: auto; display: flex; gap: .4rem; color: var(--gold); }
+.spx-team-row--clickable { width: 100%; border: none; background: none; padding: .3rem .2rem; margin: 0; font: inherit; cursor: pointer; border-radius: 8px; }
+.spx-team-row--clickable:hover { background: rgba(255,255,255,.05); }
+.spx-standings__team-wrap { border-radius: 8px; }
+.spx-standings__inline-roster { margin: .3rem 0 .6rem; padding: .6rem .7rem; border: 1px solid rgba(216,165,51,.25); border-radius: 10px; background: rgba(255,255,255,.03); }
 .spx-team-row__icons svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 
 /* ── Bottom feature bar — one continuous premium strip, NOT cards ── */
