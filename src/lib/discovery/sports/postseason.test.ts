@@ -5,6 +5,9 @@ import {
   remainingGamesForSport,
   computePostseasonPicture,
   projectNflConferenceSeeds,
+  projectMlbLeagueSeeds,
+  projectNhlConferenceSeeds,
+  projectNbaConferencePicture,
 } from "./postseason";
 
 test("computeClinchStatus clinches a team with an insurmountable lead", () => {
@@ -90,6 +93,49 @@ test("projectNflConferenceSeeds gives every division leader priority over wild c
   assert.ok((winner?.seed ?? 99) <= 4, "every division winner gets a top-4 seed");
   assert.equal(bestNonLeader?.isDivisionWinner, false);
   assert.ok((bestNonLeader?.seed ?? 0) >= 5, "a non-division-winner never outranks a division winner, even with a better record");
+});
+
+test("projectMlbLeagueSeeds gives every division winner priority, real 3+3 field", () => {
+  const teams = [
+    { teamId: "east-winner", wins: 99, losses: 63, division: "AL East" },
+    { teamId: "wc-best", wins: 95, losses: 67, division: "AL East" }, // best record in the league among non-leaders, but not a division winner
+    { teamId: "central-winner", wins: 85, losses: 77, division: "AL Central" },
+    { teamId: "west-winner", wins: 92, losses: 70, division: "AL West" },
+    { teamId: "east-third", wins: 70, losses: 92, division: "AL East" },
+    { teamId: "wc2", wins: 84, losses: 78, division: "AL Central" },
+    { teamId: "wc3", wins: 83, losses: 79, division: "AL West" },
+  ];
+  const seeds = projectMlbLeagueSeeds(teams);
+  assert.equal(seeds.length, 6);
+  assert.equal(seeds.filter((s) => s.isDivisionWinner).length, 3);
+  const wcBest = seeds.find((s) => s.teamId === "wc-best");
+  assert.equal(wcBest?.isDivisionWinner, false);
+  assert.ok((wcBest?.seed ?? 0) >= 4, "the best non-division-winning record never outranks a division winner");
+});
+
+test("projectNhlConferenceSeeds guarantees the top 3 in EVERY division, not just the division leader", () => {
+  const divisions = ["Metro", "Atlantic"];
+  const teams = divisions.flatMap((division, di) =>
+    Array.from({ length: 8 }, (_, ti) => ({ teamId: `${division}-${ti}`, wins: 50 - di * 8 - ti, losses: ti, division }))
+  );
+  const seeds = projectNhlConferenceSeeds(teams);
+  // 3 per division x 2 divisions + 2 wild cards = 8 seeded teams
+  assert.equal(seeds.length, 8);
+  assert.equal(seeds.filter((s) => s.isTopThreeInDivision).length, 6);
+  // Atlantic's #2 team (di=1, ti=1 -> wins 41) should make it on division
+  // strength even though several Metro non-top-3 teams have better records.
+  assert.ok(seeds.some((s) => s.teamId === "Atlantic-1" && s.isTopThreeInDivision));
+});
+
+test("projectNbaConferencePicture: seeds 1-6 direct, 7-10 play-in, 11+ outside", () => {
+  const teams = Array.from({ length: 15 }, (_, i) => ({ teamId: `t${i}`, wins: 50 - i, losses: i }));
+  const picture = projectNbaConferencePicture(teams);
+  assert.equal(picture.filter((p) => p.status === "DIRECT_BERTH").length, 6);
+  assert.equal(picture.filter((p) => p.status === "PLAY_IN").length, 4);
+  assert.equal(picture.filter((p) => p.status === "OUTSIDE").length, 5);
+  assert.equal(picture[0].status, "DIRECT_BERTH");
+  assert.equal(picture[6].status, "PLAY_IN");
+  assert.equal(picture[10].status, "OUTSIDE");
 });
 
 test("projectNflConferenceSeeds returns exactly 7 seeds (4 division winners + 3 wild cards) from a full conference", () => {

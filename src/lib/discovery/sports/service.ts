@@ -12,7 +12,7 @@ import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStand
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, startOfWeek, gradeRacePicks, type VoteTally, type PicksSummary } from "./picks";
-import { projectNflConferenceSeeds } from "./postseason";
+import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -798,6 +798,121 @@ export async function getNflPlayoffPicture(conference: "AFC" | "NFC", season?: s
     seed: s.seed,
     isDivisionWinner: s.isDivisionWinner,
     clinched: s.clinched,
+  }));
+}
+
+export interface MlbPlayoffPictureSeed {
+  teamId: string;
+  teamName: string;
+  teamLogoUrl?: string;
+  seed: number;
+  isDivisionWinner: boolean;
+  clinched: boolean;
+}
+
+/** "IF THE PLAYOFFS STARTED TODAY" for one MLB league (AL/NL) — the real
+ *  3-division-winners-plus-3-wild-cards field. Same disclosed no-
+ *  tiebreaker limitation as getNflPlayoffPicture. */
+export async function getMlbPlayoffPicture(league: "AL" | "NL", season?: string): Promise<MlbPlayoffPictureSeed[] | null> {
+  const { standings } = await getStandings("mlb", defaultLeagueId("mlb"), season);
+  const teams = standings.filter(
+    (s): s is SportsStanding & { wins: number; losses: number; division: string } =>
+      s.group === league && typeof s.wins === "number" && typeof s.losses === "number" && typeof s.division === "string"
+  );
+  if (!teams.length) return null;
+  const seeds = projectMlbLeagueSeeds(
+    teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
+  );
+  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  return seeds.map((s) => ({
+    teamId: s.teamId,
+    teamName: teamById.get(s.teamId)?.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    seed: s.seed,
+    isDivisionWinner: s.isDivisionWinner,
+    clinched: s.clinched,
+  }));
+}
+
+export interface NhlPlayoffPictureSeed {
+  teamId: string;
+  teamName: string;
+  teamLogoUrl?: string;
+  seed: number;
+  isTopThreeInDivision: boolean;
+  clinched: boolean;
+}
+
+/** "IF THE PLAYOFFS STARTED TODAY" for one NHL conference — the real top-3-
+ *  per-division-plus-2-wild-cards field. See projectNhlConferenceSeeds'
+ *  own disclosed limitation on lopsided-division seed ordering, on top of
+ *  the shared no-tiebreaker one. */
+export async function getNhlPlayoffPicture(conference: "Eastern" | "Western", season?: string): Promise<NhlPlayoffPictureSeed[] | null> {
+  const { standings } = await getStandings("nhl", defaultLeagueId("nhl"), season);
+  const teams = standings.filter(
+    (s): s is SportsStanding & { wins: number; losses: number; division: string } =>
+      s.group === conference && typeof s.wins === "number" && typeof s.losses === "number" && typeof s.division === "string"
+  );
+  if (!teams.length) return null;
+  const seeds = projectNhlConferenceSeeds(
+    teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
+  );
+  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  return seeds.map((s) => ({
+    teamId: s.teamId,
+    teamName: teamById.get(s.teamId)?.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    seed: s.seed,
+    isTopThreeInDivision: s.isTopThreeInDivision,
+    clinched: s.clinched,
+  }));
+}
+
+export interface NbaPlayoffPictureEntry {
+  teamId: string;
+  teamName: string;
+  teamLogoUrl?: string;
+  seed: number;
+  status: "DIRECT_BERTH" | "PLAY_IN" | "OUTSIDE";
+  clinched: boolean;
+}
+
+/** "IF THE PLAYOFFS STARTED TODAY" for one NBA conference — real seeds 1-6
+ *  direct, 7-10 Play-In picture, 11+ outside. The real Play-In GAMES
+ *  themselves are an official-bracket concern (see #188), not a projection. */
+export async function getNbaPlayoffPicture(conference: "Eastern" | "Western", season?: string): Promise<NbaPlayoffPictureEntry[] | null> {
+  const { standings } = await getStandings("nba", defaultLeagueId("nba"), season);
+  const teams = standings.filter(
+    (s): s is SportsStanding & { wins: number; losses: number } => s.group === conference && typeof s.wins === "number" && typeof s.losses === "number"
+  );
+  if (!teams.length) return null;
+  const picture = projectNbaConferencePicture(teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses })));
+  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  return picture.map((p) => ({
+    teamId: p.teamId,
+    teamName: teamById.get(p.teamId)?.name ?? "Team",
+    teamLogoUrl: teamById.get(p.teamId)?.logoUrl,
+    seed: p.seed,
+    status: p.status,
+    clinched: p.clinched,
+  }));
+}
+
+/** WNBA has no conference split — one league-wide table, real top-8 field,
+ *  no Play-In tournament (unlike the NBA). Uses the shared
+ *  computePostseasonPicture rather than a conference-specific adapter. */
+export async function getWnbaPlayoffPicture(season?: string): Promise<{ teamId: string; teamName: string; teamLogoUrl?: string; inField: boolean; clinched: boolean }[] | null> {
+  const { standings } = await getStandings("wnba", defaultLeagueId("wnba"), season);
+  const teams = standings.filter((s): s is SportsStanding & { wins: number; losses: number } => typeof s.wins === "number" && typeof s.losses === "number");
+  if (!teams.length) return null;
+  const picture = computePostseasonPicture("wnba", teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties })), 8);
+  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  return picture.map((p) => ({
+    teamId: p.teamId,
+    teamName: teamById.get(p.teamId)?.name ?? "Team",
+    teamLogoUrl: teamById.get(p.teamId)?.logoUrl,
+    inField: p.inField,
+    clinched: p.clinched,
   }));
 }
 
