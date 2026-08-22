@@ -30,6 +30,9 @@ export interface SportsGameSummary {
   /** The provider's own stage/round label verbatim (e.g. "Regular Season",
    *  "Pre Season", "Playoffs") when it returns one — never inferred. */
   stage?: string;
+  /** The provider's own venue name (and city, when both are given) — never
+   *  a guessed home stadium. Undefined when the response doesn't include one. */
+  venue?: string;
 }
 
 export interface SportsStanding {
@@ -85,6 +88,10 @@ export interface SportsProvider {
   isConfigured(sport?: SportSlug): boolean;
   gamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<SportsDateResult | null>;
   gamesForTeam(sport: SportSlug, teamExternalId: string, opts?: { league?: string; season?: string }): Promise<SportsGameSummary[] | null>;
+  /** One real game, fetched fresh (never a cached/local snapshot) — the
+   *  live-poll primitive for a game detail page. Returns null when
+   *  unconfigured, not found, or the call fails. */
+  gameById(sport: SportSlug, externalId: string, opts?: { league?: string; season?: string }): Promise<SportsGameSummary | null>;
   searchTeams(sport: SportSlug, query: string): Promise<SportsTeam[] | null>;
   standings(sport: SportSlug, league: string, season?: string): Promise<SportsStandingsResult | null>;
 }
@@ -120,6 +127,9 @@ export const SportsPendingProvider: SportsProvider = {
     return null;
   },
   async gamesForTeam(): Promise<SportsGameSummary[] | null> {
+    return null;
+  },
+  async gameById(): Promise<SportsGameSummary | null> {
     return null;
   },
   async searchTeams(): Promise<SportsTeam[] | null> {
@@ -255,6 +265,25 @@ function statusOf(shortStatus: string | undefined): "scheduled" | "live" | "fina
   return "live";
 }
 
+/** API-Sports' "games" family (american-football, basketball, baseball,
+ *  hockey, rugby, volleyball) nests the real kickoff/tipoff moment under
+ *  `game.date` as an object — `{date, time, timestamp, timezone}` — not a
+ *  single ready-to-parse string. Reading only `date.date` (a calendar day
+ *  with no time) silently parses as local midnight, which is the exact
+ *  "shows 12:00 AM" bug this fixes: prefer the real Unix `timestamp` when
+ *  present (unambiguous), else combine the real `date` + `time` strings,
+ *  and only fall back to the bare date — never inventing a kickoff time
+ *  the provider didn't report. Exported for tests. */
+export function gameDateToISO(dateField: any, fallback: any): string | null {
+  if (typeof dateField?.timestamp === "number") return new Date(dateField.timestamp * 1000).toISOString();
+  const datePart = typeof dateField === "string" ? dateField : typeof dateField?.date === "string" ? dateField.date : undefined;
+  const timePart = typeof dateField?.time === "string" ? dateField.time : undefined;
+  const combined = datePart && timePart ? `${datePart}T${timePart}` : (datePart ?? (typeof fallback === "string" ? fallback : undefined));
+  if (!combined) return null;
+  const parsed = new Date(combined);
+  return Number.isNaN(+parsed) ? null : parsed.toISOString();
+}
+
 /** Maps one "games"-shaped API-Sports response item (american-football,
  *  basketball, baseball, hockey, rugby, volleyball all share this shape).
  *  Exported for tests. */
@@ -262,17 +291,18 @@ export function mapGameItem(sport: SportSlug, league: string, item: any): Sports
   const id = item?.game?.id ?? item?.id;
   const home = item?.teams?.home;
   const away = item?.teams?.away;
-  const date = item?.game?.date?.date ?? item?.date;
-  if (id == null || !home?.name || !away?.name || !date) return null;
+  const startsAt = gameDateToISO(item?.game?.date, item?.date);
+  if (id == null || !home?.name || !away?.name || !startsAt) return null;
   const homeScore = item?.scores?.home?.total ?? item?.scores?.home ?? undefined;
   const awayScore = item?.scores?.away?.total ?? item?.scores?.away ?? undefined;
+  const venue = item?.game?.venue;
   return {
     externalId: String(id),
     sport,
     league,
     homeTeam: { id: String(home.id ?? ""), name: home.name, logoUrl: home.logo || undefined },
     awayTeam: { id: String(away.id ?? ""), name: away.name, logoUrl: away.logo || undefined },
-    startsAt: new Date(date).toISOString(),
+    startsAt,
     status: statusOf(item?.game?.status?.short ?? item?.status?.short),
     period: item?.game?.status?.long ?? item?.status?.long ?? undefined,
     homeScore: typeof homeScore === "number" ? homeScore : undefined,
@@ -285,6 +315,7 @@ export function mapGameItem(sport: SportSlug, league: string, item: any): Sports
       : typeof item?.league?.stage === "string" ? item.league.stage
       : typeof item?.stage === "string" ? item.stage
       : undefined,
+    venue: typeof venue === "string" ? venue : typeof venue?.name === "string" ? [venue.name, venue.city].filter(Boolean).join(", ") : undefined,
   };
 }
 
@@ -295,17 +326,21 @@ function mapFixtureItem(league: string, item: any): SportsGameSummary | null {
   const away = item?.teams?.away;
   const date = item?.fixture?.date;
   if (id == null || !home?.name || !away?.name || !date) return null;
+  const parsed = new Date(date);
+  if (Number.isNaN(+parsed)) return null;
+  const venue = item?.fixture?.venue;
   return {
     externalId: String(id),
     sport: "soccer",
     league,
     homeTeam: { id: String(home.id ?? ""), name: home.name, logoUrl: home.logo || undefined },
     awayTeam: { id: String(away.id ?? ""), name: away.name, logoUrl: away.logo || undefined },
-    startsAt: new Date(date).toISOString(),
+    startsAt: parsed.toISOString(),
     status: statusOf(item?.fixture?.status?.short),
     period: item?.fixture?.status?.elapsed ? `${item.fixture.status.elapsed}'` : undefined,
     homeScore: item?.goals?.home ?? undefined,
     awayScore: item?.goals?.away ?? undefined,
+    venue: typeof venue?.name === "string" ? [venue.name, venue.city].filter(Boolean).join(", ") : undefined,
   };
 }
 
@@ -370,6 +405,22 @@ export const ApiSportsProvider: SportsProvider = {
     const json = await apiSportsFetch(sport, path, { team: teamExternalId, league: lg, season });
     if (!json) return null;
     return mapGamesResponse(sport, lg, json);
+  },
+
+  async gameById(sport, externalId, opts): Promise<SportsGameSummary | null> {
+    if (!this.isConfigured(sport)) return null;
+    const cfg = SPORT_CONFIG[sport];
+    const lg = opts?.league || cfg.defaultLeague;
+    const season = opts?.season || seasonParam(sport, new Date().toISOString());
+    const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
+    // A single real game/fixture, fetched fresh by its own id — the
+    // standard id-lookup param API-Sports documents uniformly across every
+    // "games"-shaped product. season is included since some of these hosts
+    // require it alongside id; harmless when the id alone is sufficient.
+    const json = await apiSportsFetch(sport, path, { id: externalId, league: lg, season });
+    if (!json) return null;
+    const games = mapGamesResponse(sport, lg, json);
+    return games?.[0] ?? null;
   },
 
   async searchTeams(sport, query): Promise<SportsTeam[] | null> {

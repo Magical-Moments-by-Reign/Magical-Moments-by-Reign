@@ -17,6 +17,7 @@ import { dispatchNotification } from "@/lib/notify";
 
 const TTL_GAMES_UPCOMING = 180; // 3h — schedules barely move
 const TTL_GAMES_LIVE = 3; // 3m — live games refresh often
+const TTL_GAME_DETAIL_LIVE = 1; // 1m — the shortest TTL withCache supports; a single game someone is actively watching
 const TTL_STANDINGS = 720; // 12h
 const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
 const TTL_ROSTER = 10080; // 1 week — a team's active roster barely moves day to day
@@ -569,6 +570,57 @@ export async function getMatchup(gameId: string, accountId?: string): Promise<{
   return { game, tally, myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
 }
 
+export interface LiveGameState {
+  status: "scheduled" | "live" | "final";
+  period?: string;
+  homeScore?: number;
+  awayScore?: number;
+  startsAt: string; // ISO
+  venue?: string;
+  stage?: string;
+}
+
+/** The real, freshly-fetched state of one game — the poll target for a
+ *  live Game Center. Tiered by real need, not a single blanket TTL: a
+ *  FINAL game's score never changes again, so it's served straight from
+ *  the local row with no live call at all; a SCHEDULED game more than 30
+ *  real minutes from its own real kickoff is the same (nothing meaningful
+ *  could have changed); only a genuinely LIVE game, or one about to start,
+ *  gets a fresh live call — cached for the shortest real window withCache
+ *  supports, so many members watching the same game share one live call
+ *  rather than each triggering their own. Falls back to the local row on
+ *  any live-fetch failure — a poll never goes blank because a single
+ *  request to the provider had a bad moment. */
+export async function getLiveGameState(gameId: string): Promise<LiveGameState | null> {
+  const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
+  if (!game) return null;
+  const asRow: LiveGameState = {
+    status: game.status as LiveGameState["status"],
+    period: game.period ?? undefined,
+    homeScore: game.homeScore ?? undefined,
+    awayScore: game.awayScore ?? undefined,
+    startsAt: game.startsAt.toISOString(),
+  };
+  if (game.status === "final" || !game.externalId) return asRow;
+  const minutesToStart = (+game.startsAt - Date.now()) / 60_000;
+  if (game.status === "scheduled" && minutesToStart > 30) return asRow;
+
+  const sport = game.sport as SportSlug;
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, externalId: game.externalId, kind: "game_live_detail" }), TTL_GAME_DETAIL_LIVE, () =>
+    ApiSportsProvider.gameById(sport, game.externalId!, { league: game.league }));
+  const live = cached?.data;
+  if (!live) return asRow;
+  return {
+    status: live.status,
+    period: live.period,
+    homeScore: live.homeScore,
+    awayScore: live.awayScore,
+    startsAt: live.startsAt,
+    venue: live.venue,
+    stage: live.stage,
+  };
+}
+
 // ── My Teams / My Sports ────────────────────────────────────────────
 
 export async function getMyTeams(accountId: string) {
@@ -641,6 +693,24 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
   }
 
   return { standings: [], planRestricted: restriction };
+}
+
+/** Real win-loss(-tie) records for the two teams in one matchup, resolved
+ *  from the same verified standings this page already trusts elsewhere —
+ *  never a separate/guessed source. Silently omits a side whose team can't
+ *  be matched in the current standings table rather than showing a wrong
+ *  or fabricated record. */
+export async function getGameTeamRecords(sport: SportSlug, league: string, homeTeamName: string, awayTeamName: string): Promise<{ home?: string; away?: string }> {
+  const { standings } = await getStandings(sport, league).catch(() => ({ standings: [] as SportsStanding[] }));
+  const recordFor = (name: string): string | undefined => {
+    const row = standings.find((s) => normalizeTeamName(s.team.name) === normalizeTeamName(name));
+    if (!row) return undefined;
+    if (row.wins != null && row.losses != null) {
+      return row.ties ? `${row.wins}-${row.losses}-${row.ties}` : `${row.wins}-${row.losses}`;
+    }
+    return row.summary;
+  };
+  return { home: recordFor(homeTeamName), away: recordFor(awayTeamName) };
 }
 
 // ── Picks / voting ───────────────────────────────────────────────
