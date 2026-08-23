@@ -7,11 +7,11 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
-import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
+import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
@@ -120,12 +120,19 @@ async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsG
         where: { sport_externalId: { sport, externalId: g.externalId } },
         create: {
           sport, league, externalId: g.externalId,
+          seasonPhase: classifySeasonPhase(g.stage),
           homeTeamId: g.homeTeam.id || null, homeTeamName: g.homeTeam.name, homeTeamLogoUrl: g.homeTeam.logoUrl,
           awayTeamId: g.awayTeam.id || null, awayTeamName: g.awayTeam.name, awayTeamLogoUrl: g.awayTeam.logoUrl,
           startsAt: new Date(g.startsAt), status: g.status, period: g.period,
           homeScore: g.homeScore, awayScore: g.awayScore, source: "provider", lastSyncedAt: new Date(),
         },
         update: {
+          // Recomputed on every resync (not just create) so a row the
+          // schema migration defaulted to "regular" — or one synced before
+          // the provider's own stage label caught up — corrects itself the
+          // next real time this exact game is fetched, instead of staying
+          // permanently mislabeled.
+          seasonPhase: classifySeasonPhase(g.stage),
           status: g.status, period: g.period, homeScore: g.homeScore, awayScore: g.awayScore, lastSyncedAt: new Date(),
         },
       }).catch(() => null)
@@ -775,6 +782,7 @@ export interface MatchupCardContext {
   tally: VoteTally;
   myPick: "home" | "away" | null;
   myPickCorrect: boolean | null;
+  myConfidence: number | null;
   locked: boolean;
 }
 
@@ -805,29 +813,23 @@ export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string,
   const games = allGames.slice(0, limit);
   const contexts = await Promise.all(
     games.map(async (game) => {
-      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
+      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true, confidence: true } });
       const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
       const mine = typed.find((p) => p.accountId === accountId);
-      return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+      return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, myConfidence: mine?.confidence ?? null, locked: isPickLocked(game) };
     })
   );
   return { contexts, planRestricted };
 }
 
-export async function getMatchup(gameId: string, accountId?: string): Promise<{
-  game: NonNullable<Awaited<ReturnType<typeof prisma.sportsGame.findUnique>>>;
-  tally: VoteTally;
-  myPick: "home" | "away" | null;
-  myPickCorrect: boolean | null;
-  locked: boolean;
-} | null> {
+export async function getMatchup(gameId: string, accountId?: string): Promise<MatchupCardContext | null> {
   const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
   if (!game) return null;
-  const picks = await prisma.sportsPick.findMany({ where: { gameId, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
+  const picks = await prisma.sportsPick.findMany({ where: { gameId, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true, confidence: true } });
   const typedPicks = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
   const tally = tallyVotes(typedPicks);
   const mine = accountId ? typedPicks.find((p) => p.accountId === accountId) : undefined;
-  return { game, tally, myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+  return { game, tally, myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, myConfidence: mine?.confidence ?? null, locked: isPickLocked(game) };
 }
 
 export interface LiveGameState {
@@ -1531,15 +1533,16 @@ export async function getGameTeamRecords(sport: SportSlug, league: string, homeT
 
 // ── Picks / voting ───────────────────────────────────────────────
 
-export async function submitPick(accountId: string, gameId: string, teamPick: "home" | "away") {
+export async function submitPick(accountId: string, gameId: string, teamPick: "home" | "away", confidence?: number | null) {
   const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
   if (!game) throw new Error("Matchup not found");
   if (game.eventType !== "HEAD_TO_HEAD") throw new Error("This event doesn't take a home/away pick");
   if (isPickLocked(game)) throw new Error("Picks are locked for this matchup");
+  const validConfidence = confidence != null && Number.isInteger(confidence) && confidence >= 1 && confidence <= 5 ? confidence : null;
   return prisma.sportsPick.upsert({
     where: { gameId_accountId: { gameId, accountId } },
-    create: { gameId, accountId, pickType: "HEAD_TO_HEAD", teamPick },
-    update: { teamPick },
+    create: { gameId, accountId, pickType: "HEAD_TO_HEAD", teamPick, confidence: validConfidence },
+    update: { teamPick, confidence: validConfidence },
   });
 }
 
@@ -1674,9 +1677,40 @@ export async function getFamilyPicksLeaderboard(accountId: string, range: Leader
 
 // ── Magical Picks profile + badges ──────────────────────────────
 
-export async function getMagicalPicksProfile(accountId: string): Promise<PicksSummary & { badges: { id: BadgeId; label: string; description: string; icon: string; earnedAt: Date }[] }> {
-  const picks = await prisma.sportsPick.findMany({ where: { accountId }, include: { game: { select: { sport: true, startsAt: true } } } });
-  const summary = summarizePicks(picks.map((p) => ({ gameId: p.gameId, sport: p.game.sport, isCorrect: p.isCorrect, gameStartsAt: p.game.startsAt })));
+export interface PriorPhaseRecord {
+  sport: SportSlug;
+  sportLabel: string;
+  seasonPhase: "preseason" | "regular" | "postseason";
+  correct: number;
+  incorrect: number;
+}
+
+/** The headline profile stats (accuracy, streak, Total Picks) reflect only
+ *  each sport's CURRENT real season phase — see currentPhasePicks. Once a
+ *  sport moves to a new phase, its earlier-phase record stops feeding the
+ *  "needle" but is never lost — it's returned here, in `priorPhaseRecords`,
+ *  so Pick History can still show it. */
+export async function getMagicalPicksProfile(accountId: string): Promise<
+  PicksSummary & {
+    pending: number;
+    thisWeek: { correct: number; incorrect: number };
+    lastWeek: { correct: number; incorrect: number };
+    badges: { id: BadgeId; label: string; description: string; icon: string; earnedAt: Date }[];
+    priorPhaseRecords: PriorPhaseRecord[];
+  }
+> {
+  const picks = await prisma.sportsPick.findMany({ where: { accountId }, include: { game: { select: { sport: true, startsAt: true, seasonPhase: true } } } });
+  const all = picks.map((p) => ({ gameId: p.gameId, sport: p.game.sport, isCorrect: p.isCorrect, gameStartsAt: p.game.startsAt, seasonPhase: p.game.seasonPhase }));
+  const current = currentPhasePicks(all);
+  const currentIds = new Set(current.map((p) => p.gameId));
+  const summary = summarizePicks(current);
+  const pending = current.filter((p) => p.isCorrect === null).length;
+  const now = new Date();
+  const thisWeekStart = startOfWeek(now);
+  const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86_400_000);
+  const nextWeekStart = new Date(thisWeekStart.getTime() + 7 * 86_400_000);
+  const thisWeek = recordInRange(current, thisWeekStart, nextWeekStart);
+  const lastWeek = recordInRange(current, lastWeekStart, thisWeekStart);
   const earnedRows = await prisma.sportsBadgeEarned.findMany({ where: { accountId } });
   const badges = earnedRows
     .map((r) => {
@@ -1684,7 +1718,95 @@ export async function getMagicalPicksProfile(accountId: string): Promise<PicksSu
       return def ? { ...def, id: def.id, earnedAt: r.earnedAt } : null;
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
-  return { ...summary, badges };
+
+  const priorMap = new Map<string, PriorPhaseRecord>();
+  for (const p of all) {
+    if (currentIds.has(p.gameId) || p.isCorrect === null) continue;
+    const key = `${p.sport}:${p.seasonPhase}`;
+    const row = priorMap.get(key) ?? { sport: p.sport as SportSlug, sportLabel: sportLabel(p.sport as SportSlug), seasonPhase: p.seasonPhase as PriorPhaseRecord["seasonPhase"], correct: 0, incorrect: 0 };
+    if (p.isCorrect) row.correct += 1; else row.incorrect += 1;
+    priorMap.set(key, row);
+  }
+
+  return { ...summary, pending, thisWeek, lastWeek, badges, priorPhaseRecords: Array.from(priorMap.values()) };
+}
+
+/** Every matchup-eligible sport's real, pickable matchups for one exact
+ *  calendar date — the Featured Matchups table on the unified Magical
+ *  Picks page. Unlike getGamesWithVoteContext (used by the small
+ *  per-sport preview panel), this never forward-searches to a later date
+ *  — a date tab must only ever show games that are actually scheduled
+ *  that day. Every sport gets a box every date, even with an empty
+ *  `contexts` array (the caller renders that as "Coming Soon") — a sport
+ *  genuinely fetch-failing is the only thing left out entirely. */
+export interface FeaturedSportMatchups {
+  sport: SportSlug;
+  label: string;
+  contexts: MatchupCardContext[];
+}
+
+export async function getFeaturedMatchupsForDate(dateISO: string, accountId: string, perSportLimit = 4): Promise<FeaturedSportMatchups[]> {
+  const results = await resolveWithFailureIsolation<SportSlug, FeaturedSportMatchups | null>(
+    MATCHUP_SPORTS,
+    async (sport) => {
+      const { games } = await getGamesByDate(sport, dateISO);
+      const slice = games.slice(0, perSportLimit);
+      const contexts = await Promise.all(
+        slice.map(async (game) => {
+          const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true, confidence: true } });
+          const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
+          const mine = typed.find((p) => p.accountId === accountId);
+          return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, myConfidence: mine?.confidence ?? null, locked: isPickLocked(game) };
+        })
+      );
+      return { sport, label: sportLabel(sport), contexts };
+    },
+    () => null
+  );
+  return results.filter((r): r is FeaturedSportMatchups => r !== null);
+}
+
+export interface MyPickHistoryRow {
+  id: string;
+  sport: SportSlug;
+  sportLabel: string;
+  awayTeamName: string;
+  awayTeamLogoUrl: string | null;
+  homeTeamName: string;
+  homeTeamLogoUrl: string | null;
+  teamPick: "home" | "away" | null;
+  isCorrect: boolean | null;
+  confidence: number | null;
+  startsAt: Date;
+  status: string;
+  seasonPhase: "preseason" | "regular" | "postseason";
+}
+
+/** A member's own real pick rows, most recent game first — My Picks / Pick
+ *  History on the unified Magical Picks page. RACE_WINNER (F1) picks are
+ *  excluded — they have no single team side to show in this shape. */
+export async function getMyPickHistory(accountId: string, limit = 30): Promise<MyPickHistoryRow[]> {
+  const rows = await prisma.sportsPick.findMany({
+    where: { accountId, pickType: "HEAD_TO_HEAD" },
+    include: { game: { select: { sport: true, homeTeamName: true, homeTeamLogoUrl: true, awayTeamName: true, awayTeamLogoUrl: true, startsAt: true, status: true, seasonPhase: true } } },
+    orderBy: { game: { startsAt: "desc" } },
+    take: limit,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    sport: r.game.sport as SportSlug,
+    sportLabel: sportLabel(r.game.sport as SportSlug),
+    awayTeamName: r.game.awayTeamName,
+    awayTeamLogoUrl: r.game.awayTeamLogoUrl,
+    homeTeamName: r.game.homeTeamName,
+    homeTeamLogoUrl: r.game.homeTeamLogoUrl,
+    teamPick: r.teamPick as "home" | "away" | null,
+    isCorrect: r.isCorrect,
+    confidence: r.confidence,
+    startsAt: r.game.startsAt,
+    status: r.game.status,
+    seasonPhase: r.game.seasonPhase as "preseason" | "regular" | "postseason",
+  }));
 }
 
 async function refreshBadges(accountId: string): Promise<void> {

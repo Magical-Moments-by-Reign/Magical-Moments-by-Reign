@@ -288,8 +288,18 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .6rem; font-weight: 800; }
 .spx-poll__votes { text-align: center; color: #9c8f76; font-size: .64rem; margin-bottom: .55rem; }
 .spx-poll__actions { display: flex; gap: .4rem; }
-.spx-poll__actions button { flex: 1; padding: .38rem; border-radius: 7px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .68rem; font-weight: 700; cursor: pointer; }
+.spx-poll__actions button { flex: 1; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .38rem; border-radius: 7px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .68rem; font-weight: 700; cursor: pointer; }
 .spx-poll__actions button[data-picked="true"] { background: var(--gold); color: #0a0806; border-color: var(--gold); }
+.spx-poll__select-other { display: block; text-align: center; margin-top: .6rem; color: var(--gold-soft); font-size: .68rem; font-weight: 700; text-decoration: none; }
+.spx-poll__select-other:hover { color: var(--gold); text-decoration: underline; }
+.spx-poll__confidence { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: .6rem; }
+.spx-poll__confidence span { color: #9c8f76; font-size: .64rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.spx-poll__confidence .mp-confidence label,
+.spx-panel .mp-confidence-display span { color: rgba(255,255,255,.18); }
+.spx-poll__confidence .mp-confidence input:checked ~ label,
+.spx-poll__confidence .mp-confidence label:hover,
+.spx-poll__confidence .mp-confidence label:hover ~ label,
+.spx-panel .mp-confidence-display span.is-filled { color: var(--gold); }
 
 /* My Teams rows */
 .spx-team-row { display: flex; align-items: center; gap: .6rem; }
@@ -692,6 +702,149 @@ a.brk-matchup:hover { border-color: var(--gold); }
 .brk-slot__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
 .brk-slot__name { color: #f4ead1; font-size: .78rem; font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brk-slot__record { color: #9c8f76; font-size: .62rem; font-weight: 700; }
+
+/* ── Magical Picks page — unified across every sport. Dark rows/cards on
+   the shared light .spx backdrop; light-mode text tokens (--ink/--espresso/
+   --gold-deep, from the .dsh dashboard shell) for the tab/date controls
+   that sit directly on that backdrop, same convention as .spx > .disc-nav
+   above. ── */
+.mp-tabs-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.3rem 0 1.4rem; border-bottom: 1px solid rgba(201,162,75,.3); }
+.mp-tabs { display: flex; gap: .3rem; flex-wrap: wrap; }
+.mp-tabs a { padding: .6rem .95rem; border-radius: 8px 8px 0 0; color: var(--ink-soft); font-size: .74rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.mp-tabs a:hover { color: var(--espresso); }
+.mp-tabs a[aria-current="page"] { color: var(--espresso); border-bottom-color: var(--gold-deep); }
+
+.mp-dates { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.3rem; overflow-x: auto; padding-bottom: .2rem; }
+.mp-dates a { flex: none; padding: .55rem 1.05rem; border-radius: 999px; border: 1px solid rgba(201,162,75,.35); background: #fffdf9; color: var(--ink); font-size: .76rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.mp-dates a:hover { border-color: var(--gold-deep); }
+.mp-dates a[aria-current="page"] { background: linear-gradient(135deg, #e0b651, #b98524); border-color: transparent; color: #1a1006; }
+
+.mp-leagues { display: flex; align-items: center; gap: .45rem; margin-bottom: 1.3rem; flex-wrap: wrap; }
+.mp-leagues a { padding: .4rem .8rem; border-radius: 999px; border: 1px solid rgba(201,162,75,.3); background: #fffdf9; color: var(--ink-soft); font-size: .68rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.mp-leagues a:hover { border-color: var(--gold-deep); color: var(--ink); }
+.mp-leagues a[aria-current="page"] { background: linear-gradient(135deg, #e0b651, #b98524); border-color: transparent; color: #1a1006; }
+
+.mp-layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 1.4rem; align-items: start; }
+@media (max-width: 900px) { .mp-layout { grid-template-columns: 1fr; } }
+
+.mp-sport-group { margin-bottom: 1.3rem; }
+.mp-sport-group__label { margin: 0 0 .6rem; color: var(--gold-deep); font-size: .7rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+
+/* Matchup/history rows and the Your Stats card sit LIGHT on the shared
+   backdrop (only the page header, the Pick Summary panel, Active Streak,
+   and How to Play stay dark) — real selectable content reads like an
+   open, inviting list; the dark panels are reserved for the page's
+   "framing" chrome, matching the owner-approved reference. */
+.mp-row {
+  display: flex; align-items: center; gap: .9rem; padding: .8rem .9rem; margin-bottom: .6rem; border-radius: 12px; flex-wrap: wrap;
+  background: #fffdf9; border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(44,33,26,.05);
+}
+.mp-row__time { flex: none; width: 60px; color: var(--gold-deep); font-size: .66rem; font-weight: 800; text-align: center; line-height: 1.3; }
+.mp-row__teams { flex: 1; min-width: 220px; display: flex; align-items: center; gap: .5rem; }
+.mp-row__team { display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
+.mp-row__team img, .mp-row__team .discovery-image-fallback { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; flex: none; }
+.mp-row__team b { color: var(--ink); font-size: .8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-row__vs { color: var(--ink-soft); font-size: .64rem; font-weight: 700; flex: none; }
+.mp-row__actions { flex: none; display: flex; gap: .4rem; }
+.mp-row__actions button { display: flex; align-items: center; gap: .35rem; padding: .45rem .85rem; border-radius: 7px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: .7rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.mp-row__actions button:hover { border-color: var(--gold-deep); }
+.mp-row__actions button[data-picked="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
+.pick-btn__logo, .pick-btn__logo.discovery-image-fallback { flex: none; width: 18px; height: 18px; object-fit: contain; border-radius: 4px; }
+.mp-row__locked { flex: none; color: var(--ink-soft); font-size: .68rem; font-weight: 700; }
+.mp-row--soon { justify-content: center; }
+.mp-row--soon span { color: var(--ink-soft); font-size: .78rem; font-style: italic; }
+.mp-row__pick-form { display: contents; }
+
+/* Column header above the Featured Matchups list — "Featured Matchups /
+   Your Pick / Confidence" — mirrors the .mp-row column widths loosely so
+   the labels roughly sit above their real content. */
+.mp-row-head { display: flex; align-items: center; gap: .9rem; padding: 0 .9rem .5rem; color: var(--ink-soft); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.mp-row-head > span:first-child { flex: 1; min-width: 220px; margin-left: 74px; }
+.mp-row-head__pick { flex: none; width: 158px; text-align: center; }
+.mp-row-head__confidence { flex: none; width: 100px; text-align: center; }
+@media (max-width: 640px) { .mp-row-head { display: none; } }
+
+/* 1-5 star confidence rating — interactive picker (radios) and read-only
+   display share the same visual language: empty gold-bordered stars,
+   filled ones a solid gold. Reverse DOM order (5..1) + row-reverse is the
+   standard no-JS CSS star-rating trick: hovering/checking star N fills
+   every star at or before it, left to right. */
+.mp-confidence { flex: none; display: flex; flex-direction: row-reverse; gap: .1rem; }
+.mp-confidence input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mp-confidence label { cursor: pointer; font-size: 1.15rem; line-height: 1; color: var(--line); }
+.mp-confidence input:checked ~ label,
+.mp-confidence label:hover,
+.mp-confidence label:hover ~ label { color: var(--gold); }
+
+.mp-confidence-display { flex: none; display: inline-flex; gap: .05rem; font-size: 1.05rem; line-height: 1; }
+.mp-confidence-display span { color: var(--line); }
+.mp-confidence-display span.is-filled { color: var(--gold); }
+
+/* Your Stats sidebar — light variant of the shared .spx-panel */
+.spx-panel--light { background: #fffdf9; border-color: var(--line); box-shadow: 0 2px 8px rgba(44,33,26,.05); }
+.spx-panel--light .spx-panel__head h2 { color: var(--espresso); }
+.spx-panel--light .spx-panel__head a { color: var(--gold-deep); }
+
+.mp-stats-card { display: grid; gap: 0; }
+.mp-stat { display: flex; align-items: center; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.mp-stat:last-child { border-bottom: none; }
+.mp-stat span { color: var(--ink-soft); font-size: .74rem; font-weight: 600; }
+.mp-stat b { color: var(--gold-deep); font-size: .94rem; font-weight: 800; }
+
+.mp-streak { text-align: center; }
+.mp-streak__num { color: var(--gold); font-size: 2.5rem; font-weight: 900; line-height: 1; }
+.mp-streak__label { display: block; color: #9c8f76; font-size: .64rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-top: .25rem; }
+.mp-streak__flames { margin-top: .7rem; font-size: 1.05rem; letter-spacing: .12em; }
+
+.mp-history-row { display: flex; align-items: center; gap: .8rem; padding: .7rem .8rem; border-radius: 10px; background: #fffdf9; border: 1px solid var(--line); margin-bottom: .5rem; box-shadow: 0 2px 8px rgba(44,33,26,.05); }
+.mp-history-row__pick-logo, .mp-history-row__pick-logo.discovery-image-fallback { flex: none; width: 32px; height: 32px; object-fit: contain; border-radius: 7px; }
+.mp-history-row__meta { flex: 1; min-width: 0; }
+.mp-history-row__meta b { display: block; color: var(--ink); font-size: .8rem; }
+.mp-history-row__meta span { color: var(--ink-soft); font-size: .66rem; }
+.mp-history-row__result { flex: none; font-size: .64rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: .25rem .65rem; border-radius: 999px; }
+.mp-history-row__result--correct { background: rgba(78,122,82,.14); color: #3d6b41; }
+.mp-history-row__result--incorrect { background: rgba(190,70,60,.12); color: #a6392c; }
+.mp-history-row__result--pending { background: rgba(201,162,75,.18); color: #8a6a1f; }
+
+/* ── How to Play — a plain-language disclosure of the real pick rules,
+   no client JS (native <details>), themed dark to match the header/
+   Summary "frame" chrome. ── */
+.mp-howto { margin: 0 0 .5rem; position: relative; }
+.mp-howto__body { position: absolute; right: 0; top: 100%; z-index: 5; min-width: 340px; }
+.mp-howto summary {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1.1rem; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; font-size: .74rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  list-style: none;
+}
+.mp-howto summary::-webkit-details-marker { display: none; }
+.mp-howto[open] summary { border-radius: 12px 12px 0 0; }
+.mp-howto__body {
+  padding: 1rem 1.2rem; border-radius: 0 12px 12px 12px; background: linear-gradient(180deg, #14110b 0%, #0a0806 100%);
+  border: 1px solid rgba(201,162,75,.28); border-top: none; max-width: 520px;
+}
+.mp-howto__body ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .5rem; }
+.mp-howto__body li { color: #d9cdb8; font-size: .8rem; line-height: 1.5; }
+.mp-howto__body li b { color: #f4f1ea; }
+
+/* ── Your Pick Summary — dark, at the bottom of the page ── */
+.mp-summary { margin: 1.6rem 0; }
+.mp-summary-body { display: flex; align-items: center; gap: 1.6rem; flex-wrap: wrap; }
+.mp-donut { position: relative; width: 116px; height: 116px; border-radius: 50%; flex: none; }
+.mp-donut::after { content: ""; position: absolute; inset: 17px; border-radius: 50%; background: #0a0806; }
+.mp-donut-legend { display: flex; flex-direction: column; gap: .45rem; }
+.mp-donut-legend div { display: flex; align-items: center; gap: .55rem; font-size: .78rem; color: #d9cdb8; font-weight: 600; }
+.mp-donut-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+.mp-summary-stats { display: flex; gap: 1.8rem; flex-wrap: wrap; margin-left: auto; }
+.mp-summary-stat { text-align: center; }
+.mp-summary-stat b { display: block; color: var(--gold); font-size: 1.35rem; font-weight: 900; line-height: 1; }
+.mp-summary-stat span { display: block; margin-top: .3rem; color: #9c8f76; font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+
+@media (max-width: 640px) {
+  .mp-row { gap: .6rem; }
+  .mp-row__actions { width: 100%; }
+  .mp-row__actions button { flex: 1; }
+  .mp-summary-stats { margin-left: 0; gap: 1.2rem; }
+}
 .brk-slot__badge { flex: none; font-size: .56rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; border: 1px solid rgba(201,162,75,.35); border-radius: 999px; padding: .12rem .45rem; white-space: nowrap; color: #9c8f76; }
 .brk-slot__badge--clinched { color: #0a0806; background: var(--gold); border-color: var(--gold); }
 .brk-slot__badge--projected { color: var(--gold-soft); }

@@ -704,6 +704,18 @@ export async function fetchSeasonGames(sport: SportSlug, season: string, league?
  *  provider doesn't expose a stage/round distinction for this sport, or
  *  simply has no preseason games in its response. Never a computed/assumed
  *  date. */
+/** Classifies a game's real season phase from the provider's own stage
+ *  label — same three regexes fetchFirstPreseasonGame/fetchFirstRegularSeasonGame/
+ *  fetchFirstPostseasonGame already use to find each phase's opener, reused
+ *  here so every synced game is tagged with its real phase (never guessed).
+ *  A missing/unrecognized stage (most sports don't expose one) defaults to
+ *  "regular" — the correct assumption for a provider with no phase concept. */
+export function classifySeasonPhase(stage?: string | null): "preseason" | "regular" | "postseason" {
+  if (stage && /pre.?season/i.test(stage)) return "preseason";
+  if (stage && /post.?season|play.?offs?|championship|bowl/i.test(stage)) return "postseason";
+  return "regular";
+}
+
 export async function fetchFirstPreseasonGame(sport: SportSlug, season: string, league?: string): Promise<SportsGameSummary | null> {
   const games = await fetchSeasonGames(sport, season, league);
   if (!games) return null;

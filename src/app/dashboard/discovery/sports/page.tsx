@@ -286,7 +286,7 @@ export default async function SportsPage() {
           <Link href="/dashboard/discovery/sports/schedule" className="spx-panel__cta">Full Schedule</Link>
         </div>
 
-        <MagicalPicksPanel matchup={featuredMatchup} previewSportLabel={featuredMatchupSportLabel} />
+        <MagicalPicksPanel matchup={featuredMatchup} previewSportLabel={featuredMatchupSportLabel} sport={featuredMatchup?.game.sport as SportSlug | undefined} />
 
         <FantasyFootballPanel leagues={myFantasyLeagues} />
 

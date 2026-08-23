@@ -1,48 +1,326 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SmartBackLink from "../SmartBackLink";
+import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount } from "@/lib/guard";
-import { getMagicalPicksProfile, getFamilyPicksLeaderboard } from "@/lib/discovery/sports/service";
+import {
+  getMagicalPicksProfile,
+  getFamilyPicksLeaderboard,
+  getFeaturedMatchupsForDate,
+  getMyPickHistory,
+  SPORT_CATALOG,
+  type MyPickHistoryRow,
+} from "@/lib/discovery/sports/service";
 import type { LeaderboardPeriod } from "@/lib/discovery/sports/picks";
 import { getMyPickGroups } from "@/lib/discovery/sports/pickem-groups-service";
 import { SPORTS_BADGES } from "@/lib/discovery/sports/badges";
-import { createPickGroupAction, joinPickGroupAction } from "../actions";
+import { createPickGroupAction, joinPickGroupAction, submitPickAction } from "../actions";
+import PickConfirmButton from "../PickConfirmButton";
+import { ConfidencePicker, ConfidenceStars } from "../ConfidenceStars";
+import { MATCHUP_SPORTS, type SportSlug } from "@/lib/discovery/providers/sports";
 import "../../discovery.css";
+import "../sports-home.css";
+
+const SPORT_LABELS: Record<string, string> = Object.fromEntries(SPORT_CATALOG.map((s) => [s.slug, s.label]));
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Picks — Magical Discovery", robots: { index: false } };
 
-export default async function MagicalPicksPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+const PHASE_LABEL: Record<string, string> = { preseason: "Preseason", regular: "", postseason: "Playoffs" };
+
+type Tab = "make" | "my" | "history" | "leaderboard";
+const TABS: { key: Tab; label: string }[] = [
+  { key: "make", label: "Make Picks" },
+  { key: "my", label: "My Picks" },
+  { key: "history", label: "Pick History" },
+  { key: "leaderboard", label: "Leaderboard" },
+];
+
+/** A real 5-day-ahead window (today through +4 days) as real calendar
+ *  dates — same UTC-slice convention getGamesByDate/getGamesWithVoteContext
+ *  already use elsewhere in Sports, so a date tab here always agrees with
+ *  what those pages consider "today." */
+function dateWindow(): string[] {
+  return Array.from({ length: 5 }, (_, i) => new Date(Date.now() + i * 86_400_000).toISOString().slice(0, 10));
+}
+
+function formatDateTab(dateISO: string): string {
+  return new Date(`${dateISO}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function formatGameTime(startsAt: Date): string {
+  return startsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+export default async function MagicalPicksPage({ searchParams }: { searchParams: Promise<{ tab?: string; date?: string; range?: string; sport?: string }> }) {
   const account = await requireAccount("/dashboard/discovery/sports/picks");
-  const { range: rangeParam } = await searchParams;
+  const { tab: tabParam, date: dateParam, range: rangeParam, sport: sportParam } = await searchParams;
+  const tab: Tab = TABS.some((t) => t.key === tabParam) ? (tabParam as Tab) : "make";
+  const window5 = dateWindow();
+  const date = window5.includes(dateParam ?? "") ? (dateParam as string) : window5[0];
   const VALID_RANGES: LeaderboardPeriod[] = ["today", "week", "month", "season", "all_time"];
   const range: LeaderboardPeriod = VALID_RANGES.includes(rangeParam as LeaderboardPeriod) ? (rangeParam as LeaderboardPeriod) : "week";
-  const [profile, leaderboard, groups] = await Promise.all([
+  // A specific sport filter (arrived via a sport page's "Select Another
+  // Game" link) widens the per-sport cap — the whole point is to browse
+  // every real game that sport has on the selected date, not the
+  // multi-sport digest's short preview slice.
+  const sportFilter: SportSlug | undefined = MATCHUP_SPORTS.includes(sportParam as SportSlug) ? (sportParam as SportSlug) : undefined;
+
+  const [profile, groups] = await Promise.all([
     getMagicalPicksProfile(account.id),
-    getFamilyPicksLeaderboard(account.id, range),
     getMyPickGroups(account.id),
   ]);
+  const [featuredAll, leaderboard, allPicks] = await Promise.all([
+    tab === "make" ? getFeaturedMatchupsForDate(date, account.id, sportFilter ? 20 : 4) : Promise.resolve([]),
+    tab === "leaderboard" ? getFamilyPicksLeaderboard(account.id, range) : Promise.resolve(null),
+    tab === "my" || tab === "history" ? getMyPickHistory(account.id) : Promise.resolve([]),
+  ]);
+  const featured = sportFilter ? featuredAll.filter((g) => g.sport === sportFilter) : featuredAll;
+  // "My Picks" = picks still awaiting a real result; "Pick History" = picks
+  // already graded (correct or incorrect) — a genuine split on real data,
+  // not two views of the identical list.
+  const pendingPicks = allPicks.filter((h) => h.isCorrect === null);
+  const gradedPicks = allPicks.filter((h) => h.isCorrect !== null);
   const earnedIds = new Set(profile.badges.map((b) => b.id));
 
-  return (
-    <div className="disc">
-      <div className="pg-head">
-        <span className="pg-eyebrow">Magical Discovery · Sports</span>
-        <h1 className="pg-title">Magical Picks</h1>
-        <p className="pg-sub">Your prediction profile — entertainment only, never real-money wagering.</p>
-      </div>
-      <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← Back to Sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
+  // Pick Summary donut — real proportions of every pick ever made
+  // (correct/incorrect/pending), not just graded ones, so "Total Picks"
+  // in the ring always matches the sidebar's Total Picks stat.
+  const totalAllPicks = profile.total + profile.pending;
+  const correctPct = totalAllPicks ? Math.round((profile.correct / totalAllPicks) * 100) : 0;
+  const incorrectPct = totalAllPicks ? Math.round((profile.incorrect / totalAllPicks) * 100) : 0;
+  const donutStyle = totalAllPicks
+    ? { background: `conic-gradient(#4e7a52 0% ${correctPct}%, #be463c ${correctPct}% ${correctPct + incorrectPct}%, #c9a24b ${correctPct + incorrectPct}% 100%)` }
+    : { background: "rgba(255,255,255,.08)" };
 
-      <div className="sports-stats">
-        <div className="sports-stat"><b>🏆 {profile.correct}</b><span>Correct</span></div>
-        <div className="sports-stat"><b>🔥 {profile.currentStreak}</b><span>Current Streak</span></div>
-        <div className="sports-stat"><b>🎯 {profile.accuracyPct}%</b><span>Pick Accuracy</span></div>
-        <div className="sports-stat"><b>{profile.longestStreak}</b><span>Longest Streak</span></div>
-        <div className="sports-stat"><b>{profile.total}</b><span>Total Picks</span></div>
+  const statsSidebar = (
+    <div className="spx-panel spx-panel--light">
+      <div className="spx-panel__head"><h2>Your Stats</h2></div>
+      <div className="mp-stats-card">
+        <div className="mp-stat"><span>Correct Picks</span><b>{profile.correct}</b></div>
+        <div className="mp-stat"><span>Current Streak</span><b>{profile.currentStreak}{profile.currentStreak > 0 ? " 🔥" : ""}</b></div>
+        <div className="mp-stat"><span>Longest Streak</span><b>{profile.longestStreak}</b></div>
+        <div className="mp-stat"><span>Pick Accuracy</span><b>{profile.accuracyPct}%</b></div>
+        <div className="mp-stat"><span>Total Picks</span><b>{profile.total + profile.pending}</b></div>
+        {profile.pending > 0 && <div className="mp-stat"><span>Pending</span><b>{profile.pending}</b></div>}
       </div>
+    </div>
+  );
+
+  const streakSidebar =
+    profile.currentStreak > 0 ? (
+      <div className="spx-panel">
+        <div className="spx-panel__head"><h2>Active Streak</h2></div>
+        <div className="mp-streak">
+          <span className="mp-streak__num">{profile.currentStreak}</span>
+          <span className="mp-streak__label">Picks Correct In A Row</span>
+          <div className="mp-streak__flames">{"🔥".repeat(Math.min(profile.currentStreak, 10))}</div>
+        </div>
+      </div>
+    ) : null;
+
+  return (
+    <div className="spx">
+      <nav className="disc-nav">
+        <Link href="/dashboard/discovery/sports">Sports Hub</Link>
+        <Link href="/dashboard/discovery/sports/picks" aria-current="page">Magical Picks</Link>
+        <Link href="/dashboard/discovery/sports/fantasy">Fantasy Football</Link>
+      </nav>
+
+      <div className="disc-page-head">
+        <span className="disc-page-head__eyebrow">Sports Hub · Magical Picks</span>
+        <h1>Magical Picks</h1>
+        <p>Make your picks, track your results and build your streak</p>
+      </div>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← Back to Sports" className="btn btn--sm" style={{ marginBottom: ".8rem", display: "inline-block" }} />
+
+      <div className="mp-tabs-row">
+        <div className="mp-tabs">
+          {TABS.map((t) => (
+            <Link key={t.key} href={`?tab=${t.key}`} aria-current={tab === t.key ? "page" : undefined}>{t.label}</Link>
+          ))}
+        </div>
+        <details className="mp-howto">
+          <summary>How to Play</summary>
+          <div className="mp-howto__body">
+            <ul>
+              <li><b>Pick before the game starts.</b> Once a matchup locks — at kickoff, tip-off, first pitch, or its own locking time — your pick (or lack of one) is final and can&apos;t be changed.</li>
+              <li><b>Every correct pick counts.</b> It adds to your streak, your Pick Accuracy, and your spot on the family &amp; friend leaderboard.</li>
+              <li><b>Pick across every sport</b> Magical Moments supports — NFL, college football, NBA, WNBA, college basketball, MLB, NHL, soccer, and more.</li>
+              <li><b>Entertainment only.</b> Magical Picks is never real-money wagering — no spreads, no odds, no payouts.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      {tab === "make" && (
+        <>
+          <div className="mp-dates">
+            {window5.map((d) => (
+              <Link key={d} href={`?tab=make&date=${d}${sportFilter ? `&sport=${sportFilter}` : ""}`} aria-current={date === d ? "page" : undefined}>{formatDateTab(d)}</Link>
+            ))}
+          </div>
+          <div className="mp-leagues">
+            <Link href={`?tab=make&date=${date}`} aria-current={!sportFilter ? "page" : undefined}>All Leagues</Link>
+            {MATCHUP_SPORTS.map((s) => (
+              <Link key={s} href={`?tab=make&date=${date}&sport=${s}`} aria-current={sportFilter === s ? "page" : undefined}>{SPORT_LABELS[s] ?? s.toUpperCase()}</Link>
+            ))}
+          </div>
+          <div className="mp-layout">
+            <div>
+              {featured.length > 0 && (
+                <div className="mp-row-head">
+                  <span>Featured Matchups</span>
+                  <span className="mp-row-head__pick">Your Pick</span>
+                  <span className="mp-row-head__confidence">Confidence</span>
+                </div>
+              )}
+              {featured.length === 0 ? (
+                <p className="spx-panel__empty">No pickable matchups on {formatDateTab(date)} — try another date.</p>
+              ) : (
+                featured.map((group) => (
+                  <div className="mp-sport-group" key={group.sport}>
+                    <p className="mp-sport-group__label">{group.label}</p>
+                    {group.contexts.length === 0 ? (
+                      <div className="mp-row mp-row--soon">
+                        <span>Coming Soon — no {group.label} matchup on {formatDateTab(date)}.</span>
+                      </div>
+                    ) : (
+                      group.contexts.map((ctx) => (
+                        <div className="mp-row" key={ctx.game.id}>
+                          <span className="mp-row__time">{formatGameTime(ctx.game.startsAt)}</span>
+                          <div className="mp-row__teams">
+                            <div className="mp-row__team">
+                              <DiscoveryImage src={ctx.game.awayTeamLogoUrl} alt={ctx.game.awayTeamName} fallback={ctx.game.awayTeamName.slice(0, 3).toUpperCase()} />
+                              <b>{ctx.game.awayTeamName}</b>
+                            </div>
+                            <span className="mp-row__vs">@</span>
+                            <div className="mp-row__team">
+                              <DiscoveryImage src={ctx.game.homeTeamLogoUrl} alt={ctx.game.homeTeamName} fallback={ctx.game.homeTeamName.slice(0, 3).toUpperCase()} />
+                              <b>{ctx.game.homeTeamName}</b>
+                            </div>
+                          </div>
+                          {!ctx.locked ? (
+                            <form action={submitPickAction} className="mp-row__pick-form">
+                              <input type="hidden" name="gameId" value={ctx.game.id} />
+                              <div className="mp-row__actions">
+                                <PickConfirmButton name="teamPick" value="away" label={ctx.game.awayTeamName} logoUrl={ctx.game.awayTeamLogoUrl} picked={ctx.myPick === "away"} confirmLabel={`${ctx.game.awayTeamName} to beat ${ctx.game.homeTeamName}`} />
+                                <PickConfirmButton name="teamPick" value="home" label={ctx.game.homeTeamName} logoUrl={ctx.game.homeTeamLogoUrl} picked={ctx.myPick === "home"} confirmLabel={`${ctx.game.homeTeamName} to beat ${ctx.game.awayTeamName}`} />
+                              </div>
+                              <ConfidencePicker gameId={ctx.game.id} myConfidence={ctx.myConfidence} />
+                            </form>
+                          ) : (
+                            <>
+                              <span className="mp-row__locked">{ctx.myPick ? `You picked ${ctx.myPick === "home" ? ctx.game.homeTeamName : ctx.game.awayTeamName}` : "Locked"}</span>
+                              <ConfidenceStars value={ctx.myConfidence} />
+                            </>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {statsSidebar}
+              {streakSidebar}
+            </div>
+          </div>
+        </>
+      )}
+
+      {tab === "my" && (
+        <div className="mp-layout">
+          <div>
+            {pendingPicks.length === 0 ? (
+              <p className="spx-panel__empty">No picks awaiting a result — head to Make Picks to pick a real upcoming matchup.</p>
+            ) : (
+              pendingPicks.map((h) => <PickHistoryRow key={h.id} h={h} />)
+            )}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {statsSidebar}
+            {streakSidebar}
+          </div>
+        </div>
+      )}
+
+      {tab === "history" && (
+        <div className="mp-layout">
+          <div>
+            {gradedPicks.length === 0 ? (
+              <p className="spx-panel__empty">No graded picks yet — once a game you picked is final, it shows up here.</p>
+            ) : (
+              gradedPicks.map((h) => <PickHistoryRow key={h.id} h={h} />)
+            )}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {statsSidebar}
+            {streakSidebar}
+          </div>
+        </div>
+      )}
+
+      {tab === "leaderboard" && leaderboard && (
+        <div className="spx-panel">
+          <div className="spx-panel__head">
+            <h2>{leaderboard.hasFamily ? "Family Leaderboard" : "My Picks"}</h2>
+            <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
+              <Link href="?tab=leaderboard&range=today" aria-current={range === "today" ? "page" : undefined}>Today</Link>
+              <Link href="?tab=leaderboard&range=week" aria-current={range === "week" ? "page" : undefined}>This Week</Link>
+              <Link href="?tab=leaderboard&range=month" aria-current={range === "month" ? "page" : undefined}>This Month</Link>
+              <Link href="?tab=leaderboard&range=season" aria-current={range === "season" ? "page" : undefined}>Season</Link>
+              <Link href="?tab=leaderboard&range=all_time" aria-current={range === "all_time" ? "page" : undefined}>All Time</Link>
+            </div>
+          </div>
+          <div className="disc-chart">
+            {leaderboard.entries.map((e) => (
+              <div className="disc-chart__row" key={e.accountId}>
+                <div className="disc-chart__song"><b>#{e.rank} {e.isMe ? "You" : e.name}</b></div>
+                <span className="disc-badge">{e.points} pts</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {profile.priorPhaseRecords.length > 0 && (
+        <div className="disc-section" style={{ marginTop: "1.6rem" }}>
+          <div className="disc-section__head"><h2>Past Seasons</h2></div>
+          <p className="disc-empty" style={{ marginTop: 0 }}>Your record resets when a sport moves into a new season phase — every earlier phase&rsquo;s record stays here.</p>
+          <div className="disc-chart">
+            {profile.priorPhaseRecords.map((r) => (
+              <div className="disc-chart__row" key={`${r.sport}:${r.seasonPhase}`}>
+                <div className="disc-chart__song"><b>{r.sportLabel} {PHASE_LABEL[r.seasonPhase]}</b><span>{r.correct} correct, {r.incorrect} incorrect</span></div>
+                <span className="disc-badge">{r.correct}-{r.incorrect}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {totalAllPicks > 0 && (
+        <div className="spx-panel mp-summary">
+          <div className="spx-panel__head"><h2>Your Pick Summary</h2><Link href="?tab=history">View Pick History →</Link></div>
+          <div className="mp-summary-body">
+            <div className="mp-donut" style={donutStyle} />
+            <div className="mp-donut-legend">
+              <div><i style={{ background: "#4e7a52" }} />Correct ({profile.correct})</div>
+              <div><i style={{ background: "#be463c" }} />Incorrect ({profile.incorrect})</div>
+              <div><i style={{ background: "#c9a24b" }} />Pending ({profile.pending})</div>
+            </div>
+            <div className="mp-summary-stats">
+              <div className="mp-summary-stat"><b>{profile.accuracyPct}%</b><span>Pick Accuracy</span></div>
+              <div className="mp-summary-stat"><b>{profile.thisWeek.correct}-{profile.thisWeek.incorrect}</b><span>This Week</span></div>
+              <div className="mp-summary-stat"><b>{profile.lastWeek.correct}-{profile.lastWeek.incorrect}</b><span>Last Week</span></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {Object.keys(profile.bySport).length > 0 && (
-        <div className="disc-section">
+        <div className="disc-section" style={{ marginTop: "1.6rem" }}>
           <div className="disc-section__head"><h2>Sport-by-Sport Accuracy</h2></div>
           <div className="disc-chart">
             {Object.entries(profile.bySport).map(([sport, stat]) => (
@@ -71,10 +349,6 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
         </div>
       </div>
 
-      {profile.total === 0 && (
-        <p className="disc-empty">Make your first pick on a matchup to start your Magical Picks profile.</p>
-      )}
-
       <div className="disc-section">
         <div className="disc-section__head"><h2>Pick&apos;em Groups</h2></div>
         <p className="disc-empty" style={{ marginTop: 0 }}>Private groups you create and invite family or friends into — entertainment predictions only, never wagering.</p>
@@ -99,27 +373,25 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
           </form>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="disc-section">
-        <div className="disc-section__head">
-          <h2>{leaderboard.hasFamily ? "Family Leaderboard" : "My Picks"}</h2>
-          <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
-            <Link href="?range=today" className="btn btn--sm" aria-current={range === "today"}>Today</Link>
-            <Link href="?range=week" className="btn btn--sm" aria-current={range === "week"}>This Week</Link>
-            <Link href="?range=month" className="btn btn--sm" aria-current={range === "month"}>This Month</Link>
-            <Link href="?range=season" className="btn btn--sm" aria-current={range === "season"}>Season</Link>
-            <Link href="?range=all_time" className="btn btn--sm" aria-current={range === "all_time"}>All Time</Link>
-          </div>
-        </div>
-        <div className="disc-chart">
-          {leaderboard.entries.map((e) => (
-            <div className="disc-chart__row" key={e.accountId}>
-              <div className="disc-chart__song"><b>#{e.rank} {e.isMe ? "You" : e.name}</b></div>
-              <span className="disc-badge">{e.points} pts</span>
-            </div>
-          ))}
-        </div>
+function PickHistoryRow({ h }: { h: MyPickHistoryRow }) {
+  const pickedName = h.teamPick === "home" ? h.homeTeamName : h.teamPick === "away" ? h.awayTeamName : null;
+  const pickedLogoUrl = h.teamPick === "home" ? h.homeTeamLogoUrl : h.teamPick === "away" ? h.awayTeamLogoUrl : null;
+  const result = h.isCorrect === null ? "pending" : h.isCorrect ? "correct" : "incorrect";
+  return (
+    <div className="mp-history-row">
+      <DiscoveryImage src={pickedLogoUrl} alt={pickedName ?? "Pick"} fallback={(pickedName ?? "?").slice(0, 3).toUpperCase()} className="mp-history-row__pick-logo" />
+      <div className="mp-history-row__meta">
+        <b>{h.awayTeamName} @ {h.homeTeamName}</b>
+        <span>{h.sportLabel}{PHASE_LABEL[h.seasonPhase] ? ` · ${PHASE_LABEL[h.seasonPhase]}` : ""} · {h.startsAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Picked {pickedName ?? "—"}</span>
       </div>
+      <ConfidenceStars value={h.confidence} />
+      <span className={`mp-history-row__result mp-history-row__result--${result}`}>
+        {result === "correct" ? "Correct" : result === "incorrect" ? "Incorrect" : "Pending"}
+      </span>
     </div>
   );
 }

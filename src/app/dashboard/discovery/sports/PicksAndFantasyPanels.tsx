@@ -18,10 +18,17 @@
 import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { submitPickAction } from "./actions";
+import PickConfirmButton from "./PickConfirmButton";
+import { ConfidencePicker, ConfidenceStars } from "./ConfidenceStars";
 import type { MatchupCardContext } from "@/lib/discovery/sports/service";
 import type { FantasyLeagueSummary } from "@/lib/discovery/sports/fantasy-service";
+import type { SportSlug } from "@/lib/discovery/providers/sports";
 
-export function MagicalPicksPanel({ matchup, previewSportLabel }: { matchup: MatchupCardContext | null; previewSportLabel?: string }) {
+export function MagicalPicksPanel({ matchup, previewSportLabel, sport }: { matchup: MatchupCardContext | null; previewSportLabel?: string; sport?: SportSlug }) {
+  // Real 5-day-ahead window (today, +1 .. +4) that Make Picks itself
+  // resolves the date tabs from — this link jumps straight into that same
+  // list, filtered to this sport, rather than the one game shown here.
+  const selectAnotherHref = sport ? `/dashboard/discovery/sports/picks?tab=make&sport=${sport}` : "/dashboard/discovery/sports/picks?tab=make";
   return (
     <div className="spx-panel">
       <div className="spx-panel__head"><h2>Magical Picks</h2><Link href="/dashboard/discovery/sports/picks">View All →</Link></div>
@@ -49,15 +56,23 @@ export function MagicalPicksPanel({ matchup, previewSportLabel }: { matchup: Mat
             <form action={submitPickAction}>
               <input type="hidden" name="gameId" value={matchup.game.id} />
               <div className="spx-poll__actions">
-                <button type="submit" name="teamPick" value="away" data-picked={matchup.myPick === "away"}>{matchup.game.awayTeamName}</button>
-                <button type="submit" name="teamPick" value="home" data-picked={matchup.myPick === "home"}>{matchup.game.homeTeamName}</button>
+                <PickConfirmButton name="teamPick" value="away" label={matchup.game.awayTeamName} logoUrl={matchup.game.awayTeamLogoUrl} picked={matchup.myPick === "away"} confirmLabel={`${matchup.game.awayTeamName} to beat ${matchup.game.homeTeamName}`} />
+                <PickConfirmButton name="teamPick" value="home" label={matchup.game.homeTeamName} logoUrl={matchup.game.homeTeamLogoUrl} picked={matchup.myPick === "home"} confirmLabel={`${matchup.game.homeTeamName} to beat ${matchup.game.awayTeamName}`} />
+              </div>
+              <div className="spx-poll__confidence">
+                <span>Confidence</span>
+                <ConfidencePicker gameId={matchup.game.id} myConfidence={matchup.myConfidence} />
               </div>
             </form>
           ) : (
-            <p className="spx-panel__empty">Picks are locked for this matchup.</p>
+            <>
+              <p className="spx-panel__empty">Picks are locked for this matchup.</p>
+              <ConfidenceStars value={matchup.myConfidence} />
+            </>
           )}
         </div>
       )}
+      <Link href={selectAnotherHref} className="spx-poll__select-other">Select Another Game →</Link>
       <Link href="/dashboard/discovery/sports/picks" className="spx-panel__cta">Go to Magical Picks</Link>
     </div>
   );

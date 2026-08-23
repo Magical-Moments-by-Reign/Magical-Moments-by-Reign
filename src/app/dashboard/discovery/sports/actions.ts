@@ -50,7 +50,9 @@ export async function submitPickAction(formData: FormData): Promise<void> {
   const gameId = String(formData.get("gameId") || "");
   const teamPick = String(formData.get("teamPick") || "");
   if (!gameId || (teamPick !== "home" && teamPick !== "away")) return;
-  await submitPick(account.id, gameId, teamPick);
+  const confidenceRaw = formData.get("confidence");
+  const confidence = confidenceRaw != null ? Number(confidenceRaw) : null;
+  await submitPick(account.id, gameId, teamPick, confidence);
   revalidatePath(`/dashboard/discovery/sports/game/${gameId}`);
   revalidatePath("/dashboard/discovery/sports/picks");
 }

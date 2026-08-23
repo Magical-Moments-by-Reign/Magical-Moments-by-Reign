@@ -2733,6 +2733,13 @@ model SportsGame {
   // one winner from an arbitrary-size field, tracked in SportsGameParticipant
   // below rather than the home/away pair.
   eventType     String    @default("HEAD_TO_HEAD")
+  // The real season phase this game belongs to, from the provider's own
+  // stage label (see classifySeasonPhase) — "preseason" | "regular" |
+  // "postseason". Set once at sync and never changed, same as eventType:
+  // it's what lets Magical Picks reset its "current" record when a sport
+  // moves into a new phase while still keeping the earlier phase's record
+  // in Pick History.
+  seasonPhase   String    @default("regular")
   homeTeamId    String?   // provider team id, when known
   homeTeamName  String
   homeTeamLogoUrl String?
@@ -2794,6 +2801,7 @@ model SportsPick {
   pickType    String    @default("HEAD_TO_HEAD") // "HEAD_TO_HEAD" | "RACE_WINNER"
   teamPick    String?   // "home" | "away" — HEAD_TO_HEAD picks only
   selectionId String?   // SportsGameParticipant.participantId — RACE_WINNER picks only
+  confidence  Int?      // 1-5, the member's own self-rated confidence in this pick; optional, never inferred
   isCorrect   Boolean?  // null until the game is graded final
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
