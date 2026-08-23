@@ -677,6 +677,58 @@ export async function getTeamInjuries(sport: SportSlug, teamName: string): Promi
   return injuries.filter((i) => i.team && normalizeTeamName(i.team) === target);
 }
 
+export interface FollowedTeamRef {
+  followId: string;
+  teamExternalId: string | null;
+  teamName: string | null;
+}
+
+/** Generic per-item failure isolation for a batch of async lookups keyed by
+ *  a followed team — the one place every applicable team-sport page's
+ *  "resolve N followed teams' worth of optional data, without one bad team
+ *  taking the others (or the page) down" goes through. A rejection from
+ *  `fetchOne` for one team is caught and replaced with `onError`'s
+ *  fallback for THAT team only — every other team's real result is
+ *  unaffected, and the rejection never propagates past this call. Exported
+ *  with its own direct unit tests (using a fake, controllable `fetchOne`)
+ *  so the isolation itself is proven independent of any real provider. */
+export async function resolveWithFailureIsolation<T, R>(teams: T[], fetchOne: (team: T) => Promise<R>, onError: (team: T) => R): Promise<R[]> {
+  return Promise.all(teams.map((t) => fetchOne(t).catch(() => onError(t))));
+}
+
+/** Resolves EVERY followed team's roster in one batch, with PER-TEAM
+ *  failure isolation via resolveWithFailureIsolation — the shared
+ *  category-wide fix: any team-sport page driven by a member's followed
+ *  teams (NFL, NBA, WNBA, CFB, MLB, NHL, ...) calls this once instead of
+ *  hand-rolling its own Promise.all. A genuine provider "plan restricted"
+ *  or "empty" result from getTeamRoster is never converted to "error" here
+ *  — only an actual thrown rejection is; those real statuses pass through
+ *  untouched. */
+export async function resolveFollowedTeamRosters(sport: SportSlug, teams: FollowedTeamRef[], allowSecondarySource: boolean): Promise<Map<string, RosterResult>> {
+  const results = await resolveWithFailureIsolation(
+    teams,
+    (t) => (t.teamExternalId ? getTeamRoster(sport, t.teamExternalId, { teamName: t.teamName ?? undefined, allowSecondarySource }) : Promise.resolve<RosterResult>({ players: [], status: "not_supported" })),
+    (): RosterResult => ({ players: [], status: "error" })
+  );
+  const map = new Map<string, RosterResult>();
+  teams.forEach((t, i) => map.set(t.followId, results[i]));
+  return map;
+}
+
+/** Same per-team failure isolation for injury lookups — a provider outage
+ *  on one team's injury feed degrades to [] for that team only, never a
+ *  page-wide crash. */
+export async function resolveFollowedTeamInjuries(sport: SportSlug, teams: FollowedTeamRef[]): Promise<Map<string, SdioInjury[]>> {
+  const results = await resolveWithFailureIsolation(
+    teams,
+    (t) => (t.teamName ? getTeamInjuries(sport, t.teamName) : Promise.resolve([])),
+    (): SdioInjury[] => []
+  );
+  const map = new Map<string, SdioInjury[]>();
+  teams.forEach((t, i) => map.set(t.followId, results[i]));
+  return map;
+}
+
 /** Live + upcoming games across the given sports (typically the member's
  *  followed sports, or a sensible default when they follow none), for the
  *  Sports landing page's Live Games / Upcoming Games panels. Never returns

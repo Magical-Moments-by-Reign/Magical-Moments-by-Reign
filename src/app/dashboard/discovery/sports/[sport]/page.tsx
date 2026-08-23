@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
@@ -188,28 +188,24 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const isOwner = await isOwnerAccount(account.id);
   const allowSdio = Boolean(sdioLeagueFor(sport)) && sdioConfigured() && (sdioCommercialMode() || isOwner);
   const allowSdioRoster = allowSdio;
-  const rosters = new Map<string, Awaited<ReturnType<typeof getTeamRoster>>>();
-  if (myTeamsForSport.length) {
-    const rosterResults = await Promise.all(
-      myTeamsForSport.map((t) =>
-        t.follow.teamExternalId
-          ? getTeamRoster(sport, t.follow.teamExternalId, { teamName: t.follow.teamName ?? undefined, allowSecondarySource: allowSdioRoster })
-          : Promise.resolve({ players: [], status: "not_supported" as const }),
-      ),
-    );
-    myTeamsForSport.forEach((t, i) => rosters.set(t.follow.id, rosterResults[i]));
-  }
+  // A followed team's roster/injuries are real content, not core content —
+  // the page (hero, games, standings, teams, Picks, Fantasy, bracket,
+  // schedules) must render even if one team's fetch throws for a reason no
+  // provider-level guard anticipated. resolveFollowedTeamRosters/
+  // resolveFollowedTeamInjuries (service.ts) give every team-sport page
+  // this same per-team failure isolation from one shared place, rather
+  // than each page hand-rolling its own Promise.all.
+  const followedTeamRefs = myTeamsForSport.map((t) => ({ followId: t.follow.id, teamExternalId: t.follow.teamExternalId, teamName: t.follow.teamName ?? null }));
+  const rosters = myTeamsForSport.length
+    ? await resolveFollowedTeamRosters(sport, followedTeamRefs, allowSdioRoster)
+    : new Map<string, Awaited<ReturnType<typeof getTeamRoster>>>();
 
   // Real injury reports for followed teams — same SportsDataIO source/gate
   // as the roster fallback above (owner/admin preview until commercial
-  // mode; see allowSdio's doc comment).
-  const injuries = new Map<string, Awaited<ReturnType<typeof getTeamInjuries>>>();
-  if (myTeamsForSport.length && allowSdio) {
-    const injuryResults = await Promise.all(
-      myTeamsForSport.map((t) => (t.follow.teamName ? getTeamInjuries(sport, t.follow.teamName) : Promise.resolve([]))),
-    );
-    myTeamsForSport.forEach((t, i) => injuries.set(t.follow.id, injuryResults[i]));
-  }
+  // mode; see allowSdio's doc comment). Same per-team failure isolation.
+  const injuries = myTeamsForSport.length && allowSdio
+    ? await resolveFollowedTeamInjuries(sport, followedTeamRefs)
+    : new Map<string, Awaited<ReturnType<typeof getTeamInjuries>>>();
 
   // Bridges each roster card to a real Player Profile — rosters here are
   // usually API-Sports-sourced (a different id space than the SportsDataIO
