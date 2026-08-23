@@ -22,7 +22,7 @@ import {
   fetchAllPlayers, fetchRecentTransactions, fetchInjuries, fetchPlayerSeasonStats, fetchTeamRecord,
   type SdioLeague, type SdioTransaction, type SdioInjury,
 } from "../providers/sportsdata";
-import { ApiSportsProvider, fetchGamePlayerStats, type GameStatLine } from "../providers/sports";
+import { ApiSportsProvider, fetchGamePlayerStats, fetchTeamRoster, seasonParam, type GameStatLine } from "../providers/sports";
 import { AWARD_RACES, getAwardRace } from "./awards";
 import { resolveTeamByName, sportSlugForSdio } from "./service";
 import { getCollegeCareerProfile, type CollegeCareerProfile } from "./college-career";
@@ -278,6 +278,22 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     ? await fetchApiSportsRecentGameFallback(league, team?.id, player.name, season)
     : [];
 
+  // SportsDataIO's own PhotoUrl is the primary source; when it's simply
+  // absent for this player (a real, common trial-tier coverage gap — not
+  // every player has a headshot on file there), fall back to the SAME
+  // real team roster API-Sports already supplies elsewhere in this app
+  // (Team Rosters, Fantasy) — matched by exact real name within the one
+  // real team we already resolved above. Never a guess across teams,
+  // never a fabricated URL.
+  let photoUrl = player.photoUrl;
+  if (!photoUrl && team?.id) {
+    const apiSport = sportSlugForSdio(league);
+    const apiSeason = seasonParam(apiSport, new Date().toISOString());
+    const apiRoster = await fetchTeamRoster(apiSport, team.id, apiSeason).catch(() => null);
+    const targetName = player.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    photoUrl = apiRoster?.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === targetName)?.photoUrl;
+  }
+
   return {
     playerId: player.playerId,
     league,
@@ -288,7 +304,7 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     number: player.number,
     position: player.position,
     status: player.status,
-    photoUrl: player.photoUrl,
+    photoUrl,
     age: player.age,
     birthDate: player.birthDate,
     heightInches: player.heightInches,

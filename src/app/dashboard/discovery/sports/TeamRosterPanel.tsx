@@ -73,6 +73,15 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    // No verified provider id for this team (see team-directory.ts) — a
+    // roster lookup would have nothing real to ask for, so skip the doomed
+    // fetch and show the honest reason directly instead of "Loading…"
+    // forever or a generic empty result.
+    if (!team.id) {
+      setLoading(false);
+      setRoster([]);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(false);

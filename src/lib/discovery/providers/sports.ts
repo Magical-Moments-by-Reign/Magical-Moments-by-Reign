@@ -14,6 +14,11 @@ export interface SportsTeam {
   id: string;
   name: string;
   logoUrl?: string;
+  /** The provider's own real short code/abbreviation (e.g. "BUF"), when it
+   *  returns one — never derived or guessed. A secondary, verified match
+   *  key for resolving a team from a source that only gives a code rather
+   *  than a full name (see resolveTeamByName's use of this in service.ts). */
+  code?: string;
 }
 
 export interface SportsGameSummary {
@@ -586,7 +591,7 @@ function mapTeamsResponse(json: unknown): SportsTeam[] | null {
     .map((item: any) => {
       const t = item?.team ?? item;
       if (!t?.id || !t?.name) return null;
-      return { id: String(t.id), name: t.name, logoUrl: t.logo || undefined } as SportsTeam;
+      return { id: String(t.id), name: t.name, logoUrl: t.logo || undefined, code: typeof t.code === "string" && t.code.trim() ? t.code.trim() : undefined } as SportsTeam;
     })
     .filter((t: SportsTeam | null): t is SportsTeam => t !== null);
 }
@@ -629,7 +634,26 @@ export async function fetchTeamsForLeague(sport: SportSlug, league: string, seas
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const yr = season || seasonParam(sport, new Date().toISOString());
   const json = await apiSportsFetch(sport, "/teams", { league, season: yr });
-  return mapTeamsResponse(json);
+  const first = mapTeamsResponse(json);
+  if (!first) return null;
+
+  // API-Sports paginates a large `/teams` response (a real `paging.total`
+  // field in the envelope, e.g. NBA's 30 teams can span more than one
+  // page) — reading only page 1 silently drops whichever teams landed on
+  // later pages, which is exactly what left roughly half of a league's
+  // teams with no resolvable id/logo even though the call itself
+  // "succeeded." Fetch every remaining real page and merge; a response
+  // with no paging field (or just one page) makes this a no-op.
+  const paging = (json as any)?.paging;
+  const totalPages = typeof paging?.total === "number" ? paging.total : 1;
+  if (totalPages <= 1) return first;
+
+  const restPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => i + 2).map((page) =>
+      apiSportsFetch(sport, "/teams", { league, season: yr, page: String(page) }))
+  );
+  const rest = restPages.flatMap((p) => mapTeamsResponse(p) ?? []);
+  return [...first, ...rest];
 }
 
 export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {

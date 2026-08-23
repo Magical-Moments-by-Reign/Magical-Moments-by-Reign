@@ -360,7 +360,17 @@ export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<stri
     fetchTeamsForLeague(sport, league, season));
   const roster = cached?.data ?? [];
   const map = new Map<string, { id: string; logoUrl?: string }>();
-  for (const t of roster) map.set(normalizeTeamName(t.name), { id: t.id, logoUrl: t.logoUrl });
+  for (const t of roster) {
+    const entry = { id: t.id, logoUrl: t.logoUrl };
+    map.set(normalizeTeamName(t.name), entry);
+    // Also index by the provider's own real short code (e.g. "BUF"), when it
+    // returns one — a secondary, still-verified match key. A secondary
+    // source's team field (SportsDataIO's Player.Team, for one) is often
+    // just the code, not the full franchise name; without this, resolving
+    // that player's team logo would silently fail even though the real
+    // team is right there in this same roster. Never a guessed code.
+    if (t.code) map.set(normalizeTeamName(t.code), entry);
+  }
   return map;
 }
 
@@ -461,6 +471,18 @@ async function getStandingsFromSportsData(sport: SportSlug, season?: string): Pr
  *  why this fallback used to come back empty even when the provider had
  *  the real roster. Returns [] when the team can't be resolved to a real
  *  TeamID or nothing matches — never a guessed roster. */
+// API-Sports' basketball product names WNBA teams with a trailing gender
+// marker (e.g. "Connecticut Sun W") that SportsDataIO's own team directory
+// doesn't carry on the same franchise's real full name — a real, observed
+// provider formatting difference, not a guess at what either provider
+// "probably" does. Stripped ONLY as a last-resort identity tier, ONLY for
+// WNBA, and ONLY this one specific, known suffix shape — never a general
+// fuzzy match that could mis-map two different real teams together.
+function stripKnownWnbaSuffix(normalized: string): string | null {
+  const stripped = normalized.replace(/\s+w$/, "").trim();
+  return stripped !== normalized && stripped.length > 0 ? stripped : null;
+}
+
 async function getRosterFromSportsData(sport: SportSlug, teamName: string): Promise<SportsRosterPlayer[]> {
   const league = sdioLeagueFor(sport);
   if (!league) return [];
@@ -471,7 +493,13 @@ async function getRosterFromSportsData(sport: SportSlug, teamName: string): Prom
   const players = cached?.data ?? [];
   if (!players.length) return [];
   const target = normalizeTeamName(teamName);
-  const identity = directory.find((t) => normalizeTeamName(t.fullName) === target) ?? directory.find((t) => t.key && normalizeTeamName(t.key) === target);
+  const findIdentity = (t: string) => directory.find((d) => normalizeTeamName(d.fullName) === t) ?? directory.find((d) => d.key && normalizeTeamName(d.key) === t);
+  // Tier order: 1) real full-name/key match against the exact provider
+  // string. 2) only for WNBA, and only when tier 1 found nothing, the same
+  // match retried against the one known real alias shape above — never
+  // reached at all for any other sport (sport !== "wnba" short-circuits).
+  const aliasTarget = sport === "wnba" ? stripKnownWnbaSuffix(target) : null;
+  const identity = findIdentity(target) ?? (aliasTarget ? findIdentity(aliasTarget) : undefined);
   const toRosterPlayer = (p: (typeof players)[number]): SportsRosterPlayer => ({ id: p.playerId, name: p.name, position: p.position, number: p.number, photoUrl: p.photoUrl });
   if (identity) {
     const byId = players.filter((p) => p.teamId === identity.teamId);

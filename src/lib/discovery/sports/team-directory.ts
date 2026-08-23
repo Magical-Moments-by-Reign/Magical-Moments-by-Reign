@@ -107,7 +107,12 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
         }
         const team = rosterMap ? rosterMap.get(normalize(name)) ?? null : await resolveTeamByName(sport, name).catch(() => null);
         merged.push({
-          team: { id: team?.id ?? name, name, logoUrl: team?.logoUrl },
+          // An unresolved team gets NO id, never the team name standing in
+          // as one — a name isn't a real API-Sports team id, and using it
+          // as one used to send a doomed roster lookup for a team whose
+          // logo was already honestly missing (see TeamRosterPanel's own
+          // guard on an empty id).
+          team: { id: team?.id ?? "", name, logoUrl: team?.logoUrl },
           wins: allowZeroFill ? 0 : undefined,
           losses: allowZeroFill ? 0 : undefined,
           group: conference,
@@ -131,7 +136,9 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
     for (const { conference, division, teams } of spec) {
       const resolved = await Promise.all(teams.map(async (name): Promise<DirectoryTeam> => {
         const team = rosterMap ? rosterMap.get(normalize(name)) ?? null : await resolveTeamByName(sport, name).catch(() => null);
-        return { id: team?.id ?? name, name, logoUrl: team?.logoUrl };
+        // See getVerifiedStandingsFallback's comment on this same pattern —
+        // an unresolved team gets no id, never its own name standing in.
+        return { id: team?.id ?? "", name, logoUrl: team?.logoUrl };
       }));
       const divisions = byConference.get(conference) ?? [];
       divisions.push({ label: division, teams: resolved });

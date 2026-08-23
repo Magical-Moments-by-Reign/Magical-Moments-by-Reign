@@ -174,10 +174,19 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       <SmartBackLink fallbackHref={`/dashboard/discovery/sports/${SPORT_SLUG[league]}`} label={`← Back to ${LEAGUE_LABEL[league]}`} className="spx-profile__back" />
 
       <section className="spx-profile__hero">
-        {profile.teamLogoUrl && (
+        {profile.team && (
           <div className="spx-profile__team-badge">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={profile.teamLogoUrl} alt="" />
+            {profile.teamLogoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.teamLogoUrl} alt="" />
+            ) : (
+              // No verified logo resolved for this team — a plain neutral
+              // mark using the team's own real name/code (never a guessed
+              // or scraped image), not a blank space.
+              <span className="spx-profile__team-badge-fallback" aria-hidden="true">
+                {profile.team.slice(0, 3).toUpperCase()}
+              </span>
+            )}
           </div>
         )}
         <div className="spx-profile__hero-main">
@@ -274,7 +283,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
               )}
             </>
           ) : (
-            <p className="spx-panel__empty">No {profile.currentSeason} season statistics available yet.</p>
+            <p className="spx-panel__empty">No {profile.currentSeason} regular-season statistics available yet.</p>
           )}
         </div>
 
@@ -290,7 +299,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
           </div>
         )}
         {profile.seasonsBySeason.length === 0 && !currentStats && profile.recentGameFallback.length === 0 && (
-          <p className="spx-panel__empty">No professional statistics on record for this player yet.</p>
+          <p className="spx-panel__empty">Verified historical season statistics aren&rsquo;t available from our current data source yet.</p>
         )}
 
         {profile.recentGameFallback.length > 0 && (

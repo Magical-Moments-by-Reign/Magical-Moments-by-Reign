@@ -463,7 +463,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           </div>
         )}
 
-        {firstPreseasonGame && !PRESEASON_PHASE_SPORTS[sport] && (
+        {firstPreseasonGame && (
           <p className="spx-sport-header__preseason">
             Preseason begins {new Date(firstPreseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             {" "}— {firstPreseasonGame.awayTeam.name} @ {firstPreseasonGame.homeTeam.name}
