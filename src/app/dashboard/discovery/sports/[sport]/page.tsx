@@ -17,6 +17,7 @@ import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
 import CountdownClock from "../CountdownClock";
 import JerseyAvatar from "../JerseyAvatar";
+import PlayerAvatar from "../PlayerAvatar";
 import SportCardVisual from "../SportCardVisual";
 import { SPORT_VISUALS } from "../visuals";
 import "../../discovery.css";
@@ -257,22 +258,23 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     }
   }
 
-  // Magical Picks + Fantasy Football — first-class NFL discoverability, not
+  // Magical Picks + Fantasy Football — first-class discoverability, not
   // hidden utility links (members shouldn't have to know these routes
   // exist). A real, pickable matchup when one is available: live > soonest
   // scheduled today, same priority the main Sports landing page's own
   // featured-matchup panel already uses (getGamesWithVoteContext) — never a
-  // decorative placeholder. Both are gated to NFL only, matching the scope
-  // of this page.
-  let nflFeaturedMatchup: Awaited<ReturnType<typeof getGamesWithVoteContext>>["contexts"][number] | null = null;
+  // decorative placeholder. Magical Picks spans every MATCHUP_SPORTS sport
+  // (NFL and WNBA get a first-class preview here today); Fantasy Football
+  // stays NFL-only, per explicit product scope — see PicksAndFantasyPanels.
+  let picksFeaturedMatchup: Awaited<ReturnType<typeof getGamesWithVoteContext>>["contexts"][number] | null = null;
   let myFantasyLeagues: Awaited<ReturnType<typeof getMyFantasyLeagues>> = [];
-  if (sport === "nfl") {
+  if (sport === "nfl" || sport === "wnba") {
     const todayISO = new Date().toISOString().slice(0, 10);
     const [{ contexts }, leagues] = await Promise.all([
-      ApiSportsProvider.isConfigured("nfl") ? getGamesWithVoteContext("nfl", todayISO, account.id, 20) : Promise.resolve({ contexts: [] }),
-      getMyFantasyLeagues(account.id),
+      ApiSportsProvider.isConfigured(sport) ? getGamesWithVoteContext(sport, todayISO, account.id, 20) : Promise.resolve({ contexts: [] }),
+      sport === "nfl" ? getMyFantasyLeagues(account.id) : Promise.resolve([]),
     ]);
-    nflFeaturedMatchup = contexts.find((c) => c.game.status === "live")
+    picksFeaturedMatchup = contexts.find((c) => c.game.status === "live")
       ?? contexts.filter((c) => c.game.status === "scheduled").sort((a, b) => +a.game.startsAt - +b.game.startsAt)[0]
       ?? null;
     myFantasyLeagues = leagues;
@@ -403,8 +405,18 @@ export default async function SportPage({ params, searchParams }: { params: Prom
 
       {sport === "nfl" && (
         <div className="spx-panels spx-panels--picks-fantasy">
-          <MagicalPicksPanel matchup={nflFeaturedMatchup} previewSportLabel="NFL" />
+          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel="NFL" />
           <FantasyFootballPanel leagues={myFantasyLeagues} />
+        </div>
+      )}
+
+      {/* WNBA gets Magical Picks only — no Fantasy Football, which stays
+          NFL-only (see PicksAndFantasyPanels' doc comment). Standalone
+          (not the two-column picks/fantasy grid) since there's no second
+          panel to pair it with here. */}
+      {sport === "wnba" && (
+        <div style={{ marginBottom: "1.4rem" }}>
+          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel="WNBA" />
         </div>
       )}
 
@@ -509,8 +521,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                         {roster.map((p) => {
                           const content = (
                             <>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              {p.photoUrl ? <img src={p.photoUrl} alt="" /> : <JerseyAvatar number={p.number} />}
+                              <PlayerAvatar photoUrl={p.photoUrl} number={p.number} size="md" />
                               <span className="spx-roster__name">{p.name}</span>
                               <span className="spx-roster__meta">{p.number != null ? `#${p.number}` : ""}{p.number != null && p.position ? " · " : ""}{p.position ?? ""}</span>
                             </>

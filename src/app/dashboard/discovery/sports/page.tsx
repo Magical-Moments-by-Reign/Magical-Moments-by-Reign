@@ -16,6 +16,7 @@ import SportGlyph from "./SportGlyph";
 import SportCardVisual from "./SportCardVisual";
 import { SPORT_VISUALS } from "./visuals";
 import PlayerSearch from "./PlayerSearch";
+import PlayerAvatar from "./PlayerAvatar";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
 import "./sports-home.css";
@@ -144,14 +145,7 @@ export default async function SportsPage() {
                 {trackedPlayers.map((t) => (
                   <div className="spx-tracked__item" key={t.id}>
                     <Link href={`/dashboard/discovery/sports/player/${t.league}/${t.playerId}`} className="spx-search__linkarea">
-                      <div className="spx-tracked__photo">
-                        {t.live?.photoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={t.live.photoUrl} alt="" />
-                        ) : (
-                          <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
-                        )}
-                      </div>
+                      <PlayerAvatar photoUrl={t.live?.photoUrl} size="sm" />
                       <div className="spx-tracked__info">
                         <b>{t.playerName}</b>
                         <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>

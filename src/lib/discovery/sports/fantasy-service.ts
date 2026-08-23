@@ -265,17 +265,21 @@ export interface FantasyTeamRoster {
   teamId: string;
   teamName: string;
   isMe: boolean;
-  players: (RosterPlayer & { playerName: string })[];
+  players: (RosterPlayer & { playerName: string; photoUrl?: string })[];
 }
 
 export async function getFantasyTeamRoster(accountId: string, leagueId: string, teamId: string): Promise<FantasyTeamRoster | null> {
   const team = await prisma.fantasyTeam.findUnique({ where: { id: teamId }, include: { roster: true, league: { select: { teams: { select: { accountId: true } } } } } }).catch(() => null);
   if (!team || !team.league.teams.some((t) => t.accountId === accountId)) return null;
+  // The roster row itself doesn't store a photo (no schema change for this)
+  // — enrich in memory from the same cached player pool the draft/free
+  // agents views already read.
+  const photoById = new Map((await getFantasyPlayerPool()).map((p) => [p.playerId, p.photoUrl]));
   return {
     teamId: team.id,
     teamName: team.teamName,
     isMe: team.accountId === accountId,
-    players: team.roster.map((r) => ({ playerId: r.playerId, playerName: r.playerName, position: r.position, lineupSlot: r.lineupSlot })),
+    players: team.roster.map((r) => ({ playerId: r.playerId, playerName: r.playerName, position: r.position, lineupSlot: r.lineupSlot, photoUrl: photoById.get(r.playerId) })),
   };
 }
 
@@ -498,8 +502,10 @@ export interface WaiverClaimView {
   id: string;
   teamId: string;
   teamName: string;
+  addPlayerId: string;
   addPlayerName: string;
   addPosition: string;
+  addPhotoUrl?: string;
   dropPlayerId: string | null;
   status: string;
   isMine: boolean;
@@ -534,13 +540,18 @@ export async function submitWaiverClaim(accountId: string, teamId: string, addPl
 export async function getWaiverClaims(accountId: string, leagueId: string): Promise<WaiverClaimView[] | null> {
   const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
   if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
-  const claims = await prisma.fantasyWaiverClaim.findMany({ where: { leagueId, status: "pending" }, include: { team: true }, orderBy: { createdAt: "asc" } });
+  const [claims, photoById] = await Promise.all([
+    prisma.fantasyWaiverClaim.findMany({ where: { leagueId, status: "pending" }, include: { team: true }, orderBy: { createdAt: "asc" } }),
+    getFantasyPlayerPool().then((pool) => new Map(pool.map((p) => [p.playerId, p.photoUrl]))),
+  ]);
   return claims.map((c) => ({
     id: c.id,
     teamId: c.teamId,
     teamName: c.team.teamName,
+    addPlayerId: c.addPlayerId,
     addPlayerName: c.addPlayerName,
     addPosition: c.addPosition,
+    addPhotoUrl: photoById.get(c.addPlayerId),
     dropPlayerId: c.dropPlayerId,
     status: c.status,
     isMine: c.team.accountId === accountId,
@@ -583,14 +594,20 @@ export async function processWaivers(accountId: string, leagueId: string): Promi
 
 // ── Trades ───────────────────────────────────────────────────────────────
 
+export interface FantasyTradePlayer {
+  playerId: string;
+  playerName: string;
+  photoUrl?: string;
+}
+
 export interface FantasyTradeView {
   id: string;
   proposerTeamId: string;
   proposerTeamName: string;
   recipientTeamId: string;
   recipientTeamName: string;
-  proposerPlayerNames: string[];
-  recipientPlayerNames: string[];
+  proposerPlayers: FantasyTradePlayer[];
+  recipientPlayers: FantasyTradePlayer[];
   status: string;
   isMyOffer: boolean;
   isForMe: boolean;
@@ -618,17 +635,24 @@ export async function proposeTrade(accountId: string, leagueId: string, proposer
 export async function getFantasyTrades(accountId: string, leagueId: string): Promise<FantasyTradeView[] | null> {
   const league = await prisma.fantasyLeague.findUnique({ where: { id: leagueId }, include: { teams: true } }).catch(() => null);
   if (!league || !league.teams.some((t) => t.accountId === accountId)) return null;
-  const trades = await prisma.fantasyTrade.findMany({ where: { leagueId, status: "pending" }, include: { proposerTeam: { include: { roster: true } }, recipientTeam: { include: { roster: true } } }, orderBy: { createdAt: "desc" } });
-  const nameFor = (roster: { playerId: string; playerName: string }[], ids: unknown) =>
-    (Array.isArray(ids) ? (ids as string[]) : []).map((id) => roster.find((r) => r.playerId === id)?.playerName ?? id);
+  const [trades, photoById] = await Promise.all([
+    prisma.fantasyTrade.findMany({ where: { leagueId, status: "pending" }, include: { proposerTeam: { include: { roster: true } }, recipientTeam: { include: { roster: true } } }, orderBy: { createdAt: "desc" } }),
+    getFantasyPlayerPool().then((pool) => new Map(pool.map((p) => [p.playerId, p.photoUrl]))),
+  ]);
+  const playersFor = (roster: { playerId: string; playerName: string }[], ids: unknown): FantasyTradePlayer[] =>
+    (Array.isArray(ids) ? (ids as string[]) : []).map((id) => ({
+      playerId: id,
+      playerName: roster.find((r) => r.playerId === id)?.playerName ?? id,
+      photoUrl: photoById.get(id),
+    }));
   return trades.map((t) => ({
     id: t.id,
     proposerTeamId: t.proposerTeamId,
     proposerTeamName: t.proposerTeam.teamName,
     recipientTeamId: t.recipientTeamId,
     recipientTeamName: t.recipientTeam.teamName,
-    proposerPlayerNames: nameFor(t.proposerTeam.roster, t.proposerPlayerIds),
-    recipientPlayerNames: nameFor(t.recipientTeam.roster, t.recipientPlayerIds),
+    proposerPlayers: playersFor(t.proposerTeam.roster, t.proposerPlayerIds),
+    recipientPlayers: playersFor(t.recipientTeam.roster, t.recipientPlayerIds),
     status: t.status,
     isMyOffer: t.proposerTeam.accountId === accountId,
     isForMe: t.recipientTeam.accountId === accountId,

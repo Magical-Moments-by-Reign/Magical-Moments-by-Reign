@@ -5,7 +5,7 @@ import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { getPlayerProfile } from "@/lib/discovery/sports/player-profile";
 import { generateJourneyNarrative, type JourneyFacts } from "@/lib/discovery/sports/journey-narrative";
 import { sdioConfigured, sdioCommercialMode, type SdioLeague } from "@/lib/discovery/providers/sportsdata";
-import JerseyAvatar from "../../../JerseyAvatar";
+import PlayerHeroPhoto from "./PlayerHeroPhoto";
 import "../../../../discovery.css";
 import "../../../sports-home.css";
 
@@ -171,39 +171,31 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       <Link href="/dashboard/discovery/sports" className="spx-profile__back">← Back to Sports</Link>
 
       <section className="spx-profile__hero">
-        <div className="spx-profile__photo">
-          {profile.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.photoUrl} alt="" />
-          ) : (
-            <JerseyAvatar number={profile.number} />
-          )}
-        </div>
-        <div className="spx-profile__identity">
-          <h1>{profile.name}</h1>
-          <p className="spx-profile__subline">
-            {profile.position && <span>{profile.position}</span>}
-            {profile.position && profile.team && " · "}
-            {profile.team && (
-              <span className="spx-profile__team">
-                {profile.teamLogoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.teamLogoUrl} alt="" className="spx-profile__team-logo" />
-                )}
-                {profile.team}
-              </span>
-            )}
-          </p>
-          <dl className="spx-profile__bio">
-            {profile.number != null && <div><dt>Number</dt><dd>#{profile.number}</dd></div>}
-            {profile.status && <div><dt>Status</dt><dd>{profile.status}</dd></div>}
-            {heightLabel(profile.heightInches) && <div><dt>Height</dt><dd>{heightLabel(profile.heightInches)}</dd></div>}
-            {profile.weightLbs && <div><dt>Weight</dt><dd>{profile.weightLbs} lbs</dd></div>}
-            {profile.age && <div><dt>Age</dt><dd>{profile.age}</dd></div>}
-            {formatDate(profile.birthDate) && <div><dt>Born</dt><dd>{formatDate(profile.birthDate)}</dd></div>}
-            {(profile.birthCity || profile.birthState) && <div><dt>Hometown</dt><dd>{[profile.birthCity, profile.birthState].filter(Boolean).join(", ")}</dd></div>}
-            {typeof profile.experienceYears === "number" && <div><dt>Experience</dt><dd>{profile.experienceYears} season{profile.experienceYears === 1 ? "" : "s"}</dd></div>}
-          </dl>
+        {profile.teamLogoUrl && (
+          <div className="spx-profile__team-badge">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={profile.teamLogoUrl} alt="" />
+          </div>
+        )}
+        <div className="spx-profile__hero-main">
+          <PlayerHeroPhoto photoUrl={profile.photoUrl} number={profile.number} />
+          <div className="spx-profile__identity">
+            <h1>{profile.name}</h1>
+            <div className="spx-profile__chips">
+              {profile.team && <span className="spx-profile__chip spx-profile__chip--team">{profile.team}</span>}
+              {profile.position && <span className="spx-profile__chip">{profile.position}</span>}
+              {profile.age && <span className="spx-profile__chip">Age {profile.age}</span>}
+              {profile.status && <span className="spx-profile__chip">{profile.status}</span>}
+            </div>
+            <dl className="spx-profile__bio">
+              {profile.number != null && <div><dt>Number</dt><dd>#{profile.number}</dd></div>}
+              {heightLabel(profile.heightInches) && <div><dt>Height</dt><dd>{heightLabel(profile.heightInches)}</dd></div>}
+              {profile.weightLbs && <div><dt>Weight</dt><dd>{profile.weightLbs} lbs</dd></div>}
+              {formatDate(profile.birthDate) && <div><dt>Born</dt><dd>{formatDate(profile.birthDate)}</dd></div>}
+              {(profile.birthCity || profile.birthState) && <div><dt>Hometown</dt><dd>{[profile.birthCity, profile.birthState].filter(Boolean).join(", ")}</dd></div>}
+              {typeof profile.experienceYears === "number" && <div><dt>Experience</dt><dd>{profile.experienceYears} season{profile.experienceYears === 1 ? "" : "s"}</dd></div>}
+            </dl>
+          </div>
         </div>
       </section>
 
@@ -294,8 +286,30 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
             ))}
           </div>
         )}
-        {profile.seasonsBySeason.length === 0 && !currentStats && (
+        {profile.seasonsBySeason.length === 0 && !currentStats && profile.recentGameFallback.length === 0 && (
           <p className="spx-panel__empty">No professional statistics on record for this player yet.</p>
+        )}
+
+        {profile.recentGameFallback.length > 0 && (
+          <div className="spx-panel__body" style={{ marginTop: "1rem" }}>
+            <h3 className="spx-standings__group-label">Recent Games</h3>
+            <p className="spx-profile__fallback-note">
+              Season totals aren&rsquo;t available from our primary stats source yet — showing real, individual game stats instead.
+            </p>
+            {profile.recentGameFallback.map((g, i) => (
+              <div key={i} style={{ marginBottom: ".6rem" }}>
+                <span className="spx-standings__division-label">{formatDate(g.date) ?? "Date unknown"}{g.opponent ? ` — vs ${g.opponent}` : ""}</span>
+                <div className="spx-profile__stats-grid">
+                  {g.stats.map((s, j) => (
+                    <div key={j} className="spx-profile__stat">
+                      <span className="spx-profile__stat-value">{s.value}</span>
+                      <span className="spx-profile__stat-label">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 

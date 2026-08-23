@@ -15,6 +15,7 @@ import {
   getFantasyPlayoffBracket,
 } from "@/lib/discovery/sports/fantasy-service";
 import { draftPickLabel } from "@/lib/discovery/sports/fantasy";
+import PlayerAvatar from "../../PlayerAvatar";
 import {
   startFantasyDraftAction,
   draftPlayerAction,
@@ -30,6 +31,9 @@ import {
   syncFantasyPlayoffRoundAction,
 } from "../actions";
 import "../../../discovery.css";
+// Only for .spx-avatar (PlayerAvatar's own black/gold badge) — scoped
+// entirely under .spx-* so it can't touch this page's .disc-* theme.
+import "../../sports-home.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Fantasy League — Magical Discovery", robots: { index: false } };
@@ -113,6 +117,7 @@ async function FantasyDraftBoard({ league, leagueId, pos }: { league: NonNullabl
         {filtered.length === 0 && <p className="disc-empty">No available {pos}s remaining — try another position.</p>}
         {filtered.map((p) => (
           <div className="disc-chart__row" key={p.playerId}>
+            <PlayerAvatar photoUrl={p.photoUrl} number={p.number} size="sm" />
             <div className="disc-chart__song"><b>{p.name}</b><span>{p.position} · {p.team ?? "Free Agent"}</span></div>
             {myTurn ? (
               <form action={draftPlayerAction}>
@@ -296,6 +301,7 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
           const p = starters.filter((s) => s.lineupSlot === slot)[occurrence];
           return (
             <div className="disc-chart__row" key={`${slot}-${i}`}>
+              {p && <PlayerAvatar photoUrl={p.photoUrl} size="sm" />}
               <div className="disc-chart__song"><b>{slot}</b><span>{p ? `${p.playerName} · ${p.position}` : "Empty"}</span></div>
             </div>
           );
@@ -307,6 +313,7 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
         {bench.length === 0 && <p className="disc-empty">No bench players.</p>}
         {bench.map((p) => (
           <div className="disc-chart__row" key={p.playerId}>
+            <PlayerAvatar photoUrl={p.photoUrl} size="sm" />
             <div className="disc-chart__song"><b>{p.playerName}</b><span>{p.position}</span></div>
             {isMyTeam && (
               <div style={{ display: "flex", gap: ".4rem" }}>
@@ -355,6 +362,7 @@ async function FantasyFreeAgents({ league, leagueId, pos }: { league: NonNullabl
         {filtered.length === 0 && <p className="disc-empty">No available {pos}s right now.</p>}
         {filtered.map((p) => (
           <div className="disc-chart__row" key={p.playerId}>
+            <PlayerAvatar photoUrl={p.photoUrl} number={p.number} size="sm" />
             <div className="disc-chart__song"><b>{p.name}</b><span>{p.position} · {p.team ?? "Free Agent"}</span></div>
             {league.myTeamId && (
               <form action={submitWaiverClaimAction} style={{ display: "flex", gap: ".4rem" }}>
@@ -392,6 +400,7 @@ async function FantasyWaivers({ league, leagueId, accountId }: { league: NonNull
         <div className="disc-chart">
           {claims.map((c) => (
             <div className="disc-chart__row" key={c.id}>
+              <PlayerAvatar photoUrl={c.addPhotoUrl} size="sm" />
               <div className="disc-chart__song"><b>{c.isMine ? "You" : c.teamName}</b><span>Claiming {c.addPlayerName} · {c.addPosition}</span></div>
               <span className="disc-badge">Pending</span>
             </div>
@@ -424,10 +433,10 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
       {trades.length === 0 && <p className="disc-empty" style={{ marginTop: 0 }}>No pending trades.</p>}
       <div className="disc-chart">
         {trades.map((t) => (
-          <div className="disc-chart__row" key={t.id}>
+          <div className="disc-chart__row" key={t.id} style={{ flexWrap: "wrap" }}>
             <div className="disc-chart__song">
               <b>{t.proposerTeamName} ⇄ {t.recipientTeamName}</b>
-              <span>{t.proposerTeamName} gives {t.proposerPlayerNames.join(", ") || "—"} for {t.recipientPlayerNames.join(", ") || "—"}</span>
+              <span>{t.proposerPlayers.map((p) => p.playerName).join(", ") || "—"} for {t.recipientPlayers.map((p) => p.playerName).join(", ") || "—"}</span>
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
               {t.isForMe && (
@@ -454,6 +463,30 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                 </form>
               )}
             </div>
+            <div style={{ width: "100%", display: "flex", flexWrap: "wrap", gap: "1.4rem", marginTop: ".5rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: ".35rem" }}>
+                <span style={{ fontSize: ".64rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)" }}>{t.proposerTeamName} gives</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: ".6rem" }}>
+                  {t.proposerPlayers.length === 0 && <span style={{ fontSize: ".78rem", color: "var(--ink-soft)" }}>—</span>}
+                  {t.proposerPlayers.map((p) => (
+                    <span key={p.playerId} style={{ display: "inline-flex", alignItems: "center", gap: ".35rem", fontSize: ".78rem" }}>
+                      <PlayerAvatar photoUrl={p.photoUrl} size={22} />{p.playerName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: ".35rem" }}>
+                <span style={{ fontSize: ".64rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-soft)" }}>{t.recipientTeamName} gives</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: ".6rem" }}>
+                  {t.recipientPlayers.length === 0 && <span style={{ fontSize: ".78rem", color: "var(--ink-soft)" }}>—</span>}
+                  {t.recipientPlayers.map((p) => (
+                    <span key={p.playerId} style={{ display: "inline-flex", alignItems: "center", gap: ".35rem", fontSize: ".78rem" }}>
+                      <PlayerAvatar photoUrl={p.photoUrl} size={22} />{p.playerName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -473,16 +506,20 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                   <fieldset style={{ border: "none", padding: 0 }}>
                     <legend style={{ fontSize: ".7rem", textTransform: "uppercase", color: "var(--ink-soft)" }}>You give</legend>
                     {myRoster.players.map((p) => (
-                      <label key={p.playerId} style={{ display: "block", fontSize: ".82rem" }}>
-                        <input type="checkbox" name="proposerPlayerIds" value={p.playerId} /> {p.playerName} · {p.position}
+                      <label key={p.playerId} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: ".82rem", padding: ".15rem 0" }}>
+                        <input type="checkbox" name="proposerPlayerIds" value={p.playerId} />
+                        <PlayerAvatar photoUrl={p.photoUrl} size={22} />
+                        {p.playerName} · {p.position}
                       </label>
                     ))}
                   </fieldset>
                   <fieldset style={{ border: "none", padding: 0 }}>
                     <legend style={{ fontSize: ".7rem", textTransform: "uppercase", color: "var(--ink-soft)" }}>You get</legend>
                     {partnerRoster?.players.map((p) => (
-                      <label key={p.playerId} style={{ display: "block", fontSize: ".82rem" }}>
-                        <input type="checkbox" name="recipientPlayerIds" value={p.playerId} /> {p.playerName} · {p.position}
+                      <label key={p.playerId} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: ".82rem", padding: ".15rem 0" }}>
+                        <input type="checkbox" name="recipientPlayerIds" value={p.playerId} />
+                        <PlayerAvatar photoUrl={p.photoUrl} size={22} />
+                        {p.playerName} · {p.position}
                       </label>
                     ))}
                   </fieldset>
