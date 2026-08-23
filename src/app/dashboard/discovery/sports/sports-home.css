@@ -6,7 +6,23 @@
    sidebar. Black/deep-charcoal/metallic-gold/ivory only — no pastel, no
    emoji, no default-dashboard card styling. */
 
-.spx { position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#f4f1ea; background:radial-gradient(ellipse at 50% 5%,#2a2112 0,#0c0a07 30%,#050504 72%); }
+.spx {
+  position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#f4f1ea; background:radial-gradient(ellipse at 50% 5%,#2a2112 0,#0c0a07 30%,#050504 72%);
+  /* ── Shared density tokens ──
+     COMPACT: nav CTAs, playoff-bracket entry, quick links, status summaries.
+     STANDARD: preview/summary cards (Magical Picks, My Teams, injuries,
+     recent activity, fantasy summaries).
+     LARGE: full content panels (standings, rosters, schedules, player
+     stats, draft board, live game center) — these grow with their own
+     content by default (height: auto); these tokens only set the padding
+     around that content, never a fixed/min height that reserves empty
+     space when a panel's real content is short. */
+  --panel-padding-compact: .7rem .85rem;
+  --panel-padding-standard: .85rem;
+  --panel-padding-large: 1.1rem 1.2rem;
+  --section-gap-compact: .6rem;
+  --section-gap-standard: 1rem;
+}
 .spx::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28; background:linear-gradient(118deg,transparent 18%,rgba(207,168,84,.18) 18.1%,transparent 18.5%),linear-gradient(62deg,transparent 81%,rgba(207,168,84,.14) 81.1%,transparent 81.5%),repeating-linear-gradient(90deg,transparent 0 11%,rgba(255,255,255,.025) 11.1% 11.25%); }
 .spx > * { position:relative; z-index:1; }
 
@@ -193,20 +209,27 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-card--soon span { color: var(--gold-soft); }
 @media (max-width: 700px) { .spx-card { width: 108px; } }
 
-/* ── Four-panel row: Live Games / Upcoming Games / Magical Picks / My Teams ── */
-.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .8rem; margin-bottom: 1.3rem; }
+/* ── Four-panel row: Live Games / Upcoming Games / Magical Picks / My Teams ──
+   align-items: start is the actual fix for "this panel looks way taller
+   than it needs to be" in a mixed row — CSS Grid stretches every item in a
+   row to match the row's tallest item by default, so an empty "You haven't
+   followed a team yet" panel next to a full Standings table was being
+   forced to the table's height and centering its one-line message inside
+   all that reserved space. Content-driven height by default: a panel is
+   exactly as tall as its own content requires, never its tallest sibling's. */
+.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: start; gap: var(--section-gap-compact); margin-bottom: var(--section-gap-standard); }
 .spx-panel {
   background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.28);
-  border-radius: 12px; padding: .85rem; display: flex; flex-direction: column;
+  border-radius: 12px; padding: var(--panel-padding-standard); display: flex; flex-direction: column;
 }
 .spx-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
 .spx-panel__head h2 { margin: 0; color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .14em; }
 .spx-panel__head a { color: #9c8f76; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 .spx-panel__head a:hover { color: var(--gold-soft); }
-.spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: auto 0; }
-.spx-panel__body { display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+.spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: .2rem 0; }
+.spx-panel__body { display: flex; flex-direction: column; gap: .6rem; }
 
-.spx-panels--picks-fantasy { grid-template-columns: 1fr 1fr; margin-bottom: 1.4rem; }
+.spx-panels--picks-fantasy { grid-template-columns: 1fr 1fr; margin-bottom: var(--section-gap-standard); }
 
 .spx-playoff-picture { margin-bottom: 1.6rem; }
 .spx-playoff-picture__confs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
@@ -587,7 +610,7 @@ a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underl
    Big, obvious CTA — visible from mid-season onward, not just once the
    postseason starts. */
 .spx-bracket-cta {
-  display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; padding: .85rem 1rem;
+  display: flex; align-items: center; gap: .8rem; margin-bottom: var(--section-gap-standard); padding: var(--panel-padding-compact);
   border-radius: 12px; text-decoration: none;
   background: linear-gradient(160deg, #4f3a22 0%, #392a1a 55%, #291f14 100%);
   border: 1px solid rgba(201,162,75,.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.06);

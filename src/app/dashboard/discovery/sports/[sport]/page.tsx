@@ -496,7 +496,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         )}
       </header>
 
-      <div className="spx-panel" style={{ marginBottom: "1.4rem" }}>
+      <div className="spx-panel" style={{ marginBottom: "var(--section-gap-standard)" }}>
         <div className="spx-panel__head"><h2>{gamesLabel}</h2></div>
         {!connected ? (
           <div className="disc-pending"><b>Live {sportMeta.label} data is coming soon</b></div>
@@ -539,7 +539,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           are deliberately excluded (not in MATCHUP_SPORTS — a race/fight
           card doesn't map onto a two-side "who you got" pick). */}
       {sport !== "nfl" && MATCHUP_SPORTS.includes(sport) && (
-        <div style={{ marginBottom: "1.4rem" }}>
+        <div style={{ marginBottom: "var(--section-gap-standard)" }}>
           <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel={sportMeta.label} />
         </div>
       )}
