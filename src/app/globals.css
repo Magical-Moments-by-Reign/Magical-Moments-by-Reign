@@ -147,6 +147,9 @@
 .site-footer__links a:hover { color: var(--gold-soft); }
 .site-footer__legal { margin-top: 1.4rem; text-align: center; }
 .site-footer__legal small { color: rgba(248,244,236,0.45); font-size: 0.78rem; }
+.site-footer__legallinks { display: flex; justify-content: center; gap: 1rem; margin-top: .5rem; }
+.site-footer__legallinks a { color: rgba(248,244,236,0.6); font-size: 0.76rem; text-decoration: underline; }
+.site-footer__legallinks a:hover { color: rgba(248,244,236,0.9); }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

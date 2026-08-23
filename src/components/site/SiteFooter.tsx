@@ -29,6 +29,10 @@ export default function SiteFooter() {
       </div>
       <div className="container site-footer__legal">
         <small>© {new Date().getFullYear()} Magical Moments by Reign · Founded by Tabitha Turner</small>
+        <nav className="site-footer__legallinks" aria-label="Legal">
+          <Link href="/privacy-policy">Privacy Policy</Link>
+          <Link href="/terms">Terms of Service</Link>
+        </nav>
       </div>
     </footer>
   );
