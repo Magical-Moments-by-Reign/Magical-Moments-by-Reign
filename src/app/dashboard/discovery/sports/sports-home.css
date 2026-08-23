@@ -7,7 +7,14 @@
    emoji, no default-dashboard card styling. */
 
 .spx {
-  position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#f4f1ea; background:radial-gradient(ellipse at 50% 5%,#2a2112 0,#0c0a07 30%,#050504 72%);
+  position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#2c2115;
+  /* Owner-supplied ivory/cream backdrop with its own gold light streaks
+     (public/discovery/sports-backdrop.png) — the full-page background
+     behind the existing dark stadium hero and dark cards/panels below,
+     which keep their own explicit dark espresso/black backgrounds and
+     ivory text, untouched. Image only — no added gradient/texture on top
+     of it. */
+  background: #f4ecdb url("/discovery/sports-backdrop.png") center top / cover no-repeat;
   /* ── Shared density tokens ──
      COMPACT: nav CTAs, playoff-bracket entry, quick links, status summaries.
      STANDARD: preview/summary cards (Magical Picks, My Teams, injuries,
@@ -23,13 +30,12 @@
   --section-gap-compact: .6rem;
   --section-gap-standard: 1rem;
 }
-.spx::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28; background:linear-gradient(118deg,transparent 18%,rgba(207,168,84,.18) 18.1%,transparent 18.5%),linear-gradient(62deg,transparent 81%,rgba(207,168,84,.14) 81.1%,transparent 81.5%),repeating-linear-gradient(90deg,transparent 0 11%,rgba(255,255,255,.025) 11.1% 11.25%); }
 .spx > * { position:relative; z-index:1; }
 
 /* ── Cross-page nav (shared .disc-nav pills, themed for .spx) ── */
 .spx > .disc-nav { margin: 0 0 1.4rem; padding: 0 0 .7rem; border-bottom: 1px solid rgba(201,162,75,.22); }
-.spx > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: transparent; color: #d9cdb8; box-shadow: none; }
-.spx > .disc-nav a:hover { color: var(--gold-soft); }
+.spx > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: transparent; color: #5a4a34; box-shadow: none; }
+.spx > .disc-nav a:hover { color: var(--gold-deep); }
 .spx > .disc-nav a[aria-current="page"] { color: #1a1006; background: linear-gradient(135deg, #e0b651, #b98524); }
 
 /* ── Hero ── */
@@ -187,7 +193,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 /* ── Explore Sports grid — grouped into Pro / College / World sections ── */
 .spx-category { margin: 0 auto 1.8rem; max-width: 1040px; }
 .spx-category__label {
-  margin: 0 0 .8rem; color: var(--gold-soft); font-size: .72rem; font-weight: 800; letter-spacing: .18em;
+  margin: 0 0 .8rem; color: var(--gold-deep); font-size: .72rem; font-weight: 800; letter-spacing: .18em;
   text-transform: uppercase; text-align: center;
 }
 .spx-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.1rem; margin: 0; }
