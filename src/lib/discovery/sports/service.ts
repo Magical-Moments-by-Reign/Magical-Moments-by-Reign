@@ -7,12 +7,13 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
+import { buildNflBracketData, type BracketData, type NflBracketRealGame } from "./bracket";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -680,9 +681,27 @@ export interface MatchupCardContext {
 /** Games for a date, each paired with its vote tally and the viewer's own
  *  pick — what MatchupCard needs to render, in one call. `planRestricted`
  *  passes through from getGamesByDate — set only on a genuine provider
- *  plan/date restriction, never on a real "no games today." */
+ *  plan/date restriction, never on a real "no games today."
+ *
+ *  When `dateISO` itself has no real games (and isn't plan-restricted),
+ *  searches forward up to 7 real days — the exact same upcoming-games
+ *  window the sport page's own "Next Games" panel already uses — so
+ *  Magical Picks can never disagree with that panel about whether a real
+ *  upcoming game exists. A member can pick a real scheduled game as soon
+ *  as it's the soonest one found, not only on its exact kickoff day;
+ *  isPickLocked (below) still governs the real locking deadline. */
 export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string, accountId: string, limit = 6): Promise<{ contexts: MatchupCardContext[]; planRestricted?: string }> {
-  const { games: allGames, planRestricted } = await getGamesByDate(sport, dateISO);
+  let { games: allGames, planRestricted } = await getGamesByDate(sport, dateISO);
+  if (!allGames.length && !planRestricted) {
+    for (let daysOut = 1; daysOut <= 7 && !allGames.length; daysOut++) {
+      const nextDateISO = new Date(Date.now() + daysOut * 86_400_000).toISOString().slice(0, 10);
+      const next = await getGamesByDate(sport, nextDateISO);
+      if (next.games.length) {
+        allGames = next.games;
+        planRestricted = next.planRestricted;
+      }
+    }
+  }
   const games = allGames.slice(0, limit);
   const contexts = await Promise.all(
     games.map(async (game) => {
@@ -964,6 +983,12 @@ export interface NflPlayoffPictureSeed {
   seed: number;
   isDivisionWinner: boolean;
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's NflBracketSeedInput). Existing callers of this function
+   *  that only read the fields above are unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one NFL conference — real, current
@@ -971,7 +996,10 @@ export interface NflPlayoffPictureSeed {
  *  (postseason.ts). Never presented as an official bracket; see that
  *  module's own disclosed limitation (no division tiebreaker data). Returns
  *  null when this conference's standings aren't available (never a
- *  fabricated field). */
+ *  fabricated field). Also the source of real seed data for the Playoff
+ *  Bracket (getNflPlayoffBracket below) — once the regular season ends,
+ *  this same projector reorders the real FINAL standings into the real
+ *  7-seed field with no more clinch/elimination ambiguity to disclose. */
 export async function getNflPlayoffPicture(conference: "AFC" | "NFC", season?: string): Promise<NflPlayoffPictureSeed[] | null> {
   const { standings } = await getStandings("nfl", defaultLeagueId("nfl"), season);
   const teams = standings.filter(
@@ -982,15 +1010,78 @@ export async function getNflPlayoffPicture(conference: "AFC" | "NFC", season?: s
   const seeds = projectNflConferenceSeeds(
     teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
   );
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return seeds.map((s) => ({
     teamId: s.teamId,
-    teamName: teamById.get(s.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    teamName: teamById.get(s.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.team.logoUrl,
     seed: s.seed,
     isDivisionWinner: s.isDivisionWinner,
     clinched: s.clinched,
+    wins: teamById.get(s.teamId)?.wins ?? 0,
+    losses: teamById.get(s.teamId)?.losses ?? 0,
+    ties: teamById.get(s.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the NFL Playoff Bracket:
+ *  a real postseason game existing for this season, i.e.
+ *  getFirstPostseasonGame("nfl", ...) !== null (exactly the same real,
+ *  provider-stage-label-based check the sport page already uses to detect
+ *  postseason — see [sport]/page.tsx's `firstPostseasonGame` and
+ *  standings.ts's determineSeasonPhase). This deliberately fires the moment
+ *  the provider POSTS the postseason schedule (typically right after the
+ *  regular season ends, before Wild Card weekend actually kicks off) rather
+ *  than waiting for kickoff — a real, useful bracket a day earlier is
+ *  strictly better than an artificially-delayed one, and it's still exactly
+ *  "a real postseason game exists," never a guessed date.
+ *
+ *  A second sport's own getXPlayoffBracket should key its own mode off this
+ *  exact same check — getFirstPostseasonGame(sport, ...) !== null — for the
+ *  same reason. */
+export async function getNflPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("nfl");
+  const [afc, nfc, firstPostseasonGame] = await Promise.all([
+    getNflPlayoffPicture("AFC", season),
+    getNflPlayoffPicture("NFC", season),
+    getFirstPostseasonGame("nfl", league || undefined),
+  ]);
+  if (!afc?.length || !nfc?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: NflBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("nfl", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("nfl", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    // Sync every real postseason game into the local SportsGame table (same
+    // upsert every other games call already goes through) so each bracket
+    // card can link to a real Game Center, and a FINAL one is graded like
+    // any other game.
+    const synced = real.length ? await syncGamesToLocal("nfl", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildNflBracketData({
+    seasonLabel,
+    mode,
+    afcSeeds: afc,
+    nfcSeeds: nfc,
+    postseasonGames,
+  });
 }
 
 export interface MlbPlayoffPictureSeed {

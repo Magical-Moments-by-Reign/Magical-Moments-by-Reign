@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
@@ -316,14 +316,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // division tiebreaker data for any of them yet). Every sport's own real
   // seed/tag shape is normalized into one common row shape here so the
   // render below stays one piece of markup, not five near-duplicates.
+  // NFL is deliberately excluded from this list-based "Playoff Picture"
+  // panel — it's superseded there by the real Playoff Bracket page (see the
+  // spx-bracket-cta entry-point card below and PlayoffBracket.tsx). Every
+  // other sport keeps this list treatment unchanged until its own bracket
+  // is built.
   let playoffPictureGroups: { label: string; rows: { teamId: string; teamName: string; teamLogoUrl?: string; seed?: number; tag?: string; clinched: boolean }[] }[] = [];
   if (standingsPhase === "regular" && standings.length > 0) {
-    if (sport === "nfl") {
-      const [afc, nfc] = await Promise.all([getNflPlayoffPicture("AFC"), getNflPlayoffPicture("NFC")]);
-      playoffPictureGroups = [afc && { label: "AFC", seeds: afc }, nfc && { label: "NFC", seeds: nfc }]
-        .filter((g): g is { label: string; seeds: NonNullable<typeof afc> } => !!g)
-        .map((g) => ({ label: g.label, rows: g.seeds.map((s) => ({ teamId: s.teamId, teamName: s.teamName, teamLogoUrl: s.teamLogoUrl, seed: s.seed, tag: s.isDivisionWinner ? "Division Leader" : undefined, clinched: s.clinched })) }));
-    } else if (sport === "mlb") {
+    if (sport === "mlb") {
       const [al, nl] = await Promise.all([getMlbPlayoffPicture("AL"), getMlbPlayoffPicture("NL")]);
       playoffPictureGroups = [al && { label: "AL", seeds: al }, nl && { label: "NL", seeds: nl }]
         .filter((g): g is { label: string; seeds: NonNullable<typeof al> } => !!g)
@@ -524,6 +524,31 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         <div style={{ marginBottom: "1.4rem" }}>
           <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel={sportMeta.label} />
         </div>
+      )}
+
+      {/* Playoff Bracket entry point — NFL only (the only sport this bracket
+          is fully wired for today; see [sport]/bracket/page.tsx's
+          BRACKET_READY_SPORTS). Visible from mid-season onward, not just
+          once the postseason starts — a member should be able to follow the
+          projected field the moment real standings exist, same as the old
+          list-based Playoff Picture panel this supersedes for NFL (see the
+          playoffPictureGroups computation above). Gated on `connected &&
+          hasLeague` only (not on standings/playoffPictureGroups) since the
+          bracket page itself already renders its own honest "not available
+          yet" state when there's nothing to show. */}
+      {sport === "nfl" && connected && hasLeague && (
+        <Link href="/dashboard/discovery/sports/nfl/bracket" className="spx-bracket-cta">
+          <span className="spx-bracket-cta__icon" aria-hidden="true">🏆</span>
+          <span className="spx-bracket-cta__copy">
+            <b>{standingsPhase === "postseason" ? "Playoff Bracket" : "Projected Playoff Bracket"}</b>
+            <span>
+              {standingsPhase === "postseason"
+                ? "Follow the real NFL playoff bracket as results come in."
+                : "See the full AFC & NFC field if the playoffs started today — Wild Card through the Super Bowl."}
+            </span>
+          </span>
+          <span className="spx-bracket-cta__go">View Bracket →</span>
+        </Link>
       )}
 
       {playoffPictureGroups.length > 0 && (
