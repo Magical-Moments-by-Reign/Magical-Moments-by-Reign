@@ -344,3 +344,41 @@ export async function findPlayerIdByName(league: SdioLeague, name: string): Prom
   const target = name.toLowerCase().trim();
   return roster.find((p) => p.name.toLowerCase().trim() === target)?.playerId ?? null;
 }
+
+/** Bulk version of findPlayerIdByName — resolves an ENTIRE roster's worth of
+ *  profile links from ONE real directory fetch (the same cache row
+ *  findPlayerIdByName itself reads) instead of one identical directory
+ *  fetch per player. A team-roster panel calling findPlayerIdByName once
+ *  per player inside a Promise.all was issuing N concurrent, functionally
+ *  identical lookups against the same resource for no reason — this is the
+ *  correct shape for "resolve profile links for a whole roster," never a
+ *  loop of single calls. Never throws: a directory that can't be fetched
+ *  (provider down, unconfigured, transient failure) returns an empty Map,
+ *  not a rejection — a roster must always render with plain unlinked names
+ *  rather than take the whole page down because this OPTIONAL enrichment
+ *  failed. Callers should still wrap this call in .catch(() => new Map())
+ *  as a second layer of protection. */
+export async function getPlayerIdDirectoryByName(league: SdioLeague): Promise<Map<string, string>> {
+  const rosterCached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, kind: "all_players" }), TTL_ROSTER, () => fetchAllPlayers(league)).catch(() => null);
+  const roster = rosterCached?.data ?? [];
+  const map = new Map<string, string>();
+  for (const p of roster) map.set(p.name.toLowerCase().trim(), p.playerId);
+  return map;
+}
+
+/** Resolves one roster's real players against an already-fetched player-id
+ *  directory (getPlayerIdDirectoryByName's return value) — pure, local,
+ *  synchronous local-lookup work, no further provider calls. A player with
+ *  no confident match gets null, never a guess. Exported for its own unit
+ *  tests and shared by every roster-to-profile-link call site. */
+export function resolveProfileLinksFromDirectory<T extends { id: string; name: string }>(
+  players: T[],
+  directory: Map<string, string>
+): Map<string, string | null> {
+  const links = new Map<string, string | null>();
+  for (const p of players) {
+    if (links.has(p.id)) continue;
+    links.set(p.id, directory.get(p.name.toLowerCase().trim()) ?? null);
+  }
+  return links;
+}

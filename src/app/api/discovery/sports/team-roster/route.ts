@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { getTeamRoster, sdioLeagueFor, SPORT_CATALOG } from "@/lib/discovery/sports/service";
-import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
+import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
 
@@ -38,10 +38,16 @@ export async function GET(req: NextRequest) {
   }
 
   const sdioLeague = allowSdio ? sdioLeagueFor(sport) : null;
-  const withLinks = await Promise.all(result.players.map(async (p) => {
-    const profilePlayerId = sdioLeague ? await findPlayerIdByName(sdioLeague, p.name) : null;
+  // ONE bulk directory fetch for the whole roster (never one identical
+  // lookup per player) — this is optional enrichment and must never be able
+  // to fail the whole roster response, so failures degrade to an empty Map.
+  const links = sdioLeague
+    ? resolveProfileLinksFromDirectory(result.players, await getPlayerIdDirectoryByName(sdioLeague).catch(() => new Map<string, string>()))
+    : new Map<string, string | null>();
+  const withLinks = result.players.map((p) => {
+    const profilePlayerId = links.get(p.id) ?? null;
     return { ...p, profileHref: profilePlayerId ? `/dashboard/discovery/sports/player/${sdioLeague}/${profilePlayerId}` : null };
-  }));
+  });
 
   return NextResponse.json({ roster: withLinks, status: "hit" });
 }

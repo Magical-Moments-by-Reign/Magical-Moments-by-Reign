@@ -6,7 +6,7 @@ import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
-import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
+import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
@@ -218,16 +218,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // other cross-provider name match in this codebase. A player who doesn't
   // resolve confidently just isn't clickable — never a broken/guessed link.
   const sdioLeague = sdioLeagueFor(sport);
-  const profileLinks = new Map<string, string | null>();
-  if (allowSdio && sdioLeague) {
-    const allPlayers = Array.from(rosters.values()).flatMap((r) => r.players);
-    await Promise.all(
-      allPlayers.map(async (p) => {
-        if (profileLinks.has(p.id)) return;
-        profileLinks.set(p.id, await findPlayerIdByName(sdioLeague, p.name));
-      })
-    );
-  }
+  // ONE bulk directory fetch for the whole roster, never one call per
+  // player — player-profile click-through is optional enrichment and must
+  // never be able to take the whole page down if the provider hiccups, so
+  // this can't throw (empty Map on failure) and isn't a Promise.all of N
+  // identical directory lookups racing each other.
+  const profileLinks = allowSdio && sdioLeague
+    ? resolveProfileLinksFromDirectory(Array.from(rosters.values()).flatMap((r) => r.players), await getPlayerIdDirectoryByName(sdioLeague).catch(() => new Map<string, string>()))
+    : new Map<string, string | null>();
 
   // Which real game the hero countdown targets: for PRESEASON_PHASE_SPORTS,
   // the preseason opener until its kickoff passes, then the regular-season
