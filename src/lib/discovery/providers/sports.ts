@@ -653,7 +653,16 @@ export async function fetchTeamsForLeague(sport: SportSlug, league: string, seas
       apiSportsFetch(sport, "/teams", { league, season: yr, page: String(page) }))
   );
   const rest = restPages.flatMap((p) => mapTeamsResponse(p) ?? []);
-  return [...first, ...rest];
+
+  // Defensive: never trust that "another page" necessarily means "more
+  // real teams" — if paging.total means something other than what this
+  // assumed, or a later page echoes page 1 back, deduping by the
+  // provider's own real team id is what actually guarantees the merged
+  // list is never bigger than the real league (e.g. never a doubled
+  // 60-team MLB list from a genuine 30-team league).
+  const byId = new Map<string, SportsTeam>();
+  for (const t of [...first, ...rest]) byId.set(t.id, t);
+  return Array.from(byId.values());
 }
 
 export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {

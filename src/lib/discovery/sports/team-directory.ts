@@ -16,6 +16,18 @@ export interface DirectoryTeam {
   id: string;
   name: string;
   logoUrl?: string;
+  /** The real league/conference and division this team's card is already
+   *  grouped under (mirrors the surrounding DirectoryGroup/DirectoryDivision
+   *  labels) — carried on the team itself too so a card can show "American
+   *  League · East" without the caller re-threading the group context. */
+  league?: string;
+  division?: string;
+  /** A real "W-L" (or "W-L-T") record from the same live standings row
+   *  used for grouping, when Standings has one for this team — never
+   *  computed or guessed. Undefined when Standings doesn't have this team
+   *  yet (off-season, restriction, etc.); the UI shows "Record unavailable"
+   *  rather than a fabricated number. */
+  record?: string;
 }
 
 export interface DirectoryDivision {
@@ -138,7 +150,7 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
         const team = rosterMap ? rosterMap.get(normalize(name)) ?? null : await resolveTeamByName(sport, name).catch(() => null);
         // See getVerifiedStandingsFallback's comment on this same pattern —
         // an unresolved team gets no id, never its own name standing in.
-        return { id: team?.id ?? "", name, logoUrl: team?.logoUrl };
+        return { id: team?.id ?? "", name, logoUrl: team?.logoUrl, league: conference, division };
       }));
       const divisions = byConference.get(conference) ?? [];
       divisions.push({ label: division, teams: resolved });
@@ -194,19 +206,27 @@ export function buildTeamDirectoryFromCatalog(
   standingsAvailable: boolean,
 ): DirectoryGroup[] {
   if (!catalog.length) return [];
-  const locationByTeamId = new Map<string, { group: string; division: string }>();
+  const locationByTeamId = new Map<string, { group: string; division: string; record?: string }>();
   for (const g of standingsGroups) {
     for (const d of g.divisions) {
-      for (const r of d.rows) locationByTeamId.set(r.team.id, { group: g.label || sportLabel, division: d.label });
+      for (const r of d.rows) {
+        // Real "W-L" (or "W-L-T" when the sport tracks ties) straight from
+        // the row's own real wins/losses — never computed elsewhere,
+        // never shown when either real number is missing.
+        const record = typeof r.wins === "number" && typeof r.losses === "number"
+          ? `${r.wins}-${r.losses}${typeof r.ties === "number" && r.ties > 0 ? `-${r.ties}` : ""}`
+          : undefined;
+        locationByTeamId.set(r.team.id, { group: g.label || sportLabel, division: d.label, record });
+      }
     }
   }
   const fallbackGroupLabel = standingsAvailable ? sportLabel : `${sportLabel} (Standings unavailable)`;
   const groups = new Map<string, Map<string, DirectoryTeam[]>>();
   for (const t of catalog) {
-    const loc = locationByTeamId.get(t.id) ?? { group: fallbackGroupLabel, division: "" };
+    const loc = locationByTeamId.get(t.id) ?? { group: fallbackGroupLabel, division: "", record: undefined };
     const divisions = groups.get(loc.group) ?? new Map<string, DirectoryTeam[]>();
     const teams = divisions.get(loc.division) ?? [];
-    teams.push({ id: t.id, name: t.name, logoUrl: t.logoUrl });
+    teams.push({ id: t.id, name: t.name, logoUrl: t.logoUrl, league: loc.group, division: loc.division, record: loc.record });
     divisions.set(loc.division, teams);
     groups.set(loc.group, divisions);
   }
