@@ -2794,6 +2794,7 @@ model SportsPick {
   pickType    String    @default("HEAD_TO_HEAD") // "HEAD_TO_HEAD" | "RACE_WINNER"
   teamPick    String?   // "home" | "away" — HEAD_TO_HEAD picks only
   selectionId String?   // SportsGameParticipant.participantId — RACE_WINNER picks only
+  confidence  Int?      // 1-5, the member's own self-rated confidence in this pick; optional, never inferred
   isCorrect   Boolean?  // null until the game is graded final
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

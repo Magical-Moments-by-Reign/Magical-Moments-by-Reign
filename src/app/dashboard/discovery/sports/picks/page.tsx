@@ -16,6 +16,7 @@ import { getMyPickGroups } from "@/lib/discovery/sports/pickem-groups-service";
 import { SPORTS_BADGES } from "@/lib/discovery/sports/badges";
 import { createPickGroupAction, joinPickGroupAction, submitPickAction } from "../actions";
 import PickConfirmButton from "../PickConfirmButton";
+import { ConfidencePicker, ConfidenceStars } from "../ConfidenceStars";
 import { MATCHUP_SPORTS, type SportSlug } from "@/lib/discovery/providers/sports";
 import "../../discovery.css";
 import "../sports-home.css";
@@ -165,6 +166,13 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
           </div>
           <div className="mp-layout">
             <div>
+              {featured.length > 0 && (
+                <div className="mp-row-head">
+                  <span>Featured Matchups</span>
+                  <span className="mp-row-head__pick">Your Pick</span>
+                  <span className="mp-row-head__confidence">Confidence</span>
+                </div>
+              )}
               {featured.length === 0 ? (
                 <p className="spx-panel__empty">No pickable matchups on {formatDateTab(date)} — try another date.</p>
               ) : (
@@ -191,15 +199,19 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
                             </div>
                           </div>
                           {!ctx.locked ? (
-                            <form action={submitPickAction}>
+                            <form action={submitPickAction} className="mp-row__pick-form">
                               <input type="hidden" name="gameId" value={ctx.game.id} />
                               <div className="mp-row__actions">
                                 <PickConfirmButton name="teamPick" value="away" label={ctx.game.awayTeamName} picked={ctx.myPick === "away"} confirmLabel={`${ctx.game.awayTeamName} to beat ${ctx.game.homeTeamName}`} />
                                 <PickConfirmButton name="teamPick" value="home" label={ctx.game.homeTeamName} picked={ctx.myPick === "home"} confirmLabel={`${ctx.game.homeTeamName} to beat ${ctx.game.awayTeamName}`} />
                               </div>
+                              <ConfidencePicker gameId={ctx.game.id} myConfidence={ctx.myConfidence} />
                             </form>
                           ) : (
-                            <span className="mp-row__locked">{ctx.myPick ? `You picked ${ctx.myPick === "home" ? ctx.game.homeTeamName : ctx.game.awayTeamName}` : "Locked"}</span>
+                            <>
+                              <span className="mp-row__locked">{ctx.myPick ? `You picked ${ctx.myPick === "home" ? ctx.game.homeTeamName : ctx.game.awayTeamName}` : "Locked"}</span>
+                              <ConfidenceStars value={ctx.myConfidence} />
+                            </>
                           )}
                         </div>
                       ))
@@ -357,6 +369,7 @@ function PickHistoryRow({ h }: { h: MyPickHistoryRow }) {
         <b>{h.awayTeamName} @ {h.homeTeamName}</b>
         <span>{h.sportLabel} · {h.startsAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Picked {pickedName ?? "—"}</span>
       </div>
+      <ConfidenceStars value={h.confidence} />
       <span className={`mp-history-row__result mp-history-row__result--${result}`}>
         {result === "correct" ? "Correct" : result === "incorrect" ? "Incorrect" : "Pending"}
       </span>

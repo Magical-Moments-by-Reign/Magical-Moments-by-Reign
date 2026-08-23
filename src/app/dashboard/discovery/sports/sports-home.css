@@ -292,6 +292,14 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-poll__actions button[data-picked="true"] { background: var(--gold); color: #0a0806; border-color: var(--gold); }
 .spx-poll__select-other { display: block; text-align: center; margin-top: .6rem; color: var(--gold-soft); font-size: .68rem; font-weight: 700; text-decoration: none; }
 .spx-poll__select-other:hover { color: var(--gold); text-decoration: underline; }
+.spx-poll__confidence { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: .6rem; }
+.spx-poll__confidence span { color: #9c8f76; font-size: .64rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.spx-poll__confidence .mp-confidence label,
+.spx-panel .mp-confidence-display span { color: rgba(255,255,255,.18); }
+.spx-poll__confidence .mp-confidence input:checked ~ label,
+.spx-poll__confidence .mp-confidence label:hover,
+.spx-poll__confidence .mp-confidence label:hover ~ label,
+.spx-panel .mp-confidence-display span.is-filled { color: var(--gold); }
 
 /* My Teams rows */
 .spx-team-row { display: flex; align-items: center; gap: .6rem; }
@@ -744,6 +752,32 @@ a.brk-matchup:hover { border-color: var(--gold); }
 .mp-row__locked { flex: none; color: var(--ink-soft); font-size: .68rem; font-weight: 700; }
 .mp-row--soon { justify-content: center; }
 .mp-row--soon span { color: var(--ink-soft); font-size: .78rem; font-style: italic; }
+.mp-row__pick-form { display: contents; }
+
+/* Column header above the Featured Matchups list — "Featured Matchups /
+   Your Pick / Confidence" — mirrors the .mp-row column widths loosely so
+   the labels roughly sit above their real content. */
+.mp-row-head { display: flex; align-items: center; gap: .9rem; padding: 0 .9rem .5rem; color: var(--ink-soft); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.mp-row-head > span:first-child { flex: 1; min-width: 220px; margin-left: 74px; }
+.mp-row-head__pick { flex: none; width: 158px; text-align: center; }
+.mp-row-head__confidence { flex: none; width: 100px; text-align: center; }
+@media (max-width: 640px) { .mp-row-head { display: none; } }
+
+/* 1-5 star confidence rating — interactive picker (radios) and read-only
+   display share the same visual language: empty gold-bordered stars,
+   filled ones a solid gold. Reverse DOM order (5..1) + row-reverse is the
+   standard no-JS CSS star-rating trick: hovering/checking star N fills
+   every star at or before it, left to right. */
+.mp-confidence { flex: none; display: flex; flex-direction: row-reverse; gap: .1rem; }
+.mp-confidence input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mp-confidence label { cursor: pointer; font-size: 1.15rem; line-height: 1; color: var(--line); }
+.mp-confidence input:checked ~ label,
+.mp-confidence label:hover,
+.mp-confidence label:hover ~ label { color: var(--gold); }
+
+.mp-confidence-display { flex: none; display: inline-flex; gap: .05rem; font-size: 1.05rem; line-height: 1; }
+.mp-confidence-display span { color: var(--line); }
+.mp-confidence-display span.is-filled { color: var(--gold); }
 
 /* Your Stats sidebar — light variant of the shared .spx-panel */
 .spx-panel--light { background: #fffdf9; border-color: var(--line); box-shadow: 0 2px 8px rgba(44,33,26,.05); }

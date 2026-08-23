@@ -775,6 +775,7 @@ export interface MatchupCardContext {
   tally: VoteTally;
   myPick: "home" | "away" | null;
   myPickCorrect: boolean | null;
+  myConfidence: number | null;
   locked: boolean;
 }
 
@@ -805,29 +806,23 @@ export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string,
   const games = allGames.slice(0, limit);
   const contexts = await Promise.all(
     games.map(async (game) => {
-      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
+      const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true, confidence: true } });
       const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
       const mine = typed.find((p) => p.accountId === accountId);
-      return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+      return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, myConfidence: mine?.confidence ?? null, locked: isPickLocked(game) };
     })
   );
   return { contexts, planRestricted };
 }
 
-export async function getMatchup(gameId: string, accountId?: string): Promise<{
-  game: NonNullable<Awaited<ReturnType<typeof prisma.sportsGame.findUnique>>>;
-  tally: VoteTally;
-  myPick: "home" | "away" | null;
-  myPickCorrect: boolean | null;
-  locked: boolean;
-} | null> {
+export async function getMatchup(gameId: string, accountId?: string): Promise<MatchupCardContext | null> {
   const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
   if (!game) return null;
-  const picks = await prisma.sportsPick.findMany({ where: { gameId, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
+  const picks = await prisma.sportsPick.findMany({ where: { gameId, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true, confidence: true } });
   const typedPicks = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
   const tally = tallyVotes(typedPicks);
   const mine = accountId ? typedPicks.find((p) => p.accountId === accountId) : undefined;
-  return { game, tally, myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+  return { game, tally, myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, myConfidence: mine?.confidence ?? null, locked: isPickLocked(game) };
 }
 
 export interface LiveGameState {
@@ -1531,15 +1526,16 @@ export async function getGameTeamRecords(sport: SportSlug, league: string, homeT
 
 // ── Picks / voting ───────────────────────────────────────────────
 
-export async function submitPick(accountId: string, gameId: string, teamPick: "home" | "away") {
+export async function submitPick(accountId: string, gameId: string, teamPick: "home" | "away", confidence?: number | null) {
   const game = await prisma.sportsGame.findUnique({ where: { id: gameId } });
   if (!game) throw new Error("Matchup not found");
   if (game.eventType !== "HEAD_TO_HEAD") throw new Error("This event doesn't take a home/away pick");
   if (isPickLocked(game)) throw new Error("Picks are locked for this matchup");
+  const validConfidence = confidence != null && Number.isInteger(confidence) && confidence >= 1 && confidence <= 5 ? confidence : null;
   return prisma.sportsPick.upsert({
     where: { gameId_accountId: { gameId, accountId } },
-    create: { gameId, accountId, pickType: "HEAD_TO_HEAD", teamPick },
-    update: { teamPick },
+    create: { gameId, accountId, pickType: "HEAD_TO_HEAD", teamPick, confidence: validConfidence },
+    update: { teamPick, confidence: validConfidence },
   });
 }
 
@@ -1724,10 +1720,10 @@ export async function getFeaturedMatchupsForDate(dateISO: string, accountId: str
       const slice = games.slice(0, perSportLimit);
       const contexts = await Promise.all(
         slice.map(async (game) => {
-          const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true } });
+          const picks = await prisma.sportsPick.findMany({ where: { gameId: game.id, pickType: "HEAD_TO_HEAD" }, select: { teamPick: true, accountId: true, isCorrect: true, confidence: true } });
           const typed = picks.map((p) => ({ ...p, teamPick: p.teamPick as "home" | "away" }));
           const mine = typed.find((p) => p.accountId === accountId);
-          return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, locked: isPickLocked(game) };
+          return { game, tally: tallyVotes(typed), myPick: mine?.teamPick ?? null, myPickCorrect: mine?.isCorrect ?? null, myConfidence: mine?.confidence ?? null, locked: isPickLocked(game) };
         })
       );
       return { sport, label: sportLabel(sport), contexts };
@@ -1745,6 +1741,7 @@ export interface MyPickHistoryRow {
   homeTeamName: string;
   teamPick: "home" | "away" | null;
   isCorrect: boolean | null;
+  confidence: number | null;
   startsAt: Date;
   status: string;
 }
@@ -1767,6 +1764,7 @@ export async function getMyPickHistory(accountId: string, limit = 30): Promise<M
     homeTeamName: r.game.homeTeamName,
     teamPick: r.teamPick as "home" | "away" | null,
     isCorrect: r.isCorrect,
+    confidence: r.confidence,
     startsAt: r.game.startsAt,
     status: r.game.status,
   }));

@@ -19,6 +19,7 @@ import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { submitPickAction } from "./actions";
 import PickConfirmButton from "./PickConfirmButton";
+import { ConfidencePicker, ConfidenceStars } from "./ConfidenceStars";
 import type { MatchupCardContext } from "@/lib/discovery/sports/service";
 import type { FantasyLeagueSummary } from "@/lib/discovery/sports/fantasy-service";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
@@ -58,9 +59,16 @@ export function MagicalPicksPanel({ matchup, previewSportLabel, sport }: { match
                 <PickConfirmButton name="teamPick" value="away" label={matchup.game.awayTeamName} picked={matchup.myPick === "away"} confirmLabel={`${matchup.game.awayTeamName} to beat ${matchup.game.homeTeamName}`} />
                 <PickConfirmButton name="teamPick" value="home" label={matchup.game.homeTeamName} picked={matchup.myPick === "home"} confirmLabel={`${matchup.game.homeTeamName} to beat ${matchup.game.awayTeamName}`} />
               </div>
+              <div className="spx-poll__confidence">
+                <span>Confidence</span>
+                <ConfidencePicker gameId={matchup.game.id} myConfidence={matchup.myConfidence} />
+              </div>
             </form>
           ) : (
-            <p className="spx-panel__empty">Picks are locked for this matchup.</p>
+            <>
+              <p className="spx-panel__empty">Picks are locked for this matchup.</p>
+              <ConfidenceStars value={matchup.myConfidence} />
+            </>
           )}
         </div>
       )}
