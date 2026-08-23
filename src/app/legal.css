@@ -1,0 +1,26 @@
+/* ── Legal pages (Privacy Policy, Terms) ─────────────────────────
+   Shares PublicChrome's nav/footer, and reuses its --ivory/--champ/--ink
+   tokens (from get-started.css, already loaded by PublicChrome) rather
+   than inventing a new palette for two pages. */
+
+.legal-wrap { max-width: 780px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+.legal-eyebrow { display: block; margin-bottom: .6rem; color: var(--champ-d); font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.legal-title { margin: 0 0 .5rem; color: var(--ink); font-family: var(--font-display, Georgia, serif); font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 500; }
+.legal-updated { margin: 0 0 2.2rem; color: var(--soft); font-size: .84rem; }
+
+.legal-wrap h2 { margin: 2.2rem 0 .7rem; color: var(--ink); font-family: var(--font-display, Georgia, serif); font-size: 1.35rem; font-weight: 500; }
+.legal-wrap h3 { margin: 1.4rem 0 .5rem; color: var(--ink); font-size: 1rem; font-weight: 700; }
+.legal-wrap p { margin: 0 0 1rem; color: #4a4237; font-size: .94rem; line-height: 1.7; }
+.legal-wrap ul { margin: 0 0 1rem; padding-left: 1.3rem; color: #4a4237; font-size: .94rem; line-height: 1.7; }
+.legal-wrap li { margin-bottom: .4rem; }
+.legal-wrap a { color: var(--champ-d); text-decoration: underline; }
+.legal-wrap strong { color: var(--ink); }
+
+.legal-callout { margin: 1.6rem 0; padding: 1.1rem 1.3rem; border: 1px solid var(--line); border-radius: 12px; background: var(--ivory-2, #efe6d6); }
+.legal-callout p:last-child { margin-bottom: 0; }
+
+.legal-toc { margin: 0 0 2.4rem; padding: 1.1rem 1.3rem; border: 1px solid var(--line); border-radius: 12px; background: #fffdf8; }
+.legal-toc b { display: block; margin-bottom: .5rem; color: var(--ink); font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; }
+.legal-toc ol { margin: 0; padding-left: 1.2rem; color: #4a4237; font-size: .86rem; line-height: 1.9; }
+.legal-toc a { color: #4a4237; text-decoration: none; }
+.legal-toc a:hover { color: var(--champ-d); }

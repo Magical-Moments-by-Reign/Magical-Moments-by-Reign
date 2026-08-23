@@ -76,7 +76,13 @@ export function PublicFooter({ year }: { year: number }) {
           <Link href="/contact">Support</Link>
         </div>
       </div>
-      <div className="gs-fbar">© {year} Magical Moments by Reign. All rights reserved.</div>
+      <div className="gs-fbar">
+        © {year} Magical Moments by Reign. All rights reserved.
+        <span className="gs-fbar__legal">
+          <Link href="/privacy-policy">Privacy Policy</Link>
+          <Link href="/terms">Terms of Service</Link>
+        </span>
+      </div>
     </footer>
   );
 }
