@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
 import { getMagicalPicksProfile, getFamilyPicksLeaderboard } from "@/lib/discovery/sports/service";
 import type { LeaderboardPeriod } from "@/lib/discovery/sports/picks";
@@ -30,7 +31,7 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
         <h1 className="pg-title">Magical Picks</h1>
         <p className="pg-sub">Your prediction profile — entertainment only, never real-money wagering.</p>
       </div>
-      <Link href="/dashboard/discovery/sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Sports</Link>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← Back to Sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
 
       <div className="sports-stats">
         <div className="sports-stat"><b>🏆 {profile.correct}</b><span>Correct</span></div>

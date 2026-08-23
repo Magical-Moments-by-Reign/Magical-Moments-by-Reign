@@ -4,16 +4,19 @@ import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
+import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { getAwardRace, AWARD_RACES, getCollegeFootballRankings } from "@/lib/discovery/sports/awards";
 import { getMyTrackedPlayers } from "@/lib/discovery/sports/tracked-players";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
-import { submitPickAction, untrackPlayerAction } from "./actions";
+import { untrackPlayerAction } from "./actions";
+import { MagicalPicksPanel, FantasyFootballPanel } from "./PicksAndFantasyPanels";
 import SportsIcon from "./SportsIcons";
 import SportGlyph from "./SportGlyph";
 import SportCardVisual from "./SportCardVisual";
 import { SPORT_VISUALS } from "./visuals";
 import PlayerSearch from "./PlayerSearch";
+import PlayerAvatar from "./PlayerAvatar";
 import DiscoveryNav from "../_nav";
 import "../discovery.css";
 import "./sports-home.css";
@@ -24,7 +27,7 @@ export const metadata: Metadata = { title: "Magical Moments Sports", robots: { i
 // Category word under each Explore card — presentational only, not provider
 // data. Matches the reference's FOOTBALL/BASKETBALL/etc. sub-labels.
 const SPORT_KIND: Record<SportSlug, string> = {
-  nfl: "Football", ncaaf: "Football", nba: "Basketball", wnba: "Basketball", ncaab: "Basketball", mlb: "Baseball",
+  nfl: "Football", ncaaf: "Football", nba: "Basketball", wnba: "Basketball", ncaab: "Basketball", mlb: "Baseball", ncaabaseball: "Baseball",
   soccer: "Football", nhl: "Hockey", mma: "Mixed Martial Arts",
   rugby: "Rugby", volleyball: "Volleyball", f1: "Racing",
 };
@@ -33,6 +36,15 @@ const CATEGORY_LABEL: Record<SportCategory, string> = {
   pro: "Pro Leagues",
   college: "College Sports",
   world: "World & Other Sports",
+};
+
+// Owner-supplied football photos for NFL/CFB's own small card icon —
+// deliberately shown here instead of the live provider league logo (unlike
+// every other league-logo sport). Not the large per-sport hero/background
+// (see HERO_BACKDROP_IMAGE in [sport]/page.tsx, which no longer uses these).
+const FOOTBALL_CARD_ICON: Partial<Record<SportSlug, string>> = {
+  nfl: "/discovery/nfl-hero.png",
+  ncaaf: "/discovery/college-football-hero.png",
 };
 
 type MyTeams = Awaited<ReturnType<typeof getMyTeams>>;
@@ -68,16 +80,18 @@ export default async function SportsPage() {
   const showSdio = sdioConfigured() && (sdioCommercialMode() || isOwner);
   const previewOnly = showSdio && !sdioCommercialMode();
 
-  const [logos, { live, upcoming }, featuredMatchup, awardRaces, rankings, trackedPlayers] = await Promise.all([
+  const [logos, { live, upcoming }, featuredMatchup, myFantasyLeagues, awardRaces, rankings, trackedPlayers] = await Promise.all([
     getLeagueLogos(),
     getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])),
     pickFeaturedMatchup(myTeams, followedSports, account.id),
+    getMyFantasyLeagues(account.id),
     showSdio
       ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) })))
       : Promise.resolve([]),
     showSdio ? getCollegeFootballRankings() : Promise.resolve([]),
     showSdio ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
   ]);
+  const featuredMatchupSportLabel = featuredMatchup ? SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label : undefined;
   const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
 
   return (
@@ -106,7 +120,7 @@ export default async function SportsPage() {
               return (
                 <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
                   <SportCardVisual
-                    src={visual.kind === "league-logo" ? logos[s.slug] : undefined}
+                    src={FOOTBALL_CARD_ICON[s.slug] ?? (visual.kind === "league-logo" ? logos[s.slug] : undefined)}
                     alt={`${s.label} mark`}
                     glyph={visual.glyph}
                   />
@@ -140,14 +154,7 @@ export default async function SportsPage() {
                 {trackedPlayers.map((t) => (
                   <div className="spx-tracked__item" key={t.id}>
                     <Link href={`/dashboard/discovery/sports/player/${t.league}/${t.playerId}`} className="spx-search__linkarea">
-                      <div className="spx-tracked__photo">
-                        {t.live?.photoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={t.live.photoUrl} alt="" />
-                        ) : (
-                          <span aria-hidden="true">{t.playerName.slice(0, 1)}</span>
-                        )}
-                      </div>
+                      <PlayerAvatar photoUrl={t.live?.photoUrl} size="sm" />
                       <div className="spx-tracked__info">
                         <b>{t.playerName}</b>
                         <span>{t.league.toUpperCase()} · {[t.position, t.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>
@@ -279,40 +286,9 @@ export default async function SportsPage() {
           <Link href="/dashboard/discovery/sports/schedule" className="spx-panel__cta">Full Schedule</Link>
         </div>
 
-        <div className="spx-panel">
-          <div className="spx-panel__head"><h2>Magical Picks</h2><Link href="/dashboard/discovery/sports/picks">View All →</Link></div>
-          {!featuredMatchup ? (
-            <p className="spx-panel__empty">Follow a team to get a pickable matchup here.</p>
-          ) : (
-            <div className="spx-panel__body">
-              <p className="spx-poll__sport">{SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label} · Who will win this game?</p>
-              <div className="spx-poll__vs">
-                <DiscoveryImage src={featuredMatchup.game.awayTeamLogoUrl} alt={featuredMatchup.game.awayTeamName} fallback={featuredMatchup.game.awayTeamName.slice(0, 3).toUpperCase()} />
-                <b>{featuredMatchup.game.awayTeamName}</b>
-                <em>VS</em>
-                <b>{featuredMatchup.game.homeTeamName}</b>
-                <DiscoveryImage src={featuredMatchup.game.homeTeamLogoUrl} alt={featuredMatchup.game.homeTeamName} fallback={featuredMatchup.game.homeTeamName.slice(0, 3).toUpperCase()} />
-              </div>
-              <div className="spx-poll__bar">
-                <span style={{ width: `${featuredMatchup.tally.awayPct || 50}%` }}>{featuredMatchup.tally.awayPct}%</span>
-                <span style={{ width: `${featuredMatchup.tally.homePct || 50}%` }}>{featuredMatchup.tally.homePct}%</span>
-              </div>
-              <p className="spx-poll__votes">{featuredMatchup.tally.total.toLocaleString()} votes</p>
-              {!featuredMatchup.locked ? (
-                <form action={submitPickAction}>
-                  <input type="hidden" name="gameId" value={featuredMatchup.game.id} />
-                  <div className="spx-poll__actions">
-                    <button type="submit" name="teamPick" value="away" data-picked={featuredMatchup.myPick === "away"}>{featuredMatchup.game.awayTeamName}</button>
-                    <button type="submit" name="teamPick" value="home" data-picked={featuredMatchup.myPick === "home"}>{featuredMatchup.game.homeTeamName}</button>
-                  </div>
-                </form>
-              ) : (
-                <p className="spx-panel__empty">Picks are locked for this matchup.</p>
-              )}
-            </div>
-          )}
-          <Link href="/dashboard/discovery/sports/picks" className="spx-panel__cta">See All Picks</Link>
-        </div>
+        <MagicalPicksPanel matchup={featuredMatchup} previewSportLabel={featuredMatchupSportLabel} />
+
+        <FantasyFootballPanel leagues={myFantasyLeagues} />
 
         <div className="spx-panel">
           <div className="spx-panel__head"><h2>My Teams</h2><Link href="/dashboard/discovery/sports/my-teams">Manage →</Link></div>

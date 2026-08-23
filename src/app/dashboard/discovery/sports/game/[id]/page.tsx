@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../../SmartBackLink";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getMatchup, getLiveGameState, getGameTeamRecords, SPORT_CATALOG } from "@/lib/discovery/sports/service";
@@ -63,7 +64,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         <h1 className="pg-title">{game.awayTeamName} @ {game.homeTeamName}</h1>
         <p className="pg-sub">{[sportLabel, live?.stage].filter(Boolean).join(" · ")}</p>
       </div>
-      <Link href="/dashboard/discovery/sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Sports</Link>
+      <SmartBackLink fallbackHref={`/dashboard/discovery/sports/${game.sport}`} label="← Back to Sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
 
       <LiveGameCenter initial={initial} />
 

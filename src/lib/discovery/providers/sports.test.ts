@@ -1,19 +1,34 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats } from "./sports";
+import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId } from "./sports";
 
-test("seasonParam: NBA/NHL use split-year seasons, keyed off an August season start", () => {
+test("seasonParam: sports on the basketball/hockey hosts use split-year seasons, keyed off an August season start", () => {
+  // nba, wnba, and ncaab all share v1.basketball.api-sports.io — the same
+  // host-wide split-season requirement applies to all three, not just nba
+  // (see seasonParam's doc comment for why wnba/ncaab were previously,
+  // incorrectly, treated as plain-year).
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
+  assert.equal(seasonParam("wnba", "2026-01-15"), "2025-2026");
+  assert.equal(seasonParam("ncaab", "2026-01-15"), "2025-2026");
   assert.equal(seasonParam("nhl", "2026-01-15"), "2025-2026");
   assert.equal(seasonParam("nba", "2026-11-01"), "2026-2027");
   assert.equal(seasonParam("nba", "2026-08-01"), "2026-2027");
   assert.equal(seasonParam("nba", "2026-07-31"), "2025-2026");
+  assert.equal(seasonParam("wnba", "2026-08-23"), "2026-2027");
 });
 
 test("seasonParam: every other sport uses a plain single-year season", () => {
   assert.equal(seasonParam("nfl", "2026-01-15"), "2026");
   assert.equal(seasonParam("mlb", "2026-06-01"), "2026");
   assert.equal(seasonParam("soccer", "2026-11-01"), "2026");
+});
+
+test("previousSeasonParam: steps back one season using the same per-sport split/plain convention", () => {
+  assert.equal(previousSeasonParam("nba", "2026-08-23"), "2025-2026");
+  assert.equal(previousSeasonParam("wnba", "2026-08-23"), "2025-2026");
+  assert.equal(previousSeasonParam("nhl", "2026-08-23"), "2025-2026");
+  assert.equal(previousSeasonParam("nfl", "2026-08-23"), "2025");
+  assert.equal(previousSeasonParam("mlb", "2026-06-01"), "2025");
 });
 
 test("detectPlanRestriction: finds a Free-plan date-restriction message under errors.plan", () => {
@@ -171,6 +186,74 @@ test("ApiSportsProvider.standings: non-soccer sports keep reading games.win.tota
     const result = await ApiSportsProvider.standings("nba", "12", "2025-2026");
     assert.equal(result?.standings[0]?.wins, 50);
     assert.equal(result?.standings[0]?.losses, 32);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+// ── ncaabaseball's dynamic league resolution — "ask, don't hardcode" ──────
+// College baseball has no static SPORT_CONFIG league id (unlike ncaaf/ncaab)
+// since API-Sports' baseball product has never been confirmed to cover NCAA
+// baseball at all — resolveNcaaBaseballLeagueId asks the provider's real
+// /leagues catalog instead of guessing a number, the same pattern
+// resolveBettingMarketTypeId (sportsdata.ts) already uses for a betting
+// market id.
+
+test("resolveNcaaBaseballLeagueId: returns the real id of a league whose Name matches NCAA/College", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  let calledUrl = "";
+  process.env.API_SPORTS_KEY = "test-key";
+  global.fetch = (async (input: any) => {
+    calledUrl = String(input);
+    return new Response(JSON.stringify({
+      response: [
+        { league: { id: 1, name: "MLB" } },
+        { league: { id: 42, name: "NCAA Baseball" } },
+        { league: { id: 7, name: "NPB" } },
+      ],
+    }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const id = await resolveNcaaBaseballLeagueId();
+    const url = new URL(calledUrl);
+    assert.match(url.hostname, /^v1\.baseball\.api-sports\.io$/);
+    assert.equal(url.pathname, "/leagues");
+    assert.equal(id, "42");
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("resolveNcaaBaseballLeagueId: returns null (never a guessed id) when nothing in the real catalog matches", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  process.env.API_SPORTS_KEY = "test-key";
+  global.fetch = (async () =>
+    new Response(JSON.stringify({ response: [{ league: { id: 1, name: "MLB" } }, { league: { id: 7, name: "NPB" } }] }), { status: 200 })
+  ) as typeof fetch;
+  try {
+    assert.equal(await resolveNcaaBaseballLeagueId(), null);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("resolveNcaaBaseballLeagueId: returns null without any network call when unconfigured (no API_SPORTS_KEY)", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  let fetchCalled = false;
+  global.fetch = (async () => { fetchCalled = true; return new Response("{}", { status: 200 }); }) as typeof fetch;
+  try {
+    assert.equal(await resolveNcaaBaseballLeagueId(), null);
+    assert.equal(fetchCalled, false);
   } finally {
     global.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.API_SPORTS_KEY;

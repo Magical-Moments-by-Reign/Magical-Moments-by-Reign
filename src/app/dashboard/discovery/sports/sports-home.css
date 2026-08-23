@@ -6,14 +6,41 @@
    sidebar. Black/deep-charcoal/metallic-gold/ivory only — no pastel, no
    emoji, no default-dashboard card styling. */
 
-.spx { position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#f4f1ea; background:radial-gradient(ellipse at 50% 5%,#2a2112 0,#0c0a07 30%,#050504 72%); }
-.spx::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28; background:linear-gradient(118deg,transparent 18%,rgba(207,168,84,.18) 18.1%,transparent 18.5%),linear-gradient(62deg,transparent 81%,rgba(207,168,84,.14) 81.1%,transparent 81.5%),repeating-linear-gradient(90deg,transparent 0 11%,rgba(255,255,255,.025) 11.1% 11.25%); }
+.spx {
+  position:relative; max-width: none; margin: -24px -28px -40px; padding: 24px max(1.25rem,calc((100% - 1320px)/2)) 4rem; overflow:hidden; color:#2c2115;
+  /* Owner-supplied ivory/cream backdrop with its own gold light streaks
+     (public/discovery/sports-backdrop.png) — the full-page background
+     behind the existing dark stadium hero and dark cards/panels below,
+     which keep their own explicit dark espresso/black backgrounds and
+     ivory text, untouched. Image only — no added gradient/texture on top
+     of it. */
+  /* attachment: fixed ties the image's "cover" sizing to the viewport
+     instead of this element's full scrollable height — without it, cover
+     stretches the (short, landscape) source image across the whole tall
+     page and the gold streaks dilute to almost nothing past the first
+     screenful. */
+  background: #f4ecdb url("/discovery/sports-backdrop.png") center top / cover no-repeat fixed;
+  /* ── Shared density tokens ──
+     COMPACT: nav CTAs, playoff-bracket entry, quick links, status summaries.
+     STANDARD: preview/summary cards (Magical Picks, My Teams, injuries,
+     recent activity, fantasy summaries).
+     LARGE: full content panels (standings, rosters, schedules, player
+     stats, draft board, live game center) — these grow with their own
+     content by default (height: auto); these tokens only set the padding
+     around that content, never a fixed/min height that reserves empty
+     space when a panel's real content is short. */
+  --panel-padding-compact: .7rem .85rem;
+  --panel-padding-standard: .85rem;
+  --panel-padding-large: 1.1rem 1.2rem;
+  --section-gap-compact: .6rem;
+  --section-gap-standard: 1rem;
+}
 .spx > * { position:relative; z-index:1; }
 
 /* ── Cross-page nav (shared .disc-nav pills, themed for .spx) ── */
 .spx > .disc-nav { margin: 0 0 1.4rem; padding: 0 0 .7rem; border-bottom: 1px solid rgba(201,162,75,.22); }
-.spx > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: transparent; color: #d9cdb8; box-shadow: none; }
-.spx > .disc-nav a:hover { color: var(--gold-soft); }
+.spx > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: transparent; color: #5a4a34; box-shadow: none; }
+.spx > .disc-nav a:hover { color: var(--gold-deep); }
 .spx > .disc-nav a[aria-current="page"] { color: #1a1006; background: linear-gradient(135deg, #e0b651, #b98524); }
 
 /* ── Hero ── */
@@ -132,6 +159,16 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-roster__name { color: #f4f1ea; font-size: .72rem; font-weight: 700; line-height: 1.2; }
 .spx-roster__meta { color: #9c8f76; font-size: .64rem; }
 
+/* ── Shared player avatar (PlayerAvatar.tsx) — real photo or the
+   JerseyAvatar fallback, always in the same black/gold circle so one
+   player reads identically everywhere: Team Rosters, Fantasy Draft/
+   Rosters/Free Agents/Waivers/Trades, Player Search, Tracked Players. Its
+   own dark badge means it looks right whether the page around it is the
+   dark .spx theme or the ivory .disc theme (Fantasy). ── */
+.spx-avatar { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; background: #1c170e; border: 1px solid rgba(201,162,75,.3); }
+.spx-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.spx-avatar .spx-roster__jersey { width: 74%; height: 74%; }
+
 /* ── Standings: collapsed-by-default disclosure + real conference groups ── */
 .spx-standings__season { margin: -.4rem 0 .8rem; color: #9c8f76; font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .spx-standings summary { cursor: pointer; color: var(--gold-soft); font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; list-style: none; }
@@ -161,7 +198,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 /* ── Explore Sports grid — grouped into Pro / College / World sections ── */
 .spx-category { margin: 0 auto 1.8rem; max-width: 1040px; }
 .spx-category__label {
-  margin: 0 0 .8rem; color: var(--gold-soft); font-size: .72rem; font-weight: 800; letter-spacing: .18em;
+  margin: 0 0 .8rem; color: var(--gold-deep); font-size: .72rem; font-weight: 800; letter-spacing: .18em;
   text-transform: uppercase; text-align: center;
 }
 .spx-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.1rem; margin: 0; }
@@ -183,18 +220,27 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-card--soon span { color: var(--gold-soft); }
 @media (max-width: 700px) { .spx-card { width: 108px; } }
 
-/* ── Four-panel row: Live Games / Upcoming Games / Magical Picks / My Teams ── */
-.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
+/* ── Four-panel row: Live Games / Upcoming Games / Magical Picks / My Teams ──
+   align-items: start is the actual fix for "this panel looks way taller
+   than it needs to be" in a mixed row — CSS Grid stretches every item in a
+   row to match the row's tallest item by default, so an empty "You haven't
+   followed a team yet" panel next to a full Standings table was being
+   forced to the table's height and centering its one-line message inside
+   all that reserved space. Content-driven height by default: a panel is
+   exactly as tall as its own content requires, never its tallest sibling's. */
+.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: start; gap: var(--section-gap-compact); margin-bottom: var(--section-gap-standard); }
 .spx-panel {
   background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.28);
-  border-radius: 14px; padding: 1.1rem; display: flex; flex-direction: column;
+  border-radius: 12px; padding: var(--panel-padding-standard); display: flex; flex-direction: column;
 }
-.spx-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .9rem; }
+.spx-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
 .spx-panel__head h2 { margin: 0; color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .14em; }
 .spx-panel__head a { color: #9c8f76; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 .spx-panel__head a:hover { color: var(--gold-soft); }
-.spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: auto 0; }
-.spx-panel__body { display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+.spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: .2rem 0; }
+.spx-panel__body { display: flex; flex-direction: column; gap: .6rem; }
+
+.spx-panels--picks-fantasy { grid-template-columns: 1fr 1fr; margin-bottom: var(--section-gap-standard); }
 
 .spx-playoff-picture { margin-bottom: 1.6rem; }
 .spx-playoff-picture__confs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
@@ -232,17 +278,17 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 
 /* Magical Picks poll */
 .spx-poll__sport { color: #9c8f76; font-size: .68rem; margin-bottom: .7rem; }
-.spx-poll__vs { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: .8rem; }
-.spx-poll__vs img { width: 40px; height: 40px; object-fit: contain; }
-.spx-poll__vs b { color: #f4f1ea; font-size: .76rem; text-align: center; max-width: 90px; }
-.spx-poll__vs em { font-style: normal; color: var(--gold); font-size: .68rem; font-weight: 800; border: 1px solid rgba(201,162,75,.4); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
-.spx-poll__bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin-bottom: .4rem; }
+.spx-poll__vs { display: flex; align-items: center; justify-content: center; gap: .65rem; margin-bottom: .55rem; }
+.spx-poll__vs img { width: 28px; height: 28px; object-fit: contain; }
+.spx-poll__vs b { color: #f4f1ea; font-size: .72rem; text-align: center; max-width: 90px; }
+.spx-poll__vs em { font-style: normal; color: var(--gold); font-size: .62rem; font-weight: 800; border: 1px solid rgba(201,162,75,.4); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.spx-poll__bar { display: flex; height: 16px; border-radius: 5px; overflow: hidden; margin-bottom: .3rem; }
 .spx-poll__bar span:first-child { background: #b3392c; }
 .spx-poll__bar span:last-child { background: #2f5fa8; }
-.spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .68rem; font-weight: 800; }
-.spx-poll__votes { text-align: center; color: #9c8f76; font-size: .68rem; margin-bottom: .8rem; }
-.spx-poll__actions { display: flex; gap: .5rem; }
-.spx-poll__actions button { flex: 1; padding: .5rem; border-radius: 8px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .6rem; font-weight: 800; }
+.spx-poll__votes { text-align: center; color: #9c8f76; font-size: .64rem; margin-bottom: .55rem; }
+.spx-poll__actions { display: flex; gap: .4rem; }
+.spx-poll__actions button { flex: 1; padding: .38rem; border-radius: 7px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .68rem; font-weight: 700; cursor: pointer; }
 .spx-poll__actions button[data-picked="true"] { background: var(--gold); color: #0a0806; border-color: var(--gold); }
 
 /* My Teams rows */
@@ -287,6 +333,10 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
   .spx-bar { flex-direction: column; }
   .spx-bar__item { border-right: none; border-bottom: 1px solid rgba(201,162,75,.18); }
   .spx-bar__item:last-child { border-bottom: none; }
+  .spx-panels--picks-fantasy { grid-template-columns: 1fr; }
+  .spx-profile__hero-main { flex-direction: column; text-align: center; }
+  .spx-profile__chips { justify-content: center; }
+  .spx-profile__bio { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); text-align: center; }
 }
 
 /* ── Admin-preview badge (shown only to owner while data isn't commercial) ── */
@@ -384,29 +434,62 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-profile__back { align-self: flex-start; color: #9c8f76; font-size: .74rem; font-weight: 700; text-decoration: none; }
 .spx-profile__back:hover { color: var(--gold-soft); }
 .spx-profile__hero {
-  display: flex; gap: 1.4rem; align-items: center; padding: 1.4rem;
-  background: linear-gradient(180deg, #1a1509 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.3); border-radius: 16px;
+  display: flex; flex-direction: column; gap: 1rem; padding: 1.6rem 1.6rem 1.8rem;
+  background: linear-gradient(160deg, #4f3a22 0%, #392a1a 55%, #291f14 100%);
+  border: 1px solid rgba(201,162,75,.38); border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
 }
-.spx-profile__photo { flex: none; width: 108px; height: 108px; border-radius: 50%; overflow: hidden; background: rgba(224,182,81,.08); display: flex; align-items: center; justify-content: center; }
+/* Player Profile: warm espresso cards, not near-black — lighter than the
+   shared .spx-panel default used elsewhere in Sports, scoped to this page
+   only so the rest of Sports keeps its existing depth. */
+.spx-profile .spx-panel {
+  background: linear-gradient(165deg, #40301d 0%, #2c2216 100%);
+  border-color: rgba(201,162,75,.35);
+}
+.spx-profile__team-badge {
+  width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: rgba(244,241,234,.06); border: 1px solid rgba(201,162,75,.3);
+  padding: .5rem;
+}
+.spx-profile__team-badge img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,.4)); }
+.spx-profile__team-badge-fallback { color: var(--gold-soft); font-size: .68rem; font-weight: 800; letter-spacing: .03em; }
+.spx-profile__hero-main { display: flex; gap: 1.4rem; align-items: center; }
+.spx-profile__photo {
+  flex: none; width: 116px; height: 116px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, rgba(224,182,81,.16) 0%, rgba(224,182,81,.05) 60%, transparent 100%);
+  border: 1px solid rgba(201,162,75,.25);
+}
 .spx-profile__photo img { width: 100%; height: 100%; object-fit: cover; }
-.spx-profile__photo .spx-roster__jersey { width: 76px; height: 76px; }
+.spx-profile__photo .spx-roster__jersey { width: 80px; height: 80px; }
 .spx-profile__identity { flex: 1; min-width: 0; }
-.spx-profile__identity h1 { margin: 0 0 .3rem; color: #f4f1ea; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 900; }
-.spx-profile__subline { display: flex; align-items: center; gap: .4rem; margin: 0 0 .8rem; color: var(--gold-soft); font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
-.spx-profile__team { display: inline-flex; align-items: center; gap: .35rem; }
-.spx-profile__team-logo { width: 20px; height: 20px; object-fit: contain; }
+.spx-profile__identity h1 { margin: 0 0 .55rem; color: #f4f1ea; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 900; }
+.spx-profile__chips { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 .9rem; }
+.spx-profile__chip {
+  display: inline-flex; align-items: center; padding: .3rem .7rem; border-radius: 999px;
+  background: rgba(244,241,234,.05); border: 1px solid rgba(201,162,75,.28);
+  color: var(--gold-soft); font-size: .72rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
+.spx-profile__chip--team { color: #f4f1ea; background: rgba(224,182,81,.12); border-color: rgba(224,182,81,.4); }
 .spx-profile__bio { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .5rem .8rem; margin: 0; }
-.spx-profile__bio dt { color: #7a6f5b; font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
-.spx-profile__bio dd { color: #d9cdb8; font-size: .76rem; margin: 0; }
+.spx-profile__bio dt { color: #9c8f76; font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .1rem; }
+.spx-profile__bio dd { color: #f0e9db; font-size: .76rem; margin: 0; }
 .spx-profile__section { text-align: left; }
-.spx-profile__narrative { color: #f4f1ea; font-size: .84rem; line-height: 1.55; margin: 0 0 .9rem; padding: .8rem .9rem; border-radius: 10px; background: rgba(224,182,81,.06); border: 1px solid rgba(201,162,75,.18); }
-.spx-profile__timeline { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .5rem; color: #d9cdb8; font-size: .8rem; line-height: 1.4; }
+.spx-profile__narrative { color: #f4f1ea; font-size: .84rem; line-height: 1.55; margin: 0 0 .9rem; padding: .8rem .9rem; border-radius: 10px; background: rgba(224,182,81,.12); border: 1px solid rgba(201,162,75,.25); }
+.spx-profile__timeline { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .5rem; color: #ecdfc8; font-size: .8rem; line-height: 1.4; }
 .spx-profile__stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: .7rem; }
-.spx-profile__stat { display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .6rem .3rem; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(201,162,75,.15); }
+.spx-profile__stat { display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .6rem .3rem; border-radius: 10px; background: rgba(244,220,180,.09); border: 1px solid rgba(201,162,75,.28); }
 .spx-profile__stat-value { color: var(--gold-soft); font-size: 1.05rem; font-weight: 800; }
-.spx-profile__stat-label { color: #7a6f5b; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.spx-profile__stat-label { color: #a89a7c; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.spx-profile__fallback-note { margin: 0 0 .8rem; color: #9c8f76; font-size: .74rem; font-style: italic; }
 
 /* ── All Teams directory — larger logos, browsable by conference/division ── */
+.spx-directory__filter { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.1rem; }
+.spx-directory__filter-btn {
+  padding: .5rem 1rem; border-radius: 999px; border: 1px solid rgba(201,162,75,.3); background: rgba(255,255,255,.03);
+  color: #d9cdb8; font-size: .74rem; font-weight: 700; letter-spacing: .03em; cursor: pointer;
+}
+.spx-directory__filter-btn:hover { border-color: var(--gold); color: var(--gold-soft); }
+.spx-directory__filter-btn[data-active="true"] { background: linear-gradient(135deg, #e0b651, #b98524); border-color: transparent; color: #1a1006; }
 .spx-directory__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .7rem; margin-bottom: .4rem; }
 .spx-directory__team { border: 1px solid rgba(201,162,75,.18); border-radius: 12px; background: rgba(255,255,255,.02); overflow: hidden; }
 .spx-directory__team-toggle {
@@ -414,13 +497,19 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 }
 .spx-directory__team-toggle:hover { background: rgba(224,182,81,.06); }
 .spx-directory__team-logo { width: 48px; height: 48px; object-fit: contain; flex: none; border-radius: 8px; }
-.spx-directory__team-name { flex: 1; color: #f4f1ea; font-size: .84rem; font-weight: 700; }
+.spx-directory__team-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.spx-directory__team-name { color: #f4f1ea; font-size: .84rem; font-weight: 700; }
+.spx-directory__team-meta { color: var(--gold-soft); font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.spx-directory__team-record { color: #9c8f76; font-size: .7rem; font-weight: 600; }
 .spx-directory__team-arrow { color: var(--gold-soft); font-size: .8rem; }
 .spx-directory__roster { padding: 0 .8rem .9rem; }
 
 /* ── All Teams directory — single-team roster panel (replaces the grid) ── */
-.spx-directory__back { background: none; border: none; color: var(--gold-soft); font-size: .74rem; font-weight: 700; cursor: pointer; padding: 0 0 .8rem; }
+.spx-directory__panel-toprow { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin-bottom: .8rem; }
+.spx-directory__back { background: none; border: none; color: var(--gold-soft); font-size: .74rem; font-weight: 700; cursor: pointer; padding: 0; }
 .spx-directory__back:hover { color: var(--gold); }
+.spx-directory__view-team { color: var(--gold-soft); font-size: .72rem; font-weight: 700; text-decoration: none; white-space: nowrap; margin-left: auto; }
+.spx-directory__view-team:hover { color: var(--gold); text-decoration: underline; }
 .spx-directory__panel-head { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
 .spx-directory__panel-head h3 { color: #f4f1ea; font-size: 1.05rem; margin: 0; }
 .spx-directory__breadcrumb { color: #9c8f76; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; }
@@ -433,3 +522,202 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-roster__name-link { flex: 1; color: #f4f1ea; font-size: .8rem; font-weight: 700; text-decoration: none; }
 a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underline; }
 .spx-roster__pos { color: #9c8f76; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Shared player avatar — compact initials fallback ─────────────────
+   PlayerAvatar.tsx's default ("compact") fallback for repeating list/grid
+   rows — Team Rosters, Fantasy Draft Board/Roster/Free Agents/Waivers/
+   Trades. Plain initials (from the real player name already on hand, or
+   the real jersey number, never fabricated) in the same black/gold
+   .spx-avatar circle used everywhere else, instead of the repeating
+   JerseyAvatar illustration. JerseyAvatar itself is untouched and still
+   available via PlayerAvatar's variant="decorative" for a one-off, large,
+   single placement, should one come up later. */
+.spx-avatar__initials { color: var(--gold-soft); font-weight: 800; letter-spacing: .02em; line-height: 1; font-family: var(--font-body, inherit); }
+
+/* ── Fantasy Football — warm espresso re-theme (scoped) ────────────────
+   Fantasy (fantasy/page.tsx, fantasy/[leagueId]/page.tsx) renders with
+   discovery.css's light-ivory .disc-* component classes rather than the
+   dark .spx-panel system the rest of Sports uses. The owner asked for
+   Fantasy to carry the same black/gold identity as the rest of Sports,
+   but warmer than the near-black .spx-panel default — the same idea as
+   the .spx-profile .spx-panel override above (soft espresso, not
+   near-black), applied here to the .disc- and .pg- classes Fantasy actually
+   renders instead of .spx-panel. .spx-fantasy is added alongside the
+   existing "disc" className on the page root, so the shared .disc- and
+   .pg- rules themselves are untouched for every other Discovery page — this
+   only re-themes the tokens and hard-coded backgrounds inside the
+   .spx-fantasy subtree. Scoped independently of .spx > .disc-nav above
+   (Fantasy's root is .disc, not .spx) rather than editing that shared
+   rule. */
+.spx-fantasy {
+  --ink: #f4f1ea;
+  --ink-soft: #cabda3;
+  --espresso: #f4f1ea;
+  --ivory: #2c2216;
+  --line: rgba(201,162,75,.24);
+  --gold-deep: #d9bd82;
+  color: #f4f1ea;
+  background: radial-gradient(ellipse at 50% -10%, #241c10 0%, #14100a 45%, #0c0a07 100%);
+  border-radius: 20px;
+  padding: 1.6rem clamp(1rem, 3vw, 2rem) 3rem;
+}
+.spx-fantasy .btn { background: linear-gradient(165deg, #40301d 0%, #2c2216 100%); border-color: rgba(201,162,75,.4); }
+.spx-fantasy .btn:hover { border-color: var(--gold); }
+.spx-fantasy .disc-chart, .spx-fantasy .disc-form { background: linear-gradient(165deg, #40301d 0%, #2c2216 100%); }
+.spx-fantasy .disc-form { border-color: var(--gold); box-shadow: none; }
+.spx-fantasy .disc-badge { background: rgba(224,182,81,.14); border-color: rgba(201,162,75,.4); }
+.spx-fantasy input[type="text"],
+.spx-fantasy select,
+.spx-fantasy input[type="number"] { background: #0f0d09; color: #f4f1ea; border: 1px solid rgba(201,162,75,.35); border-radius: 8px; }
+.spx-fantasy input[type="text"]::placeholder { color: #7a6f5b; }
+.spx-fantasy h3 { color: var(--gold-soft); font-family: var(--font-display, Georgia, serif); }
+
+/* Fantasy's own quick-jump nav — same shared .disc-nav pills as
+   .spx > .disc-nav above, themed to match since Fantasy's root is .disc,
+   not .spx. */
+.spx-fantasy > .disc-nav { margin: 0 0 1.4rem; padding: 0 0 .7rem; border-bottom: 1px solid rgba(201,162,75,.22); }
+.spx-fantasy > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: rgba(255,255,255,.04); color: #d9cdb8; box-shadow: none; }
+.spx-fantasy > .disc-nav a:hover { color: var(--gold-soft); background: rgba(224,182,81,.08); }
+
+.spx-fantasy .disc-section { scroll-margin-top: 84px; }
+
+/* ── F1 / MMA — honest "Coming Soon" state ──────────────────────────────
+   Replaces the ENTIRE panel stack (Today's Games / Standings / My Teams /
+   All Teams / Magical Picks) with one clear message for these two sports —
+   never a page of individually-empty panels. See [sport]/page.tsx's
+   early-return for f1/mma. */
+.spx-coming-soon {
+  max-width: 720px; margin: 0 auto; text-align: center; padding: 2.6rem 1.8rem;
+  background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.28);
+  border-radius: 16px;
+}
+.spx-coming-soon h2 { margin: 0 0 1rem; color: var(--gold); font-size: 1rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.spx-coming-soon__lede { margin: 0 0 .7rem; color: #f4f1ea; font-size: .96rem; font-weight: 700; line-height: 1.55; }
+.spx-coming-soon__body { margin: 0 0 1.8rem; color: #9c8f76; font-size: .82rem; line-height: 1.6; }
+.spx-coming-soon__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; text-align: left; }
+.spx-coming-soon__item { padding: .8rem .9rem; border-radius: 10px; border: 1px solid rgba(201,162,75,.18); background: rgba(255,255,255,.03); }
+.spx-coming-soon__item span { display: block; color: #f4f1ea; font-size: .78rem; font-weight: 700; margin-bottom: .3rem; }
+.spx-coming-soon__item i { font-style: normal; color: var(--gold-soft); font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── Team Detail page (Standings row / All Teams → real team hub) ──────
+   Reuses .spx-profile's warm-espresso hero/panel treatment (same register
+   as Player Profile — a single-entity deep-dive page) rather than the
+   near-black .spx-panel default used across the rest of Sports. */
+.spx-team-detail__hero { flex-direction: row; align-items: center; gap: 1.4rem; }
+.spx-team-detail__logo {
+  flex: none; width: 116px; height: 116px; border-radius: 20px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: rgba(244,241,234,.08); border: 1px solid rgba(201,162,75,.3); padding: .9rem;
+}
+.spx-team-detail__logo img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0,0,0,.4)); }
+.spx-team-detail__follow { margin-top: 1rem; }
+.spx-team-detail__standing { display: flex; align-items: center; gap: 1rem; }
+.spx-team-detail__standing-rank { color: var(--gold); font-size: 1.3rem; font-weight: 900; }
+.spx-team-detail__standing span { color: #f0e9db; font-size: .88rem; font-weight: 700; }
+@media (max-width: 560px) {
+  .spx-team-detail__hero { flex-direction: column; text-align: center; }
+}
+
+/* ── Playoff Bracket entry card (on the sport page) ─────────────────────
+   Big, obvious CTA — visible from mid-season onward, not just once the
+   postseason starts. */
+.spx-bracket-cta {
+  display: flex; align-items: center; gap: .8rem; margin-bottom: var(--section-gap-standard); padding: var(--panel-padding-compact);
+  border-radius: 12px; text-decoration: none;
+  background: linear-gradient(160deg, #4f3a22 0%, #392a1a 55%, #291f14 100%);
+  border: 1px solid rgba(201,162,75,.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  transition: border-color .15s, transform .15s;
+}
+.spx-bracket-cta:hover { border-color: var(--gold); transform: translateY(-1px); }
+.spx-bracket-cta__icon { flex: none; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(224,182,81,.14); border: 1px solid rgba(201,162,75,.4); color: var(--gold); font-size: 1rem; }
+.spx-bracket-cta__copy { flex: 1; min-width: 0; }
+.spx-bracket-cta__copy b { display: block; color: #f4f1ea; font-size: .82rem; font-weight: 900; letter-spacing: .01em; margin-bottom: .15rem; }
+.spx-bracket-cta__copy span { display: block; color: #d9cdb8; font-size: .7rem; line-height: 1.35; }
+.spx-bracket-cta__go { flex: none; color: var(--gold); font-size: .7rem; font-weight: 800; letter-spacing: .06em; }
+
+/* ── Playoff Bracket page (PlayoffBracket.tsx) — SPORT-AGNOSTIC ─────────
+   Warm-espresso cards (same register as .spx-profile/.spx-fantasy above —
+   lighter than the page's near-black background, not near-black itself),
+   round columns left-to-right with connector lines on desktop, one round at
+   a time (CSS-only radio tabs, no client JS) on narrow viewports. */
+.brk { margin-bottom: 1.6rem; }
+.brk-tab-input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.brk-head { margin-bottom: 1.3rem; text-align: center; }
+.brk-head h2 { margin: 0 0 .45rem; color: var(--gold); font-size: 1.05rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.brk-head p { margin: 0 auto; max-width: 60ch; color: #9c8f76; font-size: .8rem; line-height: 1.5; }
+
+.brk-tabs { display: none; }
+
+.brk-board { display: flex; gap: 2.4rem; overflow-x: auto; padding: .2rem .2rem 1rem; scrollbar-width: thin; align-items: stretch; }
+.brk-round { flex: 0 0 258px; min-width: 258px; display: flex; flex-direction: column; }
+.brk-round__title { margin: 0 0 1rem; color: var(--gold-soft); font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; text-align: center; }
+.brk-round__body { display: flex; flex-direction: column; gap: 1.6rem; flex: 1; }
+.brk-round__group { display: flex; flex-direction: column; gap: .55rem; flex: 1; }
+.brk-round__group-label { color: #9c8f76; font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.brk-round__pairs { display: flex; flex-direction: column; gap: 1.3rem; flex: 1; justify-content: space-around; }
+
+.brk-pair { position: relative; display: flex; flex-direction: column; gap: .7rem; }
+/* Merge bar: only drawn when a pair genuinely has two matchups feeding one
+   slot in the next round (Wild Card -> Divisional, Divisional -> Conference
+   Championship) — a lone matchup (a bye row, or a Conference Championship
+   game on its own) just gets its own flow stub below, no merge bar. */
+.brk-pair:not(.brk-pair--single):has(> .brk-matchup:nth-child(2))::after {
+  content: ""; position: absolute; right: -1.2rem; top: 25%; bottom: 25%; width: 1px; background: rgba(201,162,75,.4);
+}
+.brk-pair:not(.brk-pair--single) .brk-matchup::after {
+  content: ""; position: absolute; right: -1.2rem; top: 50%; width: 1.2rem; height: 1px; background: rgba(201,162,75,.4);
+}
+.brk-round:not(:first-of-type) .brk-matchup::before {
+  content: ""; position: absolute; left: -1.2rem; top: 50%; width: 1.2rem; height: 1px; background: rgba(201,162,75,.4);
+}
+
+.brk-matchup {
+  position: relative; display: block; text-decoration: none; color: inherit;
+  background: linear-gradient(165deg, #40301d 0%, #2c2216 100%);
+  border: 1px solid rgba(201,162,75,.35); border-radius: 12px; padding: .7rem .8rem;
+}
+a.brk-matchup:hover { border-color: var(--gold); }
+.brk-matchup--live { border-color: rgba(224,91,72,.6); }
+.brk-matchup__row { display: flex; align-items: center; gap: .5rem; }
+.brk-matchup__divider { display: flex; align-items: center; justify-content: center; min-height: 14px; margin: .3rem 0; }
+.brk-matchup__live { display: inline-flex; align-items: center; gap: .3rem; color: #e05b48; font-size: .6rem; font-weight: 800; letter-spacing: .08em; }
+.brk-matchup__live i { width: 5px; height: 5px; border-radius: 50%; background: #e05b48; display: inline-block; }
+.brk-matchup__final { color: #9c8f76; font-size: .6rem; font-weight: 800; letter-spacing: .08em; }
+.brk-matchup__bye { color: var(--gold-soft); font-size: .6rem; font-weight: 800; letter-spacing: .1em; }
+.brk-matchup__score { flex: none; color: #f4ead1; font-size: .92rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+.brk-slot { flex: 1; min-width: 0; display: flex; align-items: center; gap: .5rem; }
+.brk-slot__seed { flex: none; width: 16px; color: var(--gold); font-size: .68rem; font-weight: 800; text-align: center; }
+.brk-slot__logo, .brk-slot__ph { flex: none; width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
+.brk-slot__ph { background: rgba(255,255,255,.06); border: 1px solid rgba(201,162,75,.2); }
+.brk-slot__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.brk-slot__name { color: #f4ead1; font-size: .78rem; font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brk-slot__record { color: #9c8f76; font-size: .62rem; font-weight: 700; }
+.brk-slot__badge { flex: none; font-size: .56rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; border: 1px solid rgba(201,162,75,.35); border-radius: 999px; padding: .12rem .45rem; white-space: nowrap; color: #9c8f76; }
+.brk-slot__badge--clinched { color: #0a0806; background: var(--gold); border-color: var(--gold); }
+.brk-slot__badge--projected { color: var(--gold-soft); }
+.brk-slot__badge--eliminated { color: #c98a7a; border-color: rgba(224,91,72,.4); }
+.brk-slot--tbd { opacity: .68; }
+.brk-slot--tbd .brk-slot__ph { border-style: dashed; }
+.brk-slot--tbd .brk-slot__tbd-label { color: #9c8f76; font-size: .72rem; font-weight: 700; font-style: italic; }
+
+@media (max-width: 880px) {
+  .brk-tabs { display: flex; flex-wrap: nowrap; gap: .5rem; overflow-x: auto; padding: 0 0 .8rem; margin-bottom: 1.1rem; scrollbar-width: thin; border-bottom: 1px solid rgba(201,162,75,.22); }
+  .brk-tabs label { flex: 0 0 auto; padding: .5rem .95rem; border-radius: 999px; background: rgba(255,255,255,.04); color: #d9cdb8; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; border: 1px solid transparent; }
+  .brk-tab-input:nth-of-type(1):checked ~ .brk-tabs label:nth-of-type(1),
+  .brk-tab-input:nth-of-type(2):checked ~ .brk-tabs label:nth-of-type(2),
+  .brk-tab-input:nth-of-type(3):checked ~ .brk-tabs label:nth-of-type(3),
+  .brk-tab-input:nth-of-type(4):checked ~ .brk-tabs label:nth-of-type(4),
+  .brk-tab-input:nth-of-type(5):checked ~ .brk-tabs label:nth-of-type(5) { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; }
+
+  .brk-board { display: block; overflow-x: visible; }
+  .brk-round { display: none; width: 100%; min-width: 0; }
+  .brk-tab-input:nth-of-type(1):checked ~ .brk-board .brk-round:nth-of-type(1),
+  .brk-tab-input:nth-of-type(2):checked ~ .brk-board .brk-round:nth-of-type(2),
+  .brk-tab-input:nth-of-type(3):checked ~ .brk-board .brk-round:nth-of-type(3),
+  .brk-tab-input:nth-of-type(4):checked ~ .brk-board .brk-round:nth-of-type(4),
+  .brk-tab-input:nth-of-type(5):checked ~ .brk-board .brk-round:nth-of-type(5) { display: flex; }
+
+  /* Only one round is ever visible at once on mobile, so a connector line
+     pointing at an off-screen round would be meaningless — suppressed here. */
+  .brk-pair::after, .brk-matchup::after, .brk-matchup::before { display: none; }
+}

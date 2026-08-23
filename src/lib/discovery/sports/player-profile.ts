@@ -22,6 +22,7 @@ import {
   fetchAllPlayers, fetchRecentTransactions, fetchInjuries, fetchPlayerSeasonStats, fetchTeamRecord,
   type SdioLeague, type SdioTransaction, type SdioInjury,
 } from "../providers/sportsdata";
+import { ApiSportsProvider, fetchGamePlayerStats, fetchTeamRoster, seasonParam, type GameStatLine } from "../providers/sports";
 import { AWARD_RACES, getAwardRace } from "./awards";
 import { resolveTeamByName, sportSlugForSdio } from "./service";
 import { getCollegeCareerProfile, type CollegeCareerProfile } from "./college-career";
@@ -121,6 +122,12 @@ export interface PlayerProfile {
    *  transaction feed, since that feed's trial-plan depth is limited. []
    *  when no confident Wikidata match exists for this player. */
   teamHistory: TeamMembership[];
+  /** Real per-game box scores from API-Sports, populated ONLY when
+   *  seasonsBySeason came back empty (SportsDataIO's trial key rejected
+   *  every season row as scrambled/unavailable) — see
+   *  fetchApiSportsRecentGameFallback. [] when no fallback data exists or
+   *  the primary source already had real season stats. */
+  recentGameFallback: RecentGameStatLine[];
 }
 
 /** NFL/CFB/NBA seasons are named for the year they start; WNBA plays a
@@ -158,6 +165,60 @@ export function sumCareerTotals(lines: PlayerSeasonLine[]): Record<string, numbe
     }
   }
   return Object.keys(totals).length ? totals : undefined;
+}
+
+export interface RecentGameStatLine {
+  date?: string;
+  opponent?: string;
+  stats: GameStatLine[];
+}
+
+// How many of a team's most recent REAL completed games to check when
+// SportsDataIO's trial key has rejected every season stat row as
+// projection/trial-scrambled (see looksLikeScrambledStats in sportsdata.ts).
+// Bounded to keep this fallback's request count sane — a real, dated game
+// log capped at the most recent games, never a fabricated "season total."
+const MAX_FALLBACK_GAMES = 8;
+
+/** Real per-game box-score fallback for when SportsDataIO's season-stats
+ *  endpoint has nothing trustworthy for this player (trial-tier scrambled
+ *  data, most commonly). Sources ONLY the already-confirmed API-Sports
+ *  `/games/statistics/players` endpoint (via fetchGamePlayerStats) — never
+ *  a season total, since API-Sports' real stat labels here aren't yet
+ *  verified against a live key, and blindly summing an unverified field
+ *  risks silently mislabeling a rate stat as a counting stat. Every line
+ *  returned is exactly what the provider reported for that one real,
+ *  completed game, under the provider's own real label — nothing computed,
+ *  nothing translated into SportsDataIO's field vocabulary. Only supports
+ *  nfl/cfb (API-Sports player box scores aren't wired for nba/wnba in this
+ *  codebase); returns [] for any other league or when the player can't be
+ *  matched by name in a game's box score. */
+async function fetchApiSportsRecentGameFallback(league: SdioLeague, teamExternalId: string | undefined, playerName: string, season: number): Promise<RecentGameStatLine[]> {
+  const sport = sportSlugForSdio(league);
+  if ((sport !== "nfl" && sport !== "ncaaf") || !teamExternalId || !ApiSportsProvider.isConfigured(sport)) return [];
+
+  const games = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, teamExternalId, season, kind: "team_games_for_stat_fallback" }), TTL_STATS, () =>
+    ApiSportsProvider.gamesForTeam(sport, teamExternalId, { season: String(season) }));
+  const completed = (games?.data ?? [])
+    .filter((g) => g.status === "final")
+    .sort((a, b) => +new Date(b.startsAt) - +new Date(a.startsAt))
+    .slice(0, MAX_FALLBACK_GAMES);
+  if (!completed.length) return [];
+
+  const target = playerName.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const lines: RecentGameStatLine[] = [];
+  for (const game of completed) {
+    const boxScore = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, gameExternalId: game.externalId, kind: "game_player_stats_fallback" }), TTL_HISTORICAL, () =>
+      fetchGamePlayerStats(sport, game.externalId));
+    const teams = boxScore?.data;
+    if (!teams) continue;
+    const opponent = game.homeTeam.id === teamExternalId ? game.awayTeam.name : game.homeTeam.name;
+    for (const team of teams) {
+      const row = team.players.find((p) => p.player.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === target);
+      if (row?.stats.length) lines.push({ date: game.startsAt, opponent, stats: row.stats });
+    }
+  }
+  return lines;
 }
 
 /** Resolves the full normalized profile for one player. Returns null only
@@ -209,6 +270,30 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     getPlayerKnowledge(player.name, league).catch(() => null),
   ]);
 
+  // Only worth the extra real requests when the primary source truly gave
+  // us nothing for any checked season — never runs when SportsDataIO
+  // already has real data, and never asked to "fill in" a season SportsDataIO
+  // did answer for.
+  const recentGameFallback = seasonLines.length === 0
+    ? await fetchApiSportsRecentGameFallback(league, team?.id, player.name, season)
+    : [];
+
+  // SportsDataIO's own PhotoUrl is the primary source; when it's simply
+  // absent for this player (a real, common trial-tier coverage gap — not
+  // every player has a headshot on file there), fall back to the SAME
+  // real team roster API-Sports already supplies elsewhere in this app
+  // (Team Rosters, Fantasy) — matched by exact real name within the one
+  // real team we already resolved above. Never a guess across teams,
+  // never a fabricated URL.
+  let photoUrl = player.photoUrl;
+  if (!photoUrl && team?.id) {
+    const apiSport = sportSlugForSdio(league);
+    const apiSeason = seasonParam(apiSport, new Date().toISOString());
+    const apiRoster = await fetchTeamRoster(apiSport, team.id, apiSeason).catch(() => null);
+    const targetName = player.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    photoUrl = apiRoster?.players.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === targetName)?.photoUrl;
+  }
+
   return {
     playerId: player.playerId,
     league,
@@ -219,7 +304,7 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     number: player.number,
     position: player.position,
     status: player.status,
-    photoUrl: player.photoUrl,
+    photoUrl,
     age: player.age,
     birthDate: player.birthDate,
     heightInches: player.heightInches,
@@ -242,6 +327,7 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     injuries: (injuriesAll?.data ?? []).filter((i) => i.playerId === playerId),
     awards: awardRaces,
     teamHistory: knowledge?.teamHistory ?? [],
+    recentGameFallback,
   };
 }
 
@@ -257,4 +343,42 @@ export async function findPlayerIdByName(league: SdioLeague, name: string): Prom
   if (!roster?.length) return null;
   const target = name.toLowerCase().trim();
   return roster.find((p) => p.name.toLowerCase().trim() === target)?.playerId ?? null;
+}
+
+/** Bulk version of findPlayerIdByName — resolves an ENTIRE roster's worth of
+ *  profile links from ONE real directory fetch (the same cache row
+ *  findPlayerIdByName itself reads) instead of one identical directory
+ *  fetch per player. A team-roster panel calling findPlayerIdByName once
+ *  per player inside a Promise.all was issuing N concurrent, functionally
+ *  identical lookups against the same resource for no reason — this is the
+ *  correct shape for "resolve profile links for a whole roster," never a
+ *  loop of single calls. Never throws: a directory that can't be fetched
+ *  (provider down, unconfigured, transient failure) returns an empty Map,
+ *  not a rejection — a roster must always render with plain unlinked names
+ *  rather than take the whole page down because this OPTIONAL enrichment
+ *  failed. Callers should still wrap this call in .catch(() => new Map())
+ *  as a second layer of protection. */
+export async function getPlayerIdDirectoryByName(league: SdioLeague): Promise<Map<string, string>> {
+  const rosterCached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, kind: "all_players" }), TTL_ROSTER, () => fetchAllPlayers(league)).catch(() => null);
+  const roster = rosterCached?.data ?? [];
+  const map = new Map<string, string>();
+  for (const p of roster) map.set(p.name.toLowerCase().trim(), p.playerId);
+  return map;
+}
+
+/** Resolves one roster's real players against an already-fetched player-id
+ *  directory (getPlayerIdDirectoryByName's return value) — pure, local,
+ *  synchronous local-lookup work, no further provider calls. A player with
+ *  no confident match gets null, never a guess. Exported for its own unit
+ *  tests and shared by every roster-to-profile-link call site. */
+export function resolveProfileLinksFromDirectory<T extends { id: string; name: string }>(
+  players: T[],
+  directory: Map<string, string>
+): Map<string, string | null> {
+  const links = new Map<string, string | null>();
+  for (const p of players) {
+    if (links.has(p.id)) continue;
+    links.set(p.id, directory.get(p.name.toLowerCase().trim()) ?? null);
+  }
+  return links;
 }

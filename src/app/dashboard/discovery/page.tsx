@@ -110,7 +110,7 @@ export default async function DiscoveryPage() {
       <Link href="/dashboard/discovery/movies"><b>▤</b><span><strong>Movies</strong><small>In theaters &amp; more</small></span></Link>
       <Link href="/dashboard/discovery/music"><b>♫</b><span><strong>Music</strong><small>Top songs &amp; albums</small></span></Link>
       <Link href="/dashboard/discovery/near-you"><b>✦</b><span><strong>Events</strong><small>Concerts &amp; experiences</small></span></Link>
-      <Link href="/dashboard/discovery/sports"><b>◉</b><span><strong>Sports</strong><small>Live games &amp; scores</small></span></Link>
+      <Link href="/dashboard/discovery/sports"><b className="disc-dark__category-bar-icon">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/discovery/nfl-hero.png" alt="" /></b><span><strong>Sports</strong><small>Live games &amp; scores</small></span></Link>
       <Link href="/dashboard/discovery/trending"><b>↗</b><span><strong>Trending</strong><small>What&rsquo;s hot now</small></span></Link>
     </nav>
 

@@ -7,12 +7,13 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
+import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -40,6 +41,7 @@ export const SPORT_CATALOG: { slug: SportSlug; label: string; category: SportCat
   { slug: "f1", label: "Formula 1", category: "pro" },
   { slug: "ncaaf", label: "College Football", category: "college" },
   { slug: "ncaab", label: "College Basketball", category: "college" },
+  { slug: "ncaabaseball", label: "College Baseball", category: "college" },
   { slug: "soccer", label: "Soccer", category: "world" },
   { slug: "mma", label: "MMA", category: "world" },
   { slug: "rugby", label: "Rugby", category: "world" },
@@ -161,11 +163,19 @@ function localGamesForDate(sport: SportSlug, dateISO: string) {
  *  would otherwise keep reporting it for the rest of the TTL (up to 3h)
  *  regardless of the account's actual current plan. */
 export async function getGamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<{ games: SportsGameRow[]; planRestricted?: string }> {
+  // ncaabaseball has no static SPORT_CONFIG default (see
+  // resolveDefaultLeagueId's doc comment) — every OTHER sport is unaffected
+  // by this (the ternary is a no-op, `resolvedLeague` stays exactly what the
+  // caller passed, same as before this line existed) so this single seam
+  // fixes every caller of getGamesByDate (the landing page's Live/Upcoming
+  // panels, Magical Picks' matchup lookups, the per-sport page) without
+  // threading a resolved league through each of them individually.
+  const resolvedLeague = league || (sport === "ncaabaseball" ? (await resolveDefaultLeagueId(sport)) || undefined : undefined);
   const isToday = dateISO === new Date().toISOString().slice(0, 10);
   const ttl = isToday ? TTL_GAMES_LIVE : TTL_GAMES_UPCOMING;
   let restriction: string | undefined;
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league }), ttl, async () => {
-    const result = await ApiSportsProvider.gamesByDate(sport, dateISO, league);
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league: resolvedLeague }), ttl, async () => {
+    const result = await ApiSportsProvider.gamesByDate(sport, dateISO, resolvedLeague);
     if (result?.planRestricted) {
       restriction = result.planRestricted;
       return null;
@@ -173,7 +183,7 @@ export async function getGamesByDate(sport: SportSlug, dateISO: string, league?:
     return result;
   });
   if (cached?.data.games.length) {
-    const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
+    const synced = await syncGamesToLocal(sport, resolvedLeague || cached.data.games[0]?.league || "", cached.data.games);
     return { games: synced };
   }
 
@@ -211,36 +221,72 @@ export async function getLeagueLogos(): Promise<Partial<Record<SportSlug, string
 /** The real first preseason game of the current season, straight from
  *  API-Sports' own stage label — null when the provider doesn't distinguish
  *  a preseason stage for this sport, or has no preseason games in its
- *  response. Never a guessed date. */
-export async function getFirstPreseasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+ *  response. Never a guessed date. `league` overrides SPORT_CONFIG's static
+ *  default — pass resolveDefaultLeagueId's result for a sport (like
+ *  ncaabaseball) whose league id isn't a fixed constant; every other caller
+ *  can omit it and get the same static default as before. */
+export async function getFirstPreseasonGame(sport: SportSlug, league?: string): Promise<SportsGameSummary | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_preseason" }), TTL_GAMES_UPCOMING, () =>
-    fetchFirstPreseasonGame(sport, season));
+    fetchFirstPreseasonGame(sport, season, league));
   return cached?.data ?? null;
 }
 
 /** The real regular-season opener — for a live "N days until kickoff"
  *  countdown. Same real-stage-label sourcing as getFirstPreseasonGame,
- *  never a computed/assumed date. */
-export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+ *  never a computed/assumed date. See getFirstPreseasonGame's doc comment
+ *  for `league`. */
+export async function getFirstRegularSeasonGame(sport: SportSlug, league?: string): Promise<SportsGameSummary | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_regular_season" }), TTL_GAMES_UPCOMING, () =>
-    fetchFirstRegularSeasonGame(sport, season));
+    fetchFirstRegularSeasonGame(sport, season, league));
   return cached?.data ?? null;
 }
 
 /** The real postseason/playoff opener — same real-stage-label sourcing as
  *  getFirstPreseasonGame/getFirstRegularSeasonGame, never a computed/assumed
  *  date. Null once the provider hasn't posted a postseason bracket yet (the
- *  normal case for most of the regular season). */
-export async function getFirstPostseasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+ *  normal case for most of the regular season). See getFirstPreseasonGame's
+ *  doc comment for `league`. */
+export async function getFirstPostseasonGame(sport: SportSlug, league?: string): Promise<SportsGameSummary | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_postseason" }), TTL_GAMES_UPCOMING, () =>
-    fetchFirstPostseasonGame(sport, season));
+    fetchFirstPostseasonGame(sport, season, league));
   return cached?.data ?? null;
+}
+
+// A league id's own identity never changes once confirmed — cached for a
+// week, same TTL discipline as team-catalog/logo lookups below.
+const TTL_LEAGUE_RESOLUTION = 10080;
+
+/** The real API-Sports league id to use for a sport's default competition.
+ *  For every sport except ncaabaseball this is just SPORT_CONFIG's own
+ *  static, already-known id (defaultLeagueId) — resolved instantly, no
+ *  network call, just wrapped in a resolved promise so every caller can
+ *  `await` uniformly regardless of sport. ncaabaseball is the one real
+ *  exception: SPORT_CONFIG deliberately leaves its defaultLeague empty (see
+ *  that file's comment) because API-Sports' baseball product has never been
+ *  confirmed to include NCAA/college baseball at all — so instead of a
+ *  hardcoded guess, this asks the provider itself via
+ *  resolveNcaaBaseballLeagueId and caches whatever real answer comes back.
+ *  withCache never caches a null (see its own doc comment), so an
+ *  unconfigured deployment or a genuine "no NCAA baseball league found"
+ *  result is retried — cheaply, since apiSportsFetch short-circuits with no
+ *  network call at all when API_SPORTS_KEY isn't set — the next time this is
+ *  called, rather than staying "unavailable" for the cache TTL even after a
+ *  key or plan is fixed. Returns "" (never a guessed id) when nothing
+ *  resolves; every "games"-shaped call site already treats an empty league
+ *  id as "not available yet," the same honest gate MMA/F1 use today for
+ *  their own permanently-empty default. */
+export async function resolveDefaultLeagueId(sport: SportSlug): Promise<string> {
+  if (sport !== "ncaabaseball") return defaultLeagueId(sport);
+  if (!ApiSportsProvider.isConfigured(sport)) return "";
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, kind: "ncaabaseball_league_resolve" }), TTL_LEAGUE_RESOLUTION, () =>
+    resolveNcaaBaseballLeagueId());
+  return cached?.data ?? "";
 }
 
 export interface NbaHeroState {
@@ -305,18 +351,62 @@ export async function resolveTeamByName(sport: SportSlug, name: string): Promise
  *  names independently racing its own live call (see resolveTeamByName's
  *  doc comment for what that race used to do to logos). Returns null for a
  *  sport with no single-league roster to prefetch — callers fall back to
- *  resolveTeamByName's per-name search path for those. */
+ *  resolveTeamByName's per-name search path for those.
+ *
+ *  Cache key is "league_teams_v2", not "league_teams" — bumped once, the day
+ *  the /teams pagination+dedup fix shipped, so a week-old cache row written
+ *  by the old (occasionally-duplicating) fetch logic can never keep being
+ *  served under its still-unexpired TTL. Any future fix to fetchTeamsForLeague
+ *  that changes what gets stored under this key should bump the suffix again
+ *  rather than relying on the week-long TTL to self-heal. */
 export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<string, { id: string; logoUrl?: string }> | null> {
   if (!SINGLE_LEAGUE_SPORTS.has(sport)) return null;
-  const league = defaultLeagueId(sport);
+  const league = await resolveDefaultLeagueId(sport);
   if (!league) return null;
   const season = seasonParam(sport, new Date().toISOString());
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
     fetchTeamsForLeague(sport, league, season));
   const roster = cached?.data ?? [];
   const map = new Map<string, { id: string; logoUrl?: string }>();
-  for (const t of roster) map.set(normalizeTeamName(t.name), { id: t.id, logoUrl: t.logoUrl });
+  for (const t of roster) {
+    const entry = { id: t.id, logoUrl: t.logoUrl };
+    map.set(normalizeTeamName(t.name), entry);
+    // Also index by the provider's own real short code (e.g. "BUF"), when it
+    // returns one — a secondary, still-verified match key. A secondary
+    // source's team field (SportsDataIO's Player.Team, for one) is often
+    // just the code, not the full franchise name; without this, resolving
+    // that player's team logo would silently fail even though the real
+    // team is right there in this same roster. Never a guessed code.
+    if (t.code) map.set(normalizeTeamName(t.code), entry);
+  }
   return map;
+}
+
+/** The real, live team catalog for a sport's resolved league — straight
+ *  from API-Sports' /teams endpoint, the PRIMARY source for the All Teams
+ *  directory (team-directory.ts) for every sport WITHOUT a
+ *  VERIFIED_REFERENCE (see hasVerifiedReference — today, everything but
+ *  NBA/NFL). Deliberately independent of Standings: a standings failure
+ *  (a provider hiccup, a plan restriction, an off-season with no win-loss
+ *  data posted yet) must never take the All Teams list down with it — the
+ *  real roster of a league doesn't depend on whether anyone's played a game
+ *  yet, and /teams is a different call with its own success/failure from
+ *  /standings.
+ *
+ *  Uses the exact same cache key as getLeagueTeamRosterMap (same
+ *  sport/league/season, same underlying fetchTeamsForLeague call) so a page
+ *  that calls both (e.g. any SINGLE_LEAGUE_SPORTS sport) shares one cache
+ *  row instead of fetching the identical roster twice. Callers with no
+ *  resolved league (empty string — e.g. ncaabaseball before resolution)
+ *  should skip calling this entirely; returns [] in that case, or when
+ *  unconfigured, or when the provider genuinely has nothing — never a
+ *  guessed/fabricated roster. */
+export async function getLeagueTeamCatalog(sport: SportSlug, league: string): Promise<SportsTeam[]> {
+  if (!league || !ApiSportsProvider.isConfigured(sport)) return [];
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
+    fetchTeamsForLeague(sport, league, season));
+  return cached?.data ?? [];
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
@@ -389,6 +479,18 @@ async function getStandingsFromSportsData(sport: SportSlug, season?: string): Pr
  *  why this fallback used to come back empty even when the provider had
  *  the real roster. Returns [] when the team can't be resolved to a real
  *  TeamID or nothing matches — never a guessed roster. */
+// API-Sports' basketball product names WNBA teams with a trailing gender
+// marker (e.g. "Connecticut Sun W") that SportsDataIO's own team directory
+// doesn't carry on the same franchise's real full name — a real, observed
+// provider formatting difference, not a guess at what either provider
+// "probably" does. Stripped ONLY as a last-resort identity tier, ONLY for
+// WNBA, and ONLY this one specific, known suffix shape — never a general
+// fuzzy match that could mis-map two different real teams together.
+function stripKnownWnbaSuffix(normalized: string): string | null {
+  const stripped = normalized.replace(/\s+w$/, "").trim();
+  return stripped !== normalized && stripped.length > 0 ? stripped : null;
+}
+
 async function getRosterFromSportsData(sport: SportSlug, teamName: string): Promise<SportsRosterPlayer[]> {
   const league = sdioLeagueFor(sport);
   if (!league) return [];
@@ -399,7 +501,13 @@ async function getRosterFromSportsData(sport: SportSlug, teamName: string): Prom
   const players = cached?.data ?? [];
   if (!players.length) return [];
   const target = normalizeTeamName(teamName);
-  const identity = directory.find((t) => normalizeTeamName(t.fullName) === target) ?? directory.find((t) => t.key && normalizeTeamName(t.key) === target);
+  const findIdentity = (t: string) => directory.find((d) => normalizeTeamName(d.fullName) === t) ?? directory.find((d) => d.key && normalizeTeamName(d.key) === t);
+  // Tier order: 1) real full-name/key match against the exact provider
+  // string. 2) only for WNBA, and only when tier 1 found nothing, the same
+  // match retried against the one known real alias shape above — never
+  // reached at all for any other sport (sport !== "wnba" short-circuits).
+  const aliasTarget = sport === "wnba" ? stripKnownWnbaSuffix(target) : null;
+  const identity = findIdentity(target) ?? (aliasTarget ? findIdentity(aliasTarget) : undefined);
   const toRosterPlayer = (p: (typeof players)[number]): SportsRosterPlayer => ({ id: p.playerId, name: p.name, position: p.position, number: p.number, photoUrl: p.photoUrl });
   if (identity) {
     const byId = players.filter((p) => p.teamId === identity.teamId);
@@ -475,6 +583,27 @@ export async function getNbaHeroState(): Promise<NbaHeroState | null> {
   return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source, dateOnly: regular.source === "known-fact", sourceLog: [...preseason.log, ...regular.log] };
 }
 
+/** Distinguishes WHY a roster call came back with no players — the member-
+ *  facing gap this closes: "our plan can't ask for this" (plan_restricted)
+ *  looked identical to "the provider genuinely has nothing" (empty) before
+ *  this existed, both collapsing to the same silent []. `hit` covers both a
+ *  real API-Sports roster AND a real SportsDataIO fallback roster — callers
+ *  that need to know which provider answered already have that from
+ *  allowSecondarySource being the only way SportsDataIO gets asked at all.
+ *  `not_supported` is for a team with no resolvable id at all (nothing to
+ *  even ask a provider for) or a sport API-Sports doesn't cover. */
+export type RosterStatus = "hit" | "empty" | "plan_restricted" | "error" | "not_supported";
+
+export interface RosterResult {
+  players: SportsRosterPlayer[];
+  status: RosterStatus;
+  /** Only ever the real provider-reported plan/subscription message — never
+   *  set for any other status. Route handlers must keep this out of the
+   *  member-facing response (see team-roster/route.ts); it's for owner/admin
+   *  diagnostics only. */
+  planRestrictedReason?: string;
+}
+
 /** A followed team's real current-season roster — we can't show injuries
  *  (not part of the connected API-Sports plan), so this is the honest
  *  substitute: real players, real jersey numbers/positions, straight from
@@ -482,20 +611,40 @@ export async function getNbaHeroState(): Promise<NbaHeroState | null> {
  *  only, and only when the caller passes `allowSecondarySource` — see
  *  getNbaRosterFromSportsData's doc comment for why this one's gated more
  *  cautiously than the schedule/standings fallbacks) when API-Sports has
- *  nothing for this team. */
-export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<SportsRosterPlayer[]> {
-  if (ApiSportsProvider.isConfigured(sport) && teamExternalId) {
+ *  nothing for this team.
+ *
+ *  Always returns a `status` alongside the players so a plan restriction
+ *  can never be silently rendered as "this team just has no roster" — see
+ *  RosterStatus above. A plan-restricted response is never cached (same
+ *  "don't cache an outage" discipline as getGamesByDate). */
+export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<RosterResult> {
+  if (!teamExternalId) return { players: [], status: "not_supported" };
+
+  let status: RosterStatus = "not_supported";
+  let planRestrictedReason: string | undefined;
+
+  if (ApiSportsProvider.isConfigured(sport)) {
     const season = seasonParam(sport, new Date().toISOString());
-    const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, () =>
-      fetchTeamRoster(sport, teamExternalId, season));
-    if (cached?.data?.length) return cached.data;
+    let restriction: string | undefined;
+    const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, async () => {
+      const result = await fetchTeamRoster(sport, teamExternalId, season);
+      if (result?.planRestricted) {
+        restriction = result.planRestricted;
+        return null;
+      }
+      return result;
+    });
+    if (cached?.data?.players.length) return { players: cached.data.players, status: "hit" };
+    status = restriction ? "plan_restricted" : cached?.data ? "empty" : "error";
+    planRestrictedReason = restriction;
   }
 
   if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName) {
-    return getRosterFromSportsData(sport, opts.teamName);
+    const secondary = await getRosterFromSportsData(sport, opts.teamName);
+    if (secondary.length) return { players: secondary, status: "hit" };
   }
 
-  return [];
+  return { players: [], status, planRestrictedReason };
 }
 
 const TTL_INJURIES = 60; // 1h — a real injury report changes daily during the season, faster-moving than the roster/standings caches
@@ -526,6 +675,58 @@ export async function getTeamInjuries(sport: SportSlug, teamName: string): Promi
   // Verified secondary resolver only — a real, exact team-code match.
   const target = normalizeTeamName(teamName);
   return injuries.filter((i) => i.team && normalizeTeamName(i.team) === target);
+}
+
+export interface FollowedTeamRef {
+  followId: string;
+  teamExternalId: string | null;
+  teamName: string | null;
+}
+
+/** Generic per-item failure isolation for a batch of async lookups keyed by
+ *  a followed team — the one place every applicable team-sport page's
+ *  "resolve N followed teams' worth of optional data, without one bad team
+ *  taking the others (or the page) down" goes through. A rejection from
+ *  `fetchOne` for one team is caught and replaced with `onError`'s
+ *  fallback for THAT team only — every other team's real result is
+ *  unaffected, and the rejection never propagates past this call. Exported
+ *  with its own direct unit tests (using a fake, controllable `fetchOne`)
+ *  so the isolation itself is proven independent of any real provider. */
+export async function resolveWithFailureIsolation<T, R>(teams: T[], fetchOne: (team: T) => Promise<R>, onError: (team: T) => R): Promise<R[]> {
+  return Promise.all(teams.map((t) => fetchOne(t).catch(() => onError(t))));
+}
+
+/** Resolves EVERY followed team's roster in one batch, with PER-TEAM
+ *  failure isolation via resolveWithFailureIsolation — the shared
+ *  category-wide fix: any team-sport page driven by a member's followed
+ *  teams (NFL, NBA, WNBA, CFB, MLB, NHL, ...) calls this once instead of
+ *  hand-rolling its own Promise.all. A genuine provider "plan restricted"
+ *  or "empty" result from getTeamRoster is never converted to "error" here
+ *  — only an actual thrown rejection is; those real statuses pass through
+ *  untouched. */
+export async function resolveFollowedTeamRosters(sport: SportSlug, teams: FollowedTeamRef[], allowSecondarySource: boolean): Promise<Map<string, RosterResult>> {
+  const results = await resolveWithFailureIsolation(
+    teams,
+    (t) => (t.teamExternalId ? getTeamRoster(sport, t.teamExternalId, { teamName: t.teamName ?? undefined, allowSecondarySource }) : Promise.resolve<RosterResult>({ players: [], status: "not_supported" })),
+    (): RosterResult => ({ players: [], status: "error" })
+  );
+  const map = new Map<string, RosterResult>();
+  teams.forEach((t, i) => map.set(t.followId, results[i]));
+  return map;
+}
+
+/** Same per-team failure isolation for injury lookups — a provider outage
+ *  on one team's injury feed degrades to [] for that team only, never a
+ *  page-wide crash. */
+export async function resolveFollowedTeamInjuries(sport: SportSlug, teams: FollowedTeamRef[]): Promise<Map<string, SdioInjury[]>> {
+  const results = await resolveWithFailureIsolation(
+    teams,
+    (t) => (t.teamName ? getTeamInjuries(sport, t.teamName) : Promise.resolve([])),
+    (): SdioInjury[] => []
+  );
+  const map = new Map<string, SdioInjury[]>();
+  teams.forEach((t, i) => map.set(t.followId, results[i]));
+  return map;
 }
 
 /** Live + upcoming games across the given sports (typically the member's
@@ -580,9 +781,27 @@ export interface MatchupCardContext {
 /** Games for a date, each paired with its vote tally and the viewer's own
  *  pick — what MatchupCard needs to render, in one call. `planRestricted`
  *  passes through from getGamesByDate — set only on a genuine provider
- *  plan/date restriction, never on a real "no games today." */
+ *  plan/date restriction, never on a real "no games today."
+ *
+ *  When `dateISO` itself has no real games (and isn't plan-restricted),
+ *  searches forward up to 7 real days — the exact same upcoming-games
+ *  window the sport page's own "Next Games" panel already uses — so
+ *  Magical Picks can never disagree with that panel about whether a real
+ *  upcoming game exists. A member can pick a real scheduled game as soon
+ *  as it's the soonest one found, not only on its exact kickoff day;
+ *  isPickLocked (below) still governs the real locking deadline. */
 export async function getGamesWithVoteContext(sport: SportSlug, dateISO: string, accountId: string, limit = 6): Promise<{ contexts: MatchupCardContext[]; planRestricted?: string }> {
-  const { games: allGames, planRestricted } = await getGamesByDate(sport, dateISO);
+  let { games: allGames, planRestricted } = await getGamesByDate(sport, dateISO);
+  if (!allGames.length && !planRestricted) {
+    for (let daysOut = 1; daysOut <= 7 && !allGames.length; daysOut++) {
+      const nextDateISO = new Date(Date.now() + daysOut * 86_400_000).toISOString().slice(0, 10);
+      const next = await getGamesByDate(sport, nextDateISO);
+      if (next.games.length) {
+        allGames = next.games;
+        planRestricted = next.planRestricted;
+      }
+    }
+  }
   const games = allGames.slice(0, limit);
   const contexts = await Promise.all(
     games.map(async (game) => {
@@ -701,19 +920,71 @@ export async function getMyTeams(accountId: string) {
       let recent: SportsGameSummary | null = null;
       let localRows: Awaited<ReturnType<typeof syncGamesToLocal>> = [];
       if (f.teamExternalId && ApiSportsProvider.isConfigured(sport)) {
+        // f.league is whatever the follow form actually submitted (today,
+        // no sport submits a league value — every sport's own static
+        // SPORT_CONFIG default already covers it downstream). ncaabaseball
+        // has no static default (see resolveDefaultLeagueId's doc comment),
+        // so it's the one sport that needs an explicit resolved fallback
+        // here rather than relying on that implicit default.
+        const league = f.league || (sport === "ncaabaseball" ? await resolveDefaultLeagueId(sport) : undefined) || undefined;
         const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, team: f.teamExternalId, kind: "team_games" }), TTL_GAMES_UPCOMING, () =>
-          ApiSportsProvider.gamesForTeam(sport, f.teamExternalId!, { league: f.league || undefined }));
+          ApiSportsProvider.gamesForTeam(sport, f.teamExternalId!, { league }));
         const games = cached?.data ?? [];
         const now = Date.now();
         upcoming = games.filter((g) => new Date(g.startsAt).getTime() >= now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0] ?? null;
         recent = games.filter((g) => g.status === "final").sort((a, b) => +new Date(b.startsAt) - +new Date(a.startsAt))[0] ?? null;
-        if (games.length) localRows = await syncGamesToLocal(sport, f.league || "", games);
+        if (games.length) localRows = await syncGamesToLocal(sport, league || "", games);
       }
       const localIdFor = (g: SportsGameSummary | null) => (g ? localRows.find((r) => r.externalId === g.externalId)?.id ?? null : null);
       return { follow: f, upcoming, upcomingLocalId: localIdFor(upcoming), recent, recentLocalId: localIdFor(recent) };
     })
   );
   return withGames;
+}
+
+/** Whether (and how) the viewer already follows this real team — the Team
+ *  Detail page's Follow/Unfollow state. Returns null when not followed;
+ *  never a guess at follow state. */
+export async function getTeamFollow(accountId: string, sport: SportSlug, teamExternalId: string) {
+  if (!teamExternalId) return null;
+  return prisma.sportsFollow.findFirst({ where: { accountId, kind: "team", sport, teamExternalId } });
+}
+
+export interface TeamScheduleGame extends SportsGameSummary {
+  /** The local SportsGame row's id for this real game — null only on the
+   *  rare upsert failure, never fabricated. Used to link to a real Game
+   *  Center; a null localId renders as plain (non-clickable) text instead. */
+  localId: string | null;
+}
+
+/** Upcoming + recently completed real games for one team — the Team Detail
+ *  page's schedule sections. Same underlying ApiSportsProvider.gamesForTeam
+ *  call and cache key ("team_games") getMyTeams already uses for a followed
+ *  team's own upcoming/recent games, so a page rendering both shares one
+ *  cached fetch rather than issuing it twice. Every game is synced to the
+ *  local SportsGame table exactly like getMyTeams does, so each one can
+ *  link to a real Game Center. Returns { upcoming: [], recent: [] } when
+ *  unconfigured, given no teamExternalId, or the provider genuinely has
+ *  nothing for this team — never a fabricated schedule. */
+export async function getTeamSchedule(sport: SportSlug, teamExternalId: string, league?: string): Promise<{ upcoming: TeamScheduleGame[]; recent: TeamScheduleGame[] }> {
+  if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return { upcoming: [], recent: [] };
+  const lg = league || defaultLeagueId(sport);
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, team: teamExternalId, kind: "team_games" }), TTL_GAMES_UPCOMING, () =>
+    ApiSportsProvider.gamesForTeam(sport, teamExternalId, { league: lg }));
+  const games = cached?.data ?? [];
+  if (!games.length) return { upcoming: [], recent: [] };
+  const localRows = await syncGamesToLocal(sport, lg || games[0]?.league || "", games);
+  const localIdFor = (externalId: string) => localRows.find((r) => r.externalId === externalId)?.id ?? null;
+  const now = Date.now();
+  const upcoming = games
+    .filter((g) => g.status !== "final" && new Date(g.startsAt).getTime() >= now)
+    .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))
+    .map((g) => ({ ...g, localId: localIdFor(g.externalId) }));
+  const recent = games
+    .filter((g) => g.status === "final")
+    .sort((a, b) => +new Date(b.startsAt) - +new Date(a.startsAt))
+    .map((g) => ({ ...g, localId: localIdFor(g.externalId) }));
+  return { upcoming, recent };
 }
 
 export async function getMySportsFollows(accountId: string) {
@@ -762,7 +1033,47 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     if (secondary.standings.length) return secondary;
   }
 
-  return { standings: [], planRestricted: restriction };
+  // Even on a genuinely empty result, surface the real season string this
+  // call actually queried with (never a separately-guessed "current"
+  // season) — so an honest empty-state message can name it (e.g.
+  // "Standings aren't available for the 2026 WNBA season yet") instead of a
+  // bare, unspecific blank panel.
+  return { standings: [], planRestricted: restriction, season: cached?.data.season ?? season ?? seasonParam(sport, new Date().toISOString()) };
+}
+
+/** Standings for a sport's default league, with an off-season fallback: when
+ *  the CURRENT season (whatever seasonParam() resolves for right now) has
+ *  nothing posted yet — a new season that hasn't started, or one whose
+ *  schedule simply isn't published yet — this retries with the last REAL
+ *  completed season (previousSeasonParam) instead of leaving the Standings
+ *  panel blank. This is the off-season equivalent, for every sport WITHOUT a
+ *  VERIFIED_REFERENCE, of the "show the last known real state, not a blank
+ *  panel" instinct NBA/NFL already get from their own verified conference/
+ *  division reference (see team-directory.ts's hasVerifiedReference /
+ *  getVerifiedStandingsFallback) — callers should keep using the existing
+ *  getStandings + getVerifiedStandingsFallback pair for NBA/NFL and use this
+ *  for everything else (NHL, MLB, WNBA, college sports, soccer, rugby,
+ *  volleyball).
+ *
+ *  Only retries when `isOffSeasonPhase` is true — the caller's own real
+ *  dated-openers check (determineSeasonPhase() === "preseason", which
+ *  already covers both "before this season's real opener" and "we don't
+ *  have this season's schedule at all"). A genuine mid-season empty result
+ *  is returned as-is, never silently swapped for last year's table — that
+ *  would misrepresent the CURRENT season as having no data when the real
+ *  issue might be a provider hiccup or plan restriction (also passed
+ *  through untouched, so the page keeps showing its own honest message for
+ *  that case rather than this fallback masking it). Returns the prior
+ *  season's real result (including its own `season` string, so the caller's
+ *  season label is automatically correct) only when it actually has rows;
+ *  otherwise returns the current (empty) result unchanged — never fabricates
+ *  a season that also has nothing. */
+export async function getStandingsWithOffSeasonFallback(sport: SportSlug, league: string, isOffSeasonPhase: boolean): Promise<{ standings: SportsStanding[]; planRestricted?: string; season?: string }> {
+  const current = await getStandings(sport, league);
+  if (current.standings.length || current.planRestricted || !isOffSeasonPhase) return current;
+  const priorSeason = previousSeasonParam(sport, new Date().toISOString());
+  const prior = await getStandings(sport, league, priorSeason).catch(() => null);
+  return prior?.standings.length ? prior : current;
 }
 
 export interface NflPlayoffPictureSeed {
@@ -772,6 +1083,12 @@ export interface NflPlayoffPictureSeed {
   seed: number;
   isDivisionWinner: boolean;
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's NflBracketSeedInput). Existing callers of this function
+   *  that only read the fields above are unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one NFL conference — real, current
@@ -779,7 +1096,10 @@ export interface NflPlayoffPictureSeed {
  *  (postseason.ts). Never presented as an official bracket; see that
  *  module's own disclosed limitation (no division tiebreaker data). Returns
  *  null when this conference's standings aren't available (never a
- *  fabricated field). */
+ *  fabricated field). Also the source of real seed data for the Playoff
+ *  Bracket (getNflPlayoffBracket below) — once the regular season ends,
+ *  this same projector reorders the real FINAL standings into the real
+ *  7-seed field with no more clinch/elimination ambiguity to disclose. */
 export async function getNflPlayoffPicture(conference: "AFC" | "NFC", season?: string): Promise<NflPlayoffPictureSeed[] | null> {
   const { standings } = await getStandings("nfl", defaultLeagueId("nfl"), season);
   const teams = standings.filter(
@@ -790,15 +1110,78 @@ export async function getNflPlayoffPicture(conference: "AFC" | "NFC", season?: s
   const seeds = projectNflConferenceSeeds(
     teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
   );
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return seeds.map((s) => ({
     teamId: s.teamId,
-    teamName: teamById.get(s.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    teamName: teamById.get(s.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.team.logoUrl,
     seed: s.seed,
     isDivisionWinner: s.isDivisionWinner,
     clinched: s.clinched,
+    wins: teamById.get(s.teamId)?.wins ?? 0,
+    losses: teamById.get(s.teamId)?.losses ?? 0,
+    ties: teamById.get(s.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the NFL Playoff Bracket:
+ *  a real postseason game existing for this season, i.e.
+ *  getFirstPostseasonGame("nfl", ...) !== null (exactly the same real,
+ *  provider-stage-label-based check the sport page already uses to detect
+ *  postseason — see [sport]/page.tsx's `firstPostseasonGame` and
+ *  standings.ts's determineSeasonPhase). This deliberately fires the moment
+ *  the provider POSTS the postseason schedule (typically right after the
+ *  regular season ends, before Wild Card weekend actually kicks off) rather
+ *  than waiting for kickoff — a real, useful bracket a day earlier is
+ *  strictly better than an artificially-delayed one, and it's still exactly
+ *  "a real postseason game exists," never a guessed date.
+ *
+ *  A second sport's own getXPlayoffBracket should key its own mode off this
+ *  exact same check — getFirstPostseasonGame(sport, ...) !== null — for the
+ *  same reason. */
+export async function getNflPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("nfl");
+  const [afc, nfc, firstPostseasonGame] = await Promise.all([
+    getNflPlayoffPicture("AFC", season),
+    getNflPlayoffPicture("NFC", season),
+    getFirstPostseasonGame("nfl", league || undefined),
+  ]);
+  if (!afc?.length || !nfc?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: NflBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("nfl", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("nfl", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    // Sync every real postseason game into the local SportsGame table (same
+    // upsert every other games call already goes through) so each bracket
+    // card can link to a real Game Center, and a FINAL one is graded like
+    // any other game.
+    const synced = real.length ? await syncGamesToLocal("nfl", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildNflBracketData({
+    seasonLabel,
+    mode,
+    afcSeeds: afc,
+    nfcSeeds: nfc,
+    postseasonGames,
+  });
 }
 
 export interface MlbPlayoffPictureSeed {
@@ -808,6 +1191,13 @@ export interface MlbPlayoffPictureSeed {
   seed: number;
   isDivisionWinner: boolean;
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's MlbBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one MLB league (AL/NL) — the real
@@ -823,15 +1213,57 @@ export async function getMlbPlayoffPicture(league: "AL" | "NL", season?: string)
   const seeds = projectMlbLeagueSeeds(
     teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
   );
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return seeds.map((s) => ({
     teamId: s.teamId,
-    teamName: teamById.get(s.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    teamName: teamById.get(s.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.team.logoUrl,
     seed: s.seed,
     isDivisionWinner: s.isDivisionWinner,
     clinched: s.clinched,
+    wins: teamById.get(s.teamId)?.wins ?? 0,
+    losses: teamById.get(s.teamId)?.losses ?? 0,
+    ties: teamById.get(s.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the MLB Playoff Bracket —
+ *  same exact real signal as getNflPlayoffBracket: a real postseason game
+ *  existing for this season (getFirstPostseasonGame("mlb", ...) !== null).
+ *  See that function's own doc comment for why. */
+export async function getMlbPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("mlb");
+  const [al, nl, firstPostseasonGame] = await Promise.all([
+    getMlbPlayoffPicture("AL", season),
+    getMlbPlayoffPicture("NL", season),
+    getFirstPostseasonGame("mlb", league || undefined),
+  ]);
+  if (!al?.length || !nl?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: MlbBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("mlb", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("mlb", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("mlb", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildMlbBracketData({ seasonLabel, mode, alSeeds: al, nlSeeds: nl, postseasonGames });
 }
 
 export interface NhlPlayoffPictureSeed {
@@ -841,6 +1273,13 @@ export interface NhlPlayoffPictureSeed {
   seed: number;
   isTopThreeInDivision: boolean;
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's NhlBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one NHL conference — the real top-3-
@@ -857,15 +1296,57 @@ export async function getNhlPlayoffPicture(conference: "Eastern" | "Western", se
   const seeds = projectNhlConferenceSeeds(
     teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
   );
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return seeds.map((s) => ({
     teamId: s.teamId,
-    teamName: teamById.get(s.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    teamName: teamById.get(s.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.team.logoUrl,
     seed: s.seed,
     isTopThreeInDivision: s.isTopThreeInDivision,
     clinched: s.clinched,
+    wins: teamById.get(s.teamId)?.wins ?? 0,
+    losses: teamById.get(s.teamId)?.losses ?? 0,
+    ties: teamById.get(s.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the NHL Playoff Bracket —
+ *  same exact real signal as getNflPlayoffBracket: a real postseason game
+ *  existing for this season (getFirstPostseasonGame("nhl", ...) !== null).
+ *  See that function's own doc comment for why. */
+export async function getNhlPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("nhl");
+  const [east, west, firstPostseasonGame] = await Promise.all([
+    getNhlPlayoffPicture("Eastern", season),
+    getNhlPlayoffPicture("Western", season),
+    getFirstPostseasonGame("nhl", league || undefined),
+  ]);
+  if (!east?.length || !west?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: NhlBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("nhl", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("nhl", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("nhl", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildNhlBracketData({ seasonLabel, mode, eastSeeds: east, westSeeds: west, postseasonGames });
 }
 
 export interface NbaPlayoffPictureEntry {
@@ -875,6 +1356,12 @@ export interface NbaPlayoffPictureEntry {
   seed: number;
   status: "DIRECT_BERTH" | "PLAY_IN" | "OUTSIDE";
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's NbaBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one NBA conference — real seeds 1-6
@@ -887,33 +1374,141 @@ export async function getNbaPlayoffPicture(conference: "Eastern" | "Western", se
   );
   if (!teams.length) return null;
   const picture = projectNbaConferencePicture(teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses })));
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return picture.map((p) => ({
     teamId: p.teamId,
-    teamName: teamById.get(p.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(p.teamId)?.logoUrl,
+    teamName: teamById.get(p.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(p.teamId)?.team.logoUrl,
     seed: p.seed,
     status: p.status,
     clinched: p.clinched,
+    wins: teamById.get(p.teamId)?.wins ?? 0,
+    losses: teamById.get(p.teamId)?.losses ?? 0,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the NBA Playoff Bracket —
+ *  same exact real signal as getNflPlayoffBracket: a real postseason game
+ *  existing for this season (getFirstPostseasonGame("nba", ...) !== null).
+ *  See that function's own doc comment for why. */
+export async function getNbaPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("nba");
+  const [east, west, firstPostseasonGame] = await Promise.all([
+    getNbaPlayoffPicture("Eastern", season),
+    getNbaPlayoffPicture("Western", season),
+    getFirstPostseasonGame("nba", league || undefined),
+  ]);
+  if (!east?.length || !west?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: NbaBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("nba", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("nba", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("nba", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildNbaBracketData({ seasonLabel, mode, eastSeeds: east, westSeeds: west, postseasonGames });
+}
+
+export interface WnbaPlayoffPictureEntry {
+  teamId: string;
+  teamName: string;
+  teamLogoUrl?: string;
+  /** 1-based rank by real current wins — computePostseasonPicture's own
+   *  `ranked` order, exposed here (additive) so the Playoff Bracket can
+   *  seed its real top-8 field the same way every other sport's bracket
+   *  seeds off a `seed` number. Not itself an official seed once the real
+   *  postseason starts — same disclosed no-tiebreaker limitation as every
+   *  other projector in this file. */
+  seed: number;
+  inField: boolean;
+  clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's WnbaBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** WNBA has no conference split — one league-wide table, real top-8 field,
  *  no Play-In tournament (unlike the NBA). Uses the shared
  *  computePostseasonPicture rather than a conference-specific adapter. */
-export async function getWnbaPlayoffPicture(season?: string): Promise<{ teamId: string; teamName: string; teamLogoUrl?: string; inField: boolean; clinched: boolean }[] | null> {
+export async function getWnbaPlayoffPicture(season?: string): Promise<WnbaPlayoffPictureEntry[] | null> {
   const { standings } = await getStandings("wnba", defaultLeagueId("wnba"), season);
   const teams = standings.filter((s): s is SportsStanding & { wins: number; losses: number } => typeof s.wins === "number" && typeof s.losses === "number");
   if (!teams.length) return null;
   const picture = computePostseasonPicture("wnba", teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties })), 8);
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
-  return picture.map((p) => ({
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
+  return picture.map((p, i) => ({
     teamId: p.teamId,
-    teamName: teamById.get(p.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(p.teamId)?.logoUrl,
+    teamName: teamById.get(p.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(p.teamId)?.team.logoUrl,
+    seed: i + 1,
     inField: p.inField,
     clinched: p.clinched,
+    wins: teamById.get(p.teamId)?.wins ?? 0,
+    losses: teamById.get(p.teamId)?.losses ?? 0,
+    ties: teamById.get(p.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the WNBA Playoff
+ *  Bracket — same exact real signal as getNflPlayoffBracket: a real
+ *  postseason game existing for this season
+ *  (getFirstPostseasonGame("wnba", ...) !== null). See that function's own
+ *  doc comment for why. WNBA has no conference split, so there's only one
+ *  picture call here (unlike NFL/NBA/MLB/NHL's two parallel calls). */
+export async function getWnbaPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("wnba");
+  const [field, firstPostseasonGame] = await Promise.all([
+    getWnbaPlayoffPicture(season),
+    getFirstPostseasonGame("wnba", league || undefined),
+  ]);
+  if (!field?.length) return null;
+  const seeds = field.filter((f) => f.inField); // real bracket only ever seats the top-8 field
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: WnbaBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("wnba", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("wnba", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("wnba", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildWnbaBracketData({ seasonLabel, mode, seeds, postseasonGames });
 }
 
 /** Real win-loss(-tie) records for the two teams in one matchup, resolved
@@ -1161,7 +1756,7 @@ const TTL_LEAGUE_TEAMS = 10080; // 1 week — a league's team membership barely 
 // a league/competition first, which isn't built yet — until then it keeps
 // the older, broader (and known-imperfect) catalog search rather than
 // wrongly narrowing to one arbitrary league.
-const SINGLE_LEAGUE_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "nhl", "rugby", "volleyball"]);
+const SINGLE_LEAGUE_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "ncaabaseball", "nhl", "rugby", "volleyball"]);
 
 /** Team search scoped to one sport — for the per-sport page's own
  *  follow-a-team box, as opposed to searchSports' cross-sport search.
@@ -1176,10 +1771,10 @@ export async function searchTeamsForSport(sport: SportSlug, query: string) {
   if (!query.trim() || !ApiSportsProvider.isConfigured(sport)) return [];
 
   if (SINGLE_LEAGUE_SPORTS.has(sport)) {
-    const league = defaultLeagueId(sport);
+    const league = await resolveDefaultLeagueId(sport);
     if (league) {
       const season = seasonParam(sport, new Date().toISOString());
-      const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+      const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
         fetchTeamsForLeague(sport, league, season));
       const roster = cached?.data ?? [];
       if (roster.length) return rankTeamMatches(roster, query);

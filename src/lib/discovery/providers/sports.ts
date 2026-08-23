@@ -8,12 +8,17 @@
 // every method returns null on missing config or a failed/empty response.
 
 export type SportSlug =
-  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
+  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "ncaabaseball" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
 
 export interface SportsTeam {
   id: string;
   name: string;
   logoUrl?: string;
+  /** The provider's own real short code/abbreviation (e.g. "BUF"), when it
+   *  returns one — never derived or guessed. A secondary, verified match
+   *  key for resolving a team from a source that only gives a code rather
+   *  than a full name (see resolveTeamByName's use of this in service.ts). */
+  code?: string;
 }
 
 export interface SportsGameSummary {
@@ -68,7 +73,7 @@ export interface SportsLeagueBrand {
  *  Pick / community-vote UI. F1 (a multi-entrant race, not head-to-head) and
  *  MMA (individual fighters, not team logos) are discoverable but excluded —
  *  "who you got" doesn't map cleanly onto either format. */
-export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "soccer", "nhl", "rugby", "volleyball"];
+export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "ncaabaseball", "soccer", "nhl", "rugby", "volleyball"];
 
 export interface SportsDateResult {
   games: SportsGameSummary[];
@@ -159,6 +164,25 @@ export const HighSchoolPendingProvider: SportsProvider = {
 // others are best-known defaults and should be confirmed against API-Sports'
 // live docs once a key is active, since this environment has no key to
 // verify them against.
+//
+// `defaultLeague: ""` is a deliberate, honest "unresolved" — not a bug.
+// MMA/F1 use it because they're fights/races, not leagues, at all. College
+// baseball (ncaabaseball) uses it for a different reason: unlike college
+// football (ncaaf, league id 2) and college basketball (ncaab, league id
+// 116), API-Sports' own published baseball product documentation lists MLB,
+// LMB (Mexico), and NPB (Japan) as its covered competitions — NCAA/college
+// baseball has never been confirmed as part of that product. This sandbox
+// has neither a live API_SPORTS_KEY nor network access to api-sports.io to
+// check the real /leagues catalog directly (both were attempted and
+// blocked), so rather than hardcode a guessed numeric id — which could
+// silently point at the wrong real league and misrepresent someone else's
+// competition as NCAA baseball — resolveNcaaBaseballLeagueId() below asks
+// the provider itself at runtime, the same "ask, don't hardcode" discipline
+// resolveBettingMarketTypeId (sportsdata.ts) already uses. See
+// resolveDefaultLeagueId in service.ts for how every "games"-shaped call
+// (schedules, standings, team directory, Follow My Team) picks up whatever
+// that resolver finds — or honestly degrades to "not available yet" when it
+// finds nothing, exactly like MMA/F1 do today for their own empty default.
 interface SportConfig {
   host: string;
   shape: "games" | "fixtures" | "fights" | "races";
@@ -172,6 +196,10 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   wnba: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "13" },
   ncaab: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "116" },
   mlb: { host: "v1.baseball.api-sports.io", shape: "games", defaultLeague: "1" },
+  // Same host as MLB (API-Sports' whole baseball product line lives on one
+  // host) — but no static defaultLeague id; see the module comment above and
+  // resolveNcaaBaseballLeagueId just below.
+  ncaabaseball: { host: "v1.baseball.api-sports.io", shape: "games", defaultLeague: "" },
   soccer: { host: "v3.football.api-sports.io", shape: "fixtures", defaultLeague: "39" }, // Premier League
   nhl: { host: "v1.hockey.api-sports.io", shape: "games", defaultLeague: "57" },
   rugby: { host: "v1.rugby.api-sports.io", shape: "games", defaultLeague: "1" },
@@ -179,6 +207,27 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   mma: { host: "v1.mma.api-sports.io", shape: "fights", defaultLeague: "" },
   f1: { host: "v1.formula-1.api-sports.io", shape: "races", defaultLeague: "" },
 };
+
+/** Resolves NCAA/college baseball's real API-Sports league id by searching
+ *  the baseball host's own /leagues catalog for an NCAA/College name match —
+ *  never a hardcoded numeric id (see the SPORT_CONFIG comment above for why).
+ *  Mirrors resolveBettingMarketTypeId's pattern in sportsdata.ts: fetch the
+ *  real list, match by the provider's own Name field, return the real id or
+ *  null. Returns null (never a fabricated id) when unconfigured, the call
+ *  fails, or nothing in the response matches — callers must treat that as
+ *  "this data source doesn't have NCAA baseball," not "broken." Exported for
+ *  tests; service.ts wraps this with the app's normal cache discipline. */
+export async function resolveNcaaBaseballLeagueId(): Promise<string | null> {
+  const json = await apiSportsFetch("ncaabaseball", "/leagues", {});
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  if (!list) return null;
+  const match = list.find((item: any) => {
+    const name = item?.league?.name ?? item?.name;
+    return typeof name === "string" && /NCAA|College/i.test(name);
+  });
+  const id = match?.league?.id ?? match?.id;
+  return id != null ? String(id) : null;
+}
 
 /** A sport's default API-Sports league id (e.g. NFL = "1") — exported so
  *  callers needing to query standings/teams directly (outside the
@@ -193,15 +242,34 @@ function apiKey(): string | undefined {
   return process.env.API_SPORTS_KEY?.trim() || undefined;
 }
 
-// Basketball and hockey seasons span two calendar years, and API-Sports'
-// basketball/hockey APIs require the split "YYYY-YYYY" season format (single
-// non-split years get rejected or return an empty response) — confirmed
-// against this project's own diagnostic page (admin/diagnostics/api-sports,
-// which uses this same seasonParam()). Every other sport here uses a plain
-// single-year season. A split season "starts" around August: a January 2026
-// game is part of the "2025-2026" season, a November 2026 game starts
-// "2026-2027".
-const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "nhl"]);
+// API-Sports' basketball and hockey PRODUCTS (the entire v1.basketball and
+// v1.hockey hosts — every league they carry, not just NBA/NHL) require the
+// split "YYYY-YYYY" season format; single non-split years get rejected or
+// return an empty response. This was originally confirmed here only for NBA
+// (see this project's own diagnostic page, admin/diagnostics/api-sports,
+// which uses this same seasonParam()) and the set below used to read
+// `["nba", "nhl"]` — reasoning from "does this SPORT's real calendar span
+// two years" rather than "which HOST/product is this sport served from."
+// That miscategorized wnba and ncaab: both live on the SAME
+// v1.basketball.api-sports.io host as nba (see SPORT_CONFIG above), so they
+// inherit that host's season-format requirement regardless of WNBA's own
+// real single-calendar-year (May–October) schedule — the provider's season
+// *key* is still the hyphenated string API-Basketball uses for its whole
+// /seasons catalog, independent of which real months a given league plays
+// in. Passing a bare year for WNBA/NCAAB either gets rejected outright or
+// comes back as a genuinely empty `response: []` — indistinguishable, from
+// this app's point of view, from an honest "no games/standings yet" result,
+// which is very likely why WNBA standings/rosters were reported empty in
+// production despite a valid key and a valid league id. Not independently
+// re-verified live for wnba/ncaab specifically (no API_SPORTS_KEY in this
+// environment) — re-check via the diagnostic page above once deployed, the
+// same NBA request already confirms the host-wide format.
+//
+// Every other host used here (american-football, baseball, football/soccer
+// v3, rugby, volleyball) uses a plain single-year season. A split season
+// "starts" around August: a January 2026 game is part of the "2025-2026"
+// season, a November 2026 game starts "2026-2027".
+const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "wnba", "ncaab", "nhl"]);
 
 /** Exported for tests. */
 export function seasonParam(sport: SportSlug, dateISO: string): string {
@@ -210,6 +278,23 @@ export function seasonParam(sport: SportSlug, dateISO: string): string {
   if (!SPLIT_SEASON_SPORTS.has(sport)) return String(year);
   const month = d.getMonth(); // 0-indexed; August = 7
   return month >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
+/** The season immediately BEFORE the one seasonParam() would resolve for
+ *  this date — i.e. the last season that's actually plausible to have a
+ *  completed schedule and final standings right now. Built from the exact
+ *  same real per-sport split/plain convention seasonParam uses, just
+ *  stepped back one — never a separately-guessed format. Used by the
+ *  Standings panel's off-season fallback: when the CURRENT (or upcoming,
+ *  not-yet-started) season has nothing posted yet, this is the real prior
+ *  season to retry with instead of showing a blank panel. Exported for
+ *  tests. */
+export function previousSeasonParam(sport: SportSlug, dateISO: string): string {
+  const current = seasonParam(sport, dateISO);
+  const split = current.match(/^(\d{4})-(\d{4})$/);
+  if (split) return `${Number(split[1]) - 1}-${Number(split[2]) - 1}`;
+  const year = parseInt(current, 10);
+  return Number.isFinite(year) ? String(year - 1) : current;
 }
 
 // API-Sports returns HTTP 200 even when a request falls outside what the
@@ -506,7 +591,7 @@ function mapTeamsResponse(json: unknown): SportsTeam[] | null {
     .map((item: any) => {
       const t = item?.team ?? item;
       if (!t?.id || !t?.name) return null;
-      return { id: String(t.id), name: t.name, logoUrl: t.logo || undefined } as SportsTeam;
+      return { id: String(t.id), name: t.name, logoUrl: t.logo || undefined, code: typeof t.code === "string" && t.code.trim() ? t.code.trim() : undefined } as SportsTeam;
     })
     .filter((t: SportsTeam | null): t is SportsTeam => t !== null);
 }
@@ -549,7 +634,35 @@ export async function fetchTeamsForLeague(sport: SportSlug, league: string, seas
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const yr = season || seasonParam(sport, new Date().toISOString());
   const json = await apiSportsFetch(sport, "/teams", { league, season: yr });
-  return mapTeamsResponse(json);
+  const first = mapTeamsResponse(json);
+  if (!first) return null;
+
+  // API-Sports paginates a large `/teams` response (a real `paging.total`
+  // field in the envelope, e.g. NBA's 30 teams can span more than one
+  // page) — reading only page 1 silently drops whichever teams landed on
+  // later pages, which is exactly what left roughly half of a league's
+  // teams with no resolvable id/logo even though the call itself
+  // "succeeded." Fetch every remaining real page and merge; a response
+  // with no paging field (or just one page) makes this a no-op.
+  const paging = (json as any)?.paging;
+  const totalPages = typeof paging?.total === "number" ? paging.total : 1;
+  if (totalPages <= 1) return first;
+
+  const restPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => i + 2).map((page) =>
+      apiSportsFetch(sport, "/teams", { league, season: yr, page: String(page) }))
+  );
+  const rest = restPages.flatMap((p) => mapTeamsResponse(p) ?? []);
+
+  // Defensive: never trust that "another page" necessarily means "more
+  // real teams" — if paging.total means something other than what this
+  // assumed, or a later page echoes page 1 back, deduping by the
+  // provider's own real team id is what actually guarantees the merged
+  // list is never bigger than the real league (e.g. never a doubled
+  // 60-team MLB list from a genuine 30-team league).
+  const byId = new Map<string, SportsTeam>();
+  for (const t of [...first, ...rest]) byId.set(t.id, t);
+  return Array.from(byId.values());
 }
 
 export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {
@@ -659,17 +772,32 @@ export function mapRosterPlayer(item: any): SportsRosterPlayer | null {
   };
 }
 
+export interface RosterFetchResult {
+  players: SportsRosterPlayer[];
+  /** Set only when API-Sports itself reported a plan/subscription
+   *  restriction for this team's roster (same detectPlanRestriction used by
+   *  the games/standings paths) — a genuine zero-player response never sets
+   *  this. Callers must not conflate the two: a plan restriction is not
+   *  "this team has no roster," it's "our plan can't ask for it." */
+  planRestricted?: string;
+}
+
 /** A real team's current-season roster — straight from API-Sports'
  *  /players endpoint (team + season, the same "no bare search" filter
- *  rule the team-search fix relies on). Returns null on missing config or
- *  a failed/empty response; an empty array only when the provider itself
- *  returns zero players. Never invents a roster. */
-export async function fetchTeamRoster(sport: SportSlug, teamExternalId: string, season: string): Promise<SportsRosterPlayer[] | null> {
+ *  rule the team-search fix relies on). Returns null on missing config, no
+ *  team id, or a failed request (bad HTTP status / unparseable body) — a
+ *  genuine provider ERROR, distinct from both of the two real "we got an
+ *  answer" cases below. A real response with zero players still returns an
+ *  object (`{ players: [] }`), never invents a roster. */
+export async function fetchTeamRoster(sport: SportSlug, teamExternalId: string, season: string): Promise<RosterFetchResult | null> {
   if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return null;
   const json = await apiSportsFetch(sport, "/players", { team: teamExternalId, season });
+  if (!json) return null;
+  const planRestricted = detectPlanRestriction(json) ?? undefined;
+  if (planRestricted) return { players: [], planRestricted };
   const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
   if (!list) return null;
-  return list.map(mapRosterPlayer).filter((p: SportsRosterPlayer | null): p is SportsRosterPlayer => p !== null);
+  return { players: list.map(mapRosterPlayer).filter((p: SportsRosterPlayer | null): p is SportsRosterPlayer => p !== null) };
 }
 
 // ── Game-level box score / team + player stats (NFL/NCAAF today) ──────────
