@@ -8,7 +8,7 @@
 // every method returns null on missing config or a failed/empty response.
 
 export type SportSlug =
-  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
+  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "ncaabaseball" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
 
 export interface SportsTeam {
   id: string;
@@ -68,7 +68,7 @@ export interface SportsLeagueBrand {
  *  Pick / community-vote UI. F1 (a multi-entrant race, not head-to-head) and
  *  MMA (individual fighters, not team logos) are discoverable but excluded —
  *  "who you got" doesn't map cleanly onto either format. */
-export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "soccer", "nhl", "rugby", "volleyball"];
+export const MATCHUP_SPORTS: SportSlug[] = ["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "ncaabaseball", "soccer", "nhl", "rugby", "volleyball"];
 
 export interface SportsDateResult {
   games: SportsGameSummary[];
@@ -159,6 +159,25 @@ export const HighSchoolPendingProvider: SportsProvider = {
 // others are best-known defaults and should be confirmed against API-Sports'
 // live docs once a key is active, since this environment has no key to
 // verify them against.
+//
+// `defaultLeague: ""` is a deliberate, honest "unresolved" — not a bug.
+// MMA/F1 use it because they're fights/races, not leagues, at all. College
+// baseball (ncaabaseball) uses it for a different reason: unlike college
+// football (ncaaf, league id 2) and college basketball (ncaab, league id
+// 116), API-Sports' own published baseball product documentation lists MLB,
+// LMB (Mexico), and NPB (Japan) as its covered competitions — NCAA/college
+// baseball has never been confirmed as part of that product. This sandbox
+// has neither a live API_SPORTS_KEY nor network access to api-sports.io to
+// check the real /leagues catalog directly (both were attempted and
+// blocked), so rather than hardcode a guessed numeric id — which could
+// silently point at the wrong real league and misrepresent someone else's
+// competition as NCAA baseball — resolveNcaaBaseballLeagueId() below asks
+// the provider itself at runtime, the same "ask, don't hardcode" discipline
+// resolveBettingMarketTypeId (sportsdata.ts) already uses. See
+// resolveDefaultLeagueId in service.ts for how every "games"-shaped call
+// (schedules, standings, team directory, Follow My Team) picks up whatever
+// that resolver finds — or honestly degrades to "not available yet" when it
+// finds nothing, exactly like MMA/F1 do today for their own empty default.
 interface SportConfig {
   host: string;
   shape: "games" | "fixtures" | "fights" | "races";
@@ -172,6 +191,10 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   wnba: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "13" },
   ncaab: { host: "v1.basketball.api-sports.io", shape: "games", defaultLeague: "116" },
   mlb: { host: "v1.baseball.api-sports.io", shape: "games", defaultLeague: "1" },
+  // Same host as MLB (API-Sports' whole baseball product line lives on one
+  // host) — but no static defaultLeague id; see the module comment above and
+  // resolveNcaaBaseballLeagueId just below.
+  ncaabaseball: { host: "v1.baseball.api-sports.io", shape: "games", defaultLeague: "" },
   soccer: { host: "v3.football.api-sports.io", shape: "fixtures", defaultLeague: "39" }, // Premier League
   nhl: { host: "v1.hockey.api-sports.io", shape: "games", defaultLeague: "57" },
   rugby: { host: "v1.rugby.api-sports.io", shape: "games", defaultLeague: "1" },
@@ -179,6 +202,27 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   mma: { host: "v1.mma.api-sports.io", shape: "fights", defaultLeague: "" },
   f1: { host: "v1.formula-1.api-sports.io", shape: "races", defaultLeague: "" },
 };
+
+/** Resolves NCAA/college baseball's real API-Sports league id by searching
+ *  the baseball host's own /leagues catalog for an NCAA/College name match —
+ *  never a hardcoded numeric id (see the SPORT_CONFIG comment above for why).
+ *  Mirrors resolveBettingMarketTypeId's pattern in sportsdata.ts: fetch the
+ *  real list, match by the provider's own Name field, return the real id or
+ *  null. Returns null (never a fabricated id) when unconfigured, the call
+ *  fails, or nothing in the response matches — callers must treat that as
+ *  "this data source doesn't have NCAA baseball," not "broken." Exported for
+ *  tests; service.ts wraps this with the app's normal cache discipline. */
+export async function resolveNcaaBaseballLeagueId(): Promise<string | null> {
+  const json = await apiSportsFetch("ncaabaseball", "/leagues", {});
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  if (!list) return null;
+  const match = list.find((item: any) => {
+    const name = item?.league?.name ?? item?.name;
+    return typeof name === "string" && /NCAA|College/i.test(name);
+  });
+  const id = match?.league?.id ?? match?.id;
+  return id != null ? String(id) : null;
+}
 
 /** A sport's default API-Sports league id (e.g. NFL = "1") — exported so
  *  callers needing to query standings/teams directly (outside the

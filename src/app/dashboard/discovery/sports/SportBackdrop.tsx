@@ -168,6 +168,7 @@ function RaceTrack() {
 const BY_SPORT: Partial<Record<SportSlug, () => React.ReactElement>> = {
   nba: BasketballCourt,
   mlb: BaseballField,
+  ncaabaseball: BaseballField,
   nfl: FootballField,
   ncaaf: FootballField,
   nhl: HockeyRink,

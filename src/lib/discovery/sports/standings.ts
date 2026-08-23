@@ -33,7 +33,7 @@ export interface StandingsGroup {
 // percentage rather than trusting row order or a possibly division-scoped
 // provider rank field. Deliberately excludes points-based tables (soccer,
 // rugby) where win% is NOT the real ranking metric and would mis-rank them.
-const WIN_PCT_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "nhl"]);
+const WIN_PCT_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "ncaabaseball", "nhl"]);
 
 // NHL's real standings are points-based (2 for a win, 1 for an overtime/
 // shootout loss, 0 for a regulation loss) — a plain win% ranking mis-orders

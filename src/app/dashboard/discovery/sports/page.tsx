@@ -27,7 +27,7 @@ export const metadata: Metadata = { title: "Magical Moments Sports", robots: { i
 // Category word under each Explore card — presentational only, not provider
 // data. Matches the reference's FOOTBALL/BASKETBALL/etc. sub-labels.
 const SPORT_KIND: Record<SportSlug, string> = {
-  nfl: "Football", ncaaf: "Football", nba: "Basketball", wnba: "Basketball", ncaab: "Basketball", mlb: "Baseball",
+  nfl: "Football", ncaaf: "Football", nba: "Basketball", wnba: "Basketball", ncaab: "Basketball", mlb: "Baseball", ncaabaseball: "Baseball",
   soccer: "Football", nhl: "Hockey", mma: "Mixed Martial Arts",
   rugby: "Rugby", volleyball: "Volleyball", f1: "Racing",
 };

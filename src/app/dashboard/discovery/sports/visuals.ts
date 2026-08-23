@@ -21,6 +21,7 @@ export const SPORT_VISUALS: Record<SportSlug, SportVisual> = {
   wnba: { kind: "league-logo", glyph: "basketball" },
   ncaab: { kind: "league-logo", glyph: "basketball" },
   mlb: { kind: "league-logo", glyph: "baseball" },
+  ncaabaseball: { kind: "league-logo", glyph: "baseball" },
   nhl: { kind: "league-logo", glyph: "hockey" },
   f1: { kind: "league-logo", glyph: "racing" },
   soccer: { kind: "sport-icon", glyph: "soccer" },

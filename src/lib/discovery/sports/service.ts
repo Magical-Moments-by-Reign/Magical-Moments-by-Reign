@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
@@ -40,6 +40,7 @@ export const SPORT_CATALOG: { slug: SportSlug; label: string; category: SportCat
   { slug: "f1", label: "Formula 1", category: "pro" },
   { slug: "ncaaf", label: "College Football", category: "college" },
   { slug: "ncaab", label: "College Basketball", category: "college" },
+  { slug: "ncaabaseball", label: "College Baseball", category: "college" },
   { slug: "soccer", label: "Soccer", category: "world" },
   { slug: "mma", label: "MMA", category: "world" },
   { slug: "rugby", label: "Rugby", category: "world" },
@@ -161,11 +162,19 @@ function localGamesForDate(sport: SportSlug, dateISO: string) {
  *  would otherwise keep reporting it for the rest of the TTL (up to 3h)
  *  regardless of the account's actual current plan. */
 export async function getGamesByDate(sport: SportSlug, dateISO: string, league?: string): Promise<{ games: SportsGameRow[]; planRestricted?: string }> {
+  // ncaabaseball has no static SPORT_CONFIG default (see
+  // resolveDefaultLeagueId's doc comment) — every OTHER sport is unaffected
+  // by this (the ternary is a no-op, `resolvedLeague` stays exactly what the
+  // caller passed, same as before this line existed) so this single seam
+  // fixes every caller of getGamesByDate (the landing page's Live/Upcoming
+  // panels, Magical Picks' matchup lookups, the per-sport page) without
+  // threading a resolved league through each of them individually.
+  const resolvedLeague = league || (sport === "ncaabaseball" ? (await resolveDefaultLeagueId(sport)) || undefined : undefined);
   const isToday = dateISO === new Date().toISOString().slice(0, 10);
   const ttl = isToday ? TTL_GAMES_LIVE : TTL_GAMES_UPCOMING;
   let restriction: string | undefined;
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league }), ttl, async () => {
-    const result = await ApiSportsProvider.gamesByDate(sport, dateISO, league);
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, dateISO, league: resolvedLeague }), ttl, async () => {
+    const result = await ApiSportsProvider.gamesByDate(sport, dateISO, resolvedLeague);
     if (result?.planRestricted) {
       restriction = result.planRestricted;
       return null;
@@ -173,7 +182,7 @@ export async function getGamesByDate(sport: SportSlug, dateISO: string, league?:
     return result;
   });
   if (cached?.data.games.length) {
-    const synced = await syncGamesToLocal(sport, league || cached.data.games[0]?.league || "", cached.data.games);
+    const synced = await syncGamesToLocal(sport, resolvedLeague || cached.data.games[0]?.league || "", cached.data.games);
     return { games: synced };
   }
 
@@ -211,36 +220,72 @@ export async function getLeagueLogos(): Promise<Partial<Record<SportSlug, string
 /** The real first preseason game of the current season, straight from
  *  API-Sports' own stage label — null when the provider doesn't distinguish
  *  a preseason stage for this sport, or has no preseason games in its
- *  response. Never a guessed date. */
-export async function getFirstPreseasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+ *  response. Never a guessed date. `league` overrides SPORT_CONFIG's static
+ *  default — pass resolveDefaultLeagueId's result for a sport (like
+ *  ncaabaseball) whose league id isn't a fixed constant; every other caller
+ *  can omit it and get the same static default as before. */
+export async function getFirstPreseasonGame(sport: SportSlug, league?: string): Promise<SportsGameSummary | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_preseason" }), TTL_GAMES_UPCOMING, () =>
-    fetchFirstPreseasonGame(sport, season));
+    fetchFirstPreseasonGame(sport, season, league));
   return cached?.data ?? null;
 }
 
 /** The real regular-season opener — for a live "N days until kickoff"
  *  countdown. Same real-stage-label sourcing as getFirstPreseasonGame,
- *  never a computed/assumed date. */
-export async function getFirstRegularSeasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+ *  never a computed/assumed date. See getFirstPreseasonGame's doc comment
+ *  for `league`. */
+export async function getFirstRegularSeasonGame(sport: SportSlug, league?: string): Promise<SportsGameSummary | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_regular_season" }), TTL_GAMES_UPCOMING, () =>
-    fetchFirstRegularSeasonGame(sport, season));
+    fetchFirstRegularSeasonGame(sport, season, league));
   return cached?.data ?? null;
 }
 
 /** The real postseason/playoff opener — same real-stage-label sourcing as
  *  getFirstPreseasonGame/getFirstRegularSeasonGame, never a computed/assumed
  *  date. Null once the provider hasn't posted a postseason bracket yet (the
- *  normal case for most of the regular season). */
-export async function getFirstPostseasonGame(sport: SportSlug): Promise<SportsGameSummary | null> {
+ *  normal case for most of the regular season). See getFirstPreseasonGame's
+ *  doc comment for `league`. */
+export async function getFirstPostseasonGame(sport: SportSlug, league?: string): Promise<SportsGameSummary | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, kind: "first_postseason" }), TTL_GAMES_UPCOMING, () =>
-    fetchFirstPostseasonGame(sport, season));
+    fetchFirstPostseasonGame(sport, season, league));
   return cached?.data ?? null;
+}
+
+// A league id's own identity never changes once confirmed — cached for a
+// week, same TTL discipline as team-catalog/logo lookups below.
+const TTL_LEAGUE_RESOLUTION = 10080;
+
+/** The real API-Sports league id to use for a sport's default competition.
+ *  For every sport except ncaabaseball this is just SPORT_CONFIG's own
+ *  static, already-known id (defaultLeagueId) — resolved instantly, no
+ *  network call, just wrapped in a resolved promise so every caller can
+ *  `await` uniformly regardless of sport. ncaabaseball is the one real
+ *  exception: SPORT_CONFIG deliberately leaves its defaultLeague empty (see
+ *  that file's comment) because API-Sports' baseball product has never been
+ *  confirmed to include NCAA/college baseball at all — so instead of a
+ *  hardcoded guess, this asks the provider itself via
+ *  resolveNcaaBaseballLeagueId and caches whatever real answer comes back.
+ *  withCache never caches a null (see its own doc comment), so an
+ *  unconfigured deployment or a genuine "no NCAA baseball league found"
+ *  result is retried — cheaply, since apiSportsFetch short-circuits with no
+ *  network call at all when API_SPORTS_KEY isn't set — the next time this is
+ *  called, rather than staying "unavailable" for the cache TTL even after a
+ *  key or plan is fixed. Returns "" (never a guessed id) when nothing
+ *  resolves; every "games"-shaped call site already treats an empty league
+ *  id as "not available yet," the same honest gate MMA/F1 use today for
+ *  their own permanently-empty default. */
+export async function resolveDefaultLeagueId(sport: SportSlug): Promise<string> {
+  if (sport !== "ncaabaseball") return defaultLeagueId(sport);
+  if (!ApiSportsProvider.isConfigured(sport)) return "";
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, kind: "ncaabaseball_league_resolve" }), TTL_LEAGUE_RESOLUTION, () =>
+    resolveNcaaBaseballLeagueId());
+  return cached?.data ?? "";
 }
 
 export interface NbaHeroState {
@@ -308,7 +353,7 @@ export async function resolveTeamByName(sport: SportSlug, name: string): Promise
  *  resolveTeamByName's per-name search path for those. */
 export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<string, { id: string; logoUrl?: string }> | null> {
   if (!SINGLE_LEAGUE_SPORTS.has(sport)) return null;
-  const league = defaultLeagueId(sport);
+  const league = await resolveDefaultLeagueId(sport);
   if (!league) return null;
   const season = seasonParam(sport, new Date().toISOString());
   const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
@@ -701,13 +746,20 @@ export async function getMyTeams(accountId: string) {
       let recent: SportsGameSummary | null = null;
       let localRows: Awaited<ReturnType<typeof syncGamesToLocal>> = [];
       if (f.teamExternalId && ApiSportsProvider.isConfigured(sport)) {
+        // f.league is whatever the follow form actually submitted (today,
+        // no sport submits a league value — every sport's own static
+        // SPORT_CONFIG default already covers it downstream). ncaabaseball
+        // has no static default (see resolveDefaultLeagueId's doc comment),
+        // so it's the one sport that needs an explicit resolved fallback
+        // here rather than relying on that implicit default.
+        const league = f.league || (sport === "ncaabaseball" ? await resolveDefaultLeagueId(sport) : undefined) || undefined;
         const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, team: f.teamExternalId, kind: "team_games" }), TTL_GAMES_UPCOMING, () =>
-          ApiSportsProvider.gamesForTeam(sport, f.teamExternalId!, { league: f.league || undefined }));
+          ApiSportsProvider.gamesForTeam(sport, f.teamExternalId!, { league }));
         const games = cached?.data ?? [];
         const now = Date.now();
         upcoming = games.filter((g) => new Date(g.startsAt).getTime() >= now).sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))[0] ?? null;
         recent = games.filter((g) => g.status === "final").sort((a, b) => +new Date(b.startsAt) - +new Date(a.startsAt))[0] ?? null;
-        if (games.length) localRows = await syncGamesToLocal(sport, f.league || "", games);
+        if (games.length) localRows = await syncGamesToLocal(sport, league || "", games);
       }
       const localIdFor = (g: SportsGameSummary | null) => (g ? localRows.find((r) => r.externalId === g.externalId)?.id ?? null : null);
       return { follow: f, upcoming, upcomingLocalId: localIdFor(upcoming), recent, recentLocalId: localIdFor(recent) };
@@ -1161,7 +1213,7 @@ const TTL_LEAGUE_TEAMS = 10080; // 1 week — a league's team membership barely 
 // a league/competition first, which isn't built yet — until then it keeps
 // the older, broader (and known-imperfect) catalog search rather than
 // wrongly narrowing to one arbitrary league.
-const SINGLE_LEAGUE_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "nhl", "rugby", "volleyball"]);
+const SINGLE_LEAGUE_SPORTS: ReadonlySet<SportSlug> = new Set(["nfl", "ncaaf", "nba", "wnba", "ncaab", "mlb", "ncaabaseball", "nhl", "rugby", "volleyball"]);
 
 /** Team search scoped to one sport — for the per-sport page's own
  *  follow-a-team box, as opposed to searchSports' cross-sport search.
@@ -1176,7 +1228,7 @@ export async function searchTeamsForSport(sport: SportSlug, query: string) {
   if (!query.trim() || !ApiSportsProvider.isConfigured(sport)) return [];
 
   if (SINGLE_LEAGUE_SPORTS.has(sport)) {
-    const league = defaultLeagueId(sport);
+    const league = await resolveDefaultLeagueId(sport);
     if (league) {
       const season = seasonParam(sport, new Date().toISOString());
       const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>

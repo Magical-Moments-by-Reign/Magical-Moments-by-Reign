@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
@@ -11,7 +11,7 @@ import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, t
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
-import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
+import { ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -77,16 +77,23 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const sport = sportParam as SportSlug;
 
   const connected = ApiSportsProvider.isConfigured(sport);
-  const league = defaultLeagueId(sport);
+  // resolveDefaultLeagueId is a straight passthrough of SPORT_CONFIG's static
+  // id for every sport except ncaabaseball, which has no fixed id — it asks
+  // API-Sports' own /leagues catalog for a real NCAA/college match instead of
+  // guessing (see that function's doc comment). `league` stays "" — never a
+  // guessed id — until a real key resolves one; every panel below already
+  // reads `hasLeague` and shows an honest "not available yet" state for that,
+  // the same gate MMA/F1 rely on for their own permanently-empty default.
+  const league = await resolveDefaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
   const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame, firstPostseasonGame, nbaHeroState] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
     getLeagueLogos(),
-    getFirstPreseasonGame(sport),
-    getFirstRegularSeasonGame(sport),
-    getFirstPostseasonGame(sport),
+    getFirstPreseasonGame(sport, league || undefined),
+    getFirstRegularSeasonGame(sport, league || undefined),
+    getFirstPostseasonGame(sport, league || undefined),
     sport === "nba" ? getNbaHeroState() : Promise.resolve(null),
   ]);
   const leagueLogo = SPORT_VISUALS[sport].kind === "league-logo" ? logos[sport] : undefined;
@@ -177,18 +184,24 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     ? Math.ceil((+new Date(heroTargetISO) - Date.now()) / 86_400_000)
     : null;
 
+  // ncaabaseball has no static SPORT_CONFIG default league (see
+  // resolveDefaultLeagueId's doc comment), so its games calls need the
+  // resolved id passed explicitly — every other sport keeps passing
+  // undefined here exactly as before (same cache key, same behavior),
+  // since their `league` already equals SPORT_CONFIG's own static default.
+  const gamesLeague = sport === "ncaabaseball" ? (league || undefined) : undefined;
   let games: Awaited<ReturnType<typeof getGamesByDate>>["games"] = [];
   let gamesLabel = "Today's Games";
   let planRestricted: string | undefined;
   if (connected) {
     const todayISO = new Date().toISOString().slice(0, 10);
-    const today = await getGamesByDate(sport, todayISO);
+    const today = await getGamesByDate(sport, todayISO, gamesLeague);
     planRestricted = today.planRestricted;
     games = today.games;
     if (!games.length && !planRestricted) {
       for (let daysOut = 1; daysOut <= 7 && !games.length; daysOut++) {
         const dateISO = new Date(Date.now() + daysOut * 86_400_000).toISOString().slice(0, 10);
-        const next = await getGamesByDate(sport, dateISO);
+        const next = await getGamesByDate(sport, dateISO, gamesLeague);
         if (next.games.length) {
           games = next.games;
           gamesLabel = `Next Games — ${new Date(dateISO).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`;
