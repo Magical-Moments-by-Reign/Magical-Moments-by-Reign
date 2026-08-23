@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek, gradeRacePicks, tallyRaceVotes, startOfMonth, startOfDay, leaderboardPeriodStart, recordInRange } from "./picks";
+import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek, gradeRacePicks, tallyRaceVotes, startOfMonth, startOfDay, leaderboardPeriodStart, recordInRange, currentPhasePicks } from "./picks";
 
 test("gradeGamePicks returns null until the game is final with real scores", () => {
   assert.equal(gradeGamePicks({ status: "live", homeScore: 10, awayScore: 7 }, []), null);
@@ -120,4 +120,23 @@ test("recordInRange returns zeros for an empty or fully-out-of-range pick list",
   const start = new Date("2026-08-17T00:00:00");
   const end = new Date("2026-08-24T00:00:00");
   assert.deepEqual(recordInRange([], start, end), { correct: 0, incorrect: 0 });
+});
+
+test("currentPhasePicks keeps only each sport's most-advanced phase", () => {
+  const picks = [
+    { gameId: "1", sport: "nfl", seasonPhase: "preseason" },
+    { gameId: "2", sport: "nfl", seasonPhase: "regular" },
+    { gameId: "3", sport: "nfl", seasonPhase: "regular" },
+    { gameId: "4", sport: "nba", seasonPhase: "preseason" },
+  ];
+  const current = currentPhasePicks(picks);
+  assert.deepEqual(current.map((p) => p.gameId), ["2", "3", "4"]);
+});
+
+test("currentPhasePicks advances a sport to postseason once any postseason pick exists", () => {
+  const picks = [
+    { gameId: "1", sport: "nfl", seasonPhase: "regular" },
+    { gameId: "2", sport: "nfl", seasonPhase: "postseason" },
+  ];
+  assert.deepEqual(currentPhasePicks(picks).map((p) => p.gameId), ["2"]);
 });

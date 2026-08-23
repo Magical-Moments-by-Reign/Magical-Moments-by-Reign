@@ -7,11 +7,11 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
-import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
+import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
@@ -120,6 +120,7 @@ async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsG
         where: { sport_externalId: { sport, externalId: g.externalId } },
         create: {
           sport, league, externalId: g.externalId,
+          seasonPhase: classifySeasonPhase(g.stage),
           homeTeamId: g.homeTeam.id || null, homeTeamName: g.homeTeam.name, homeTeamLogoUrl: g.homeTeam.logoUrl,
           awayTeamId: g.awayTeam.id || null, awayTeamName: g.awayTeam.name, awayTeamLogoUrl: g.awayTeam.logoUrl,
           startsAt: new Date(g.startsAt), status: g.status, period: g.period,
@@ -1670,24 +1671,40 @@ export async function getFamilyPicksLeaderboard(accountId: string, range: Leader
 
 // ── Magical Picks profile + badges ──────────────────────────────
 
+export interface PriorPhaseRecord {
+  sport: SportSlug;
+  sportLabel: string;
+  seasonPhase: "preseason" | "regular" | "postseason";
+  correct: number;
+  incorrect: number;
+}
+
+/** The headline profile stats (accuracy, streak, Total Picks) reflect only
+ *  each sport's CURRENT real season phase — see currentPhasePicks. Once a
+ *  sport moves to a new phase, its earlier-phase record stops feeding the
+ *  "needle" but is never lost — it's returned here, in `priorPhaseRecords`,
+ *  so Pick History can still show it. */
 export async function getMagicalPicksProfile(accountId: string): Promise<
   PicksSummary & {
     pending: number;
     thisWeek: { correct: number; incorrect: number };
     lastWeek: { correct: number; incorrect: number };
     badges: { id: BadgeId; label: string; description: string; icon: string; earnedAt: Date }[];
+    priorPhaseRecords: PriorPhaseRecord[];
   }
 > {
-  const picks = await prisma.sportsPick.findMany({ where: { accountId }, include: { game: { select: { sport: true, startsAt: true } } } });
-  const graded = picks.map((p) => ({ gameId: p.gameId, sport: p.game.sport, isCorrect: p.isCorrect, gameStartsAt: p.game.startsAt }));
-  const summary = summarizePicks(graded);
-  const pending = picks.length - summary.total;
+  const picks = await prisma.sportsPick.findMany({ where: { accountId }, include: { game: { select: { sport: true, startsAt: true, seasonPhase: true } } } });
+  const all = picks.map((p) => ({ gameId: p.gameId, sport: p.game.sport, isCorrect: p.isCorrect, gameStartsAt: p.game.startsAt, seasonPhase: p.game.seasonPhase }));
+  const current = currentPhasePicks(all);
+  const currentIds = new Set(current.map((p) => p.gameId));
+  const summary = summarizePicks(current);
+  const pending = current.filter((p) => p.isCorrect === null).length;
   const now = new Date();
   const thisWeekStart = startOfWeek(now);
   const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86_400_000);
   const nextWeekStart = new Date(thisWeekStart.getTime() + 7 * 86_400_000);
-  const thisWeek = recordInRange(graded, thisWeekStart, nextWeekStart);
-  const lastWeek = recordInRange(graded, lastWeekStart, thisWeekStart);
+  const thisWeek = recordInRange(current, thisWeekStart, nextWeekStart);
+  const lastWeek = recordInRange(current, lastWeekStart, thisWeekStart);
   const earnedRows = await prisma.sportsBadgeEarned.findMany({ where: { accountId } });
   const badges = earnedRows
     .map((r) => {
@@ -1695,7 +1712,17 @@ export async function getMagicalPicksProfile(accountId: string): Promise<
       return def ? { ...def, id: def.id, earnedAt: r.earnedAt } : null;
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
-  return { ...summary, pending, thisWeek, lastWeek, badges };
+
+  const priorMap = new Map<string, PriorPhaseRecord>();
+  for (const p of all) {
+    if (currentIds.has(p.gameId) || p.isCorrect === null) continue;
+    const key = `${p.sport}:${p.seasonPhase}`;
+    const row = priorMap.get(key) ?? { sport: p.sport as SportSlug, sportLabel: sportLabel(p.sport as SportSlug), seasonPhase: p.seasonPhase as PriorPhaseRecord["seasonPhase"], correct: 0, incorrect: 0 };
+    if (p.isCorrect) row.correct += 1; else row.incorrect += 1;
+    priorMap.set(key, row);
+  }
+
+  return { ...summary, pending, thisWeek, lastWeek, badges, priorPhaseRecords: Array.from(priorMap.values()) };
 }
 
 /** Every matchup-eligible sport's real, pickable matchups for one exact
@@ -1746,6 +1773,7 @@ export interface MyPickHistoryRow {
   confidence: number | null;
   startsAt: Date;
   status: string;
+  seasonPhase: "preseason" | "regular" | "postseason";
 }
 
 /** A member's own real pick rows, most recent game first — My Picks / Pick
@@ -1754,7 +1782,7 @@ export interface MyPickHistoryRow {
 export async function getMyPickHistory(accountId: string, limit = 30): Promise<MyPickHistoryRow[]> {
   const rows = await prisma.sportsPick.findMany({
     where: { accountId, pickType: "HEAD_TO_HEAD" },
-    include: { game: { select: { sport: true, homeTeamName: true, homeTeamLogoUrl: true, awayTeamName: true, awayTeamLogoUrl: true, startsAt: true, status: true } } },
+    include: { game: { select: { sport: true, homeTeamName: true, homeTeamLogoUrl: true, awayTeamName: true, awayTeamLogoUrl: true, startsAt: true, status: true, seasonPhase: true } } },
     orderBy: { game: { startsAt: "desc" } },
     take: limit,
   });
@@ -1771,6 +1799,7 @@ export async function getMyPickHistory(accountId: string, limit = 30): Promise<M
     confidence: r.confidence,
     startsAt: r.game.startsAt,
     status: r.game.status,
+    seasonPhase: r.game.seasonPhase as "preseason" | "regular" | "postseason",
   }));
 }
 

@@ -172,6 +172,24 @@ export function recordInRange(picks: GradedPick[], start: Date, end: Date): { co
   return { correct, incorrect: inRange.length - correct };
 }
 
+const SEASON_PHASE_ORDER: Record<string, number> = { preseason: 0, regular: 1, postseason: 2 };
+
+/** Narrows an account's picks to each sport's CURRENT season phase — the
+ *  most advanced real phase (preseason < regular season < postseason) that
+ *  sport has any picks in. Once a sport's regular season starts, its
+ *  preseason picks drop out of the "current" set the profile summary/streak
+ *  are computed from (the record "starts over"), and the same happens again
+ *  when that sport's postseason begins — while every earlier-phase pick
+ *  stays exactly as graded, untouched, for Pick History to show. */
+export function currentPhasePicks<T extends { sport: string; seasonPhase: string }>(picks: T[]): T[] {
+  const maxPhase = new Map<string, number>();
+  for (const p of picks) {
+    const idx = SEASON_PHASE_ORDER[p.seasonPhase] ?? 1;
+    if (idx > (maxPhase.get(p.sport) ?? -1)) maxPhase.set(p.sport, idx);
+  }
+  return picks.filter((p) => (SEASON_PHASE_ORDER[p.seasonPhase] ?? 1) === maxPhase.get(p.sport));
+}
+
 export type LeaderboardPeriod = "today" | "week" | "month" | "season" | "all_time";
 
 /** Resolves a leaderboard period to its real start boundary — undefined

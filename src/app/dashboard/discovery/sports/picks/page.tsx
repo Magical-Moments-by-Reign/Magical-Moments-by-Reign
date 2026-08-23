@@ -26,6 +26,8 @@ const SPORT_LABELS: Record<string, string> = Object.fromEntries(SPORT_CATALOG.ma
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Picks — Magical Discovery", robots: { index: false } };
 
+const PHASE_LABEL: Record<string, string> = { preseason: "Preseason", regular: "", postseason: "Playoffs" };
+
 type Tab = "make" | "my" | "history" | "leaderboard";
 const TABS: { key: Tab; label: string }[] = [
   { key: "make", label: "Make Picks" },
@@ -283,6 +285,21 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
         </div>
       )}
 
+      {profile.priorPhaseRecords.length > 0 && (
+        <div className="disc-section" style={{ marginTop: "1.6rem" }}>
+          <div className="disc-section__head"><h2>Past Seasons</h2></div>
+          <p className="disc-empty" style={{ marginTop: 0 }}>Your record resets when a sport moves into a new season phase — every earlier phase&rsquo;s record stays here.</p>
+          <div className="disc-chart">
+            {profile.priorPhaseRecords.map((r) => (
+              <div className="disc-chart__row" key={`${r.sport}:${r.seasonPhase}`}>
+                <div className="disc-chart__song"><b>{r.sportLabel} {PHASE_LABEL[r.seasonPhase]}</b><span>{r.correct} correct, {r.incorrect} incorrect</span></div>
+                <span className="disc-badge">{r.correct}-{r.incorrect}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {totalAllPicks > 0 && (
         <div className="spx-panel mp-summary">
           <div className="spx-panel__head"><h2>Your Pick Summary</h2><Link href="?tab=history">View Pick History →</Link></div>
@@ -369,7 +386,7 @@ function PickHistoryRow({ h }: { h: MyPickHistoryRow }) {
       <DiscoveryImage src={pickedLogoUrl} alt={pickedName ?? "Pick"} fallback={(pickedName ?? "?").slice(0, 3).toUpperCase()} className="mp-history-row__pick-logo" />
       <div className="mp-history-row__meta">
         <b>{h.awayTeamName} @ {h.homeTeamName}</b>
-        <span>{h.sportLabel} · {h.startsAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Picked {pickedName ?? "—"}</span>
+        <span>{h.sportLabel}{PHASE_LABEL[h.seasonPhase] ? ` · ${PHASE_LABEL[h.seasonPhase]}` : ""} · {h.startsAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Picked {pickedName ?? "—"}</span>
       </div>
       <ConfidenceStars value={h.confidence} />
       <span className={`mp-history-row__result mp-history-row__result--${result}`}>
