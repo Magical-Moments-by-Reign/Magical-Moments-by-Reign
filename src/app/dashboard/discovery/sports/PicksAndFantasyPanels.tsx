@@ -56,8 +56,8 @@ export function MagicalPicksPanel({ matchup, previewSportLabel, sport }: { match
             <form action={submitPickAction}>
               <input type="hidden" name="gameId" value={matchup.game.id} />
               <div className="spx-poll__actions">
-                <PickConfirmButton name="teamPick" value="away" label={matchup.game.awayTeamName} picked={matchup.myPick === "away"} confirmLabel={`${matchup.game.awayTeamName} to beat ${matchup.game.homeTeamName}`} />
-                <PickConfirmButton name="teamPick" value="home" label={matchup.game.homeTeamName} picked={matchup.myPick === "home"} confirmLabel={`${matchup.game.homeTeamName} to beat ${matchup.game.awayTeamName}`} />
+                <PickConfirmButton name="teamPick" value="away" label={matchup.game.awayTeamName} logoUrl={matchup.game.awayTeamLogoUrl} picked={matchup.myPick === "away"} confirmLabel={`${matchup.game.awayTeamName} to beat ${matchup.game.homeTeamName}`} />
+                <PickConfirmButton name="teamPick" value="home" label={matchup.game.homeTeamName} logoUrl={matchup.game.homeTeamLogoUrl} picked={matchup.myPick === "home"} confirmLabel={`${matchup.game.homeTeamName} to beat ${matchup.game.awayTeamName}`} />
               </div>
               <div className="spx-poll__confidence">
                 <span>Confidence</span>

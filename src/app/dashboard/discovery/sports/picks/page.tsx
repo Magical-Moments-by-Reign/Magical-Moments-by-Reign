@@ -202,8 +202,8 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
                             <form action={submitPickAction} className="mp-row__pick-form">
                               <input type="hidden" name="gameId" value={ctx.game.id} />
                               <div className="mp-row__actions">
-                                <PickConfirmButton name="teamPick" value="away" label={ctx.game.awayTeamName} picked={ctx.myPick === "away"} confirmLabel={`${ctx.game.awayTeamName} to beat ${ctx.game.homeTeamName}`} />
-                                <PickConfirmButton name="teamPick" value="home" label={ctx.game.homeTeamName} picked={ctx.myPick === "home"} confirmLabel={`${ctx.game.homeTeamName} to beat ${ctx.game.awayTeamName}`} />
+                                <PickConfirmButton name="teamPick" value="away" label={ctx.game.awayTeamName} logoUrl={ctx.game.awayTeamLogoUrl} picked={ctx.myPick === "away"} confirmLabel={`${ctx.game.awayTeamName} to beat ${ctx.game.homeTeamName}`} />
+                                <PickConfirmButton name="teamPick" value="home" label={ctx.game.homeTeamName} logoUrl={ctx.game.homeTeamLogoUrl} picked={ctx.myPick === "home"} confirmLabel={`${ctx.game.homeTeamName} to beat ${ctx.game.awayTeamName}`} />
                               </div>
                               <ConfidencePicker gameId={ctx.game.id} myConfidence={ctx.myConfidence} />
                             </form>
@@ -362,13 +362,11 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
 
 function PickHistoryRow({ h }: { h: MyPickHistoryRow }) {
   const pickedName = h.teamPick === "home" ? h.homeTeamName : h.teamPick === "away" ? h.awayTeamName : null;
+  const pickedLogoUrl = h.teamPick === "home" ? h.homeTeamLogoUrl : h.teamPick === "away" ? h.awayTeamLogoUrl : null;
   const result = h.isCorrect === null ? "pending" : h.isCorrect ? "correct" : "incorrect";
   return (
     <div className="mp-history-row">
-      <div className="mp-history-row__logos">
-        <DiscoveryImage src={h.awayTeamLogoUrl} alt={h.awayTeamName} fallback={h.awayTeamName.slice(0, 3).toUpperCase()} />
-        <DiscoveryImage src={h.homeTeamLogoUrl} alt={h.homeTeamName} fallback={h.homeTeamName.slice(0, 3).toUpperCase()} />
-      </div>
+      <DiscoveryImage src={pickedLogoUrl} alt={pickedName ?? "Pick"} fallback={(pickedName ?? "?").slice(0, 3).toUpperCase()} className="mp-history-row__pick-logo" />
       <div className="mp-history-row__meta">
         <b>{h.awayTeamName} @ {h.homeTeamName}</b>
         <span>{h.sportLabel} · {h.startsAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Picked {pickedName ?? "—"}</span>

@@ -288,7 +288,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .6rem; font-weight: 800; }
 .spx-poll__votes { text-align: center; color: #9c8f76; font-size: .64rem; margin-bottom: .55rem; }
 .spx-poll__actions { display: flex; gap: .4rem; }
-.spx-poll__actions button { flex: 1; padding: .38rem; border-radius: 7px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .68rem; font-weight: 700; cursor: pointer; }
+.spx-poll__actions button { flex: 1; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .38rem; border-radius: 7px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .68rem; font-weight: 700; cursor: pointer; }
 .spx-poll__actions button[data-picked="true"] { background: var(--gold); color: #0a0806; border-color: var(--gold); }
 .spx-poll__select-other { display: block; text-align: center; margin-top: .6rem; color: var(--gold-soft); font-size: .68rem; font-weight: 700; text-decoration: none; }
 .spx-poll__select-other:hover { color: var(--gold); text-decoration: underline; }
@@ -746,9 +746,10 @@ a.brk-matchup:hover { border-color: var(--gold); }
 .mp-row__team b { color: var(--ink); font-size: .8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-row__vs { color: var(--ink-soft); font-size: .64rem; font-weight: 700; flex: none; }
 .mp-row__actions { flex: none; display: flex; gap: .4rem; }
-.mp-row__actions button { padding: .45rem .85rem; border-radius: 7px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: .7rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.mp-row__actions button { display: flex; align-items: center; gap: .35rem; padding: .45rem .85rem; border-radius: 7px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: .7rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .mp-row__actions button:hover { border-color: var(--gold-deep); }
 .mp-row__actions button[data-picked="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
+.pick-btn__logo, .pick-btn__logo.discovery-image-fallback { flex: none; width: 18px; height: 18px; object-fit: contain; border-radius: 4px; }
 .mp-row__locked { flex: none; color: var(--ink-soft); font-size: .68rem; font-weight: 700; }
 .mp-row--soon { justify-content: center; }
 .mp-row--soon span { color: var(--ink-soft); font-size: .78rem; font-style: italic; }
@@ -796,8 +797,7 @@ a.brk-matchup:hover { border-color: var(--gold); }
 .mp-streak__flames { margin-top: .7rem; font-size: 1.05rem; letter-spacing: .12em; }
 
 .mp-history-row { display: flex; align-items: center; gap: .8rem; padding: .7rem .8rem; border-radius: 10px; background: #fffdf9; border: 1px solid var(--line); margin-bottom: .5rem; box-shadow: 0 2px 8px rgba(44,33,26,.05); }
-.mp-history-row__logos { flex: none; display: flex; align-items: center; gap: .3rem; }
-.mp-history-row__logos img, .mp-history-row__logos .discovery-image-fallback { width: 24px; height: 24px; object-fit: contain; border-radius: 6px; }
+.mp-history-row__pick-logo, .mp-history-row__pick-logo.discovery-image-fallback { flex: none; width: 32px; height: 32px; object-fit: contain; border-radius: 7px; }
 .mp-history-row__meta { flex: 1; min-width: 0; }
 .mp-history-row__meta b { display: block; color: var(--ink); font-size: .8rem; }
 .mp-history-row__meta span { color: var(--ink-soft); font-size: .66rem; }
