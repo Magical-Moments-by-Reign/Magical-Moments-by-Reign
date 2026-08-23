@@ -194,12 +194,12 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 @media (max-width: 700px) { .spx-card { width: 108px; } }
 
 /* ── Four-panel row: Live Games / Upcoming Games / Magical Picks / My Teams ── */
-.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
+.spx-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .8rem; margin-bottom: 1.3rem; }
 .spx-panel {
   background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.28);
-  border-radius: 14px; padding: 1.1rem; display: flex; flex-direction: column;
+  border-radius: 12px; padding: .85rem; display: flex; flex-direction: column;
 }
-.spx-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .9rem; }
+.spx-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
 .spx-panel__head h2 { margin: 0; color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .14em; }
 .spx-panel__head a { color: #9c8f76; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 .spx-panel__head a:hover { color: var(--gold-soft); }
@@ -244,17 +244,17 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 
 /* Magical Picks poll */
 .spx-poll__sport { color: #9c8f76; font-size: .68rem; margin-bottom: .7rem; }
-.spx-poll__vs { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: .8rem; }
-.spx-poll__vs img { width: 40px; height: 40px; object-fit: contain; }
-.spx-poll__vs b { color: #f4f1ea; font-size: .76rem; text-align: center; max-width: 90px; }
-.spx-poll__vs em { font-style: normal; color: var(--gold); font-size: .68rem; font-weight: 800; border: 1px solid rgba(201,162,75,.4); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
-.spx-poll__bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin-bottom: .4rem; }
+.spx-poll__vs { display: flex; align-items: center; justify-content: center; gap: .65rem; margin-bottom: .55rem; }
+.spx-poll__vs img { width: 28px; height: 28px; object-fit: contain; }
+.spx-poll__vs b { color: #f4f1ea; font-size: .72rem; text-align: center; max-width: 90px; }
+.spx-poll__vs em { font-style: normal; color: var(--gold); font-size: .62rem; font-weight: 800; border: 1px solid rgba(201,162,75,.4); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.spx-poll__bar { display: flex; height: 16px; border-radius: 5px; overflow: hidden; margin-bottom: .3rem; }
 .spx-poll__bar span:first-child { background: #b3392c; }
 .spx-poll__bar span:last-child { background: #2f5fa8; }
-.spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .68rem; font-weight: 800; }
-.spx-poll__votes { text-align: center; color: #9c8f76; font-size: .68rem; margin-bottom: .8rem; }
-.spx-poll__actions { display: flex; gap: .5rem; }
-.spx-poll__actions button { flex: 1; padding: .5rem; border-radius: 8px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.spx-poll__bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: .6rem; font-weight: 800; }
+.spx-poll__votes { text-align: center; color: #9c8f76; font-size: .64rem; margin-bottom: .55rem; }
+.spx-poll__actions { display: flex; gap: .4rem; }
+.spx-poll__actions button { flex: 1; padding: .38rem; border-radius: 7px; border: 1px solid rgba(201,162,75,.4); background: transparent; color: #f4f1ea; font-size: .68rem; font-weight: 700; cursor: pointer; }
 .spx-poll__actions button[data-picked="true"] { background: var(--gold); color: #0a0806; border-color: var(--gold); }
 
 /* My Teams rows */
@@ -587,18 +587,18 @@ a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underl
    Big, obvious CTA — visible from mid-season onward, not just once the
    postseason starts. */
 .spx-bracket-cta {
-  display: flex; align-items: center; gap: 1.1rem; margin-bottom: 1.4rem; padding: 1.3rem 1.4rem;
-  border-radius: 14px; text-decoration: none;
+  display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; padding: .85rem 1rem;
+  border-radius: 12px; text-decoration: none;
   background: linear-gradient(160deg, #4f3a22 0%, #392a1a 55%, #291f14 100%);
   border: 1px solid rgba(201,162,75,.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
   transition: border-color .15s, transform .15s;
 }
 .spx-bracket-cta:hover { border-color: var(--gold); transform: translateY(-1px); }
-.spx-bracket-cta__icon { flex: none; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(224,182,81,.14); border: 1px solid rgba(201,162,75,.4); color: var(--gold); font-size: 1.3rem; }
+.spx-bracket-cta__icon { flex: none; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(224,182,81,.14); border: 1px solid rgba(201,162,75,.4); color: var(--gold); font-size: 1rem; }
 .spx-bracket-cta__copy { flex: 1; min-width: 0; }
-.spx-bracket-cta__copy b { display: block; color: #f4f1ea; font-size: 1rem; font-weight: 900; letter-spacing: .01em; margin-bottom: .25rem; }
-.spx-bracket-cta__copy span { display: block; color: #d9cdb8; font-size: .78rem; line-height: 1.4; }
-.spx-bracket-cta__go { flex: none; color: var(--gold); font-size: .78rem; font-weight: 800; letter-spacing: .06em; }
+.spx-bracket-cta__copy b { display: block; color: #f4f1ea; font-size: .82rem; font-weight: 900; letter-spacing: .01em; margin-bottom: .15rem; }
+.spx-bracket-cta__copy span { display: block; color: #d9cdb8; font-size: .7rem; line-height: 1.35; }
+.spx-bracket-cta__go { flex: none; color: var(--gold); font-size: .7rem; font-weight: 800; letter-spacing: .06em; }
 
 /* ── Playoff Bracket page (PlayoffBracket.tsx) — SPORT-AGNOSTIC ─────────
    Warm-espresso cards (same register as .spx-profile/.spx-fantasy above —
