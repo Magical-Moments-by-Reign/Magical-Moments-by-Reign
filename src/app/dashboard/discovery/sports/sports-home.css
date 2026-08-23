@@ -708,7 +708,7 @@ a.brk-matchup:hover { border-color: var(--gold); }
    --gold-deep, from the .dsh dashboard shell) for the tab/date controls
    that sit directly on that backdrop, same convention as .spx > .disc-nav
    above. ── */
-.mp-tabs-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.3rem 0 1.4rem; border-bottom: 1px solid rgba(201,162,75,.3); }
+.mp-tabs-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.3rem 0 1.4rem; border-bottom: 1px solid rgba(201,162,75,.3); z-index: 6; }
 .mp-tabs { display: flex; gap: .3rem; flex-wrap: wrap; }
 .mp-tabs a { padding: .6rem .95rem; border-radius: 8px 8px 0 0; color: var(--ink-soft); font-size: .74rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .mp-tabs a:hover { color: var(--espresso); }
