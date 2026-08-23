@@ -747,14 +747,20 @@ export async function getSportsLandingGames(sports: SportSlug[], limit = 4): Pro
   const configured = sports.filter((s) => ApiSportsProvider.isConfigured(s));
   if (!configured.length) return { live: [], upcoming: [] };
 
+  // PER-SPORT failure isolation (resolveWithFailureIsolation, same helper
+  // resolveFollowedTeamRosters uses) — a bare Promise.all here means one
+  // sport's provider/cache/DB call throwing takes the whole landing page
+  // down with it (every /dashboard/discovery visit calls this via
+  // getCuratedForYou). A failed sport degrades to { games: [] } for that
+  // sport only; every other sport's real games still render.
   const todayISO = new Date().toISOString().slice(0, 10);
-  const today = (await Promise.all(configured.map((s) => getGamesByDate(s, todayISO)))).flatMap((r) => r.games);
+  const today = (await resolveWithFailureIsolation(configured, (s) => getGamesByDate(s, todayISO), (): { games: SportsGameRow[] } => ({ games: [] }))).flatMap((r) => r.games);
   const live = today.filter((g) => g.status === "live").sort((a, b) => +a.startsAt - +b.startsAt).slice(0, limit);
 
   let upcoming = today.filter((g) => g.status === "scheduled").sort((a, b) => +a.startsAt - +b.startsAt);
   for (let daysOut = 1; daysOut <= 7 && upcoming.length < limit; daysOut++) {
     const dateISO = new Date(Date.now() + daysOut * 86_400_000).toISOString().slice(0, 10);
-    const dayGames = (await Promise.all(configured.map((s) => getGamesByDate(s, dateISO)))).flatMap((r) => r.games);
+    const dayGames = (await resolveWithFailureIsolation(configured, (s) => getGamesByDate(s, dateISO), (): { games: SportsGameRow[] } => ({ games: [] }))).flatMap((r) => r.games);
     upcoming = upcoming.concat(dayGames.filter((g) => g.status === "scheduled").sort((a, b) => +a.startsAt - +b.startsAt));
   }
 
