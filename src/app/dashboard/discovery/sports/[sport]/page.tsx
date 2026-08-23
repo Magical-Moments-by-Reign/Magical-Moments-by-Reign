@@ -30,8 +30,8 @@ const BLUE_LEAGUE_TEXT: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: t
 // as the hero background instead of the generic stadium shot — none of
 // these images carry team/league marks, just a real field/court.
 const HERO_BACKDROP_IMAGE: Partial<Record<SportSlug, string>> = {
-  nfl: "/discovery/football-field.png",
-  ncaaf: "/discovery/football-field.png",
+  nfl: "/discovery/nfl-hero.png",
+  ncaaf: "/discovery/college-football-hero.png",
   nba: "/discovery/basketball-court.png",
 };
 // Sports whose hero countdown targets the real preseason opener until that
@@ -40,6 +40,25 @@ const HERO_BACKDROP_IMAGE: Partial<Record<SportSlug, string>> = {
 // computed or guessed. Off by default (football's hero always targets the
 // regular-season opener, with preseason as a separate footnote line).
 const PRESEASON_PHASE_SPORTS: Partial<Record<SportSlug, true>> = { nba: true };
+
+// Sports with a real, fully wired Playoff Bracket page today (see
+// [sport]/bracket/page.tsx's own BRACKET_READY_SPORTS, which this mirrors).
+// Used both to gate the spx-bracket-cta entry-point card below and to
+// exclude these sports from the older list-based "Playoff Picture" panel
+// (playoffPictureGroups) they've been superseded by.
+const BRACKET_READY_SPORTS = new Set<SportSlug>(["nfl", "nba", "wnba", "mlb", "nhl"]);
+
+// Body copy for the projected-phase Playoff Bracket CTA, per sport — real
+// round names for each sport's own real postseason format (see bracket.ts's
+// per-sport adapters). The postseason-phase copy stays sport-generic (uses
+// sportMeta.label) since it doesn't need to spell out the round list.
+const BRACKET_CTA_PROJECTED_COPY: Partial<Record<SportSlug, string>> = {
+  nfl: "See the full AFC & NFC field if the playoffs started today — Wild Card through the Super Bowl.",
+  nba: "See the full Eastern & Western field if the playoffs started today — Play-In through the NBA Finals.",
+  wnba: "See the full field if the playoffs started today — First Round through the WNBA Finals.",
+  mlb: "See the full AL & NL field if the playoffs started today — Wild Card Series through the World Series.",
+  nhl: "See the full Eastern & Western field if the playoffs started today — First Round through the Stanley Cup Final.",
+};
 
 // F1/MMA Coming Soon copy — see the early-return above. Never claims a
 // launch date; states plainly what isn't connected rather than what will
@@ -316,13 +335,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // division tiebreaker data for any of them yet). Every sport's own real
   // seed/tag shape is normalized into one common row shape here so the
   // render below stays one piece of markup, not five near-duplicates.
-  // NFL is deliberately excluded from this list-based "Playoff Picture"
-  // panel — it's superseded there by the real Playoff Bracket page (see the
-  // spx-bracket-cta entry-point card below and PlayoffBracket.tsx). Every
-  // other sport keeps this list treatment unchanged until its own bracket
-  // is built.
+  // NFL, NBA, WNBA, MLB, and NHL are deliberately excluded from this
+  // list-based "Playoff Picture" panel — each is superseded there by its own
+  // real Playoff Bracket page (see the spx-bracket-cta entry-point card
+  // below and PlayoffBracket.tsx) so a member never sees both the old list
+  // and the new bracket for the same sport. Any future sport keeps this
+  // list treatment unchanged until its own bracket is built.
   let playoffPictureGroups: { label: string; rows: { teamId: string; teamName: string; teamLogoUrl?: string; seed?: number; tag?: string; clinched: boolean }[] }[] = [];
-  if (standingsPhase === "regular" && standings.length > 0) {
+  if (standingsPhase === "regular" && standings.length > 0 && !BRACKET_READY_SPORTS.has(sport)) {
     if (sport === "mlb") {
       const [al, nl] = await Promise.all([getMlbPlayoffPicture("AL"), getMlbPlayoffPicture("NL")]);
       playoffPictureGroups = [al && { label: "AL", seeds: al }, nl && { label: "NL", seeds: nl }]
@@ -526,25 +546,26 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         </div>
       )}
 
-      {/* Playoff Bracket entry point — NFL only (the only sport this bracket
-          is fully wired for today; see [sport]/bracket/page.tsx's
-          BRACKET_READY_SPORTS). Visible from mid-season onward, not just
-          once the postseason starts — a member should be able to follow the
-          projected field the moment real standings exist, same as the old
-          list-based Playoff Picture panel this supersedes for NFL (see the
+      {/* Playoff Bracket entry point — the 5 sports this bracket is fully
+          wired for today (see BRACKET_READY_SPORTS above and
+          [sport]/bracket/page.tsx's own copy of the same set). Visible from
+          mid-season onward, not just once the postseason starts — a member
+          should be able to follow the projected field the moment real
+          standings exist, same as the old list-based Playoff Picture panel
+          this supersedes for each of these sports (see the
           playoffPictureGroups computation above). Gated on `connected &&
           hasLeague` only (not on standings/playoffPictureGroups) since the
           bracket page itself already renders its own honest "not available
           yet" state when there's nothing to show. */}
-      {sport === "nfl" && connected && hasLeague && (
-        <Link href="/dashboard/discovery/sports/nfl/bracket" className="spx-bracket-cta">
+      {BRACKET_READY_SPORTS.has(sport) && connected && hasLeague && (
+        <Link href={`/dashboard/discovery/sports/${sport}/bracket`} className="spx-bracket-cta">
           <span className="spx-bracket-cta__icon" aria-hidden="true">🏆</span>
           <span className="spx-bracket-cta__copy">
             <b>{standingsPhase === "postseason" ? "Playoff Bracket" : "Projected Playoff Bracket"}</b>
             <span>
               {standingsPhase === "postseason"
-                ? "Follow the real NFL playoff bracket as results come in."
-                : "See the full AFC & NFC field if the playoffs started today — Wild Card through the Super Bowl."}
+                ? `Follow the real ${sportMeta.label} playoff bracket as results come in.`
+                : BRACKET_CTA_PROJECTED_COPY[sport] ?? "See the full projected field if the playoffs started today."}
             </span>
           </span>
           <span className="spx-bracket-cta__go">View Bracket →</span>

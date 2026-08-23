@@ -13,7 +13,7 @@ import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
-import { buildNflBracketData, type BracketData, type NflBracketRealGame } from "./bracket";
+import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -1139,6 +1139,13 @@ export interface MlbPlayoffPictureSeed {
   seed: number;
   isDivisionWinner: boolean;
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's MlbBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one MLB league (AL/NL) — the real
@@ -1154,15 +1161,57 @@ export async function getMlbPlayoffPicture(league: "AL" | "NL", season?: string)
   const seeds = projectMlbLeagueSeeds(
     teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
   );
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return seeds.map((s) => ({
     teamId: s.teamId,
-    teamName: teamById.get(s.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    teamName: teamById.get(s.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.team.logoUrl,
     seed: s.seed,
     isDivisionWinner: s.isDivisionWinner,
     clinched: s.clinched,
+    wins: teamById.get(s.teamId)?.wins ?? 0,
+    losses: teamById.get(s.teamId)?.losses ?? 0,
+    ties: teamById.get(s.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the MLB Playoff Bracket —
+ *  same exact real signal as getNflPlayoffBracket: a real postseason game
+ *  existing for this season (getFirstPostseasonGame("mlb", ...) !== null).
+ *  See that function's own doc comment for why. */
+export async function getMlbPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("mlb");
+  const [al, nl, firstPostseasonGame] = await Promise.all([
+    getMlbPlayoffPicture("AL", season),
+    getMlbPlayoffPicture("NL", season),
+    getFirstPostseasonGame("mlb", league || undefined),
+  ]);
+  if (!al?.length || !nl?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: MlbBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("mlb", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("mlb", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("mlb", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildMlbBracketData({ seasonLabel, mode, alSeeds: al, nlSeeds: nl, postseasonGames });
 }
 
 export interface NhlPlayoffPictureSeed {
@@ -1172,6 +1221,13 @@ export interface NhlPlayoffPictureSeed {
   seed: number;
   isTopThreeInDivision: boolean;
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's NhlBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one NHL conference — the real top-3-
@@ -1188,15 +1244,57 @@ export async function getNhlPlayoffPicture(conference: "Eastern" | "Western", se
   const seeds = projectNhlConferenceSeeds(
     teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties, division: t.division }))
   );
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return seeds.map((s) => ({
     teamId: s.teamId,
-    teamName: teamById.get(s.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(s.teamId)?.logoUrl,
+    teamName: teamById.get(s.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(s.teamId)?.team.logoUrl,
     seed: s.seed,
     isTopThreeInDivision: s.isTopThreeInDivision,
     clinched: s.clinched,
+    wins: teamById.get(s.teamId)?.wins ?? 0,
+    losses: teamById.get(s.teamId)?.losses ?? 0,
+    ties: teamById.get(s.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the NHL Playoff Bracket —
+ *  same exact real signal as getNflPlayoffBracket: a real postseason game
+ *  existing for this season (getFirstPostseasonGame("nhl", ...) !== null).
+ *  See that function's own doc comment for why. */
+export async function getNhlPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("nhl");
+  const [east, west, firstPostseasonGame] = await Promise.all([
+    getNhlPlayoffPicture("Eastern", season),
+    getNhlPlayoffPicture("Western", season),
+    getFirstPostseasonGame("nhl", league || undefined),
+  ]);
+  if (!east?.length || !west?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: NhlBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("nhl", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("nhl", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("nhl", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildNhlBracketData({ seasonLabel, mode, eastSeeds: east, westSeeds: west, postseasonGames });
 }
 
 export interface NbaPlayoffPictureEntry {
@@ -1206,6 +1304,12 @@ export interface NbaPlayoffPictureEntry {
   seed: number;
   status: "DIRECT_BERTH" | "PLAY_IN" | "OUTSIDE";
   clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's NbaBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
 }
 
 /** "IF THE PLAYOFFS STARTED TODAY" for one NBA conference — real seeds 1-6
@@ -1218,33 +1322,141 @@ export async function getNbaPlayoffPicture(conference: "Eastern" | "Western", se
   );
   if (!teams.length) return null;
   const picture = projectNbaConferencePicture(teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses })));
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
   return picture.map((p) => ({
     teamId: p.teamId,
-    teamName: teamById.get(p.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(p.teamId)?.logoUrl,
+    teamName: teamById.get(p.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(p.teamId)?.team.logoUrl,
     seed: p.seed,
     status: p.status,
     clinched: p.clinched,
+    wins: teamById.get(p.teamId)?.wins ?? 0,
+    losses: teamById.get(p.teamId)?.losses ?? 0,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the NBA Playoff Bracket —
+ *  same exact real signal as getNflPlayoffBracket: a real postseason game
+ *  existing for this season (getFirstPostseasonGame("nba", ...) !== null).
+ *  See that function's own doc comment for why. */
+export async function getNbaPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("nba");
+  const [east, west, firstPostseasonGame] = await Promise.all([
+    getNbaPlayoffPicture("Eastern", season),
+    getNbaPlayoffPicture("Western", season),
+    getFirstPostseasonGame("nba", league || undefined),
+  ]);
+  if (!east?.length || !west?.length) return null;
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: NbaBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("nba", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("nba", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("nba", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildNbaBracketData({ seasonLabel, mode, eastSeeds: east, westSeeds: west, postseasonGames });
+}
+
+export interface WnbaPlayoffPictureEntry {
+  teamId: string;
+  teamName: string;
+  teamLogoUrl?: string;
+  /** 1-based rank by real current wins — computePostseasonPicture's own
+   *  `ranked` order, exposed here (additive) so the Playoff Bracket can
+   *  seed its real top-8 field the same way every other sport's bracket
+   *  seeds off a `seed` number. Not itself an official seed once the real
+   *  postseason starts — same disclosed no-tiebreaker limitation as every
+   *  other projector in this file. */
+  seed: number;
+  inField: boolean;
+  clinched: boolean;
+  /** Real current record — added for the Playoff Bracket's team cards
+   *  (bracket.ts's WnbaBracketSeedInput), same reason NflPlayoffPictureSeed
+   *  was extended. Existing callers that only read the fields above are
+   *  unaffected. */
+  wins: number;
+  losses: number;
+  ties?: number;
 }
 
 /** WNBA has no conference split — one league-wide table, real top-8 field,
  *  no Play-In tournament (unlike the NBA). Uses the shared
  *  computePostseasonPicture rather than a conference-specific adapter. */
-export async function getWnbaPlayoffPicture(season?: string): Promise<{ teamId: string; teamName: string; teamLogoUrl?: string; inField: boolean; clinched: boolean }[] | null> {
+export async function getWnbaPlayoffPicture(season?: string): Promise<WnbaPlayoffPictureEntry[] | null> {
   const { standings } = await getStandings("wnba", defaultLeagueId("wnba"), season);
   const teams = standings.filter((s): s is SportsStanding & { wins: number; losses: number } => typeof s.wins === "number" && typeof s.losses === "number");
   if (!teams.length) return null;
   const picture = computePostseasonPicture("wnba", teams.map((t) => ({ teamId: t.team.id, wins: t.wins, losses: t.losses, ties: t.ties })), 8);
-  const teamById = new Map(teams.map((t) => [t.team.id, t.team]));
-  return picture.map((p) => ({
+  const teamById = new Map(teams.map((t) => [t.team.id, t]));
+  return picture.map((p, i) => ({
     teamId: p.teamId,
-    teamName: teamById.get(p.teamId)?.name ?? "Team",
-    teamLogoUrl: teamById.get(p.teamId)?.logoUrl,
+    teamName: teamById.get(p.teamId)?.team.name ?? "Team",
+    teamLogoUrl: teamById.get(p.teamId)?.team.logoUrl,
+    seed: i + 1,
     inField: p.inField,
     clinched: p.clinched,
+    wins: teamById.get(p.teamId)?.wins ?? 0,
+    losses: teamById.get(p.teamId)?.losses ?? 0,
+    ties: teamById.get(p.teamId)?.ties,
   }));
+}
+
+/** THE PROJECTED -> OFFICIAL TRANSITION SIGNAL for the WNBA Playoff
+ *  Bracket — same exact real signal as getNflPlayoffBracket: a real
+ *  postseason game existing for this season
+ *  (getFirstPostseasonGame("wnba", ...) !== null). See that function's own
+ *  doc comment for why. WNBA has no conference split, so there's only one
+ *  picture call here (unlike NFL/NBA/MLB/NHL's two parallel calls). */
+export async function getWnbaPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("wnba");
+  const [field, firstPostseasonGame] = await Promise.all([
+    getWnbaPlayoffPicture(season),
+    getFirstPostseasonGame("wnba", league || undefined),
+  ]);
+  if (!field?.length) return null;
+  const seeds = field.filter((f) => f.inField); // real bracket only ever seats the top-8 field
+
+  const mode: BracketData["mode"] = firstPostseasonGame ? "official" : "projected";
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame?.startsAt ?? new Date()).getUTCFullYear());
+
+  let postseasonGames: WnbaBracketRealGame[] = [];
+  if (mode === "official") {
+    const seasonQuery = season ?? seasonParam("wnba", new Date().toISOString());
+    const seasonGames = await fetchSeasonGames("wnba", seasonQuery, league || undefined);
+    const real = (seasonGames ?? []).filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage));
+    const synced = real.length ? await syncGamesToLocal("wnba", league, real) : [];
+    const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+    postseasonGames = real.map((g) => ({
+      externalId: g.externalId,
+      gameId: localIdByExternalId.get(g.externalId) ?? null,
+      stage: g.stage ?? "",
+      status: g.status,
+      startsAt: g.startsAt,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    }));
+  }
+
+  return buildWnbaBracketData({ seasonLabel, mode, seeds, postseasonGames });
 }
 
 /** Real win-loss(-tie) records for the two teams in one matchup, resolved

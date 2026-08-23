@@ -2,11 +2,14 @@
 // Turns real seed/standings data (from postseason.ts's rule engine) and real
 // postseason game data (from the sports provider) into ONE generic shape —
 // BracketData below — that the shared <PlayoffBracket> UI component renders.
-// NFL is the only sport wired end to end today (buildNflBracketData +
-// service.ts's getNflPlayoffBracket); a second sport (NBA/WNBA/MLB/NHL) is
-// meant to plug into the exact same BracketRound/BracketMatchup/BracketSlot
-// types with its own build*BracketData function here — the same "shared
-// shape, per-league adapter" pattern postseason.ts already uses for seeding.
+// NFL, NBA, WNBA, MLB, and NHL are wired end to end today (each with its own
+// build*BracketData function here plus its own getXPlayoffBracket in
+// service.ts) — every one of them plugs into the exact same
+// BracketRound/BracketMatchup/BracketSlot types, the same "shared shape,
+// per-league adapter" pattern postseason.ts already uses for seeding. A
+// future sport follows the same recipe: its own seed input type, its own
+// classify*PostseasonStage regex classifier, its own round builders, and
+// its own build*BracketData/getXPlayoffBracket pair.
 //
 // HARD RULE enforced everywhere in this file: a BracketSlot only ever holds
 // a REAL team (from real standings/seeding, or a real scheduled/live/final
@@ -107,9 +110,19 @@ function placeholderSlot(label: string): BracketSlot {
   return { team: null, placeholderLabel: label };
 }
 
-// ── NFL adapter ─────────────────────────────────────────────────────────
+// ── Shared per-seed / per-real-game rendering helpers ──────────────────────
+// The minimal shape every sport's own seed/real-game input needs to satisfy
+// to reuse seedTeamView/findSeed/gameSideView/realGameToMatchup/
+// sortedByKickoff below — the exact "shared shape, per-league adapter"
+// pattern postseason.ts already uses for seeding (see this file's top
+// comment). NFL's own NflBracketSeedInput/NflBracketRealGame types (below)
+// were the original, sport-specific versions of these — kept as their own
+// exported names (extending/aliasing these) so service.ts's existing NFL
+// imports need no changes; every new sport below just declares its own
+// small extension of BracketSeedInput and a BracketRealGame alias, the same
+// way NFL does.
 
-export interface NflBracketSeedInput {
+export interface BracketSeedInput {
   teamId: string;
   teamName: string;
   teamLogoUrl?: string;
@@ -117,17 +130,17 @@ export interface NflBracketSeedInput {
   wins: number;
   losses: number;
   ties?: number;
-  isDivisionWinner: boolean;
   clinched: boolean;
 }
 
-export interface NflBracketRealGame {
+export interface BracketRealGame {
   externalId: string;
   /** The local SportsGame row id, once synced — null only if the sync
    *  itself failed (see service.ts's syncGamesToLocal), never fabricated. */
   gameId: string | null;
-  /** The provider's own stage/round label verbatim — classified by
-   *  classifyNflPostseasonStage below, never assumed from game order. */
+  /** The provider's own stage/round label verbatim — classified by this
+   *  sport's own classify*PostseasonStage function, never assumed from game
+   *  order. */
   stage: string;
   status: "scheduled" | "live" | "final";
   startsAt: string;
@@ -136,6 +149,14 @@ export interface NflBracketRealGame {
   homeScore?: number | null;
   awayScore?: number | null;
 }
+
+// ── NFL adapter ─────────────────────────────────────────────────────────
+
+export interface NflBracketSeedInput extends BracketSeedInput {
+  isDivisionWinner: boolean;
+}
+
+export type NflBracketRealGame = BracketRealGame;
 
 export type NflBracketRoundId = "wildcard" | "divisional" | "conference" | "superbowl";
 
@@ -166,7 +187,7 @@ export function classifyNflPostseasonStage(stage: string): NflBracketRoundId | "
 
 const WILDCARD_HOST_PAIRS: [number, number][] = [[2, 7], [3, 6], [4, 5]]; // [home seed, away seed] — real NFL rule: the higher seed always hosts
 
-function seedTeamView(seed: NflBracketSeedInput, mode: BracketMode): BracketTeamView {
+function seedTeamView<S extends BracketSeedInput>(seed: S, mode: BracketMode): BracketTeamView {
   return {
     teamId: seed.teamId,
     teamName: seed.teamName,
@@ -184,16 +205,16 @@ function seedTeamView(seed: NflBracketSeedInput, mode: BracketMode): BracketTeam
   };
 }
 
-function findSeed(seeds: NflBracketSeedInput[], teamId: string): NflBracketSeedInput | undefined {
+function findSeed<S extends BracketSeedInput>(seeds: S[], teamId: string): S | undefined {
   return seeds.find((s) => s.teamId === teamId);
 }
 
-function gameSideView(side: { id: string; name: string; logoUrl?: string }, seeds: NflBracketSeedInput[], mode: BracketMode): BracketTeamView {
+function gameSideView<S extends BracketSeedInput>(side: { id: string; name: string; logoUrl?: string }, seeds: S[], mode: BracketMode): BracketTeamView {
   const seed = findSeed(seeds, side.id);
   return seed ? seedTeamView(seed, mode) : { teamId: side.id, teamName: side.name, teamLogoUrl: side.logoUrl, badge: null };
 }
 
-function realGameToMatchup(id: string, game: NflBracketRealGame, seeds: NflBracketSeedInput[], mode: BracketMode, confLabel?: string): BracketMatchup {
+function realGameToMatchup<S extends BracketSeedInput, G extends BracketRealGame>(id: string, game: G, seeds: S[], mode: BracketMode, confLabel?: string): BracketMatchup {
   return {
     id,
     confLabel,
@@ -207,7 +228,7 @@ function realGameToMatchup(id: string, game: NflBracketRealGame, seeds: NflBrack
   };
 }
 
-function sortedByKickoff(games: NflBracketRealGame[]): NflBracketRealGame[] {
+function sortedByKickoff<G extends BracketRealGame>(games: G[]): G[] {
   return [...games].sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
 }
 
@@ -360,6 +381,614 @@ export function buildNflBracketData(params: {
       { id: "divisional", label: "Divisional", matchups: divisional },
       { id: "conference", label: "Conference Championship", matchups: conference },
       finalRound,
+    ],
+  };
+}
+
+// ── NBA adapter ─────────────────────────────────────────────────────────
+// Real NBA rule: seeds 1-6 in a conference go directly to the First Round;
+// seeds 7-10 play a real Play-In Tournament (7v8 and 9v10, then the loser of
+// 7v8 vs the winner of 9v10) for the conference's final #7/#8 seeds. 5 real
+// rounds: Play-In, First Round, Conference Semifinals, Conference Finals,
+// NBA Finals.
+
+export type NbaBracketSeedInput = BracketSeedInput;
+export type NbaBracketRealGame = BracketRealGame;
+
+export type NbaBracketRoundId = "playin" | "firstround" | "semis" | "confFinal" | "finals";
+
+/** NBA's own real-round classifier — same regex-based, priority-ordered
+ *  discipline as classifyNflPostseasonStage above (most specific first, so
+ *  a stage string like "Eastern Conference Finals" — which also contains
+ *  the substring "Final" — lands as "confFinal", never the bare "finals"
+ *  catch-all). */
+export function classifyNbaPostseasonStage(stage: string): NbaBracketRoundId | "unknown" {
+  if (/play.?in/i.test(stage)) return "playin";
+  if (/conf(erence)?.?semi/i.test(stage)) return "semis";
+  if (/conf(erence)?.?final/i.test(stage)) return "confFinal";
+  if (/first.?round|1st.?round|round.?1\b/i.test(stage)) return "firstround";
+  if (/finals?/i.test(stage)) return "finals";
+  return "unknown";
+}
+
+const NBA_FIRST_ROUND_HOST_PAIRS: [number, number][] = [[1, 8], [2, 7], [3, 6], [4, 5]]; // [home seed, away seed] — real NBA rule: the higher seed always hosts
+
+function buildNbaPlayInRound(seeds: NbaBracketSeedInput[], realGames: NbaBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  // Once the real Play-In schedule is posted, it's authoritative — use it
+  // verbatim, same discipline as every other real-games-first round below.
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-pi-${i}`, g, seeds, mode, confLabel));
+  }
+  const bySeed = new Map(seeds.map((s) => [s.seed, s]));
+  const seven = bySeed.get(7);
+  const eight = bySeed.get(8);
+  const nine = bySeed.get(9);
+  const ten = bySeed.get(10);
+  // 7-vs-8 and 9-vs-10 are both real, known matchups from today's seeding —
+  // projected, never fabricated, same as NFL's Wild Card projections. The
+  // decisive third game (loser of 7/8 vs winner of 9/10) depends on BOTH of
+  // those results, so both of its slots stay full placeholders until real
+  // Play-In results exist.
+  return [
+    { id: `${idPrefix}-pi-7v8`, confLabel, top: seven ? teamSlot(seedTeamView(seven, mode)) : placeholderSlot("TBD"), bottom: eight ? teamSlot(seedTeamView(eight, mode)) : placeholderSlot("TBD"), status: "upcoming" },
+    { id: `${idPrefix}-pi-9v10`, confLabel, top: nine ? teamSlot(seedTeamView(nine, mode)) : placeholderSlot("TBD"), bottom: ten ? teamSlot(seedTeamView(ten, mode)) : placeholderSlot("TBD"), status: "upcoming" },
+    { id: `${idPrefix}-pi-decider`, confLabel, top: placeholderSlot("Winner of 9/10"), bottom: placeholderSlot("Loser of 7/8"), status: "upcoming" },
+  ];
+}
+
+function buildNbaFirstRound(seeds: NbaBracketSeedInput[], realGames: NbaBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-r1-${i}`, g, seeds, mode, confLabel));
+  }
+  const bySeed = new Map(seeds.map((s) => [s.seed, s]));
+  return NBA_FIRST_ROUND_HOST_PAIRS.map(([homeSeed, awaySeed], i): BracketMatchup => {
+    // Seeds 1-6 are real and known today; seeds 7/8 are only known once the
+    // real Play-In is decided (via a real game) — placeholder until then.
+    const home = homeSeed <= 6 ? bySeed.get(homeSeed) : undefined;
+    const away = awaySeed <= 6 ? bySeed.get(awaySeed) : undefined;
+    return {
+      id: `${idPrefix}-r1-${i}`,
+      confLabel,
+      top: away ? teamSlot(seedTeamView(away, mode)) : placeholderSlot("Play-In Winner"),
+      bottom: home ? teamSlot(seedTeamView(home, mode)) : placeholderSlot("Play-In Winner"),
+      status: "upcoming",
+    };
+  });
+}
+
+function buildNbaConfSemisRound(seeds: NbaBracketSeedInput[], realGames: NbaBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-semis-${i}`, g, seeds, mode, confLabel));
+  }
+  return [
+    { id: `${idPrefix}-semis-0`, confLabel, top: placeholderSlot("Winner of First Round"), bottom: placeholderSlot("Winner of First Round"), status: "upcoming" },
+    { id: `${idPrefix}-semis-1`, confLabel, top: placeholderSlot("Winner of First Round"), bottom: placeholderSlot("Winner of First Round"), status: "upcoming" },
+  ];
+}
+
+function buildNbaConfFinalRound(seeds: NbaBracketSeedInput[], realGames: NbaBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-cf-${i}`, g, seeds, mode, confLabel));
+  }
+  return [{ id: `${idPrefix}-cf-0`, confLabel, top: placeholderSlot("Winner of Conference Semifinals"), bottom: placeholderSlot("Winner of Conference Semifinals"), status: "upcoming" }];
+}
+
+function buildNbaFinalsRound(realGame: NbaBracketRealGame | null, seeds: NbaBracketSeedInput[], mode: BracketMode, eastLabel: string, westLabel: string): BracketRound {
+  const matchups: BracketMatchup[] = realGame
+    ? [realGameToMatchup("nba-finals", realGame, seeds, mode)]
+    : [{ id: "nba-finals", top: placeholderSlot(`${eastLabel} Champion`), bottom: placeholderSlot(`${westLabel} Champion`), status: "upcoming" }];
+  return { id: "finals", label: "NBA Finals", matchups };
+}
+
+interface NbaGroupedGames {
+  playin: { east: NbaBracketRealGame[]; west: NbaBracketRealGame[] };
+  firstround: { east: NbaBracketRealGame[]; west: NbaBracketRealGame[] };
+  semis: { east: NbaBracketRealGame[]; west: NbaBracketRealGame[] };
+  confFinal: { east: NbaBracketRealGame[]; west: NbaBracketRealGame[] };
+  finals: NbaBracketRealGame[];
+}
+
+function groupNbaByRound(games: NbaBracketRealGame[], eastTeamIds: Set<string>, westTeamIds: Set<string>): NbaGroupedGames {
+  const grouped: NbaGroupedGames = {
+    playin: { east: [], west: [] },
+    firstround: { east: [], west: [] },
+    semis: { east: [], west: [] },
+    confFinal: { east: [], west: [] },
+    finals: [],
+  };
+  for (const g of games) {
+    const round = classifyNbaPostseasonStage(g.stage);
+    if (round === "unknown") continue;
+    if (round === "finals") { grouped.finals.push(g); continue; }
+    const conf: "east" | "west" | null = eastTeamIds.has(g.homeTeam.id) || eastTeamIds.has(g.awayTeam.id) ? "east"
+      : westTeamIds.has(g.homeTeam.id) || westTeamIds.has(g.awayTeam.id) ? "west" : null;
+    if (!conf) continue;
+    grouped[round][conf].push(g);
+  }
+  return grouped;
+}
+
+/** Builds the full, generic BracketData for one NBA season — same
+ *  mode-decision contract as buildNflBracketData (see its own doc comment):
+ *  `mode` is decided entirely by the caller from whether a real postseason
+ *  game exists yet, and real games always win over a projection once they
+ *  exist for a given round. */
+export function buildNbaBracketData(params: {
+  seasonLabel: string;
+  mode: BracketMode;
+  eastSeeds: NbaBracketSeedInput[];
+  westSeeds: NbaBracketSeedInput[];
+  postseasonGames: NbaBracketRealGame[];
+  eastLabel?: string;
+  westLabel?: string;
+}): BracketData {
+  const { seasonLabel, mode, eastSeeds, westSeeds, postseasonGames, eastLabel = "Eastern", westLabel = "Western" } = params;
+  const eastTeamIds = new Set(eastSeeds.map((s) => s.teamId));
+  const westTeamIds = new Set(westSeeds.map((s) => s.teamId));
+  const grouped = groupNbaByRound(postseasonGames, eastTeamIds, westTeamIds);
+
+  const playin = [
+    ...buildNbaPlayInRound(eastSeeds, grouped.playin.east, mode, eastLabel, "east"),
+    ...buildNbaPlayInRound(westSeeds, grouped.playin.west, mode, westLabel, "west"),
+  ];
+  const firstround = [
+    ...buildNbaFirstRound(eastSeeds, grouped.firstround.east, mode, eastLabel, "east"),
+    ...buildNbaFirstRound(westSeeds, grouped.firstround.west, mode, westLabel, "west"),
+  ];
+  const semis = [
+    ...buildNbaConfSemisRound(eastSeeds, grouped.semis.east, mode, eastLabel, "east"),
+    ...buildNbaConfSemisRound(westSeeds, grouped.semis.west, mode, westLabel, "west"),
+  ];
+  const confFinal = [
+    ...buildNbaConfFinalRound(eastSeeds, grouped.confFinal.east, mode, eastLabel, "east"),
+    ...buildNbaConfFinalRound(westSeeds, grouped.confFinal.west, mode, westLabel, "west"),
+  ];
+  const finalsRound = buildNbaFinalsRound(grouped.finals[0] ?? null, [...eastSeeds, ...westSeeds], mode, eastLabel, westLabel);
+
+  return {
+    sportLabel: "NBA",
+    seasonLabel,
+    mode,
+    headline: mode === "projected" ? "If the Playoffs Started Today" : `${seasonLabel} NBA Playoffs`,
+    subhead: mode === "projected"
+      ? "Projected seeding from current standings, including the Play-In picture — only seeds 1-6 are ever projected straight into the First Round. Not an official bracket."
+      : "The official NBA playoff bracket — advances automatically as real results come in.",
+    rounds: [
+      { id: "playin", label: "Play-In", matchups: playin },
+      { id: "firstround", label: "First Round", matchups: firstround },
+      { id: "semis", label: "Conference Semifinals", matchups: semis },
+      { id: "confFinal", label: "Conference Finals", matchups: confFinal },
+      finalsRound,
+    ],
+  };
+}
+
+// ── WNBA adapter ────────────────────────────────────────────────────────
+// Real WNBA rule: no conference split — one league-wide top-8 field, no
+// Play-In. 3 real rounds: First Round, Semifinals, Finals (see
+// getWnbaPlayoffPicture's own doc comment and computePostseasonPicture's
+// real top-8 field in postseason.ts).
+
+export type WnbaBracketSeedInput = BracketSeedInput;
+export type WnbaBracketRealGame = BracketRealGame;
+
+export type WnbaBracketRoundId = "firstround" | "semis" | "finals";
+
+/** WNBA's own real-round classifier. "Semifinal" contains the substring
+ *  "final", so it's checked before the bare "finals" catch-all — the same
+ *  priority-ordering discipline as every other classify*PostseasonStage
+ *  function in this file. */
+export function classifyWnbaPostseasonStage(stage: string): WnbaBracketRoundId | "unknown" {
+  if (/first.?round|1st.?round/i.test(stage)) return "firstround";
+  if (/semi.?final/i.test(stage)) return "semis";
+  if (/finals?/i.test(stage)) return "finals";
+  return "unknown";
+}
+
+const WNBA_FIRST_ROUND_HOST_PAIRS: [number, number][] = [[1, 8], [2, 7], [3, 6], [4, 5]]; // [home seed, away seed] — higher seed hosts, same real rule as every other big-4 sport's opening round
+
+function buildWnbaFirstRound(seeds: WnbaBracketSeedInput[], realGames: WnbaBracketRealGame[], mode: BracketMode): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`wnba-r1-${i}`, g, seeds, mode));
+  }
+  const bySeed = new Map(seeds.map((s) => [s.seed, s]));
+  return WNBA_FIRST_ROUND_HOST_PAIRS.map(([homeSeed, awaySeed], i): BracketMatchup => {
+    const home = bySeed.get(homeSeed);
+    const away = bySeed.get(awaySeed);
+    return {
+      id: `wnba-r1-${i}`,
+      top: away ? teamSlot(seedTeamView(away, mode)) : placeholderSlot("TBD"),
+      bottom: home ? teamSlot(seedTeamView(home, mode)) : placeholderSlot("TBD"),
+      status: "upcoming",
+    };
+  });
+}
+
+function buildWnbaSemisRound(seeds: WnbaBracketSeedInput[], realGames: WnbaBracketRealGame[], mode: BracketMode): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`wnba-semis-${i}`, g, seeds, mode));
+  }
+  return [
+    { id: "wnba-semis-0", top: placeholderSlot("Winner of First Round"), bottom: placeholderSlot("Winner of First Round"), status: "upcoming" },
+    { id: "wnba-semis-1", top: placeholderSlot("Winner of First Round"), bottom: placeholderSlot("Winner of First Round"), status: "upcoming" },
+  ];
+}
+
+function buildWnbaFinalsRound(realGame: WnbaBracketRealGame | null, seeds: WnbaBracketSeedInput[], mode: BracketMode): BracketRound {
+  const matchups: BracketMatchup[] = realGame
+    ? [realGameToMatchup("wnba-finals", realGame, seeds, mode)]
+    : [{ id: "wnba-finals", top: placeholderSlot("Winner of Semifinals"), bottom: placeholderSlot("Winner of Semifinals"), status: "upcoming" }];
+  return { id: "finals", label: "WNBA Finals", matchups };
+}
+
+interface WnbaGroupedGames {
+  firstround: WnbaBracketRealGame[];
+  semis: WnbaBracketRealGame[];
+  finals: WnbaBracketRealGame[];
+}
+
+function groupWnbaByRound(games: WnbaBracketRealGame[]): WnbaGroupedGames {
+  const grouped: WnbaGroupedGames = { firstround: [], semis: [], finals: [] };
+  for (const g of games) {
+    const round = classifyWnbaPostseasonStage(g.stage);
+    if (round === "unknown") continue;
+    grouped[round].push(g);
+  }
+  return grouped;
+}
+
+/** Builds the full, generic BracketData for one WNBA season — no
+ *  conference split, so every matchup's confLabel is left undefined (see
+ *  BracketMatchup's own doc comment: undefined means "no group split", the
+ *  same as NFL's Super Bowl round). Same mode-decision contract as
+ *  buildNflBracketData. */
+export function buildWnbaBracketData(params: {
+  seasonLabel: string;
+  mode: BracketMode;
+  seeds: WnbaBracketSeedInput[];
+  postseasonGames: WnbaBracketRealGame[];
+}): BracketData {
+  const { seasonLabel, mode, seeds, postseasonGames } = params;
+  const grouped = groupWnbaByRound(postseasonGames);
+
+  const firstround = buildWnbaFirstRound(seeds, grouped.firstround, mode);
+  const semis = buildWnbaSemisRound(seeds, grouped.semis, mode);
+  const finalsRound = buildWnbaFinalsRound(grouped.finals[0] ?? null, seeds, mode);
+
+  return {
+    sportLabel: "WNBA",
+    seasonLabel,
+    mode,
+    headline: mode === "projected" ? "If the Playoffs Started Today" : `${seasonLabel} WNBA Playoffs`,
+    subhead: mode === "projected"
+      ? "Projected seeding from current standings — the real top-8 field, no conference split. Not an official bracket."
+      : "The official WNBA playoff bracket — advances automatically as real results come in.",
+    rounds: [
+      { id: "firstround", label: "First Round", matchups: firstround },
+      { id: "semis", label: "Semifinals", matchups: semis },
+      finalsRound,
+    ],
+  };
+}
+
+// ── MLB adapter ─────────────────────────────────────────────────────────
+// Real MLB rule: the top 2 seeds (the two best division winners) get a bye
+// through the Wild Card round — modeled the same way buildWildCardRound
+// models NFL's single #1-seed bye, just with two bye rows instead of one.
+// 4 real rounds: Wild Card Series, Division Series, League Championship
+// Series, World Series.
+
+export interface MlbBracketSeedInput extends BracketSeedInput {
+  isDivisionWinner: boolean;
+}
+
+export type MlbBracketRealGame = BracketRealGame;
+
+export type MlbBracketRoundId = "wildcard" | "divisionseries" | "lcs" | "worldseries";
+
+/** MLB's own real-round classifier — same priority-ordered discipline as
+ *  every other classify*PostseasonStage function here (most specific first,
+ *  e.g. "World Series" checked before the more generic "Championship
+ *  Series" so neither ever collides with the other). */
+export function classifyMlbPostseasonStage(stage: string): MlbBracketRoundId | "unknown" {
+  if (/world.?series/i.test(stage)) return "worldseries";
+  if (/championship.?series|alcs|nlcs/i.test(stage)) return "lcs";
+  if (/division.?series|alds|nlds/i.test(stage)) return "divisionseries";
+  if (/wild.?card/i.test(stage)) return "wildcard";
+  return "unknown";
+}
+
+const MLB_WILDCARD_HOST_PAIRS: [number, number][] = [[3, 6], [4, 5]]; // [home seed, away seed] — real MLB rule: seed 3 hosts seed 6, seed 4 hosts seed 5; seeds 1 & 2 are byes
+
+function buildMlbWildCardRound(seeds: MlbBracketSeedInput[], realGames: MlbBracketRealGame[], mode: BracketMode, leagueLabel: string, idPrefix: string): BracketMatchup[] {
+  const bySeed = new Map(seeds.map((s) => [s.seed, s]));
+  const one = bySeed.get(1);
+  const two = bySeed.get(2);
+  const bye1: BracketMatchup = {
+    id: `${idPrefix}-bye1`,
+    confLabel: leagueLabel,
+    isBye: true,
+    top: one ? teamSlot(seedTeamView(one, mode)) : placeholderSlot("TBD"),
+    bottom: placeholderSlot("BYE — Wild Card Series"),
+    status: "upcoming",
+  };
+  const bye2: BracketMatchup = {
+    id: `${idPrefix}-bye2`,
+    confLabel: leagueLabel,
+    isBye: true,
+    top: two ? teamSlot(seedTeamView(two, mode)) : placeholderSlot("TBD"),
+    bottom: placeholderSlot("BYE — Wild Card Series"),
+    status: "upcoming",
+  };
+
+  if (realGames.length) {
+    return [bye1, bye2, ...sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-wc-${i}`, g, seeds, mode, leagueLabel))];
+  }
+
+  const projected = MLB_WILDCARD_HOST_PAIRS.map(([homeSeed, awaySeed], i): BracketMatchup => {
+    const home = bySeed.get(homeSeed);
+    const away = bySeed.get(awaySeed);
+    return {
+      id: `${idPrefix}-wc-${i}`,
+      confLabel: leagueLabel,
+      top: away ? teamSlot(seedTeamView(away, mode)) : placeholderSlot("TBD"),
+      bottom: home ? teamSlot(seedTeamView(home, mode)) : placeholderSlot("TBD"),
+      status: "upcoming",
+    };
+  });
+  return [bye1, bye2, ...projected];
+}
+
+function buildMlbDivisionSeriesRound(seeds: MlbBracketSeedInput[], realGames: MlbBracketRealGame[], mode: BracketMode, leagueLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-ds-${i}`, g, seeds, mode, leagueLabel));
+  }
+  const bySeed = new Map(seeds.map((s) => [s.seed, s]));
+  const one = bySeed.get(1);
+  const two = bySeed.get(2);
+  // Both bye seeds are real and known; who they actually face depends on
+  // real Wild Card Series results (and MLB's own reseeding), never guessed
+  // here — same discipline as NFL's #1-seed Divisional-round placeholder.
+  return [
+    { id: `${idPrefix}-ds-0`, confLabel: leagueLabel, top: one ? teamSlot(seedTeamView(one, mode)) : placeholderSlot("TBD"), bottom: placeholderSlot("Winner of Wild Card Series"), status: "upcoming" },
+    { id: `${idPrefix}-ds-1`, confLabel: leagueLabel, top: two ? teamSlot(seedTeamView(two, mode)) : placeholderSlot("TBD"), bottom: placeholderSlot("Winner of Wild Card Series"), status: "upcoming" },
+  ];
+}
+
+function buildMlbLcsRound(seeds: MlbBracketSeedInput[], realGames: MlbBracketRealGame[], mode: BracketMode, leagueLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-lcs-${i}`, g, seeds, mode, leagueLabel));
+  }
+  return [{ id: `${idPrefix}-lcs-0`, confLabel: leagueLabel, top: placeholderSlot("Winner of Division Series"), bottom: placeholderSlot("Winner of Division Series"), status: "upcoming" }];
+}
+
+function buildMlbWorldSeriesRound(realGame: MlbBracketRealGame | null, seeds: MlbBracketSeedInput[], mode: BracketMode, alLabel: string, nlLabel: string): BracketRound {
+  const matchups: BracketMatchup[] = realGame
+    ? [realGameToMatchup("worldseries", realGame, seeds, mode)]
+    : [{ id: "worldseries", top: placeholderSlot(`${alLabel} Champion`), bottom: placeholderSlot(`${nlLabel} Champion`), status: "upcoming" }];
+  return { id: "worldseries", label: "World Series", matchups };
+}
+
+interface MlbGroupedGames {
+  wildcard: { al: MlbBracketRealGame[]; nl: MlbBracketRealGame[] };
+  divisionseries: { al: MlbBracketRealGame[]; nl: MlbBracketRealGame[] };
+  lcs: { al: MlbBracketRealGame[]; nl: MlbBracketRealGame[] };
+  worldseries: MlbBracketRealGame[];
+}
+
+function groupMlbByRound(games: MlbBracketRealGame[], alTeamIds: Set<string>, nlTeamIds: Set<string>): MlbGroupedGames {
+  const grouped: MlbGroupedGames = {
+    wildcard: { al: [], nl: [] },
+    divisionseries: { al: [], nl: [] },
+    lcs: { al: [], nl: [] },
+    worldseries: [],
+  };
+  for (const g of games) {
+    const round = classifyMlbPostseasonStage(g.stage);
+    if (round === "unknown") continue;
+    if (round === "worldseries") { grouped.worldseries.push(g); continue; }
+    const league: "al" | "nl" | null = alTeamIds.has(g.homeTeam.id) || alTeamIds.has(g.awayTeam.id) ? "al"
+      : nlTeamIds.has(g.homeTeam.id) || nlTeamIds.has(g.awayTeam.id) ? "nl" : null;
+    if (!league) continue;
+    grouped[round][league].push(g);
+  }
+  return grouped;
+}
+
+/** Builds the full, generic BracketData for one MLB season — same
+ *  mode-decision contract as buildNflBracketData. */
+export function buildMlbBracketData(params: {
+  seasonLabel: string;
+  mode: BracketMode;
+  alSeeds: MlbBracketSeedInput[];
+  nlSeeds: MlbBracketSeedInput[];
+  postseasonGames: MlbBracketRealGame[];
+  alLabel?: string;
+  nlLabel?: string;
+}): BracketData {
+  const { seasonLabel, mode, alSeeds, nlSeeds, postseasonGames, alLabel = "AL", nlLabel = "NL" } = params;
+  const alTeamIds = new Set(alSeeds.map((s) => s.teamId));
+  const nlTeamIds = new Set(nlSeeds.map((s) => s.teamId));
+  const grouped = groupMlbByRound(postseasonGames, alTeamIds, nlTeamIds);
+
+  const wildcard = [
+    ...buildMlbWildCardRound(alSeeds, grouped.wildcard.al, mode, alLabel, "al"),
+    ...buildMlbWildCardRound(nlSeeds, grouped.wildcard.nl, mode, nlLabel, "nl"),
+  ];
+  const divisionseries = [
+    ...buildMlbDivisionSeriesRound(alSeeds, grouped.divisionseries.al, mode, alLabel, "al"),
+    ...buildMlbDivisionSeriesRound(nlSeeds, grouped.divisionseries.nl, mode, nlLabel, "nl"),
+  ];
+  const lcs = [
+    ...buildMlbLcsRound(alSeeds, grouped.lcs.al, mode, alLabel, "al"),
+    ...buildMlbLcsRound(nlSeeds, grouped.lcs.nl, mode, nlLabel, "nl"),
+  ];
+  const worldSeriesRound = buildMlbWorldSeriesRound(grouped.worldseries[0] ?? null, [...alSeeds, ...nlSeeds], mode, alLabel, nlLabel);
+
+  return {
+    sportLabel: "MLB",
+    seasonLabel,
+    mode,
+    headline: mode === "projected" ? "If the Playoffs Started Today" : `${seasonLabel} MLB Playoffs`,
+    subhead: mode === "projected"
+      ? "Projected seeding from current standings — only the Wild Card Series is ever projected. Not an official bracket."
+      : "The official MLB playoff bracket — advances automatically as real results come in.",
+    rounds: [
+      { id: "wildcard", label: "Wild Card Series", matchups: wildcard },
+      { id: "divisionseries", label: "Division Series", matchups: divisionseries },
+      { id: "lcs", label: "League Championship Series", matchups: lcs },
+      worldSeriesRound,
+    ],
+  };
+}
+
+// ── NHL adapter ─────────────────────────────────────────────────────────
+// Real NHL rule: no byes — all 8 seeds in each conference play in the First
+// Round, and the real pairing is division-relative (a wild-card seed plays
+// the OTHER division's weakest division winner), not a flat 1v8. That real
+// crossover rule needs per-division membership at seeding time, which
+// projectNhlConferenceSeeds (postseason.ts) does not currently expose past
+// the seed number itself (isTopThreeInDivision only marks "top 3 in SOME
+// division," not which one) — adding that would mean inventing per-division
+// metadata this seed data doesn't have, which is exactly what this file's
+// top comment forbids. So this adapter uses the same honest fallback every
+// other sport's opening round already uses: pair by seed number (1v8, 2v7,
+// 3v6, 4v5) within the conference. It's a real limitation, disclosed here
+// and in this round's own subhead once posted — not a fabricated crossover
+// rule. 4 real rounds: First Round, Second Round, Conference Final, Stanley
+// Cup Final.
+
+export interface NhlBracketSeedInput extends BracketSeedInput {
+  isTopThreeInDivision: boolean;
+}
+
+export type NhlBracketRealGame = BracketRealGame;
+
+export type NhlBracketRoundId = "firstround" | "secondround" | "confFinal" | "cupfinal";
+
+/** NHL's own real-round classifier — same priority-ordered discipline as
+ *  every other classify*PostseasonStage function here. */
+export function classifyNhlPostseasonStage(stage: string): NhlBracketRoundId | "unknown" {
+  if (/stanley.?cup/i.test(stage)) return "cupfinal";
+  if (/conf(erence)?.?final/i.test(stage)) return "confFinal";
+  if (/second.?round|2nd.?round|round.?2\b/i.test(stage)) return "secondround";
+  if (/first.?round|1st.?round|round.?1\b/i.test(stage)) return "firstround";
+  return "unknown";
+}
+
+const NHL_FIRST_ROUND_HOST_PAIRS: [number, number][] = [[1, 8], [2, 7], [3, 6], [4, 5]]; // [home seed, away seed] — honest seed-pair fallback (see this adapter's top comment); no byes in the real NHL format
+
+function buildNhlFirstRound(seeds: NhlBracketSeedInput[], realGames: NhlBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-r1-${i}`, g, seeds, mode, confLabel));
+  }
+  const bySeed = new Map(seeds.map((s) => [s.seed, s]));
+  return NHL_FIRST_ROUND_HOST_PAIRS.map(([homeSeed, awaySeed], i): BracketMatchup => {
+    const home = bySeed.get(homeSeed);
+    const away = bySeed.get(awaySeed);
+    return {
+      id: `${idPrefix}-r1-${i}`,
+      confLabel,
+      top: away ? teamSlot(seedTeamView(away, mode)) : placeholderSlot("TBD"),
+      bottom: home ? teamSlot(seedTeamView(home, mode)) : placeholderSlot("TBD"),
+      status: "upcoming",
+    };
+  });
+}
+
+function buildNhlSecondRound(seeds: NhlBracketSeedInput[], realGames: NhlBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-r2-${i}`, g, seeds, mode, confLabel));
+  }
+  return [
+    { id: `${idPrefix}-r2-0`, confLabel, top: placeholderSlot("Winner of First Round"), bottom: placeholderSlot("Winner of First Round"), status: "upcoming" },
+    { id: `${idPrefix}-r2-1`, confLabel, top: placeholderSlot("Winner of First Round"), bottom: placeholderSlot("Winner of First Round"), status: "upcoming" },
+  ];
+}
+
+function buildNhlConfFinalRound(seeds: NhlBracketSeedInput[], realGames: NhlBracketRealGame[], mode: BracketMode, confLabel: string, idPrefix: string): BracketMatchup[] {
+  if (realGames.length) {
+    return sortedByKickoff(realGames).map((g, i) => realGameToMatchup(`${idPrefix}-cf-${i}`, g, seeds, mode, confLabel));
+  }
+  return [{ id: `${idPrefix}-cf-0`, confLabel, top: placeholderSlot("Winner of Second Round"), bottom: placeholderSlot("Winner of Second Round"), status: "upcoming" }];
+}
+
+function buildNhlStanleyCupRound(realGame: NhlBracketRealGame | null, seeds: NhlBracketSeedInput[], mode: BracketMode, eastLabel: string, westLabel: string): BracketRound {
+  const matchups: BracketMatchup[] = realGame
+    ? [realGameToMatchup("stanleycup", realGame, seeds, mode)]
+    : [{ id: "stanleycup", top: placeholderSlot(`${eastLabel} Champion`), bottom: placeholderSlot(`${westLabel} Champion`), status: "upcoming" }];
+  return { id: "cupfinal", label: "Stanley Cup Final", matchups };
+}
+
+interface NhlGroupedGames {
+  firstround: { east: NhlBracketRealGame[]; west: NhlBracketRealGame[] };
+  secondround: { east: NhlBracketRealGame[]; west: NhlBracketRealGame[] };
+  confFinal: { east: NhlBracketRealGame[]; west: NhlBracketRealGame[] };
+  cupfinal: NhlBracketRealGame[];
+}
+
+function groupNhlByRound(games: NhlBracketRealGame[], eastTeamIds: Set<string>, westTeamIds: Set<string>): NhlGroupedGames {
+  const grouped: NhlGroupedGames = {
+    firstround: { east: [], west: [] },
+    secondround: { east: [], west: [] },
+    confFinal: { east: [], west: [] },
+    cupfinal: [],
+  };
+  for (const g of games) {
+    const round = classifyNhlPostseasonStage(g.stage);
+    if (round === "unknown") continue;
+    if (round === "cupfinal") { grouped.cupfinal.push(g); continue; }
+    const conf: "east" | "west" | null = eastTeamIds.has(g.homeTeam.id) || eastTeamIds.has(g.awayTeam.id) ? "east"
+      : westTeamIds.has(g.homeTeam.id) || westTeamIds.has(g.awayTeam.id) ? "west" : null;
+    if (!conf) continue;
+    grouped[round][conf].push(g);
+  }
+  return grouped;
+}
+
+/** Builds the full, generic BracketData for one NHL season — same
+ *  mode-decision contract as buildNflBracketData. */
+export function buildNhlBracketData(params: {
+  seasonLabel: string;
+  mode: BracketMode;
+  eastSeeds: NhlBracketSeedInput[];
+  westSeeds: NhlBracketSeedInput[];
+  postseasonGames: NhlBracketRealGame[];
+  eastLabel?: string;
+  westLabel?: string;
+}): BracketData {
+  const { seasonLabel, mode, eastSeeds, westSeeds, postseasonGames, eastLabel = "Eastern", westLabel = "Western" } = params;
+  const eastTeamIds = new Set(eastSeeds.map((s) => s.teamId));
+  const westTeamIds = new Set(westSeeds.map((s) => s.teamId));
+  const grouped = groupNhlByRound(postseasonGames, eastTeamIds, westTeamIds);
+
+  const firstround = [
+    ...buildNhlFirstRound(eastSeeds, grouped.firstround.east, mode, eastLabel, "east"),
+    ...buildNhlFirstRound(westSeeds, grouped.firstround.west, mode, westLabel, "west"),
+  ];
+  const secondround = [
+    ...buildNhlSecondRound(eastSeeds, grouped.secondround.east, mode, eastLabel, "east"),
+    ...buildNhlSecondRound(westSeeds, grouped.secondround.west, mode, westLabel, "west"),
+  ];
+  const confFinal = [
+    ...buildNhlConfFinalRound(eastSeeds, grouped.confFinal.east, mode, eastLabel, "east"),
+    ...buildNhlConfFinalRound(westSeeds, grouped.confFinal.west, mode, westLabel, "west"),
+  ];
+  const cupFinalRound = buildNhlStanleyCupRound(grouped.cupfinal[0] ?? null, [...eastSeeds, ...westSeeds], mode, eastLabel, westLabel);
+
+  return {
+    sportLabel: "NHL",
+    seasonLabel,
+    mode,
+    headline: mode === "projected" ? "If the Playoffs Started Today" : `${seasonLabel} NHL Playoffs`,
+    subhead: mode === "projected"
+      ? "Projected seeding from current standings — the real top-3-per-division-plus-wild-cards field. First Round pairing here is an honest seed-based (1v8/2v7/3v6/4v5) approximation, not the real division-crossover rule, which needs per-division data this seeding doesn't expose. Not an official bracket."
+      : "The official NHL playoff bracket — advances automatically as real results come in.",
+    rounds: [
+      { id: "firstround", label: "First Round", matchups: firstround },
+      { id: "secondround", label: "Second Round", matchups: secondround },
+      { id: "confFinal", label: "Conference Final", matchups: confFinal },
+      cupFinalRound,
     ],
   };
 }
