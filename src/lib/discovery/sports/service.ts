@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
@@ -362,6 +362,33 @@ export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<stri
   const map = new Map<string, { id: string; logoUrl?: string }>();
   for (const t of roster) map.set(normalizeTeamName(t.name), { id: t.id, logoUrl: t.logoUrl });
   return map;
+}
+
+/** The real, live team catalog for a sport's resolved league — straight
+ *  from API-Sports' /teams endpoint, the PRIMARY source for the All Teams
+ *  directory (team-directory.ts) for every sport WITHOUT a
+ *  VERIFIED_REFERENCE (see hasVerifiedReference — today, everything but
+ *  NBA/NFL). Deliberately independent of Standings: a standings failure
+ *  (a provider hiccup, a plan restriction, an off-season with no win-loss
+ *  data posted yet) must never take the All Teams list down with it — the
+ *  real roster of a league doesn't depend on whether anyone's played a game
+ *  yet, and /teams is a different call with its own success/failure from
+ *  /standings.
+ *
+ *  Uses the exact same cache key as getLeagueTeamRosterMap (same
+ *  sport/league/season, same underlying fetchTeamsForLeague call) so a page
+ *  that calls both (e.g. any SINGLE_LEAGUE_SPORTS sport) shares one cache
+ *  row instead of fetching the identical roster twice. Callers with no
+ *  resolved league (empty string — e.g. ncaabaseball before resolution)
+ *  should skip calling this entirely; returns [] in that case, or when
+ *  unconfigured, or when the provider genuinely has nothing — never a
+ *  guessed/fabricated roster. */
+export async function getLeagueTeamCatalog(sport: SportSlug, league: string): Promise<SportsTeam[]> {
+  if (!league || !ApiSportsProvider.isConfigured(sport)) return [];
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+    fetchTeamsForLeague(sport, league, season));
+  return cached?.data ?? [];
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
@@ -814,7 +841,47 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     if (secondary.standings.length) return secondary;
   }
 
-  return { standings: [], planRestricted: restriction };
+  // Even on a genuinely empty result, surface the real season string this
+  // call actually queried with (never a separately-guessed "current"
+  // season) — so an honest empty-state message can name it (e.g.
+  // "Standings aren't available for the 2026 WNBA season yet") instead of a
+  // bare, unspecific blank panel.
+  return { standings: [], planRestricted: restriction, season: cached?.data.season ?? season ?? seasonParam(sport, new Date().toISOString()) };
+}
+
+/** Standings for a sport's default league, with an off-season fallback: when
+ *  the CURRENT season (whatever seasonParam() resolves for right now) has
+ *  nothing posted yet — a new season that hasn't started, or one whose
+ *  schedule simply isn't published yet — this retries with the last REAL
+ *  completed season (previousSeasonParam) instead of leaving the Standings
+ *  panel blank. This is the off-season equivalent, for every sport WITHOUT a
+ *  VERIFIED_REFERENCE, of the "show the last known real state, not a blank
+ *  panel" instinct NBA/NFL already get from their own verified conference/
+ *  division reference (see team-directory.ts's hasVerifiedReference /
+ *  getVerifiedStandingsFallback) — callers should keep using the existing
+ *  getStandings + getVerifiedStandingsFallback pair for NBA/NFL and use this
+ *  for everything else (NHL, MLB, WNBA, college sports, soccer, rugby,
+ *  volleyball).
+ *
+ *  Only retries when `isOffSeasonPhase` is true — the caller's own real
+ *  dated-openers check (determineSeasonPhase() === "preseason", which
+ *  already covers both "before this season's real opener" and "we don't
+ *  have this season's schedule at all"). A genuine mid-season empty result
+ *  is returned as-is, never silently swapped for last year's table — that
+ *  would misrepresent the CURRENT season as having no data when the real
+ *  issue might be a provider hiccup or plan restriction (also passed
+ *  through untouched, so the page keeps showing its own honest message for
+ *  that case rather than this fallback masking it). Returns the prior
+ *  season's real result (including its own `season` string, so the caller's
+ *  season label is automatically correct) only when it actually has rows;
+ *  otherwise returns the current (empty) result unchanged — never fabricates
+ *  a season that also has nothing. */
+export async function getStandingsWithOffSeasonFallback(sport: SportSlug, league: string, isOffSeasonPhase: boolean): Promise<{ standings: SportsStanding[]; planRestricted?: string; season?: string }> {
+  const current = await getStandings(sport, league);
+  if (current.standings.length || current.planRestricted || !isOffSeasonPhase) return current;
+  const priorSeason = previousSeasonParam(sport, new Date().toISOString());
+  const prior = await getStandings(sport, league, priorSeason).catch(() => null);
+  return prior?.standings.length ? prior : current;
 }
 
 export interface NflPlayoffPictureSeed {

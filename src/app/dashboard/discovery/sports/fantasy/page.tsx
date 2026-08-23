@@ -4,6 +4,9 @@ import { requireAccount } from "@/lib/guard";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { createFantasyLeagueAction, joinFantasyLeagueAction } from "./actions";
 import "../../discovery.css";
+// .spx-fantasy — scoped warm-espresso re-theme of this page's .disc-*
+// classes (see the block in sports-home.css for why this lives there).
+import "../sports-home.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Fantasy Football — Magical Discovery", robots: { index: false } };
@@ -19,7 +22,7 @@ export default async function FantasyFootballPage() {
   const leagues = await getMyFantasyLeagues(account.id);
 
   return (
-    <div className="disc">
+    <div className="disc spx-fantasy">
       <div className="pg-head">
         <span className="pg-eyebrow">Magical Discovery · Sports · Fantasy Football</span>
         <h1 className="pg-title">Fantasy Football</h1>

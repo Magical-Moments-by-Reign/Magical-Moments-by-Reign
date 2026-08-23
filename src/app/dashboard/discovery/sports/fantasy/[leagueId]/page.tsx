@@ -31,8 +31,10 @@ import {
   syncFantasyPlayoffRoundAction,
 } from "../actions";
 import "../../../discovery.css";
-// Only for .spx-avatar (PlayerAvatar's own black/gold badge) — scoped
-// entirely under .spx-* so it can't touch this page's .disc-* theme.
+// .spx-avatar (PlayerAvatar's own black/gold badge) and .spx-fantasy (the
+// scoped warm-espresso re-theme of this page's .disc-* classes, and the
+// .spx > .disc-nav-style quick-jump nav) both live in sports-home.css,
+// scoped entirely under .spx-* so nothing here touches the rest of Sports.
 import "../../sports-home.css";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +50,7 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
   if (!league) notFound();
 
   return (
-    <div className="disc">
+    <div className="disc spx-fantasy">
       <div className="pg-head">
         <span className="pg-eyebrow">Magical Discovery · Sports · Fantasy Football</span>
         <h1 className="pg-title">{league.name}</h1>
@@ -56,8 +58,10 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
       </div>
       <Link href="/dashboard/discovery/sports/fantasy" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Fantasy Football</Link>
 
+      <FantasyLeagueNav draftStatus={league.draftStatus} />
+
       {league.draftStatus === "scheduled" && (
-        <div className="disc-section">
+        <div className="disc-section" id="draft">
           <div className="disc-section__head"><h2>Teams</h2></div>
           <div className="disc-chart">
             {league.teams.map((t) => (
@@ -95,6 +99,35 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
   );
 }
 
+// Persistent quick-jump strip for the league page — Roster/Draft/Free
+// Agents/Waivers/Trades/Standings/Matchups all render on this one route
+// (gated by draftStatus), so "navigation" here means anchor-jumping to the
+// section already on the page rather than separate routes. Only lists
+// sections that actually render for the league's current draftStatus, in
+// the shared .disc-nav pill styling (themed warm-espresso by .spx-fantasy
+// in sports-home.css) rather than a new nav pattern.
+function FantasyLeagueNav({ draftStatus }: { draftStatus: string }) {
+  const items: { href: string; label: string }[] =
+    draftStatus === "in_progress"
+      ? [{ href: "#draft", label: "Draft" }]
+      : draftStatus === "complete"
+      ? [
+          { href: "#roster", label: "My Team / Roster" },
+          { href: "#free-agents", label: "Free Agents" },
+          { href: "#waivers", label: "Waivers" },
+          { href: "#trades", label: "Trades" },
+          { href: "#standings", label: "Standings" },
+          { href: "#matchups", label: "Matchups" },
+        ]
+      : [];
+  if (items.length === 0) return null;
+  return (
+    <nav className="disc-nav" aria-label="Fantasy league sections">
+      {items.map((it) => <a key={it.href} href={it.href}>{it.label}</a>)}
+    </nav>
+  );
+}
+
 async function FantasyDraftBoard({ league, leagueId, pos }: { league: NonNullable<Awaited<ReturnType<typeof getFantasyLeagueDetail>>>; leagueId: string; pos: string }) {
   const [available] = await Promise.all([getAvailablePlayers(leagueId)]);
   const onClockTeam = league.teams.find((t) => t.id === league.onTheClockTeamId);
@@ -103,7 +136,7 @@ async function FantasyDraftBoard({ league, leagueId, pos }: { league: NonNullabl
   const filtered = available.filter((p) => p.position === pos).slice(0, 100);
 
   return (
-    <div className="disc-section">
+    <div className="disc-section" id="draft">
       <div className="disc-section__head">
         <h2>Draft — Round {round}, Pick {pickInRound}</h2>
         <span className="disc-badge">{myTurn ? "Your pick" : `${onClockTeam?.teamName ?? "—"} is on the clock`}</span>
@@ -117,7 +150,7 @@ async function FantasyDraftBoard({ league, leagueId, pos }: { league: NonNullabl
         {filtered.length === 0 && <p className="disc-empty">No available {pos}s remaining — try another position.</p>}
         {filtered.map((p) => (
           <div className="disc-chart__row" key={p.playerId}>
-            <PlayerAvatar photoUrl={p.photoUrl} number={p.number} size="sm" />
+            <PlayerAvatar photoUrl={p.photoUrl} number={p.number} name={p.name} size="sm" />
             <div className="disc-chart__song"><b>{p.name}</b><span>{p.position} · {p.team ?? "Free Agent"}</span></div>
             {myTurn ? (
               <form action={draftPlayerAction}>
@@ -145,7 +178,7 @@ async function FantasyMatchupsAndStandings({ accountId, leagueId, season, weekPa
 
   return (
     <>
-      <div className="disc-section">
+      <div className="disc-section" id="matchups">
         <div className="disc-section__head">
           <h2>Week {defaultWeek} Matchups</h2>
           <div style={{ display: "flex", gap: ".4rem" }}>
@@ -177,7 +210,7 @@ async function FantasyMatchupsAndStandings({ accountId, leagueId, season, weekPa
         )}
       </div>
 
-      <div className="disc-section">
+      <div className="disc-section" id="standings">
         <div className="disc-section__head"><h2>Standings</h2></div>
         {!standings || standings.entries.length === 0 ? (
           <p className="disc-empty">No games played yet this season.</p>
@@ -280,7 +313,7 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
   const bench = roster.players.filter((p) => p.lineupSlot === "BENCH");
 
   return (
-    <div className="disc-section">
+    <div className="disc-section" id="roster">
       <div className="disc-section__head">
         <h2>{roster.teamName}{roster.isMe ? " (Your Team)" : ""}</h2>
         <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
@@ -301,7 +334,7 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
           const p = starters.filter((s) => s.lineupSlot === slot)[occurrence];
           return (
             <div className="disc-chart__row" key={`${slot}-${i}`}>
-              {p && <PlayerAvatar photoUrl={p.photoUrl} size="sm" />}
+              {p && <PlayerAvatar photoUrl={p.photoUrl} name={p.playerName} size="sm" />}
               <div className="disc-chart__song"><b>{slot}</b><span>{p ? `${p.playerName} · ${p.position}` : "Empty"}</span></div>
             </div>
           );
@@ -313,7 +346,7 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
         {bench.length === 0 && <p className="disc-empty">No bench players.</p>}
         {bench.map((p) => (
           <div className="disc-chart__row" key={p.playerId}>
-            <PlayerAvatar photoUrl={p.photoUrl} size="sm" />
+            <PlayerAvatar photoUrl={p.photoUrl} name={p.playerName} size="sm" />
             <div className="disc-chart__song"><b>{p.playerName}</b><span>{p.position}</span></div>
             {isMyTeam && (
               <div style={{ display: "flex", gap: ".4rem" }}>
@@ -351,7 +384,7 @@ async function FantasyFreeAgents({ league, leagueId, pos }: { league: NonNullabl
   const myRoster = myTeam ? await getFantasyTeamRoster(myTeam.accountId, leagueId, myTeam.id) : null;
 
   return (
-    <div className="disc-section">
+    <div className="disc-section" id="free-agents">
       <div className="disc-section__head"><h2>Free Agents</h2></div>
       <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
         {POSITIONS.map((p) => (
@@ -362,7 +395,7 @@ async function FantasyFreeAgents({ league, leagueId, pos }: { league: NonNullabl
         {filtered.length === 0 && <p className="disc-empty">No available {pos}s right now.</p>}
         {filtered.map((p) => (
           <div className="disc-chart__row" key={p.playerId}>
-            <PlayerAvatar photoUrl={p.photoUrl} number={p.number} size="sm" />
+            <PlayerAvatar photoUrl={p.photoUrl} number={p.number} name={p.name} size="sm" />
             <div className="disc-chart__song"><b>{p.name}</b><span>{p.position} · {p.team ?? "Free Agent"}</span></div>
             {league.myTeamId && (
               <form action={submitWaiverClaimAction} style={{ display: "flex", gap: ".4rem" }}>
@@ -392,7 +425,7 @@ async function FantasyWaivers({ league, leagueId, accountId }: { league: NonNull
   if (!claims) return null;
 
   return (
-    <div className="disc-section">
+    <div className="disc-section" id="waivers">
       <div className="disc-section__head"><h2>Waiver Claims</h2></div>
       {claims.length === 0 ? (
         <p className="disc-empty">No pending waiver claims.</p>
@@ -400,7 +433,7 @@ async function FantasyWaivers({ league, leagueId, accountId }: { league: NonNull
         <div className="disc-chart">
           {claims.map((c) => (
             <div className="disc-chart__row" key={c.id}>
-              <PlayerAvatar photoUrl={c.addPhotoUrl} size="sm" />
+              <PlayerAvatar photoUrl={c.addPhotoUrl} name={c.addPlayerName} size="sm" />
               <div className="disc-chart__song"><b>{c.isMine ? "You" : c.teamName}</b><span>Claiming {c.addPlayerName} · {c.addPosition}</span></div>
               <span className="disc-badge">Pending</span>
             </div>
@@ -428,7 +461,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
     : new Map();
 
   return (
-    <div className="disc-section">
+    <div className="disc-section" id="trades">
       <div className="disc-section__head"><h2>Trades</h2></div>
       {trades.length === 0 && <p className="disc-empty" style={{ marginTop: 0 }}>No pending trades.</p>}
       <div className="disc-chart">
@@ -470,7 +503,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                   {t.proposerPlayers.length === 0 && <span style={{ fontSize: ".78rem", color: "var(--ink-soft)" }}>—</span>}
                   {t.proposerPlayers.map((p) => (
                     <span key={p.playerId} style={{ display: "inline-flex", alignItems: "center", gap: ".35rem", fontSize: ".78rem" }}>
-                      <PlayerAvatar photoUrl={p.photoUrl} size={22} />{p.playerName}
+                      <PlayerAvatar photoUrl={p.photoUrl} name={p.playerName} size={22} />{p.playerName}
                     </span>
                   ))}
                 </div>
@@ -481,7 +514,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                   {t.recipientPlayers.length === 0 && <span style={{ fontSize: ".78rem", color: "var(--ink-soft)" }}>—</span>}
                   {t.recipientPlayers.map((p) => (
                     <span key={p.playerId} style={{ display: "inline-flex", alignItems: "center", gap: ".35rem", fontSize: ".78rem" }}>
-                      <PlayerAvatar photoUrl={p.photoUrl} size={22} />{p.playerName}
+                      <PlayerAvatar photoUrl={p.photoUrl} name={p.playerName} size={22} />{p.playerName}
                     </span>
                   ))}
                 </div>
@@ -508,7 +541,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                     {myRoster.players.map((p) => (
                       <label key={p.playerId} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: ".82rem", padding: ".15rem 0" }}>
                         <input type="checkbox" name="proposerPlayerIds" value={p.playerId} />
-                        <PlayerAvatar photoUrl={p.photoUrl} size={22} />
+                        <PlayerAvatar photoUrl={p.photoUrl} name={p.playerName} size={22} />
                         {p.playerName} · {p.position}
                       </label>
                     ))}
@@ -518,7 +551,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                     {partnerRoster?.players.map((p) => (
                       <label key={p.playerId} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: ".82rem", padding: ".15rem 0" }}>
                         <input type="checkbox" name="recipientPlayerIds" value={p.playerId} />
-                        <PlayerAvatar photoUrl={p.photoUrl} size={22} />
+                        <PlayerAvatar photoUrl={p.photoUrl} name={p.playerName} size={22} />
                         {p.playerName} · {p.position}
                       </label>
                     ))}

@@ -55,7 +55,7 @@ function groupRoster(roster: RosterPlayer[]): { label: string; players: RosterPl
 function RosterPlayerRow({ player }: { player: RosterPlayer }) {
   return (
     <div className="spx-roster__row">
-      <PlayerAvatar photoUrl={player.photoUrl} number={player.number} size="sm" />
+      <PlayerAvatar photoUrl={player.photoUrl} number={player.number} name={player.name} size="sm" />
       <span className="spx-roster__number">{player.number != null ? `#${player.number}` : "—"}</span>
       {player.profileHref ? (
         <Link href={player.profileHref} className="spx-roster__name-link">{player.name}</Link>

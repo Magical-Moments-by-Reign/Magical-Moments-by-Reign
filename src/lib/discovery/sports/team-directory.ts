@@ -8,7 +8,8 @@
 // /api/discovery/sports/team-roster), so this never burns the paid API
 // quota fetching all 30+ rosters on every page view.
 
-import type { SportSlug, SportsStanding } from "../providers/sports";
+import type { SportSlug, SportsStanding, SportsTeam } from "../providers/sports";
+import type { StandingsGroup } from "./standings";
 import { resolveTeamByName, getLeagueTeamRosterMap } from "./service";
 
 export interface DirectoryTeam {
@@ -161,4 +162,49 @@ export async function getTeamDirectory(sport: SportSlug): Promise<DirectoryGroup
  *  itself derived. */
 export function hasVerifiedReference(sport: SportSlug): boolean {
   return sport in VERIFIED_REFERENCE;
+}
+
+/** Builds the All Teams directory for a sport with no VERIFIED_REFERENCE
+ *  from the real, live team catalog (service.ts's getLeagueTeamCatalog) —
+ *  the PRIMARY source, so the directory shows every real team the provider
+ *  has regardless of whether Standings happened to succeed. Standings'
+ *  own conference/division grouping is used only as presentation labeling
+ *  for teams standings already covers — never as the gate on whether a
+ *  team appears at all. A catalog team with no matching standings row (a
+ *  Standings failure/restriction, an off-season with no win-loss data yet,
+ *  or simply a team the standings response doesn't carry) still appears,
+ *  under an honest fallback bucket ("<Sport> (Standings unavailable)" when
+ *  Standings itself came back empty/restricted, or plain "<Sport>" when it
+ *  has data for other teams but just not this one) rather than silently
+ *  vanishing. Pure — no I/O; the catalog and standings groups are both
+ *  fetched by the caller. Returns [] when the catalog itself is empty (the
+ *  caller should fall back to deriving groups straight from
+ *  standingsGroups in that case, same as before this existed). */
+export function buildTeamDirectoryFromCatalog(
+  sportLabel: string,
+  catalog: SportsTeam[],
+  standingsGroups: StandingsGroup[],
+  standingsAvailable: boolean,
+): DirectoryGroup[] {
+  if (!catalog.length) return [];
+  const locationByTeamId = new Map<string, { group: string; division: string }>();
+  for (const g of standingsGroups) {
+    for (const d of g.divisions) {
+      for (const r of d.rows) locationByTeamId.set(r.team.id, { group: g.label || sportLabel, division: d.label });
+    }
+  }
+  const fallbackGroupLabel = standingsAvailable ? sportLabel : `${sportLabel} (Standings unavailable)`;
+  const groups = new Map<string, Map<string, DirectoryTeam[]>>();
+  for (const t of catalog) {
+    const loc = locationByTeamId.get(t.id) ?? { group: fallbackGroupLabel, division: "" };
+    const divisions = groups.get(loc.group) ?? new Map<string, DirectoryTeam[]>();
+    const teams = divisions.get(loc.division) ?? [];
+    teams.push({ id: t.id, name: t.name, logoUrl: t.logoUrl });
+    divisions.set(loc.division, teams);
+    groups.set(loc.group, divisions);
+  }
+  return Array.from(groups.entries()).map(([label, divisions]) => ({
+    label,
+    divisions: Array.from(divisions.entries()).map(([label, teams]) => ({ label, teams })),
+  }));
 }

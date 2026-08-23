@@ -3,15 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
-import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
-import { ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
+import { ApiSportsProvider, MATCHUP_SPORTS, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -210,21 +210,35 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     }
   }
 
-  const standingsResult = connected && hasLeague ? await getStandings(sport, league) : { standings: [] };
-  const standingsRestricted = standingsResult.planRestricted;
   // Real phase, from the same real dated openers used elsewhere on this
   // page (never a separately-guessed "today's season") — "preseason" here
   // covers both "before this season's preseason starts" and "we don't have
-  // this season's schedule yet." Computed before the standings fallback
-  // below so it can honestly decide whether an unresolved team's real
-  // record is corroborated 0-0 (season genuinely hasn't started) or an
-  // honest gap ("—", a mid-season provider restriction).
+  // this season's schedule yet." Computed BEFORE the standings fetch below
+  // so it can drive both: (a) whether an unresolved VERIFIED_REFERENCE
+  // team's real record is corroborated 0-0 (season genuinely hasn't
+  // started) or an honest gap ("—", a mid-season provider restriction), and
+  // (b) for every other sport, whether an empty current-season result
+  // should retry against the last real completed season rather than
+  // showing a blank panel — see getStandingsWithOffSeasonFallback.
   const standingsPhase = determineSeasonPhase({
     now: Date.now(),
     preseasonGameStartsAt: firstPreseasonGame?.startsAt,
     regularGameStartsAt: firstRegularSeasonGame?.startsAt,
     postseasonGameStartsAt: firstPostseasonGame?.startsAt,
   });
+  // NBA/NFL (hasVerifiedReference) keep the existing plain getStandings +
+  // getVerifiedStandingsFallback 0-0-zero-fill pair, unchanged. Every other
+  // sport uses the off-season fallback instead — real prior-season
+  // standings when the current season has nothing posted yet, rather than
+  // a blank panel (this is the fix for NHL/WNBA/etc. reading as empty
+  // during their own off-seasons — see getStandingsWithOffSeasonFallback's
+  // doc comment).
+  const standingsResult = connected && hasLeague
+    ? hasVerifiedReference(sport)
+      ? await getStandings(sport, league)
+      : await getStandingsWithOffSeasonFallback(sport, league, standingsPhase === "preseason")
+    : { standings: [] };
+  const standingsRestricted = standingsResult.planRestricted;
   // A sport with a verified, real conference/division reference (see
   // team-directory.ts) never shows a bare "No standings data returned" —
   // every real team appears, with its live record where the provider has
@@ -276,12 +290,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // exist). A real, pickable matchup when one is available: live > soonest
   // scheduled today, same priority the main Sports landing page's own
   // featured-matchup panel already uses (getGamesWithVoteContext) — never a
-  // decorative placeholder. Magical Picks spans every MATCHUP_SPORTS sport
-  // (NFL and WNBA get a first-class preview here today); Fantasy Football
-  // stays NFL-only, per explicit product scope — see PicksAndFantasyPanels.
+  // decorative placeholder. Magical Picks gets a first-class preview on
+  // every MATCHUP_SPORTS sport's own page (not just NFL/WNBA); Fantasy
+  // Football stays NFL-only, per explicit product scope — see
+  // PicksAndFantasyPanels.
   let picksFeaturedMatchup: Awaited<ReturnType<typeof getGamesWithVoteContext>>["contexts"][number] | null = null;
   let myFantasyLeagues: Awaited<ReturnType<typeof getMyFantasyLeagues>> = [];
-  if (sport === "nfl" || sport === "wnba") {
+  if (MATCHUP_SPORTS.includes(sport)) {
     const todayISO = new Date().toISOString().slice(0, 10);
     const [{ contexts }, leagues] = await Promise.all([
       ApiSportsProvider.isConfigured(sport) ? getGamesWithVoteContext(sport, todayISO, account.id, 20) : Promise.resolve({ contexts: [] }),
@@ -300,20 +315,34 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const standingsSeasonLabel = formatSeasonLabel(standingsResult.season, standingsPhase)
     ?? (fallbackSeasonYear && standings.length > 0 ? `${fallbackSeasonYear} ${standingsPhase === "preseason" ? "Preseason" : standingsPhase === "postseason" ? "Postseason" : "Regular Season"} Standings` : null);
 
-  // All Teams directory — every team in the league under its real
-  // conference/division, with a live-resolved logo. NBA/NFL have a
-  // verified static conference/division reference (see team-directory.ts);
-  // every other sport reuses the exact grouping/logos already resolved for
-  // the Standings panel above rather than a second fetch.
+  // All Teams directory — every team in the league, with a live-resolved
+  // logo. NBA/NFL have a verified static conference/division reference (see
+  // team-directory.ts). Every other sport now sources this from the real,
+  // live team catalog (getLeagueTeamCatalog — API-Sports' own /teams
+  // endpoint) as its PRIMARY source, independent of Standings: a standings
+  // failure (provider hiccup, plan restriction, off-season with no win-loss
+  // data yet) must never make the All Teams panel disappear when the
+  // provider's own team catalog is perfectly fine. Standings' own
+  // conference/division grouping is applied only as presentation labeling
+  // for teams it already covers (buildTeamDirectoryFromCatalog) — a team
+  // with no matching standings row still appears, under an honest
+  // "Standings unavailable" bucket rather than vanishing. Falls back to the
+  // old standings-derived grouping only when the live catalog itself is
+  // empty (unconfigured, league not resolved yet, or the provider genuinely
+  // has no teams for this league) — never a blank directory when standings
+  // happens to have something the catalog call couldn't reach.
+  const teamCatalog = !hasVerifiedReference(sport) && hasLeague ? await getLeagueTeamCatalog(sport, league).catch(() => []) : [];
   const directoryGroups: DirectoryGroup[] = hasVerifiedReference(sport)
     ? await getTeamDirectory(sport).catch(() => [])
-    : standingsGroups.map((g) => ({
-        label: g.label || sportMeta.label,
-        divisions: g.divisions.map((d) => ({
-          label: d.label,
-          teams: d.rows.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
-        })),
-      }));
+    : teamCatalog.length
+      ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted)
+      : standingsGroups.map((g) => ({
+          label: g.label || sportMeta.label,
+          divisions: g.divisions.map((d) => ({
+            label: d.label,
+            teams: d.rows.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+          })),
+        }));
 
   // The real season-opener countdown is the hero's dominant state. Once
   // its target passes, both this gate and CountdownClock's own internal
@@ -423,13 +452,15 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         </div>
       )}
 
-      {/* WNBA gets Magical Picks only — no Fantasy Football, which stays
-          NFL-only (see PicksAndFantasyPanels' doc comment). Standalone
-          (not the two-column picks/fantasy grid) since there's no second
-          panel to pair it with here. */}
-      {sport === "wnba" && (
+      {/* Every other MATCHUP_SPORTS sport gets Magical Picks only — no
+          Fantasy Football, which stays NFL-only (see PicksAndFantasyPanels'
+          doc comment). Standalone (not the two-column picks/fantasy grid)
+          since there's no second panel to pair it with here. F1 and MMA
+          are deliberately excluded (not in MATCHUP_SPORTS — a race/fight
+          card doesn't map onto a two-side "who you got" pick). */}
+      {sport !== "nfl" && MATCHUP_SPORTS.includes(sport) && (
         <div style={{ marginBottom: "1.4rem" }}>
-          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel="WNBA" />
+          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel={sportMeta.label} />
         </div>
       )}
 
@@ -466,7 +497,9 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           ) : standingsRestricted ? (
             <p className="spx-panel__empty">Standings aren&rsquo;t available for {sportMeta.label} right now.</p>
           ) : standings.length === 0 ? (
-            <p className="spx-panel__empty">Standings aren&rsquo;t available for the current season yet.</p>
+            <p className="spx-panel__empty">
+              Standings aren&rsquo;t available for the {standingsResult.season ? `${standingsResult.season} ` : ""}{sportMeta.label} season yet.
+            </p>
           ) : (
             <details className="spx-standings">
               <summary>View Standings ({standings.length} teams)</summary>

@@ -97,7 +97,7 @@ export default function PlayerSearch({ trackedKeys }: { trackedKeys: string[] })
             <div className="spx-search__card" key={p.playerId}>
               <div className="spx-search__top">
                 <Link href={`/dashboard/discovery/sports/player/${p.league}/${p.playerId}`} className="spx-search__linkarea">
-                  <PlayerAvatar photoUrl={p.photoUrl} size="lg" />
+                  <PlayerAvatar photoUrl={p.photoUrl} name={p.name} size="lg" />
                   <div className="spx-search__info">
                     <b>{p.name}</b>
                     <span>{[p.position, p.team].filter(Boolean).join(" · ") || "Team unavailable"}</span>

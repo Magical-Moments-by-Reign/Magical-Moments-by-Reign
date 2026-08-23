@@ -474,3 +474,61 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-roster__name-link { flex: 1; color: #f4f1ea; font-size: .8rem; font-weight: 700; text-decoration: none; }
 a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underline; }
 .spx-roster__pos { color: #9c8f76; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Shared player avatar — compact initials fallback ─────────────────
+   PlayerAvatar.tsx's default ("compact") fallback for repeating list/grid
+   rows — Team Rosters, Fantasy Draft Board/Roster/Free Agents/Waivers/
+   Trades. Plain initials (from the real player name already on hand, or
+   the real jersey number, never fabricated) in the same black/gold
+   .spx-avatar circle used everywhere else, instead of the repeating
+   JerseyAvatar illustration. JerseyAvatar itself is untouched and still
+   available via PlayerAvatar's variant="decorative" for a one-off, large,
+   single placement, should one come up later. */
+.spx-avatar__initials { color: var(--gold-soft); font-weight: 800; letter-spacing: .02em; line-height: 1; font-family: var(--font-body, inherit); }
+
+/* ── Fantasy Football — warm espresso re-theme (scoped) ────────────────
+   Fantasy (fantasy/page.tsx, fantasy/[leagueId]/page.tsx) renders with
+   discovery.css's light-ivory .disc-* component classes rather than the
+   dark .spx-panel system the rest of Sports uses. The owner asked for
+   Fantasy to carry the same black/gold identity as the rest of Sports,
+   but warmer than the near-black .spx-panel default — the same idea as
+   the .spx-profile .spx-panel override above (soft espresso, not
+   near-black), applied here to the .disc-*/.pg-* classes Fantasy actually
+   renders instead of .spx-panel. .spx-fantasy is added alongside the
+   existing "disc" className on the page root, so the shared .disc-*/.pg-*
+   rules themselves are untouched for every other Discovery page — this
+   only re-themes the tokens and hard-coded backgrounds inside the
+   .spx-fantasy subtree. Scoped independently of .spx > .disc-nav above
+   (Fantasy's root is .disc, not .spx) rather than editing that shared
+   rule. */
+.spx-fantasy {
+  --ink: #f4f1ea;
+  --ink-soft: #cabda3;
+  --espresso: #f4f1ea;
+  --ivory: #2c2216;
+  --line: rgba(201,162,75,.24);
+  --gold-deep: #d9bd82;
+  color: #f4f1ea;
+  background: radial-gradient(ellipse at 50% -10%, #241c10 0%, #14100a 45%, #0c0a07 100%);
+  border-radius: 20px;
+  padding: 1.6rem clamp(1rem, 3vw, 2rem) 3rem;
+}
+.spx-fantasy .btn { background: linear-gradient(165deg, #40301d 0%, #2c2216 100%); border-color: rgba(201,162,75,.4); }
+.spx-fantasy .btn:hover { border-color: var(--gold); }
+.spx-fantasy .disc-chart, .spx-fantasy .disc-form { background: linear-gradient(165deg, #40301d 0%, #2c2216 100%); }
+.spx-fantasy .disc-form { border-color: var(--gold); box-shadow: none; }
+.spx-fantasy .disc-badge { background: rgba(224,182,81,.14); border-color: rgba(201,162,75,.4); }
+.spx-fantasy input[type="text"],
+.spx-fantasy select,
+.spx-fantasy input[type="number"] { background: #0f0d09; color: #f4f1ea; border: 1px solid rgba(201,162,75,.35); border-radius: 8px; }
+.spx-fantasy input[type="text"]::placeholder { color: #7a6f5b; }
+.spx-fantasy h3 { color: var(--gold-soft); font-family: var(--font-display, Georgia, serif); }
+
+/* Fantasy's own quick-jump nav — same shared .disc-nav pills as
+   .spx > .disc-nav above, themed to match since Fantasy's root is .disc,
+   not .spx. */
+.spx-fantasy > .disc-nav { margin: 0 0 1.4rem; padding: 0 0 .7rem; border-bottom: 1px solid rgba(201,162,75,.22); }
+.spx-fantasy > .disc-nav a { flex: 0 0 auto; padding: .6rem .95rem; border: 0; border-radius: 999px; background: rgba(255,255,255,.04); color: #d9cdb8; box-shadow: none; }
+.spx-fantasy > .disc-nav a:hover { color: var(--gold-soft); background: rgba(224,182,81,.08); }
+
+.spx-fantasy .disc-section { scroll-margin-top: 84px; }

@@ -237,15 +237,34 @@ function apiKey(): string | undefined {
   return process.env.API_SPORTS_KEY?.trim() || undefined;
 }
 
-// Basketball and hockey seasons span two calendar years, and API-Sports'
-// basketball/hockey APIs require the split "YYYY-YYYY" season format (single
-// non-split years get rejected or return an empty response) — confirmed
-// against this project's own diagnostic page (admin/diagnostics/api-sports,
-// which uses this same seasonParam()). Every other sport here uses a plain
-// single-year season. A split season "starts" around August: a January 2026
-// game is part of the "2025-2026" season, a November 2026 game starts
-// "2026-2027".
-const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "nhl"]);
+// API-Sports' basketball and hockey PRODUCTS (the entire v1.basketball and
+// v1.hockey hosts — every league they carry, not just NBA/NHL) require the
+// split "YYYY-YYYY" season format; single non-split years get rejected or
+// return an empty response. This was originally confirmed here only for NBA
+// (see this project's own diagnostic page, admin/diagnostics/api-sports,
+// which uses this same seasonParam()) and the set below used to read
+// `["nba", "nhl"]` — reasoning from "does this SPORT's real calendar span
+// two years" rather than "which HOST/product is this sport served from."
+// That miscategorized wnba and ncaab: both live on the SAME
+// v1.basketball.api-sports.io host as nba (see SPORT_CONFIG above), so they
+// inherit that host's season-format requirement regardless of WNBA's own
+// real single-calendar-year (May–October) schedule — the provider's season
+// *key* is still the hyphenated string API-Basketball uses for its whole
+// /seasons catalog, independent of which real months a given league plays
+// in. Passing a bare year for WNBA/NCAAB either gets rejected outright or
+// comes back as a genuinely empty `response: []` — indistinguishable, from
+// this app's point of view, from an honest "no games/standings yet" result,
+// which is very likely why WNBA standings/rosters were reported empty in
+// production despite a valid key and a valid league id. Not independently
+// re-verified live for wnba/ncaab specifically (no API_SPORTS_KEY in this
+// environment) — re-check via the diagnostic page above once deployed, the
+// same NBA request already confirms the host-wide format.
+//
+// Every other host used here (american-football, baseball, football/soccer
+// v3, rugby, volleyball) uses a plain single-year season. A split season
+// "starts" around August: a January 2026 game is part of the "2025-2026"
+// season, a November 2026 game starts "2026-2027".
+const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "wnba", "ncaab", "nhl"]);
 
 /** Exported for tests. */
 export function seasonParam(sport: SportSlug, dateISO: string): string {
@@ -254,6 +273,23 @@ export function seasonParam(sport: SportSlug, dateISO: string): string {
   if (!SPLIT_SEASON_SPORTS.has(sport)) return String(year);
   const month = d.getMonth(); // 0-indexed; August = 7
   return month >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
+/** The season immediately BEFORE the one seasonParam() would resolve for
+ *  this date — i.e. the last season that's actually plausible to have a
+ *  completed schedule and final standings right now. Built from the exact
+ *  same real per-sport split/plain convention seasonParam uses, just
+ *  stepped back one — never a separately-guessed format. Used by the
+ *  Standings panel's off-season fallback: when the CURRENT (or upcoming,
+ *  not-yet-started) season has nothing posted yet, this is the real prior
+ *  season to retry with instead of showing a blank panel. Exported for
+ *  tests. */
+export function previousSeasonParam(sport: SportSlug, dateISO: string): string {
+  const current = seasonParam(sport, dateISO);
+  const split = current.match(/^(\d{4})-(\d{4})$/);
+  if (split) return `${Number(split[1]) - 1}-${Number(split[2]) - 1}`;
+  const year = parseInt(current, 10);
+  return Number.isFinite(year) ? String(year - 1) : current;
 }
 
 // API-Sports returns HTTP 200 even when a request falls outside what the
