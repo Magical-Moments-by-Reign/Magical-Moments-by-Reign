@@ -339,10 +339,10 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
           {SPORTS_BADGES.map((b) => {
             const earned = earnedIds.has(b.id);
             return (
-              <div key={b.id} className={`sports-badge${earned ? "" : " sports-badge--locked"}`}>
-                <span className="icon">{b.icon}</span>
+              <div key={b.id} className={`sports-badge${earned ? " sports-badge--earned" : " sports-badge--locked"}`}>
+                <span className="sports-badge__medal" aria-hidden="true"><span className="sports-badge__icon">{b.icon}</span></span>
                 <b>{b.label}</b>
-                <span>{b.description}</span>
+                <span className="sports-badge__desc">{b.description}</span>
               </div>
             );
           })}
