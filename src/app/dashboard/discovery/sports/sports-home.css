@@ -493,10 +493,10 @@ a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underl
    Fantasy to carry the same black/gold identity as the rest of Sports,
    but warmer than the near-black .spx-panel default — the same idea as
    the .spx-profile .spx-panel override above (soft espresso, not
-   near-black), applied here to the .disc-*/.pg-* classes Fantasy actually
+   near-black), applied here to the .disc- and .pg- classes Fantasy actually
    renders instead of .spx-panel. .spx-fantasy is added alongside the
-   existing "disc" className on the page root, so the shared .disc-*/.pg-*
-   rules themselves are untouched for every other Discovery page — this
+   existing "disc" className on the page root, so the shared .disc- and
+   .pg- rules themselves are untouched for every other Discovery page — this
    only re-themes the tokens and hard-coded backgrounds inside the
    .spx-fantasy subtree. Scoped independently of .spx > .disc-nav above
    (Fantasy's root is .disc, not .spx) rather than editing that shared
