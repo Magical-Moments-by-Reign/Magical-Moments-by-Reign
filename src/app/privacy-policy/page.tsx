@@ -48,7 +48,7 @@ export default async function PrivacyPolicyPage() {
           policy explains what personal information we collect, how we use and share it, and the choices you have.
         </p>
         <p>
-          Business mailing address: <em>[Magical Moments by Reign registered business address — to be added]</em>.
+          Business mailing address: 1 Perimeter Park South, Birmingham, AL 35243.
           Contact: <a href="mailto:info@magicalmomentsbyreign.com">info@magicalmomentsbyreign.com</a>.
         </p>
 
