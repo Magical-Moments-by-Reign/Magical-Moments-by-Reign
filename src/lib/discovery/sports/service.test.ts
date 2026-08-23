@@ -123,3 +123,78 @@ test("resolveWithFailureIsolation (future-day upcoming-games loop shape): same p
     assert.deepEqual(allGames, [{ id: `A-day${daysOut}`, sport: "A" }, { id: `C-day${daysOut}`, sport: "C" }]);
   }
 });
+
+// ── Regression: the Sports landing page (/dashboard/discovery/sports) must
+// never go down because ONE optional data source fails — pickFeaturedMatchup
+// (per-sport getGamesWithVoteContext calls) and the page's top-level
+// Promise.all of independent enrichments (league logos, landing games,
+// featured matchup, fantasy leagues, award races, rankings, tracked
+// players) both now use the same per-source failure-isolation the rest of
+// Sports already relies on. These tests pin the exact shapes/scenarios of
+// that page-level regression the owner reported.
+
+interface FakeSportForMatchup {
+  slug: "NFL" | "NBA" | "MLB";
+}
+interface FakeVoteContextResult {
+  contexts: { gameId: string; sport: string }[];
+}
+
+test("pickFeaturedMatchup shape: NFL and MLB return real contexts, NBA's getGamesWithVoteContext throws — the function still resolves with NFL/MLB's contexts and NBA contributes none", async () => {
+  const sports: FakeSportForMatchup[] = [{ slug: "NFL" }, { slug: "NBA" }, { slug: "MLB" }];
+  const results = await resolveWithFailureIsolation<FakeSportForMatchup, FakeVoteContextResult>(
+    sports,
+    async (s) => {
+      if (s.slug === "NBA") throw new Error("provider/cache/DB outage for NBA");
+      return { contexts: [{ gameId: `${s.slug}-g1`, sport: s.slug }] };
+    },
+    (): FakeVoteContextResult => ({ contexts: [] })
+  );
+  const allContexts = results.flatMap((r) => r.contexts);
+  assert.deepEqual(allContexts, [{ gameId: "NFL-g1", sport: "NFL" }, { gameId: "MLB-g1", sport: "MLB" }]);
+});
+
+// The page's top-level load is a Promise.all of independent optional
+// sources, each wrapped in its own .catch(fallback) — not
+// resolveWithFailureIsolation (there's no shared "item list" to iterate,
+// each source is a distinct feature). These tests exercise that exact
+// per-source .catch() shape.
+function loadSportsPageData(sources: {
+  logos: () => Promise<Record<string, string>>;
+  landingGames: () => Promise<{ live: unknown[]; upcoming: unknown[] }>;
+  featuredMatchup: () => Promise<unknown | null>;
+  fantasyLeagues: () => Promise<unknown[]>;
+}) {
+  return Promise.all([
+    sources.logos().catch(() => ({})),
+    sources.landingGames().catch(() => ({ live: [], upcoming: [] })),
+    sources.featuredMatchup().catch(() => null),
+    sources.fantasyLeagues().catch(() => []),
+  ]);
+}
+
+test("Sports page top-level load: one optional source (featured matchup) throws — the other real sources are preserved and the failed one gets its documented fallback", async () => {
+  const [logos, landingGames, featuredMatchup, fantasyLeagues] = await loadSportsPageData({
+    logos: async () => ({ nfl: "https://logo/nfl.png" }),
+    landingGames: async () => ({ live: [{ id: "g1" }], upcoming: [] }),
+    featuredMatchup: async () => { throw new Error("pickFeaturedMatchup outage"); },
+    fantasyLeagues: async () => [{ id: "league-1" }],
+  });
+  assert.deepEqual(logos, { nfl: "https://logo/nfl.png" });
+  assert.deepEqual(landingGames, { live: [{ id: "g1" }], upcoming: [] });
+  assert.equal(featuredMatchup, null);
+  assert.deepEqual(fantasyLeagues, [{ id: "league-1" }]);
+});
+
+test("Sports page top-level load: every optional enrichment source throws — the page's base data still resolves, all sources degrade to their documented fallback, nothing rejects", async () => {
+  const [logos, landingGames, featuredMatchup, fantasyLeagues] = await loadSportsPageData({
+    logos: async () => { throw new Error("league logo provider down"); },
+    landingGames: async () => { throw new Error("landing games provider down"); },
+    featuredMatchup: async () => { throw new Error("featured matchup provider down"); },
+    fantasyLeagues: async () => { throw new Error("fantasy DB down"); },
+  });
+  assert.deepEqual(logos, {});
+  assert.deepEqual(landingGames, { live: [], upcoming: [] });
+  assert.equal(featuredMatchup, null);
+  assert.deepEqual(fantasyLeagues, []);
+});

@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, resolveWithFailureIsolation, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { getAwardRace, AWARD_RACES, getCollegeFootballRankings } from "@/lib/discovery/sports/awards";
@@ -55,7 +55,11 @@ type MyTeams = Awaited<ReturnType<typeof getMyTeams>>;
 async function pickFeaturedMatchup(myTeams: MyTeams, followedSports: SportSlug[], accountId: string): Promise<MatchupCardContext | null> {
   const todayISO = new Date().toISOString().slice(0, 10);
   const sports = (followedSports.length ? followedSports : (["nfl"] as SportSlug[])).filter((s) => MATCHUP_SPORTS.includes(s) && ApiSportsProvider.isConfigured(s));
-  const todaysContexts = (await Promise.all(sports.map((s) => getGamesWithVoteContext(s, todayISO, accountId, 20)))).flatMap((r) => r.contexts);
+  // PER-SPORT failure isolation (same resolveWithFailureIsolation helper
+  // getSportsLandingGames uses) — one sport's getGamesWithVoteContext call
+  // throwing must contribute zero contexts for that sport only, never take
+  // down the whole Sports landing page.
+  const todaysContexts = (await resolveWithFailureIsolation(sports, (s) => getGamesWithVoteContext(s, todayISO, accountId, 20), (): { contexts: MatchupCardContext[] } => ({ contexts: [] }))).flatMap((r) => r.contexts);
   const live = todaysContexts.find((c) => c.game.status === "live");
   if (live) return live;
   const scheduledToday = todaysContexts.filter((c) => c.game.status === "scheduled").sort((a, b) => +a.game.startsAt - +b.game.startsAt)[0];
@@ -69,7 +73,11 @@ async function pickFeaturedMatchup(myTeams: MyTeams, followedSports: SportSlug[]
 export default async function SportsPage() {
   const account = await requireAccount("/dashboard/discovery/sports");
 
-  const myTeams = await getMyTeams(account.id);
+  // My Teams enriches the page (featured matchup selection, followed-sport
+  // filtering) but isn't required for the base catalog/hero/navigation to
+  // render — a provider/DB hiccup here degrades to [] rather than taking
+  // down the whole page.
+  const myTeams = await getMyTeams(account.id).catch(() => [] as MyTeams);
   const followedSports = [...new Set(myTeams.map((t) => t.follow.sport as SportSlug))];
 
   // SportsDataIO is still on a free trial known to return scrambled values
@@ -80,16 +88,20 @@ export default async function SportsPage() {
   const showSdio = sdioConfigured() && (sdioCommercialMode() || isOwner);
   const previewOnly = showSdio && !sdioCommercialMode();
 
+  // Each of these is an independent, optional enrichment of the base Sports
+  // page (catalog/hero/nav) — one provider/DB outage on any single source
+  // must never take the whole page down with it, so every branch gets its
+  // own safe, honest-empty fallback rather than joining one bare Promise.all.
   const [logos, { live, upcoming }, featuredMatchup, myFantasyLeagues, awardRaces, rankings, trackedPlayers] = await Promise.all([
-    getLeagueLogos(),
-    getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])),
-    pickFeaturedMatchup(myTeams, followedSports, account.id),
-    getMyFantasyLeagues(account.id),
+    getLeagueLogos().catch((): Partial<Record<SportSlug, string>> => ({})),
+    getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])).catch(() => ({ live: [], upcoming: [] })),
+    pickFeaturedMatchup(myTeams, followedSports, account.id).catch(() => null),
+    getMyFantasyLeagues(account.id).catch(() => []),
     showSdio
-      ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) })))
+      ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) }))).catch(() => [])
       : Promise.resolve([]),
-    showSdio ? getCollegeFootballRankings() : Promise.resolve([]),
-    showSdio ? getMyTrackedPlayers(account.id) : Promise.resolve([]),
+    showSdio ? getCollegeFootballRankings().catch(() => []) : Promise.resolve([]),
+    showSdio ? getMyTrackedPlayers(account.id).catch(() => []) : Promise.resolve([]),
   ]);
   const featuredMatchupSportLabel = featuredMatchup ? SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label : undefined;
   const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
