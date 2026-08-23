@@ -76,3 +76,50 @@ test("resolveWithFailureIsolation: preserves the real per-team ordering (a rejec
   );
   assert.deepEqual(results, ["A", "error", "C", "error"]);
 });
+
+// ── Regression: the Discovery hub landing page (getSportsLandingGames, via
+// getCuratedForYou) must never go down because ONE sport's getGamesByDate
+// call throws — this is the exact shape/scenario of that production
+// outage: sport A and C return real games, sport B's provider/cache/DB call
+// throws, and the whole batch must still resolve with A/C's games intact
+// and B contributing none — never an unhandled rejection that 500s the
+// page. getSportsLandingGames itself isn't unit-tested here (it's a thin
+// DB/provider-backed wrapper) — these tests pin down the exact
+// resolveWithFailureIsolation call shape it now uses for both the "today"
+// lookup and each day of the 7-day upcoming loop.
+interface FakeSport {
+  slug: "A" | "B" | "C";
+}
+interface FakeGamesResult {
+  games: { id: string; sport: string }[];
+}
+
+test("resolveWithFailureIsolation (today's games-by-date lookup shape): sport B throws, A and C's real games are preserved, function resolves without rejecting", async () => {
+  const sports: FakeSport[] = [{ slug: "A" }, { slug: "B" }, { slug: "C" }];
+  const results = await resolveWithFailureIsolation<FakeSport, FakeGamesResult>(
+    sports,
+    async (s) => {
+      if (s.slug === "B") throw new Error("provider/cache/DB outage for sport B");
+      return { games: [{ id: `${s.slug}-game-1`, sport: s.slug }] };
+    },
+    (): FakeGamesResult => ({ games: [] })
+  );
+  const allGames = results.flatMap((r) => r.games);
+  assert.deepEqual(allGames, [{ id: "A-game-1", sport: "A" }, { id: "C-game-1", sport: "C" }]);
+});
+
+test("resolveWithFailureIsolation (future-day upcoming-games loop shape): same per-sport isolation applies to each day of the 7-day lookahead, not just today", async () => {
+  const sports: FakeSport[] = [{ slug: "A" }, { slug: "B" }, { slug: "C" }];
+  for (let daysOut = 1; daysOut <= 7; daysOut++) {
+    const results = await resolveWithFailureIsolation<FakeSport, FakeGamesResult>(
+      sports,
+      async (s) => {
+        if (s.slug === "B") throw new Error(`provider outage for sport B, day +${daysOut}`);
+        return { games: [{ id: `${s.slug}-day${daysOut}`, sport: s.slug }] };
+      },
+      (): FakeGamesResult => ({ games: [] })
+    );
+    const allGames = results.flatMap((r) => r.games);
+    assert.deepEqual(allGames, [{ id: `A-day${daysOut}`, sport: "A" }, { id: `C-day${daysOut}`, sport: "C" }]);
+  }
+});
