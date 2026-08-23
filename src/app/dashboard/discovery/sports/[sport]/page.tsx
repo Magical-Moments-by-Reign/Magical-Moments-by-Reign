@@ -30,9 +30,17 @@ const BLUE_LEAGUE_TEXT: Partial<Record<SportSlug, true>> = { nfl: true, ncaaf: t
 // as the hero background instead of the generic stadium shot — none of
 // these images carry team/league marks, just a real field/court.
 const HERO_BACKDROP_IMAGE: Partial<Record<SportSlug, string>> = {
+  nfl: "/discovery/football-field.png",
+  ncaaf: "/discovery/football-field.png",
+  nba: "/discovery/basketball-court.png",
+};
+// Owner-supplied football photos for NFL/CFB's own small brand/logo badge —
+// NOT the large hero/background above (HERO_BACKDROP_IMAGE). Overrides the
+// live provider league logo for just these two sports, same as the Sports
+// hub's card grid (see FOOTBALL_CARD_ICON in ../page.tsx).
+const FOOTBALL_LOGO_BADGE: Partial<Record<SportSlug, string>> = {
   nfl: "/discovery/nfl-hero.png",
   ncaaf: "/discovery/college-football-hero.png",
-  nba: "/discovery/basketball-court.png",
 };
 // Sports whose hero countdown targets the real preseason opener until that
 // game's kickoff passes, then automatically flips to the real regular-
@@ -175,7 +183,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     getFirstPostseasonGame(sport, league || undefined),
     sport === "nba" ? getNbaHeroState() : Promise.resolve(null),
   ]);
-  const leagueLogo = SPORT_VISUALS[sport].kind === "league-logo" ? logos[sport] : undefined;
+  const leagueLogo = FOOTBALL_LOGO_BADGE[sport] ?? (SPORT_VISUALS[sport].kind === "league-logo" ? logos[sport] : undefined);
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
 
   // Real rosters for followed teams — the honest substitute where a real

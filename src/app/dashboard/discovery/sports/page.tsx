@@ -38,6 +38,15 @@ const CATEGORY_LABEL: Record<SportCategory, string> = {
   world: "World & Other Sports",
 };
 
+// Owner-supplied football photos for NFL/CFB's own small card icon —
+// deliberately shown here instead of the live provider league logo (unlike
+// every other league-logo sport). Not the large per-sport hero/background
+// (see HERO_BACKDROP_IMAGE in [sport]/page.tsx, which no longer uses these).
+const FOOTBALL_CARD_ICON: Partial<Record<SportSlug, string>> = {
+  nfl: "/discovery/nfl-hero.png",
+  ncaaf: "/discovery/college-football-hero.png",
+};
+
 type MyTeams = Awaited<ReturnType<typeof getMyTeams>>;
 
 /** One real matchup to feature in the Magical Picks panel: live > soonest
@@ -111,7 +120,7 @@ export default async function SportsPage() {
               return (
                 <Link key={s.slug} href={`/dashboard/discovery/sports/${s.slug}`} className="spx-card">
                   <SportCardVisual
-                    src={visual.kind === "league-logo" ? logos[s.slug] : undefined}
+                    src={FOOTBALL_CARD_ICON[s.slug] ?? (visual.kind === "league-logo" ? logos[s.slug] : undefined)}
                     alt={`${s.label} mark`}
                     glyph={visual.glyph}
                   />
