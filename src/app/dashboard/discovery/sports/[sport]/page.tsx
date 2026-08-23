@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import SmartBackLink from "../SmartBackLink";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
@@ -108,7 +109,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           <Image src={heroBackdrop ?? "/discovery/stadium.png"} alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
           <div className="spx-sport-header__shade" />
           {!heroBackdrop && <SportBackdrop sport={sport} />}
-          <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
+          <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← All Sports" className="spx-sport-header__back" />
           <div className="spx-sport-header__brand">
             <span className="spx-sport-header__logo">
               <SportCardVisual alt={`${sportMeta.label} mark`} glyph={SPORT_VISUALS[sport].glyph} />
@@ -425,7 +426,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         <Image src={backdropSrc} alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
         <div className="spx-sport-header__shade" />
         {!heroBackdrop && <SportBackdrop sport={sport} />}
-        <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
+        <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← All Sports" className="spx-sport-header__back" />
 
         {showHeroCountdown && heroTargetISO ? (
           <div className="spx-countdown--hero">

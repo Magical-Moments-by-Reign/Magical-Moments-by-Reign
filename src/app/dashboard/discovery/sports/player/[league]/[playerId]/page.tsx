@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import SmartBackLink from "../../../SmartBackLink";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { getPlayerProfile } from "@/lib/discovery/sports/player-profile";
@@ -12,6 +12,9 @@ import "../../../sports-home.css";
 export const dynamic = "force-dynamic";
 
 const LEAGUE_LABEL: Record<SdioLeague, string> = { nfl: "NFL", cfb: "College Football", nba: "NBA", wnba: "WNBA" };
+// The player-profile route's own SdioLeague param vs. the site-wide sport
+// slug used everywhere else — only "cfb" differs (site-wide: "ncaaf").
+const SPORT_SLUG: Record<SdioLeague, string> = { nfl: "nfl", cfb: "ncaaf", nba: "nba", wnba: "wnba" };
 const isSdioLeague = (v: string): v is SdioLeague => v === "nfl" || v === "cfb" || v === "nba" || v === "wnba";
 
 // Every field below is a real, documented SportsDataIO PlayerSeasonStats
@@ -95,7 +98,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
           <b>Player Profiles are coming soon</b>
           Detailed player profiles aren&rsquo;t open to members yet.
         </div>
-        <Link href="/dashboard/discovery/sports">← Back to Sports</Link>
+        <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← Back to Sports" />
       </div>
     );
   }
@@ -168,7 +171,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
   return (
     <div className="spx spx-profile">
-      <Link href="/dashboard/discovery/sports" className="spx-profile__back">← Back to Sports</Link>
+      <SmartBackLink fallbackHref={`/dashboard/discovery/sports/${SPORT_SLUG[league]}`} label={`← Back to ${LEAGUE_LABEL[league]}`} className="spx-profile__back" />
 
       <section className="spx-profile__hero">
         {profile.teamLogoUrl && (

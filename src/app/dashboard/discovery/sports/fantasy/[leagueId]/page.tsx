@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../../SmartBackLink";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import {
@@ -56,7 +57,7 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
         <h1 className="pg-title">{league.name}</h1>
         <p className="pg-sub">{league.season} season · invite code {league.inviteCode} · {league.teams.length} team{league.teams.length === 1 ? "" : "s"}</p>
       </div>
-      <Link href="/dashboard/discovery/sports/fantasy" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Fantasy Football</Link>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports/fantasy" label="← Back to Fantasy Football" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
 
       <FantasyLeagueNav draftStatus={league.draftStatus} />
 

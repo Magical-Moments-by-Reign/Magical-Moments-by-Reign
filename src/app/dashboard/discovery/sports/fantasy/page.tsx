@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { createFantasyLeagueAction, joinFantasyLeagueAction } from "./actions";
@@ -28,7 +29,7 @@ export default async function FantasyFootballPage() {
         <h1 className="pg-title">Fantasy Football</h1>
         <p className="pg-sub">Real NFL players, your own private league — a separate game from Magical Picks.</p>
       </div>
-      <Link href="/dashboard/discovery/sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Sports</Link>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports/nfl" label="← Back to Sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
 
       <div className="disc-section">
         <div className="disc-section__head"><h2>Your Leagues</h2></div>

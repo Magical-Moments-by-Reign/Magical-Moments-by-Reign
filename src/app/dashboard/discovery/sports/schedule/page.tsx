@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getSportsLandingGames } from "@/lib/discovery/sports/service";
 import "../../discovery.css";
@@ -16,7 +17,7 @@ export default async function SportsSchedulePage() {
   return (
     <div className="spx">
       <div className="spx-divider" style={{ marginTop: "1.4rem" }}><span>Live Scores &amp; Schedule</span></div>
-      <Link href="/dashboard/discovery/sports" className="spx-panel__cta" style={{ display: "inline-block", marginBottom: "1.4rem" }}>← Back to Sports</Link>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← Back to Sports" className="spx-panel__cta" style={{ display: "inline-block", marginBottom: "1.4rem" }} />
 
       <div className="spx-panels" style={{ gridTemplateColumns: "1fr 1fr" }}>
         <div className="spx-panel">

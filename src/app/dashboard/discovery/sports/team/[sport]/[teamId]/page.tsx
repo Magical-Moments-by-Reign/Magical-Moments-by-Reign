@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../../../SmartBackLink";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, resolveDefaultLeagueId, getStandings, getTeamSchedule, getTeamInjuries, getTeamFollow, sdioLeagueFor, type TeamScheduleGame } from "@/lib/discovery/sports/service";
@@ -110,7 +111,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ spo
 
   return (
     <div className="spx spx-profile spx-team-detail">
-      <Link href={`/dashboard/discovery/sports/${sport}`} className="spx-profile__back">← Back to {sportMeta.label}</Link>
+      <SmartBackLink fallbackHref={`/dashboard/discovery/sports/${sport}`} label={`← Back to ${sportMeta.label}`} className="spx-profile__back" />
 
       <section className="spx-profile__hero spx-team-detail__hero">
         <div className="spx-team-detail__logo">

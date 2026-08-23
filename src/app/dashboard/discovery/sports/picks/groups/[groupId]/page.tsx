@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../../../SmartBackLink";
 import { notFound } from "next/navigation";
 import { requireAccount } from "@/lib/guard";
 import { getGroupLeaderboard } from "@/lib/discovery/sports/pickem-groups-service";
@@ -27,7 +28,7 @@ export default async function PickGroupPage({ params, searchParams }: { params: 
         <h1 className="pg-title">{board.groupName}</h1>
         <p className="pg-sub">Entertainment predictions only — no money, wagering, spreads, or betting odds.</p>
       </div>
-      <Link href="/dashboard/discovery/sports/picks" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Magical Picks</Link>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports/picks" label="← Back to Magical Picks" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
 
       {champion && (
         <p className="disc-empty" style={{ marginTop: 0, fontWeight: 700 }}>

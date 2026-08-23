@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
 import { getMyTeams, SPORT_CATALOG, searchSports } from "@/lib/discovery/sports/service";
 import { unfollowAction, followTeamAction } from "../actions";
@@ -23,7 +24,7 @@ export default async function MyTeamsPage({ searchParams }: { searchParams: Prom
         <h1 className="pg-title">My Teams</h1>
         <p className="pg-sub">The teams you follow, with their next matchup and most recent result.</p>
       </div>
-      <Link href="/dashboard/discovery/sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }}>← Back to Sports</Link>
+      <SmartBackLink fallbackHref="/dashboard/discovery/sports" label="← Back to Sports" className="btn btn--sm" style={{ marginBottom: "1.4rem", display: "inline-block" }} />
 
       <div className="disc-section">
         <div className="disc-section__head"><h2>Add a Favorite Team</h2></div>
