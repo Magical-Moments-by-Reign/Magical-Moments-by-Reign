@@ -3,12 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, getNbaHeroState, getNflPlayoffPicture, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor } from "@/lib/discovery/sports/service";
+import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { findPlayerIdByName } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
+import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
 import { ApiSportsProvider, defaultLeagueId, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
@@ -254,6 +256,27 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       if (field) playoffPictureGroups = [{ label: "", rows: field.filter((f) => f.inField).map((f) => ({ teamId: f.teamId, teamName: f.teamName, teamLogoUrl: f.teamLogoUrl, clinched: f.clinched })) }];
     }
   }
+
+  // Magical Picks + Fantasy Football — first-class NFL discoverability, not
+  // hidden utility links (members shouldn't have to know these routes
+  // exist). A real, pickable matchup when one is available: live > soonest
+  // scheduled today, same priority the main Sports landing page's own
+  // featured-matchup panel already uses (getGamesWithVoteContext) — never a
+  // decorative placeholder. Both are gated to NFL only, matching the scope
+  // of this page.
+  let nflFeaturedMatchup: Awaited<ReturnType<typeof getGamesWithVoteContext>>["contexts"][number] | null = null;
+  let myFantasyLeagues: Awaited<ReturnType<typeof getMyFantasyLeagues>> = [];
+  if (sport === "nfl") {
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const [{ contexts }, leagues] = await Promise.all([
+      ApiSportsProvider.isConfigured("nfl") ? getGamesWithVoteContext("nfl", todayISO, account.id, 20) : Promise.resolve({ contexts: [] }),
+      getMyFantasyLeagues(account.id),
+    ]);
+    nflFeaturedMatchup = contexts.find((c) => c.game.status === "live")
+      ?? contexts.filter((c) => c.game.status === "scheduled").sort((a, b) => +a.game.startsAt - +b.game.startsAt)[0]
+      ?? null;
+    myFantasyLeagues = leagues;
+  }
   // No provider returned a season string in the verified-fallback case
   // (both tiers came back empty) — fall back to the real year off whichever
   // real dated opener we already have (never a guess), labeled for the
@@ -377,6 +400,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           </div>
         )}
       </div>
+
+      {sport === "nfl" && (
+        <div className="spx-panels spx-panels--picks-fantasy">
+          <MagicalPicksPanel matchup={nflFeaturedMatchup} previewSportLabel="NFL" />
+          <FantasyFootballPanel leagues={myFantasyLeagues} />
+        </div>
+      )}
 
       {playoffPictureGroups.length > 0 && (
         <div className="spx-panel spx-playoff-picture">

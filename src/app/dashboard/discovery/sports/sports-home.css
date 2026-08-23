@@ -196,6 +196,8 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: auto 0; }
 .spx-panel__body { display: flex; flex-direction: column; gap: .6rem; flex: 1; }
 
+.spx-panels--picks-fantasy { grid-template-columns: 1fr 1fr; margin-bottom: 1.4rem; }
+
 .spx-playoff-picture { margin-bottom: 1.6rem; }
 .spx-playoff-picture__confs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
 .spx-playoff-picture__conf h3 { margin: 0 0 .6rem; color: var(--gold-soft); font-size: .74rem; font-weight: 800; letter-spacing: .1em; }
@@ -287,6 +289,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
   .spx-bar { flex-direction: column; }
   .spx-bar__item { border-right: none; border-bottom: 1px solid rgba(201,162,75,.18); }
   .spx-bar__item:last-child { border-bottom: none; }
+  .spx-panels--picks-fantasy { grid-template-columns: 1fr; }
 }
 
 /* ── Admin-preview badge (shown only to owner while data isn't commercial) ── */
