@@ -795,6 +795,51 @@ export async function getMyTeams(accountId: string) {
   return withGames;
 }
 
+/** Whether (and how) the viewer already follows this real team — the Team
+ *  Detail page's Follow/Unfollow state. Returns null when not followed;
+ *  never a guess at follow state. */
+export async function getTeamFollow(accountId: string, sport: SportSlug, teamExternalId: string) {
+  if (!teamExternalId) return null;
+  return prisma.sportsFollow.findFirst({ where: { accountId, kind: "team", sport, teamExternalId } });
+}
+
+export interface TeamScheduleGame extends SportsGameSummary {
+  /** The local SportsGame row's id for this real game — null only on the
+   *  rare upsert failure, never fabricated. Used to link to a real Game
+   *  Center; a null localId renders as plain (non-clickable) text instead. */
+  localId: string | null;
+}
+
+/** Upcoming + recently completed real games for one team — the Team Detail
+ *  page's schedule sections. Same underlying ApiSportsProvider.gamesForTeam
+ *  call and cache key ("team_games") getMyTeams already uses for a followed
+ *  team's own upcoming/recent games, so a page rendering both shares one
+ *  cached fetch rather than issuing it twice. Every game is synced to the
+ *  local SportsGame table exactly like getMyTeams does, so each one can
+ *  link to a real Game Center. Returns { upcoming: [], recent: [] } when
+ *  unconfigured, given no teamExternalId, or the provider genuinely has
+ *  nothing for this team — never a fabricated schedule. */
+export async function getTeamSchedule(sport: SportSlug, teamExternalId: string, league?: string): Promise<{ upcoming: TeamScheduleGame[]; recent: TeamScheduleGame[] }> {
+  if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return { upcoming: [], recent: [] };
+  const lg = league || defaultLeagueId(sport);
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, team: teamExternalId, kind: "team_games" }), TTL_GAMES_UPCOMING, () =>
+    ApiSportsProvider.gamesForTeam(sport, teamExternalId, { league: lg }));
+  const games = cached?.data ?? [];
+  if (!games.length) return { upcoming: [], recent: [] };
+  const localRows = await syncGamesToLocal(sport, lg || games[0]?.league || "", games);
+  const localIdFor = (externalId: string) => localRows.find((r) => r.externalId === externalId)?.id ?? null;
+  const now = Date.now();
+  const upcoming = games
+    .filter((g) => g.status !== "final" && new Date(g.startsAt).getTime() >= now)
+    .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))
+    .map((g) => ({ ...g, localId: localIdFor(g.externalId) }));
+  const recent = games
+    .filter((g) => g.status === "final")
+    .sort((a, b) => +new Date(b.startsAt) - +new Date(a.startsAt))
+    .map((g) => ({ ...g, localId: localIdFor(g.externalId) }));
+  return { upcoming, recent };
+}
+
 export async function getMySportsFollows(accountId: string) {
   const follows = await prisma.sportsFollow.findMany({ where: { accountId, kind: { in: ["sport", "league"] } } });
   return follows.map((f) => ({ ...f, label: sportLabel(f.sport as SportSlug) }));

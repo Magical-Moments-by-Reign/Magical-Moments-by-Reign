@@ -460,8 +460,11 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-directory__roster { padding: 0 .8rem .9rem; }
 
 /* ── All Teams directory — single-team roster panel (replaces the grid) ── */
-.spx-directory__back { background: none; border: none; color: var(--gold-soft); font-size: .74rem; font-weight: 700; cursor: pointer; padding: 0 0 .8rem; }
+.spx-directory__panel-toprow { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin-bottom: .8rem; }
+.spx-directory__back { background: none; border: none; color: var(--gold-soft); font-size: .74rem; font-weight: 700; cursor: pointer; padding: 0; }
 .spx-directory__back:hover { color: var(--gold); }
+.spx-directory__view-team { color: var(--gold-soft); font-size: .72rem; font-weight: 700; text-decoration: none; white-space: nowrap; margin-left: auto; }
+.spx-directory__view-team:hover { color: var(--gold); text-decoration: underline; }
 .spx-directory__panel-head { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
 .spx-directory__panel-head h3 { color: #f4f1ea; font-size: 1.05rem; margin: 0; }
 .spx-directory__breadcrumb { color: #9c8f76; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; }
@@ -532,3 +535,39 @@ a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underl
 .spx-fantasy > .disc-nav a:hover { color: var(--gold-soft); background: rgba(224,182,81,.08); }
 
 .spx-fantasy .disc-section { scroll-margin-top: 84px; }
+
+/* ── F1 / MMA — honest "Coming Soon" state ──────────────────────────────
+   Replaces the ENTIRE panel stack (Today's Games / Standings / My Teams /
+   All Teams / Magical Picks) with one clear message for these two sports —
+   never a page of individually-empty panels. See [sport]/page.tsx's
+   early-return for f1/mma. */
+.spx-coming-soon {
+  max-width: 720px; margin: 0 auto; text-align: center; padding: 2.6rem 1.8rem;
+  background: linear-gradient(180deg, #14110b 0%, #0a0806 100%); border: 1px solid rgba(201,162,75,.28);
+  border-radius: 16px;
+}
+.spx-coming-soon h2 { margin: 0 0 1rem; color: var(--gold); font-size: 1rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.spx-coming-soon__lede { margin: 0 0 .7rem; color: #f4f1ea; font-size: .96rem; font-weight: 700; line-height: 1.55; }
+.spx-coming-soon__body { margin: 0 0 1.8rem; color: #9c8f76; font-size: .82rem; line-height: 1.6; }
+.spx-coming-soon__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; text-align: left; }
+.spx-coming-soon__item { padding: .8rem .9rem; border-radius: 10px; border: 1px solid rgba(201,162,75,.18); background: rgba(255,255,255,.03); }
+.spx-coming-soon__item span { display: block; color: #f4f1ea; font-size: .78rem; font-weight: 700; margin-bottom: .3rem; }
+.spx-coming-soon__item i { font-style: normal; color: var(--gold-soft); font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── Team Detail page (Standings row / All Teams → real team hub) ──────
+   Reuses .spx-profile's warm-espresso hero/panel treatment (same register
+   as Player Profile — a single-entity deep-dive page) rather than the
+   near-black .spx-panel default used across the rest of Sports. */
+.spx-team-detail__hero { flex-direction: row; align-items: center; gap: 1.4rem; }
+.spx-team-detail__logo {
+  flex: none; width: 116px; height: 116px; border-radius: 20px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: rgba(244,241,234,.08); border: 1px solid rgba(201,162,75,.3); padding: .9rem;
+}
+.spx-team-detail__logo img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0,0,0,.4)); }
+.spx-team-detail__follow { margin-top: 1rem; }
+.spx-team-detail__standing { display: flex; align-items: center; gap: 1rem; }
+.spx-team-detail__standing-rank { color: var(--gold); font-size: 1.3rem; font-weight: 900; }
+.spx-team-detail__standing span { color: #f0e9db; font-size: .88rem; font-weight: 700; }
+@media (max-width: 560px) {
+  .spx-team-detail__hero { flex-direction: column; text-align: center; }
+}

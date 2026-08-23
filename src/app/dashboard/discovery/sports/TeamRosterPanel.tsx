@@ -67,7 +67,7 @@ function RosterPlayerRow({ player }: { player: RosterPlayer }) {
   );
 }
 
-export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "← Back" }: { sport: string; team: RosterTeam; breadcrumb: string; onBack: () => void; backLabel?: string }) {
+export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "← Back", viewTeamHref, hideHead = false }: { sport: string; team: RosterTeam; breadcrumb: string; onBack?: () => void; backLabel?: string; viewTeamHref?: string; hideHead?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [roster, setRoster] = useState<RosterPlayer[] | null>(null);
   const [error, setError] = useState(false);
@@ -89,19 +89,29 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
 
   return (
     <div className="spx-directory__panel">
-      <button type="button" className="spx-directory__back" onClick={onBack}>{backLabel}</button>
-      <div className="spx-directory__panel-head">
-        {team.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={team.logoUrl} alt="" className="spx-directory__team-logo" />
-        ) : (
-          <div className="spx-team-row__ph spx-directory__team-logo" />
-        )}
-        <div>
-          <h3>{team.name}</h3>
-          {breadcrumb && <span className="spx-directory__breadcrumb">{breadcrumb}</span>}
+      {(onBack || viewTeamHref) && (
+        <div className="spx-directory__panel-toprow">
+          {onBack ? <button type="button" className="spx-directory__back" onClick={onBack}>{backLabel}</button> : <span />}
+          {/* Every inline quick-view (Standings row, All Teams card) links out
+              to the real Team Detail page — never rendered when this panel
+              IS that page (hideHead callers never pass viewTeamHref). */}
+          {viewTeamHref && <Link href={viewTeamHref} className="spx-directory__view-team">View Full Team →</Link>}
         </div>
-      </div>
+      )}
+      {!hideHead && (
+        <div className="spx-directory__panel-head">
+          {team.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={team.logoUrl} alt="" className="spx-directory__team-logo" />
+          ) : (
+            <div className="spx-team-row__ph spx-directory__team-logo" />
+          )}
+          <div>
+            <h3>{team.name}</h3>
+            {breadcrumb && <span className="spx-directory__breadcrumb">{breadcrumb}</span>}
+          </div>
+        </div>
+      )}
       <div className="spx-directory__roster-box">
         {loading && <p className="spx-panel__empty">Loading roster…</p>}
         {error && <p className="spx-panel__empty">Couldn&rsquo;t load the roster right now.</p>}

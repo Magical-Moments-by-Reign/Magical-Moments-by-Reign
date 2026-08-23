@@ -10,7 +10,7 @@
 
 import type { SportSlug, SportsStanding, SportsTeam } from "../providers/sports";
 import type { StandingsGroup } from "./standings";
-import { resolveTeamByName, getLeagueTeamRosterMap } from "./service";
+import { resolveTeamByName, getLeagueTeamRosterMap, getLeagueTeamCatalog, resolveDefaultLeagueId } from "./service";
 
 export interface DirectoryTeam {
   id: string;
@@ -207,4 +207,32 @@ export function buildTeamDirectoryFromCatalog(
     label,
     divisions: Array.from(divisions.entries()).map(([label, teams]) => ({ label, teams })),
   }));
+}
+
+/** Resolves one real team's identity (id/name/live-resolved logo) from a
+ *  bare team id — the Team Detail page's entry point (see
+ *  team/[sport]/[teamId]/page.tsx). NBA/NFL (hasVerifiedReference) are
+ *  looked up in the verified conference/division reference so the id
+ *  always matches what Standings/All Teams already show for that team;
+ *  every other sport resolves it against the real, live team catalog for
+ *  the sport's resolved default league — the same primary source the All
+ *  Teams directory itself uses. Returns null (never a fabricated team)
+ *  when the sport has no resolved league yet, the catalog/directory call
+ *  fails, or nothing matches this id. */
+export async function getTeamById(sport: SportSlug, teamId: string): Promise<DirectoryTeam | null> {
+  if (!teamId) return null;
+  if (hasVerifiedReference(sport)) {
+    const groups = await getTeamDirectory(sport).catch(() => []);
+    for (const g of groups) {
+      for (const d of g.divisions) {
+        const match = d.teams.find((t) => t.id === teamId);
+        if (match) return match;
+      }
+    }
+    return null;
+  }
+  const league = await resolveDefaultLeagueId(sport);
+  if (!league) return null;
+  const catalog = await getLeagueTeamCatalog(sport, league).catch(() => []);
+  return catalog.find((t) => t.id === teamId) ?? null;
 }

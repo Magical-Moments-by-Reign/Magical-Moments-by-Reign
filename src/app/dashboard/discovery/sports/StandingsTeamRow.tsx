@@ -16,7 +16,14 @@ export default function StandingsTeamRow({ sport, team, children }: { sport: str
       </button>
       {open && (
         <div className="spx-standings__inline-roster">
-          <TeamRosterPanel sport={sport} team={team} breadcrumb="" onBack={() => setOpen(false)} backLabel="✕ Close" />
+          <TeamRosterPanel
+            sport={sport}
+            team={team}
+            breadcrumb=""
+            onBack={() => setOpen(false)}
+            backLabel="✕ Close"
+            viewTeamHref={`/dashboard/discovery/sports/team/${sport}/${team.id}`}
+          />
         </div>
       )}
     </div>

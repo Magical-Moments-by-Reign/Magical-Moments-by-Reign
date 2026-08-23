@@ -17,7 +17,16 @@ export default function TeamDirectory({ sport, groups }: { sport: string; groups
   const [openTeam, setOpenTeam] = useState<{ team: DirectoryTeam; breadcrumb: string } | null>(null);
 
   if (openTeam) {
-    return <TeamRosterPanel sport={sport} team={openTeam.team} breadcrumb={openTeam.breadcrumb} onBack={() => setOpenTeam(null)} backLabel="← All Teams" />;
+    return (
+      <TeamRosterPanel
+        sport={sport}
+        team={openTeam.team}
+        breadcrumb={openTeam.breadcrumb}
+        onBack={() => setOpenTeam(null)}
+        backLabel="← All Teams"
+        viewTeamHref={`/dashboard/discovery/sports/team/${sport}/${openTeam.team.id}`}
+      />
+    );
   }
 
   return (

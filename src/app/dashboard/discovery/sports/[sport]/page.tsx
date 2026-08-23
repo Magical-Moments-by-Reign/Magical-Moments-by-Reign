@@ -41,6 +41,20 @@ const HERO_BACKDROP_IMAGE: Partial<Record<SportSlug, string>> = {
 // regular-season opener, with preseason as a separate footnote line).
 const PRESEASON_PHASE_SPORTS: Partial<Record<SportSlug, true>> = { nba: true };
 
+// F1/MMA Coming Soon copy — see the early-return above. Never claims a
+// launch date; states plainly what isn't connected rather than what will
+// eventually exist.
+const COMING_SOON_COPY: Record<"f1" | "mma", { body: string; followNoun: string }> = {
+  f1: {
+    body: "Once a real Formula 1 data source is connected, this page will show real race schedules, results, and constructor/driver standings — and Race Winner Picks once that's genuinely ready. Nothing here is fabricated in the meantime.",
+    followNoun: "a Driver or Team",
+  },
+  mma: {
+    body: "Once a real MMA data source is connected, this page will show real event cards, results, and fighter records — and Fight Picks once that's genuinely ready. Nothing here is fabricated in the meantime.",
+    followNoun: "a Fighter",
+  },
+};
+
 // A few provider group labels get a friendlier, still-accurate display form
 // (e.g. a bare "east" becomes "Eastern Conference", matching how the league
 // itself refers to it) — every other label is just cased consistently.
@@ -75,6 +89,50 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const sportMeta = SPORT_CATALOG.find((s) => s.slug === sportParam);
   if (!sportMeta) notFound();
   const sport = sportParam as SportSlug;
+
+  // F1 and MMA: ApiSportsProvider.isConfigured() hardcodes these to false
+  // regardless of any API key (see that function — neither fits the
+  // games/fixtures shape this provider maps today), so every dimension of
+  // this page (games, standings, teams, follow, Magical Picks) is
+  // structurally dead for them, not just unconfigured today. Rather than
+  // render a page full of individually-empty panels (misleading — reads as
+  // "broken", not "not built yet"), these two sports get one honest,
+  // on-brand Coming Soon state instead of the normal page body. See
+  // COMING_SOON_COPY below.
+  if (sport === "mma" || sport === "f1") {
+    const heroBackdrop = HERO_BACKDROP_IMAGE[sport];
+    const copy = COMING_SOON_COPY[sport];
+    return (
+      <div className="spx">
+        <header className="spx-sport-header">
+          <Image src={heroBackdrop ?? "/discovery/stadium.png"} alt="" fill priority sizes="100vw" className="spx-sport-header__photo" />
+          <div className="spx-sport-header__shade" />
+          {!heroBackdrop && <SportBackdrop sport={sport} />}
+          <Link href="/dashboard/discovery/sports" className="spx-sport-header__back">← All Sports</Link>
+          <div className="spx-sport-header__brand">
+            <span className="spx-sport-header__logo">
+              <SportCardVisual alt={`${sportMeta.label} mark`} glyph={SPORT_VISUALS[sport].glyph} />
+            </span>
+            <h1>{sportMeta.label}</h1>
+          </div>
+        </header>
+
+        <section className="spx-coming-soon">
+          <h2>Coming Soon</h2>
+          <p className="spx-coming-soon__lede">
+            We don&rsquo;t have a live {sportMeta.label} data connection yet, so we&rsquo;re not going to show you a page full of empty panels pretending we do.
+          </p>
+          <p className="spx-coming-soon__body">{copy.body}</p>
+          <div className="spx-coming-soon__grid">
+            <div className="spx-coming-soon__item"><span>Schedule &amp; Results</span><i>Not connected yet</i></div>
+            <div className="spx-coming-soon__item"><span>Standings</span><i>Not connected yet</i></div>
+            <div className="spx-coming-soon__item"><span>Follow {copy.followNoun}</span><i>Not connected yet</i></div>
+            <div className="spx-coming-soon__item"><span>Magical Picks</span><i>Not connected yet</i></div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   const connected = ApiSportsProvider.isConfigured(sport);
   // resolveDefaultLeagueId is a straight passthrough of SPORT_CONFIG's static
