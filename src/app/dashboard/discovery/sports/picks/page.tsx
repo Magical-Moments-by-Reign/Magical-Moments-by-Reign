@@ -16,6 +16,7 @@ import { getMyPickGroups } from "@/lib/discovery/sports/pickem-groups-service";
 import { SPORTS_BADGES } from "@/lib/discovery/sports/badges";
 import { createPickGroupAction, joinPickGroupAction, submitPickAction } from "../actions";
 import PickConfirmButton from "../PickConfirmButton";
+import SubmitButton from "@/components/ui/SubmitButton";
 import { ConfidencePicker, ConfidenceStars } from "../ConfidenceStars";
 import { MATCHUP_SPORTS, type SportSlug } from "@/lib/discovery/providers/sports";
 import "../../discovery.css";
@@ -365,11 +366,11 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
           <form action={createPickGroupAction} className="disc-form disc-form--compact">
             <input type="text" name="name" placeholder="e.g. Turner Family NFL Picks" maxLength={60} required />
-            <button type="submit" className="btn btn--sm">Create Group</button>
+            <SubmitButton className="btn btn--sm" pendingLabel="Creating…">Create Group</SubmitButton>
           </form>
           <form action={joinPickGroupAction} className="disc-form disc-form--compact">
             <input type="text" name="code" placeholder="Invite code" maxLength={6} required style={{ textTransform: "uppercase" }} />
-            <button type="submit" className="btn btn--sm">Join Group</button>
+            <SubmitButton className="btn btn--sm" pendingLabel="Joining…">Join Group</SubmitButton>
           </form>
         </div>
       </div>

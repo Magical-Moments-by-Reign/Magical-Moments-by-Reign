@@ -385,3 +385,29 @@
 .ex-body { margin-top: 1.4rem; background: var(--ivory); border: 1px solid var(--line); border-radius: 16px; padding: 1.4rem 1.5rem; }
 .ex-body p { color: var(--ink-soft); line-height: 1.65; margin: 0 0 1rem; }
 .ex-body p:last-child { margin-bottom: 0; }
+
+/* ══ Route loading skeletons (Phase 0A — Tap and It Moves) ══════
+   One small, reused-everywhere shimmer treatment for loading.tsx across
+   the dashboard — plain gray/ivory blocks approximating the real page's
+   layout weight (so there's no jump when real content arrives), never
+   invented content, scores, or data. Dashboard-ui.css is already loaded
+   on every /dashboard route via DashboardChrome, so no per-route import
+   is needed. */
+.mm-loading { padding: 0; }
+.mm-skel { background: linear-gradient(90deg, var(--line) 0%, rgba(255,255,255,.7) 50%, var(--line) 100%); background-size: 200% 100%; animation: mm-skel-shimmer 1.4s ease-in-out infinite; border-radius: 8px; }
+.mm-skel--eyebrow { height: .6rem; width: 30%; margin-bottom: .7rem; }
+.mm-skel--title { height: 2.1rem; width: 45%; margin-bottom: .7rem; border-radius: 6px; }
+.mm-skel--text { height: .9rem; width: 65%; margin-bottom: 1.6rem; }
+.mm-skel--row { height: 3.4rem; width: 100%; margin-bottom: .7rem; border-radius: 12px; }
+.mm-skel--card { height: 9rem; width: 100%; border-radius: 14px; }
+.mm-skel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .8rem; }
+@keyframes mm-skel-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .mm-skel { animation: none; } }
+
+/* ══ Route error boundary (Phase 0A) ═════════════════════════════ */
+.mm-error { max-width: 480px; margin: 3rem auto; padding: 2rem 1.6rem; text-align: center; border: 1px solid var(--line); border-radius: 16px; background: var(--ivory); }
+.mm-error__icon { display: inline-block; margin-bottom: .8rem; font-size: 1.6rem; color: var(--gold-deep); }
+.mm-error__title { margin: 0 0 .5rem; font-family: var(--font-display, Georgia, serif); font-size: 1.3rem; color: var(--ink); }
+.mm-error__body { margin: 0 0 .4rem; color: var(--ink-soft); line-height: 1.6; font-size: .9rem; }
+.mm-error__digest { margin: 0 0 1.2rem; color: var(--ink-soft); font-size: .72rem; opacity: .7; }
+.mm-error__actions { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
