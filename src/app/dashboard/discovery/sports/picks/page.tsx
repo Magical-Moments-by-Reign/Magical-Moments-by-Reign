@@ -365,6 +365,10 @@ function PickHistoryRow({ h }: { h: MyPickHistoryRow }) {
   const result = h.isCorrect === null ? "pending" : h.isCorrect ? "correct" : "incorrect";
   return (
     <div className="mp-history-row">
+      <div className="mp-history-row__logos">
+        <DiscoveryImage src={h.awayTeamLogoUrl} alt={h.awayTeamName} fallback={h.awayTeamName.slice(0, 3).toUpperCase()} />
+        <DiscoveryImage src={h.homeTeamLogoUrl} alt={h.homeTeamName} fallback={h.homeTeamName.slice(0, 3).toUpperCase()} />
+      </div>
       <div className="mp-history-row__meta">
         <b>{h.awayTeamName} @ {h.homeTeamName}</b>
         <span>{h.sportLabel} · {h.startsAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Picked {pickedName ?? "—"}</span>

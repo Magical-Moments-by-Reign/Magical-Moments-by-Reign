@@ -796,6 +796,8 @@ a.brk-matchup:hover { border-color: var(--gold); }
 .mp-streak__flames { margin-top: .7rem; font-size: 1.05rem; letter-spacing: .12em; }
 
 .mp-history-row { display: flex; align-items: center; gap: .8rem; padding: .7rem .8rem; border-radius: 10px; background: #fffdf9; border: 1px solid var(--line); margin-bottom: .5rem; box-shadow: 0 2px 8px rgba(44,33,26,.05); }
+.mp-history-row__logos { flex: none; display: flex; align-items: center; gap: .3rem; }
+.mp-history-row__logos img, .mp-history-row__logos .discovery-image-fallback { width: 24px; height: 24px; object-fit: contain; border-radius: 6px; }
 .mp-history-row__meta { flex: 1; min-width: 0; }
 .mp-history-row__meta b { display: block; color: var(--ink); font-size: .8rem; }
 .mp-history-row__meta span { color: var(--ink-soft); font-size: .66rem; }

@@ -1738,7 +1738,9 @@ export interface MyPickHistoryRow {
   sport: SportSlug;
   sportLabel: string;
   awayTeamName: string;
+  awayTeamLogoUrl: string | null;
   homeTeamName: string;
+  homeTeamLogoUrl: string | null;
   teamPick: "home" | "away" | null;
   isCorrect: boolean | null;
   confidence: number | null;
@@ -1752,7 +1754,7 @@ export interface MyPickHistoryRow {
 export async function getMyPickHistory(accountId: string, limit = 30): Promise<MyPickHistoryRow[]> {
   const rows = await prisma.sportsPick.findMany({
     where: { accountId, pickType: "HEAD_TO_HEAD" },
-    include: { game: { select: { sport: true, homeTeamName: true, awayTeamName: true, startsAt: true, status: true } } },
+    include: { game: { select: { sport: true, homeTeamName: true, homeTeamLogoUrl: true, awayTeamName: true, awayTeamLogoUrl: true, startsAt: true, status: true } } },
     orderBy: { game: { startsAt: "desc" } },
     take: limit,
   });
@@ -1761,7 +1763,9 @@ export async function getMyPickHistory(accountId: string, limit = 30): Promise<M
     sport: r.game.sport as SportSlug,
     sportLabel: sportLabel(r.game.sport as SportSlug),
     awayTeamName: r.game.awayTeamName,
+    awayTeamLogoUrl: r.game.awayTeamLogoUrl,
     homeTeamName: r.game.homeTeamName,
+    homeTeamLogoUrl: r.game.homeTeamLogoUrl,
     teamPick: r.teamPick as "home" | "away" | null,
     isCorrect: r.isCorrect,
     confidence: r.confidence,
