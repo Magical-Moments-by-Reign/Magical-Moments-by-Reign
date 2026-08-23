@@ -67,9 +67,20 @@ function RosterPlayerRow({ player }: { player: RosterPlayer }) {
   );
 }
 
+type RosterStatus = "hit" | "empty" | "plan_restricted" | "error" | "not_supported";
+
+// Honest, member-safe copy per real reason — never the raw provider message
+// (that stays server-side, owner-diagnostic only; see team-roster/route.ts).
+// A plan restriction must never read as "this team just has no roster."
+const STATUS_COPY: Partial<Record<RosterStatus, string>> = {
+  plan_restricted: "Roster data is unavailable from our current sports-data plan.",
+  error: "We couldn't verify this team's roster right now — please try again shortly.",
+};
+
 export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "← Back", viewTeamHref, hideHead = false }: { sport: string; team: RosterTeam; breadcrumb: string; onBack?: () => void; backLabel?: string; viewTeamHref?: string; hideHead?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [roster, setRoster] = useState<RosterPlayer[] | null>(null);
+  const [status, setStatus] = useState<RosterStatus | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -80,15 +91,21 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
     if (!team.id) {
       setLoading(false);
       setRoster([]);
+      setStatus("not_supported");
       return;
     }
     let cancelled = false;
     setLoading(true);
     setError(false);
     setRoster(null);
+    setStatus(null);
     fetch(`/api/discovery/sports/team-roster?sport=${sport}&teamId=${encodeURIComponent(team.id)}&teamName=${encodeURIComponent(team.name)}`)
       .then((res) => res.json())
-      .then((data) => { if (!cancelled) setRoster(Array.isArray(data?.roster) ? data.roster : []); })
+      .then((data) => {
+        if (cancelled) return;
+        setRoster(Array.isArray(data?.roster) ? data.roster : []);
+        setStatus(typeof data?.status === "string" ? (data.status as RosterStatus) : "empty");
+      })
       .catch(() => { if (!cancelled) setError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -124,7 +141,9 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
       <div className="spx-directory__roster-box">
         {loading && <p className="spx-panel__empty">Loading roster…</p>}
         {error && <p className="spx-panel__empty">Couldn&rsquo;t load the roster right now.</p>}
-        {!loading && !error && roster?.length === 0 && <p className="spx-panel__empty">No roster data available for this team yet.</p>}
+        {!loading && !error && roster?.length === 0 && (
+          <p className="spx-panel__empty">{(status && STATUS_COPY[status]) ?? "No roster data available for this team yet."}</p>
+        )}
         {!loading && groups.map((g) => (
           <div key={g.label} className="spx-directory__roster-group">
             {groups.length > 1 && <h4 className="spx-directory__roster-group-label">{g.label}</h4>}

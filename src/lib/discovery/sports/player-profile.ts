@@ -291,7 +291,7 @@ export async function getPlayerProfile(league: SdioLeague, playerId: string): Pr
     const apiSeason = seasonParam(apiSport, new Date().toISOString());
     const apiRoster = await fetchTeamRoster(apiSport, team.id, apiSeason).catch(() => null);
     const targetName = player.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    photoUrl = apiRoster?.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === targetName)?.photoUrl;
+    photoUrl = apiRoster?.players.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === targetName)?.photoUrl;
   }
 
   return {

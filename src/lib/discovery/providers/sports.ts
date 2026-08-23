@@ -772,17 +772,32 @@ export function mapRosterPlayer(item: any): SportsRosterPlayer | null {
   };
 }
 
+export interface RosterFetchResult {
+  players: SportsRosterPlayer[];
+  /** Set only when API-Sports itself reported a plan/subscription
+   *  restriction for this team's roster (same detectPlanRestriction used by
+   *  the games/standings paths) — a genuine zero-player response never sets
+   *  this. Callers must not conflate the two: a plan restriction is not
+   *  "this team has no roster," it's "our plan can't ask for it." */
+  planRestricted?: string;
+}
+
 /** A real team's current-season roster — straight from API-Sports'
  *  /players endpoint (team + season, the same "no bare search" filter
- *  rule the team-search fix relies on). Returns null on missing config or
- *  a failed/empty response; an empty array only when the provider itself
- *  returns zero players. Never invents a roster. */
-export async function fetchTeamRoster(sport: SportSlug, teamExternalId: string, season: string): Promise<SportsRosterPlayer[] | null> {
+ *  rule the team-search fix relies on). Returns null on missing config, no
+ *  team id, or a failed request (bad HTTP status / unparseable body) — a
+ *  genuine provider ERROR, distinct from both of the two real "we got an
+ *  answer" cases below. A real response with zero players still returns an
+ *  object (`{ players: [] }`), never invents a roster. */
+export async function fetchTeamRoster(sport: SportSlug, teamExternalId: string, season: string): Promise<RosterFetchResult | null> {
   if (!ApiSportsProvider.isConfigured(sport) || !teamExternalId) return null;
   const json = await apiSportsFetch(sport, "/players", { team: teamExternalId, season });
+  if (!json) return null;
+  const planRestricted = detectPlanRestriction(json) ?? undefined;
+  if (planRestricted) return { players: [], planRestricted };
   const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
   if (!list) return null;
-  return list.map(mapRosterPlayer).filter((p: SportsRosterPlayer | null): p is SportsRosterPlayer => p !== null);
+  return { players: list.map(mapRosterPlayer).filter((p: SportsRosterPlayer | null): p is SportsRosterPlayer => p !== null) };
 }
 
 // ── Game-level box score / team + player stats (NFL/NCAAF today) ──────────

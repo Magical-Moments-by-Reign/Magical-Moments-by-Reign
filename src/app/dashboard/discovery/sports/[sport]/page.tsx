@@ -175,7 +175,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       myTeamsForSport.map((t) =>
         t.follow.teamExternalId
           ? getTeamRoster(sport, t.follow.teamExternalId, { teamName: t.follow.teamName ?? undefined, allowSecondarySource: allowSdioRoster })
-          : Promise.resolve([]),
+          : Promise.resolve({ players: [], status: "not_supported" as const }),
       ),
     );
     myTeamsForSport.forEach((t, i) => rosters.set(t.follow.id, rosterResults[i]));
@@ -201,7 +201,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const sdioLeague = sdioLeagueFor(sport);
   const profileLinks = new Map<string, string | null>();
   if (allowSdio && sdioLeague) {
-    const allPlayers = Array.from(rosters.values()).flat();
+    const allPlayers = Array.from(rosters.values()).flatMap((r) => r.players);
     await Promise.all(
       allPlayers.map(async (p) => {
         if (profileLinks.has(p.id)) return;
@@ -634,7 +634,8 @@ export default async function SportPage({ params, searchParams }: { params: Prom
             {myTeamsForSport.length === 0 ? (
               <p className="spx-panel__empty">You haven&rsquo;t followed a {sportMeta.label} team yet.</p>
             ) : myTeamsForSport.map(({ follow }) => {
-              const roster = rosters.get(follow.id) ?? [];
+              const rosterResult = rosters.get(follow.id);
+              const roster = rosterResult?.players ?? [];
               const teamInjuries = injuries.get(follow.id) ?? [];
               return (
                 <div key={follow.id} className="spx-my-team">
@@ -669,7 +670,11 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                       </div>
                     </details>
                   ) : (
-                    <p className="spx-panel__empty" style={{ fontSize: ".72rem", margin: ".4rem 0 0" }}>Roster not posted yet for {follow.teamName}.</p>
+                    <p className="spx-panel__empty" style={{ fontSize: ".72rem", margin: ".4rem 0 0" }}>
+                      {rosterResult?.status === "plan_restricted"
+                        ? "Roster data is unavailable from our current sports-data plan."
+                        : `Roster not posted yet for ${follow.teamName}.`}
+                    </p>
                   )}
                   {teamInjuries.length > 0 && (
                     <details className="spx-roster">

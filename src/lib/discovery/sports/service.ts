@@ -351,13 +351,20 @@ export async function resolveTeamByName(sport: SportSlug, name: string): Promise
  *  names independently racing its own live call (see resolveTeamByName's
  *  doc comment for what that race used to do to logos). Returns null for a
  *  sport with no single-league roster to prefetch — callers fall back to
- *  resolveTeamByName's per-name search path for those. */
+ *  resolveTeamByName's per-name search path for those.
+ *
+ *  Cache key is "league_teams_v2", not "league_teams" — bumped once, the day
+ *  the /teams pagination+dedup fix shipped, so a week-old cache row written
+ *  by the old (occasionally-duplicating) fetch logic can never keep being
+ *  served under its still-unexpired TTL. Any future fix to fetchTeamsForLeague
+ *  that changes what gets stored under this key should bump the suffix again
+ *  rather than relying on the week-long TTL to self-heal. */
 export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<string, { id: string; logoUrl?: string }> | null> {
   if (!SINGLE_LEAGUE_SPORTS.has(sport)) return null;
   const league = await resolveDefaultLeagueId(sport);
   if (!league) return null;
   const season = seasonParam(sport, new Date().toISOString());
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
     fetchTeamsForLeague(sport, league, season));
   const roster = cached?.data ?? [];
   const map = new Map<string, { id: string; logoUrl?: string }>();
@@ -397,7 +404,7 @@ export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<stri
 export async function getLeagueTeamCatalog(sport: SportSlug, league: string): Promise<SportsTeam[]> {
   if (!league || !ApiSportsProvider.isConfigured(sport)) return [];
   const season = seasonParam(sport, new Date().toISOString());
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
     fetchTeamsForLeague(sport, league, season));
   return cached?.data ?? [];
 }
@@ -576,6 +583,27 @@ export async function getNbaHeroState(): Promise<NbaHeroState | null> {
   return { phase: "regular", game: regular.game, targetISO: regularTarget, source: regular.source, dateOnly: regular.source === "known-fact", sourceLog: [...preseason.log, ...regular.log] };
 }
 
+/** Distinguishes WHY a roster call came back with no players — the member-
+ *  facing gap this closes: "our plan can't ask for this" (plan_restricted)
+ *  looked identical to "the provider genuinely has nothing" (empty) before
+ *  this existed, both collapsing to the same silent []. `hit` covers both a
+ *  real API-Sports roster AND a real SportsDataIO fallback roster — callers
+ *  that need to know which provider answered already have that from
+ *  allowSecondarySource being the only way SportsDataIO gets asked at all.
+ *  `not_supported` is for a team with no resolvable id at all (nothing to
+ *  even ask a provider for) or a sport API-Sports doesn't cover. */
+export type RosterStatus = "hit" | "empty" | "plan_restricted" | "error" | "not_supported";
+
+export interface RosterResult {
+  players: SportsRosterPlayer[];
+  status: RosterStatus;
+  /** Only ever the real provider-reported plan/subscription message — never
+   *  set for any other status. Route handlers must keep this out of the
+   *  member-facing response (see team-roster/route.ts); it's for owner/admin
+   *  diagnostics only. */
+  planRestrictedReason?: string;
+}
+
 /** A followed team's real current-season roster — we can't show injuries
  *  (not part of the connected API-Sports plan), so this is the honest
  *  substitute: real players, real jersey numbers/positions, straight from
@@ -583,20 +611,40 @@ export async function getNbaHeroState(): Promise<NbaHeroState | null> {
  *  only, and only when the caller passes `allowSecondarySource` — see
  *  getNbaRosterFromSportsData's doc comment for why this one's gated more
  *  cautiously than the schedule/standings fallbacks) when API-Sports has
- *  nothing for this team. */
-export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<SportsRosterPlayer[]> {
-  if (ApiSportsProvider.isConfigured(sport) && teamExternalId) {
+ *  nothing for this team.
+ *
+ *  Always returns a `status` alongside the players so a plan restriction
+ *  can never be silently rendered as "this team just has no roster" — see
+ *  RosterStatus above. A plan-restricted response is never cached (same
+ *  "don't cache an outage" discipline as getGamesByDate). */
+export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<RosterResult> {
+  if (!teamExternalId) return { players: [], status: "not_supported" };
+
+  let status: RosterStatus = "not_supported";
+  let planRestrictedReason: string | undefined;
+
+  if (ApiSportsProvider.isConfigured(sport)) {
     const season = seasonParam(sport, new Date().toISOString());
-    const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, () =>
-      fetchTeamRoster(sport, teamExternalId, season));
-    if (cached?.data?.length) return cached.data;
+    let restriction: string | undefined;
+    const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, async () => {
+      const result = await fetchTeamRoster(sport, teamExternalId, season);
+      if (result?.planRestricted) {
+        restriction = result.planRestricted;
+        return null;
+      }
+      return result;
+    });
+    if (cached?.data?.players.length) return { players: cached.data.players, status: "hit" };
+    status = restriction ? "plan_restricted" : cached?.data ? "empty" : "error";
+    planRestrictedReason = restriction;
   }
 
   if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName) {
-    return getRosterFromSportsData(sport, opts.teamName);
+    const secondary = await getRosterFromSportsData(sport, opts.teamName);
+    if (secondary.length) return { players: secondary, status: "hit" };
   }
 
-  return [];
+  return { players: [], status, planRestrictedReason };
 }
 
 const TTL_INJURIES = 60; // 1h — a real injury report changes daily during the season, faster-moving than the roster/standings caches
@@ -1462,7 +1510,7 @@ export async function searchTeamsForSport(sport: SportSlug, query: string) {
     const league = await resolveDefaultLeagueId(sport);
     if (league) {
       const season = seasonParam(sport, new Date().toISOString());
-      const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams" }), TTL_LEAGUE_TEAMS, () =>
+      const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
         fetchTeamsForLeague(sport, league, season));
       const roster = cached?.data ?? [];
       if (roster.length) return rankTeamMatches(roster, query);

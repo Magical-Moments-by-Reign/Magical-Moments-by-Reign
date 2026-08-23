@@ -18,19 +18,30 @@ export async function GET(req: NextRequest) {
   const teamId = req.nextUrl.searchParams.get("teamId")?.trim() ?? "";
   const teamName = req.nextUrl.searchParams.get("teamName")?.trim() ?? "";
   const sport = SPORT_CATALOG.find((s) => s.slug === sportParam)?.slug as SportSlug | undefined;
-  if (!sport || !teamId) return NextResponse.json({ roster: [] });
+  if (!sport || !teamId) return NextResponse.json({ roster: [], status: "not_supported" });
 
   const isOwner = await isOwnerAccount(account.id);
   const allowSdio = Boolean(sdioLeagueFor(sport)) && sdioConfigured() && (sdioCommercialMode() || isOwner);
 
-  const roster = await getTeamRoster(sport, teamId, { teamName: teamName || undefined, allowSecondarySource: allowSdio });
-  if (!roster.length) return NextResponse.json({ roster: [] });
+  const result = await getTeamRoster(sport, teamId, { teamName: teamName || undefined, allowSecondarySource: allowSdio });
+  if (!result.players.length) {
+    // status is a fixed, safe-to-show enum (never the raw provider message,
+    // an internal error string, or anything that could hint at API keys /
+    // provider internals). The real plan/subscription text API-Sports
+    // reported is only ever included for the owner, as an admin diagnostic —
+    // never sent to a regular member.
+    return NextResponse.json({
+      roster: [],
+      status: result.status,
+      ...(isOwner && result.planRestrictedReason ? { ownerDiagnostic: result.planRestrictedReason } : {}),
+    });
+  }
 
   const sdioLeague = allowSdio ? sdioLeagueFor(sport) : null;
-  const withLinks = await Promise.all(roster.map(async (p) => {
+  const withLinks = await Promise.all(result.players.map(async (p) => {
     const profilePlayerId = sdioLeague ? await findPlayerIdByName(sdioLeague, p.name) : null;
     return { ...p, profileHref: profilePlayerId ? `/dashboard/discovery/sports/player/${sdioLeague}/${profilePlayerId}` : null };
   }));
 
-  return NextResponse.json({ roster: withLinks });
+  return NextResponse.json({ roster: withLinks, status: "hit" });
 }
