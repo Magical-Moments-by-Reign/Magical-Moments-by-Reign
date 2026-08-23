@@ -127,6 +127,12 @@ async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsG
           homeScore: g.homeScore, awayScore: g.awayScore, source: "provider", lastSyncedAt: new Date(),
         },
         update: {
+          // Recomputed on every resync (not just create) so a row the
+          // schema migration defaulted to "regular" — or one synced before
+          // the provider's own stage label caught up — corrects itself the
+          // next real time this exact game is fetched, instead of staying
+          // permanently mislabeled.
+          seasonPhase: classifySeasonPhase(g.stage),
           status: g.status, period: g.period, homeScore: g.homeScore, awayScore: g.awayScore, lastSyncedAt: new Date(),
         },
       }).catch(() => null)
