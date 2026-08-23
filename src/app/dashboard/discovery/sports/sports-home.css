@@ -14,7 +14,12 @@
      which keep their own explicit dark espresso/black backgrounds and
      ivory text, untouched. Image only — no added gradient/texture on top
      of it. */
-  background: #f4ecdb url("/discovery/sports-backdrop.png") center top / cover no-repeat;
+  /* attachment: fixed ties the image's "cover" sizing to the viewport
+     instead of this element's full scrollable height — without it, cover
+     stretches the (short, landscape) source image across the whole tall
+     page and the gold streaks dilute to almost nothing past the first
+     screenful. */
+  background: #f4ecdb url("/discovery/sports-backdrop.png") center top / cover no-repeat fixed;
   /* ── Shared density tokens ──
      COMPACT: nav CTAs, playoff-bracket entry, quick links, status summaries.
      STANDARD: preview/summary cards (Magical Picks, My Teams, injuries,
