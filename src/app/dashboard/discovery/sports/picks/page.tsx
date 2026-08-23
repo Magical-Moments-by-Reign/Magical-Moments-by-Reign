@@ -171,33 +171,39 @@ export default async function MagicalPicksPage({ searchParams }: { searchParams:
                 featured.map((group) => (
                   <div className="mp-sport-group" key={group.sport}>
                     <p className="mp-sport-group__label">{group.label}</p>
-                    {group.contexts.map((ctx) => (
-                      <div className="mp-row" key={ctx.game.id}>
-                        <span className="mp-row__time">{formatGameTime(ctx.game.startsAt)}</span>
-                        <div className="mp-row__teams">
-                          <div className="mp-row__team">
-                            <DiscoveryImage src={ctx.game.awayTeamLogoUrl} alt={ctx.game.awayTeamName} fallback={ctx.game.awayTeamName.slice(0, 3).toUpperCase()} />
-                            <b>{ctx.game.awayTeamName}</b>
-                          </div>
-                          <span className="mp-row__vs">@</span>
-                          <div className="mp-row__team">
-                            <DiscoveryImage src={ctx.game.homeTeamLogoUrl} alt={ctx.game.homeTeamName} fallback={ctx.game.homeTeamName.slice(0, 3).toUpperCase()} />
-                            <b>{ctx.game.homeTeamName}</b>
-                          </div>
-                        </div>
-                        {!ctx.locked ? (
-                          <form action={submitPickAction}>
-                            <input type="hidden" name="gameId" value={ctx.game.id} />
-                            <div className="mp-row__actions">
-                              <PickConfirmButton name="teamPick" value="away" label={ctx.game.awayTeamName} picked={ctx.myPick === "away"} confirmLabel={`${ctx.game.awayTeamName} to beat ${ctx.game.homeTeamName}`} />
-                              <PickConfirmButton name="teamPick" value="home" label={ctx.game.homeTeamName} picked={ctx.myPick === "home"} confirmLabel={`${ctx.game.homeTeamName} to beat ${ctx.game.awayTeamName}`} />
-                            </div>
-                          </form>
-                        ) : (
-                          <span className="mp-row__locked">{ctx.myPick ? `You picked ${ctx.myPick === "home" ? ctx.game.homeTeamName : ctx.game.awayTeamName}` : "Locked"}</span>
-                        )}
+                    {group.contexts.length === 0 ? (
+                      <div className="mp-row mp-row--soon">
+                        <span>Coming Soon — no {group.label} matchup on {formatDateTab(date)}.</span>
                       </div>
-                    ))}
+                    ) : (
+                      group.contexts.map((ctx) => (
+                        <div className="mp-row" key={ctx.game.id}>
+                          <span className="mp-row__time">{formatGameTime(ctx.game.startsAt)}</span>
+                          <div className="mp-row__teams">
+                            <div className="mp-row__team">
+                              <DiscoveryImage src={ctx.game.awayTeamLogoUrl} alt={ctx.game.awayTeamName} fallback={ctx.game.awayTeamName.slice(0, 3).toUpperCase()} />
+                              <b>{ctx.game.awayTeamName}</b>
+                            </div>
+                            <span className="mp-row__vs">@</span>
+                            <div className="mp-row__team">
+                              <DiscoveryImage src={ctx.game.homeTeamLogoUrl} alt={ctx.game.homeTeamName} fallback={ctx.game.homeTeamName.slice(0, 3).toUpperCase()} />
+                              <b>{ctx.game.homeTeamName}</b>
+                            </div>
+                          </div>
+                          {!ctx.locked ? (
+                            <form action={submitPickAction}>
+                              <input type="hidden" name="gameId" value={ctx.game.id} />
+                              <div className="mp-row__actions">
+                                <PickConfirmButton name="teamPick" value="away" label={ctx.game.awayTeamName} picked={ctx.myPick === "away"} confirmLabel={`${ctx.game.awayTeamName} to beat ${ctx.game.homeTeamName}`} />
+                                <PickConfirmButton name="teamPick" value="home" label={ctx.game.homeTeamName} picked={ctx.myPick === "home"} confirmLabel={`${ctx.game.homeTeamName} to beat ${ctx.game.awayTeamName}`} />
+                              </div>
+                            </form>
+                          ) : (
+                            <span className="mp-row__locked">{ctx.myPick ? `You picked ${ctx.myPick === "home" ? ctx.game.homeTeamName : ctx.game.awayTeamName}` : "Locked"}</span>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 ))
               )}

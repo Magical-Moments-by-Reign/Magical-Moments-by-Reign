@@ -1702,12 +1702,14 @@ export async function getMagicalPicksProfile(accountId: string): Promise<
   return { ...summary, pending, thisWeek, lastWeek, badges };
 }
 
-/** One sport's real, pickable matchups for one exact calendar date — the
- *  Featured Matchups table on the unified Magical Picks page. Unlike
- *  getGamesWithVoteContext (used by the small per-sport preview panel),
- *  this never forward-searches to a later date — a date tab must only ever
- *  show games that are actually scheduled that day. Sports with no real
- *  game that date are simply absent, never shown as an empty row. */
+/** Every matchup-eligible sport's real, pickable matchups for one exact
+ *  calendar date — the Featured Matchups table on the unified Magical
+ *  Picks page. Unlike getGamesWithVoteContext (used by the small
+ *  per-sport preview panel), this never forward-searches to a later date
+ *  — a date tab must only ever show games that are actually scheduled
+ *  that day. Every sport gets a box every date, even with an empty
+ *  `contexts` array (the caller renders that as "Coming Soon") — a sport
+ *  genuinely fetch-failing is the only thing left out entirely. */
 export interface FeaturedSportMatchups {
   sport: SportSlug;
   label: string;
@@ -1719,7 +1721,6 @@ export async function getFeaturedMatchupsForDate(dateISO: string, accountId: str
     MATCHUP_SPORTS,
     async (sport) => {
       const { games } = await getGamesByDate(sport, dateISO);
-      if (!games.length) return null;
       const slice = games.slice(0, perSportLimit);
       const contexts = await Promise.all(
         slice.map(async (game) => {
@@ -1733,7 +1734,7 @@ export async function getFeaturedMatchupsForDate(dateISO: string, accountId: str
     },
     () => null
   );
-  return results.filter((r): r is FeaturedSportMatchups => r !== null && r.contexts.length > 0);
+  return results.filter((r): r is FeaturedSportMatchups => r !== null);
 }
 
 export interface MyPickHistoryRow {

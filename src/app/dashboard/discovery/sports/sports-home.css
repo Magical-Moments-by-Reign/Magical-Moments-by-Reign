@@ -742,6 +742,8 @@ a.brk-matchup:hover { border-color: var(--gold); }
 .mp-row__actions button:hover { border-color: var(--gold-deep); }
 .mp-row__actions button[data-picked="true"] { background: linear-gradient(135deg, #e0b651, #b98524); color: #1a1006; border-color: transparent; }
 .mp-row__locked { flex: none; color: var(--ink-soft); font-size: .68rem; font-weight: 700; }
+.mp-row--soon { justify-content: center; }
+.mp-row--soon span { color: var(--ink-soft); font-size: .78rem; font-style: italic; }
 
 /* Your Stats sidebar — light variant of the shared .spx-panel */
 .spx-panel--light { background: #fffdf9; border-color: var(--line); box-shadow: 0 2px 8px rgba(44,33,26,.05); }
