@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
@@ -23,7 +24,7 @@ export default async function FantasyFootballPage() {
   const leagues = await getMyFantasyLeagues(account.id);
 
   return (
-    <div className="disc spx-fantasy">
+    <div className="disc">
       <div className="pg-head">
         <span className="pg-eyebrow">Magical Discovery · Sports · Fantasy Football</span>
         <h1 className="pg-title">Fantasy Football</h1>
@@ -72,6 +73,9 @@ export default async function FantasyFootballPage() {
             <input type="text" name="teamName" placeholder="Your team name" maxLength={40} required />
             <button type="submit" className="btn btn--sm">Join League</button>
           </form>
+          <div style={{ flex: "1 1 240px", position: "relative", minHeight: "260px", borderRadius: "14px", overflow: "hidden", border: "1px solid var(--line)" }}>
+            <Image src="/discovery/nfl-hero.png" alt="NFL football" fill sizes="(max-width: 700px) 100vw, 320px" style={{ objectFit: "cover" }} />
+          </div>
         </div>
       </div>
 
