@@ -163,6 +163,15 @@ export function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+/** Real correct/incorrect counts for graded picks whose game fell within
+ *  [start, end) — the This Week / Last Week record shown on the Magical
+ *  Picks profile. Pending (ungraded) picks never count either way. */
+export function recordInRange(picks: GradedPick[], start: Date, end: Date): { correct: number; incorrect: number } {
+  const inRange = picks.filter((p) => p.isCorrect !== null && p.gameStartsAt >= start && p.gameStartsAt < end);
+  const correct = inRange.filter((p) => p.isCorrect).length;
+  return { correct, incorrect: inRange.length - correct };
+}
+
 export type LeaderboardPeriod = "today" | "week" | "month" | "season" | "all_time";
 
 /** Resolves a leaderboard period to its real start boundary — undefined

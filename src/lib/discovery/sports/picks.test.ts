@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek, gradeRacePicks, tallyRaceVotes, startOfMonth, startOfDay, leaderboardPeriodStart } from "./picks";
+import { gradeGamePicks, summarizePicks, tallyVotes, isPickLocked, startOfWeek, gradeRacePicks, tallyRaceVotes, startOfMonth, startOfDay, leaderboardPeriodStart, recordInRange } from "./picks";
 
 test("gradeGamePicks returns null until the game is final with real scores", () => {
   assert.equal(gradeGamePicks({ status: "live", homeScore: 10, awayScore: 7 }, []), null);
@@ -102,4 +102,22 @@ test("tallyRaceVotes counts votes per participant from stored picks", () => {
 
 test("tallyRaceVotes handles zero votes without dividing by zero", () => {
   assert.deepEqual(tallyRaceVotes([]), { total: 0, byParticipant: {} });
+});
+
+test("recordInRange counts only graded picks whose game falls within [start, end)", () => {
+  const start = new Date("2026-08-17T00:00:00");
+  const end = new Date("2026-08-24T00:00:00");
+  const picks = [
+    { gameId: "1", sport: "nfl", isCorrect: true, gameStartsAt: new Date("2026-08-18T18:00:00") },
+    { gameId: "2", sport: "nfl", isCorrect: false, gameStartsAt: new Date("2026-08-20T18:00:00") },
+    { gameId: "3", sport: "nba", isCorrect: true, gameStartsAt: new Date("2026-08-25T18:00:00") }, // out of range
+    { gameId: "4", sport: "nba", isCorrect: null, gameStartsAt: new Date("2026-08-19T18:00:00") }, // pending, never counts
+  ];
+  assert.deepEqual(recordInRange(picks, start, end), { correct: 1, incorrect: 1 });
+});
+
+test("recordInRange returns zeros for an empty or fully-out-of-range pick list", () => {
+  const start = new Date("2026-08-17T00:00:00");
+  const end = new Date("2026-08-24T00:00:00");
+  assert.deepEqual(recordInRange([], start, end), { correct: 0, incorrect: 0 });
 });
