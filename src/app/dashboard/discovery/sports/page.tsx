@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
@@ -73,39 +74,13 @@ async function pickFeaturedMatchup(myTeams: MyTeams, followedSports: SportSlug[]
 export default async function SportsPage() {
   const account = await requireAccount("/dashboard/discovery/sports");
 
-  // My Teams enriches the page (featured matchup selection, followed-sport
-  // filtering) but isn't required for the base catalog/hero/navigation to
-  // render — a provider/DB hiccup here degrades to [] rather than taking
-  // down the whole page.
-  const myTeams = await getMyTeams(account.id).catch(() => [] as MyTeams);
-  const followedSports = [...new Set(myTeams.map((t) => t.follow.sport as SportSlug))];
-
-  // SportsDataIO is still on a free trial known to return scrambled values
-  // for some fields (e.g. a player's team) — every surface it powers stays
-  // owner-only until SPORTSDATAIO_COMMERCIAL_DATA flips on, so members are
-  // never shown unverified trial data. See sdioCommercialMode's doc comment.
-  const isOwner = await isOwnerAccount(account.id);
-  const showSdio = sdioConfigured() && (sdioCommercialMode() || isOwner);
-  const previewOnly = showSdio && !sdioCommercialMode();
-
-  // Each of these is an independent, optional enrichment of the base Sports
-  // page (catalog/hero/nav) — one provider/DB outage on any single source
-  // must never take the whole page down with it, so every branch gets its
-  // own safe, honest-empty fallback rather than joining one bare Promise.all.
-  const [logos, { live, upcoming }, featuredMatchup, myFantasyLeagues, awardRaces, rankings, trackedPlayers] = await Promise.all([
-    getLeagueLogos().catch((): Partial<Record<SportSlug, string>> => ({})),
-    getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])).catch(() => ({ live: [], upcoming: [] })),
-    pickFeaturedMatchup(myTeams, followedSports, account.id).catch(() => null),
-    getMyFantasyLeagues(account.id).catch(() => []),
-    showSdio
-      ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) }))).catch(() => [])
-      : Promise.resolve([]),
-    showSdio ? getCollegeFootballRankings().catch(() => []) : Promise.resolve([]),
-    showSdio ? getMyTrackedPlayers(account.id).catch(() => []) : Promise.resolve([]),
-  ]);
-  const featuredMatchupSportLabel = featuredMatchup ? SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label : undefined;
-  const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
-
+  // FAST SHELL FIRST (Phase 0A — Tap and It Moves): the nav + hero render
+  // immediately from this real, already-resolved account — nothing below
+  // this point needs any of the seven provider/DB-backed fetches that used
+  // to gate the ENTIRE page (including the hero) behind one Promise.all.
+  // Everything that does need them now lives in SportsDynamicContent,
+  // streamed in via Suspense once it resolves; the skeleton fallback below
+  // is a plain shimmer, never fabricated scores/teams/leagues.
   return (
     <div className="spx">
       <DiscoveryNav active="/dashboard/discovery/sports" />
@@ -122,6 +97,76 @@ export default async function SportsPage() {
         <p className="spx-hero__sub">LIVE SCORES • REAL-TIME STATS • PICKS • UNFORGETTABLE MOMENTS</p>
       </section>
 
+      <Suspense fallback={<SportsPanelsSkeleton />}>
+        <SportsDynamicContent accountId={account.id} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Plain shimmer placeholder for the Suspense boundary below the hero —
+ *  same shared .mm-skel* treatment as the route-level loading.tsx files,
+ *  never invented sport names, scores, or team data. */
+function SportsPanelsSkeleton() {
+  return (
+    <div className="mm-loading" style={{ padding: "1.6rem clamp(1rem, 3vw, 2rem)" }} aria-busy="true" aria-label="Loading Sports content">
+      <div className="mm-skel mm-skel--eyebrow" style={{ margin: "0 auto .8rem" }} />
+      <div className="mm-skel-grid">
+        <div className="mm-skel mm-skel--card" style={{ height: "6.5rem" }} />
+        <div className="mm-skel mm-skel--card" style={{ height: "6.5rem" }} />
+        <div className="mm-skel mm-skel--card" style={{ height: "6.5rem" }} />
+        <div className="mm-skel mm-skel--card" style={{ height: "6.5rem" }} />
+      </div>
+    </div>
+  );
+}
+
+/** Everything below the hero — Explore All Sports through the bottom quick-
+ *  links bar. Unchanged from the page's own prior body: same fetches, same
+ *  failure-isolated fallbacks, same JSX — only moved into its own async
+ *  component so Suspense can stream it in behind the instant hero above.
+ *  myTeams/followedSports/logos/etc. are used across several of this
+ *  section's own sub-parts (My Teams panel, Explore grid icons, featured
+ *  matchup, quick-links bar's default sport) — genuinely interdependent,
+ *  so this stays one streamed unit rather than several finer-grained
+ *  Suspense boundaries; see the Phase 0A PR notes for why finer splitting
+ *  is deferred to Phase 0B. */
+async function SportsDynamicContent({ accountId }: { accountId: string }) {
+  // My Teams enriches the page (featured matchup selection, followed-sport
+  // filtering) but isn't required for the base catalog/hero/navigation to
+  // render — a provider/DB hiccup here degrades to [] rather than taking
+  // down the whole page.
+  const myTeams = await getMyTeams(accountId).catch(() => [] as MyTeams);
+  const followedSports = [...new Set(myTeams.map((t) => t.follow.sport as SportSlug))];
+
+  // SportsDataIO is still on a free trial known to return scrambled values
+  // for some fields (e.g. a player's team) — every surface it powers stays
+  // owner-only until SPORTSDATAIO_COMMERCIAL_DATA flips on, so members are
+  // never shown unverified trial data. See sdioCommercialMode's doc comment.
+  const isOwner = await isOwnerAccount(accountId);
+  const showSdio = sdioConfigured() && (sdioCommercialMode() || isOwner);
+  const previewOnly = showSdio && !sdioCommercialMode();
+
+  // Each of these is an independent, optional enrichment of the base Sports
+  // page (catalog/hero/nav) — one provider/DB outage on any single source
+  // must never take the whole page down with it, so every branch gets its
+  // own safe, honest-empty fallback rather than joining one bare Promise.all.
+  const [logos, { live, upcoming }, featuredMatchup, myFantasyLeagues, awardRaces, rankings, trackedPlayers] = await Promise.all([
+    getLeagueLogos().catch((): Partial<Record<SportSlug, string>> => ({})),
+    getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])).catch(() => ({ live: [], upcoming: [] })),
+    pickFeaturedMatchup(myTeams, followedSports, accountId).catch(() => null),
+    getMyFantasyLeagues(accountId).catch(() => []),
+    showSdio
+      ? Promise.all(AWARD_RACES.map(async (r) => ({ ...r, entries: await getAwardRace(r.league, r.award) }))).catch(() => [])
+      : Promise.resolve([]),
+    showSdio ? getCollegeFootballRankings().catch(() => []) : Promise.resolve([]),
+    showSdio ? getMyTrackedPlayers(accountId).catch(() => []) : Promise.resolve([]),
+  ]);
+  const featuredMatchupSportLabel = featuredMatchup ? SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label : undefined;
+  const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
+
+  return (
+    <>
       <div className="spx-divider"><span>Explore All Sports</span></div>
       {(["pro", "college", "world"] as SportCategory[]).map((category) => (
         <div key={category} className="spx-category">
@@ -328,6 +373,6 @@ export default async function SportsPage() {
         <Link href="/dashboard" className="spx-bar__item"><SportsIcon name="star" /><span><b>Magical Moments</b><i>Make every game unforgettable</i></span></Link>
         <span className="spx-bar__item spx-bar__item--soon"><SportsIcon name="play" /><span><b>Highlights</b><i>Relive the action</i></span><span className="spx-bar__soon-pill">Coming Soon</span></span>
       </nav>
-    </div>
+    </>
   );
 }

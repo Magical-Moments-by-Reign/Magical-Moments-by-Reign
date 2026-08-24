@@ -17,6 +17,7 @@ import {
 } from "@/lib/discovery/sports/fantasy-service";
 import { draftPickLabel } from "@/lib/discovery/sports/fantasy";
 import PlayerAvatar from "../../PlayerAvatar";
+import SubmitButton from "@/components/ui/SubmitButton";
 import {
   startFantasyDraftAction,
   draftPlayerAction,
@@ -74,7 +75,7 @@ export default async function FantasyLeaguePage({ params, searchParams }: { para
           {league.isCommissioner && (
             <form action={startFantasyDraftAction} style={{ marginTop: "1rem" }}>
               <input type="hidden" name="leagueId" value={league.id} />
-              <button type="submit" className="btn btn--sm" disabled={league.teams.length < 2}>Start Draft</button>
+              <SubmitButton className="btn btn--sm" disabled={league.teams.length < 2} pendingLabel="Starting…">Start Draft</SubmitButton>
               {league.teams.length < 2 && <p className="disc-empty">Needs at least 2 teams before the draft can start.</p>}
             </form>
           )}
@@ -157,7 +158,7 @@ async function FantasyDraftBoard({ league, leagueId, pos }: { league: NonNullabl
               <form action={draftPlayerAction}>
                 <input type="hidden" name="leagueId" value={leagueId} />
                 <input type="hidden" name="playerId" value={p.playerId} />
-                <button type="submit" className="btn btn--sm">Draft</button>
+                <SubmitButton className="btn btn--sm" pendingLabel="Drafting…">Draft</SubmitButton>
               </form>
             ) : (
               <span className="disc-badge">Available</span>
@@ -205,7 +206,7 @@ async function FantasyMatchupsAndStandings({ accountId, leagueId, season, weekPa
             <form action={syncFantasyWeekScoresAction} style={{ marginTop: ".8rem" }}>
               <input type="hidden" name="leagueId" value={leagueId} />
               <input type="hidden" name="week" value={defaultWeek} />
-              <button type="submit" className="btn btn--sm">Sync This Week&apos;s Scores</button>
+              <SubmitButton className="btn btn--sm" pendingLabel="Syncing…">Sync This Week&apos;s Scores</SubmitButton>
             </form>
           </>
         )}
@@ -257,7 +258,7 @@ async function FantasyPlayoffs({ league, leagueId, accountId }: { league: NonNul
         {league.isCommissioner && (
           <form action={seedFantasyPlayoffsAction} style={{ marginTop: ".8rem" }}>
             <input type="hidden" name="leagueId" value={leagueId} />
-            <button type="submit" className="btn btn--sm">Seed Playoffs (once week {league.regularSeasonWeeks} is final)</button>
+            <SubmitButton className="btn btn--sm" pendingLabel="Seeding…">Seed Playoffs (once week {league.regularSeasonWeeks} is final)</SubmitButton>
           </form>
         )}
       </div>
@@ -295,7 +296,7 @@ async function FantasyPlayoffs({ league, leagueId, accountId }: { league: NonNul
             <form action={syncFantasyPlayoffRoundAction} key={round}>
               <input type="hidden" name="leagueId" value={leagueId} />
               <input type="hidden" name="round" value={round} />
-              <button type="submit" className="btn btn--sm">Sync Round {round}</button>
+              <SubmitButton className="btn btn--sm" pendingLabel="Syncing…">Sync Round {round}</SubmitButton>
             </form>
           ))}
         </div>
@@ -361,13 +362,13 @@ async function FantasyRostersView({ league, leagueId, teamParam, accountId }: { 
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                  <button type="submit" className="btn btn--sm">Start</button>
+                  <SubmitButton className="btn btn--sm" pendingLabel="Updating…">Start</SubmitButton>
                 </form>
                 <form action={dropPlayerAction}>
                   <input type="hidden" name="leagueId" value={leagueId} />
                   <input type="hidden" name="teamId" value={roster.teamId} />
                   <input type="hidden" name="playerId" value={p.playerId} />
-                  <button type="submit" className="btn btn--sm">Drop</button>
+                  <SubmitButton className="btn btn--sm" pendingLabel="Dropping…">Drop</SubmitButton>
                 </form>
               </div>
             )}
@@ -411,7 +412,7 @@ async function FantasyFreeAgents({ league, leagueId, pos }: { league: NonNullabl
                     ))}
                   </select>
                 )}
-                <button type="submit" className="btn btn--sm">Claim</button>
+                <SubmitButton className="btn btn--sm" pendingLabel="Submitting Claim…">Claim</SubmitButton>
               </form>
             )}
           </div>
@@ -444,7 +445,7 @@ async function FantasyWaivers({ league, leagueId, accountId }: { league: NonNull
       {league.isCommissioner && claims.length > 0 && (
         <form action={processWaiversAction} style={{ marginTop: ".8rem" }}>
           <input type="hidden" name="leagueId" value={leagueId} />
-          <button type="submit" className="btn btn--sm">Process Waivers</button>
+          <SubmitButton className="btn btn--sm" pendingLabel="Processing…">Process Waivers</SubmitButton>
         </form>
       )}
     </div>
@@ -479,13 +480,13 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                     <input type="hidden" name="leagueId" value={leagueId} />
                     <input type="hidden" name="tradeId" value={t.id} />
                     <input type="hidden" name="accept" value="true" />
-                    <button type="submit" className="btn btn--sm">Accept</button>
+                    <SubmitButton className="btn btn--sm" pendingLabel="Accepting…">Accept</SubmitButton>
                   </form>
                   <form action={respondToTradeAction}>
                     <input type="hidden" name="leagueId" value={leagueId} />
                     <input type="hidden" name="tradeId" value={t.id} />
                     <input type="hidden" name="accept" value="false" />
-                    <button type="submit" className="btn btn--sm">Reject</button>
+                    <SubmitButton className="btn btn--sm" pendingLabel="Rejecting…">Reject</SubmitButton>
                   </form>
                 </>
               )}
@@ -493,7 +494,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                 <form action={vetoTradeAction}>
                   <input type="hidden" name="leagueId" value={leagueId} />
                   <input type="hidden" name="tradeId" value={t.id} />
-                  <button type="submit" className="btn btn--sm">Veto</button>
+                  <SubmitButton className="btn btn--sm" pendingLabel="Vetoing…">Veto</SubmitButton>
                 </form>
               )}
             </div>
@@ -558,7 +559,7 @@ async function FantasyTrades({ league, leagueId, accountId }: { league: NonNulla
                     ))}
                   </fieldset>
                 </div>
-                <button type="submit" className="btn btn--sm" style={{ marginTop: ".6rem" }}>Propose to {partner.teamName}</button>
+                <SubmitButton className="btn btn--sm" style={{ marginTop: ".6rem" }} pendingLabel="Proposing…">Propose to {partner.teamName}</SubmitButton>
               </form>
             );
           })}
