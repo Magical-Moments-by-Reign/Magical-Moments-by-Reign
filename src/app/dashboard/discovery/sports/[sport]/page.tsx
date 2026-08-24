@@ -543,7 +543,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           are deliberately excluded (not in MATCHUP_SPORTS — a race/fight
           card doesn't map onto a two-side "who you got" pick). */}
       {sport !== "nfl" && MATCHUP_SPORTS.includes(sport) && (
-        <div style={{ marginBottom: "var(--section-gap-standard)" }}>
+        <div className="spx-standard-solo" style={{ marginBottom: "var(--section-gap-standard)" }}>
           <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel={sportMeta.label} sport={sport} />
         </div>
       )}
