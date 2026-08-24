@@ -25,6 +25,11 @@ interface RosterPlayer {
   profileHref?: string | null;
 }
 
+interface RosterProvenance {
+  resolver: "openai_web_search";
+  sources: { title?: string; url: string }[];
+}
+
 // Real football position codes — used to order a roster Offense first, then
 // Defense, then Special Teams, the way a real depth chart reads. A sport
 // whose positions don't match any of these (e.g. NBA's G/F/C) simply lands
@@ -82,6 +87,7 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
   const [roster, setRoster] = useState<RosterPlayer[] | null>(null);
   const [status, setStatus] = useState<RosterStatus | null>(null);
   const [error, setError] = useState(false);
+  const [provenance, setProvenance] = useState<RosterProvenance | null>(null);
 
   useEffect(() => {
     // No verified provider id for this team (see team-directory.ts) — a
@@ -99,12 +105,23 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
     setError(false);
     setRoster(null);
     setStatus(null);
+    setProvenance(null);
     fetch(`/api/discovery/sports/team-roster?sport=${sport}&teamId=${encodeURIComponent(team.id)}&teamName=${encodeURIComponent(team.name)}`)
-      .then((res) => res.json())
+      .then((res) => {
+        // A non-2xx or non-JSON response means the server hit something
+        // this route's own try/catch couldn't turn into its usual honest
+        // JSON contract (see team-roster/route.ts) — treat it exactly like
+        // a network failure rather than letting res.json() throw on an
+        // HTML error page.
+        const contentType = res.headers.get("content-type") ?? "";
+        if (!res.ok || !contentType.includes("application/json")) throw new Error("non-json response");
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
         setRoster(Array.isArray(data?.roster) ? data.roster : []);
         setStatus(typeof data?.status === "string" ? (data.status as RosterStatus) : "empty");
+        setProvenance(data?.provenance?.resolver === "openai_web_search" ? data.provenance : null);
       })
       .catch(() => { if (!cancelled) setError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -143,6 +160,18 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
         {error && <p className="spx-panel__empty">Couldn&rsquo;t load the roster right now.</p>}
         {!loading && !error && roster?.length === 0 && (
           <p className="spx-panel__empty">{(status && STATUS_COPY[status]) ?? "No roster data available for this team yet."}</p>
+        )}
+        {!loading && !error && provenance && roster && roster.length > 0 && (
+          <p className="spx-roster__source">
+            Verified source ·{" "}
+            {provenance.sources[0]?.url ? (
+              <a href={provenance.sources[0].url} target="_blank" rel="noopener noreferrer">
+                {provenance.sources[0].title || "NBA.com"}
+              </a>
+            ) : (
+              "NBA.com"
+            )}
+          </p>
         )}
         {!loading && groups.map((g) => (
           <div key={g.label} className="spx-directory__roster-group">

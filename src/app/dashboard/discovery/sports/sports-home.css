@@ -584,6 +584,8 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-directory__roster-group-label { color: var(--gold-soft); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 .5rem; }
 .spx-roster__row { display: flex; align-items: center; gap: .6rem; padding: .4rem 0; border-bottom: 1px solid rgba(255,255,255,.05); }
 .spx-roster__row:last-child { border-bottom: none; }
+.spx-roster__source { color: #9c8f76; font-size: .68rem; letter-spacing: .02em; margin: 0 0 .7rem; padding-bottom: .5rem; border-bottom: 1px solid rgba(201,162,75,.14); }
+.spx-roster__source a { color: var(--gold-soft); text-decoration: underline; text-underline-offset: 2px; }
 .spx-roster__number { color: var(--gold-soft); font-size: .74rem; font-weight: 800; width: 30px; flex: none; }
 .spx-roster__name-link { flex: 1; color: #f4f1ea; font-size: .8rem; font-weight: 700; text-decoration: none; }
 a.spx-roster__name-link:hover { color: var(--gold-soft); text-decoration: underline; }

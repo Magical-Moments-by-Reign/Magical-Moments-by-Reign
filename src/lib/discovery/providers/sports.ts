@@ -319,12 +319,21 @@ export function detectPlanRestriction(json: unknown): string | null {
   return messages.find((m) => /plan|subscription|not\s+(?:allowed|included|available)|don.?t\s+have\s+access/i.test(m)) ?? null;
 }
 
+// No request ever hangs indefinitely — a slow/unresponsive upstream fails
+// fast instead of running out the serverless function's own execution-time
+// limit (which returns a raw platform error page instead of this module's
+// honest null, indistinguishable from a JS exception to the caller). See
+// sdioFetch's identical guard just below in sportsdata.ts.
+const PROVIDER_TIMEOUT_MS = 8_000;
+
 async function apiSportsFetch(sport: SportSlug, path: string, params: Record<string, string | undefined>): Promise<unknown | null> {
   const key = apiKey();
   if (!key) return null;
   const cfg = SPORT_CONFIG[sport];
   const url = new URL(`https://${cfg.host}${path}`);
   for (const [k, v] of Object.entries(params)) if (v) url.searchParams.set(k, v);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
   try {
     const res = await fetch(url.toString(), {
       headers: { "x-apisports-key": key },
@@ -333,12 +342,15 @@ async function apiSportsFetch(sport: SportSlug, path: string, params: Record<str
       // (e.g. fetched before today's games were announced) would otherwise
       // never retry for the rest of the day.
       next: { revalidate: 300 },
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     const json = await res.json();
     return json ?? null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
