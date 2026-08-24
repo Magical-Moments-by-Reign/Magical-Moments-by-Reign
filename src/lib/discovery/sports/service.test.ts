@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, getLiveScoresAcrossSports } from "./service";
 
 // ── Regression: followed-team roster/injury enrichment must never take the
 // whole Sport page down. resolveWithFailureIsolation is the exact shared
@@ -281,3 +281,23 @@ test("getTeamRoster: NBA + allowOpenAiFallback resolves a validated roster with 
       restore();
     }
   }));
+
+// ── getLiveScoresAcrossSports: the Schedule page + Live Game Center's
+// "Other Live Games" panel both call this directly for an uncapped,
+// cross-sport live-games list.
+
+test("getLiveScoresAcrossSports: no provider configured — degrades to an empty list, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const games = await getLiveScoresAcrossSports(["nfl", "nba", "wnba"]);
+    assert.deepEqual(games, []);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("getLiveScoresAcrossSports: an empty sports list returns an empty list without any lookups", async () => {
+  const games = await getLiveScoresAcrossSports([]);
+  assert.deepEqual(games, []);
+});

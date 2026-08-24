@@ -798,6 +798,22 @@ export async function getSportsLandingGames(sports: SportSlug[], limit = 4): Pro
   return { live, upcoming: upcoming.slice(0, limit) };
 }
 
+/** Every currently-live game across the given sports — uncapped (unlike
+ *  getSportsLandingGames's small landing-page preview), for the dedicated
+ *  Live Scores page (see /dashboard/discovery/sports/schedule). Same
+ *  per-sport failure isolation: one sport's provider/cache call throwing
+ *  never hides another sport's real live games. Backed by getGamesByDate's
+ *  existing TTL_GAMES_LIVE (3-minute) cache, so polling this from the
+ *  client every ~15s costs nothing extra against the paid provider — it
+ *  reads the same cached row every poll within that window. */
+export async function getLiveScoresAcrossSports(sports: SportSlug[]): Promise<SportsGameRow[]> {
+  const configured = sports.filter((s) => ApiSportsProvider.isConfigured(s));
+  if (!configured.length) return [];
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const today = (await resolveWithFailureIsolation(configured, (s) => getGamesByDate(s, todayISO), (): { games: SportsGameRow[] } => ({ games: [] }))).flatMap((r) => r.games);
+  return today.filter((g) => g.status === "live").sort((a, b) => +a.startsAt - +b.startsAt);
+}
+
 /** One-time cleanup for cached API-Sports responses recorded while the
  *  account was on the Free plan (or otherwise restricted) — such a row
  *  would keep serving "restricted" for the rest of its TTL even after a

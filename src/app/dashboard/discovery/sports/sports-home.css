@@ -282,6 +282,10 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-live-row { border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: .7rem .8rem; }
 .spx-live-row__meta { display: flex; align-items: center; gap: .4rem; font-size: .66rem; font-weight: 800; letter-spacing: .08em; color: #e05b48; margin-bottom: .5rem; }
 .spx-live-row__meta i { width: 6px; height: 6px; border-radius: 50%; background: #e05b48; display: inline-block; }
+.spx-live-updated { display: flex; align-items: center; gap: .35rem; font-size: .62rem; font-weight: 700; letter-spacing: .04em; color: #9c8f76; }
+.spx-live-updated i { width: 6px; height: 6px; border-radius: 50%; background: #4e9a5f; display: inline-block; animation: spx-live-pulse 1.8s ease-in-out infinite; }
+.spx-live-updated__stamp { color: #9c8f76; font-size: .62rem; margin: .6rem 0 0; text-align: right; }
+@keyframes spx-live-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 .spx-live-row__score { display: grid; grid-template-columns: 26px auto auto auto 26px; align-items: center; gap: .5rem; }
 .spx-live-row__score img { width: 26px; height: 26px; object-fit: contain; }
 .spx-live-row__score b { color: #f4f1ea; font-size: 1.15rem; font-weight: 800; text-align: center; }
