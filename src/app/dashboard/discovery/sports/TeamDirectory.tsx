@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { DirectoryTeam, DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { formatGroupLabel, groupCollectiveNoun } from "@/lib/discovery/sports/group-labels";
 import { TeamRosterPanel } from "./TeamRosterPanel";
 
 export default function TeamDirectory({ sport, groups }: { sport: string; groups: DirectoryGroup[] }) {
@@ -61,11 +62,22 @@ export default function TeamDirectory({ sport, groups }: { sport: string; groups
     });
   }
 
+  // "All Conferences" / "SEC" / "SEC + Big Ten" / "3 Conferences Selected" —
+  // the collective noun is derived from the REAL (pre-formatGroupLabel)
+  // labels so it never calls a non-conference grouping a Conference (see
+  // groupCollectiveNoun's doc comment); every individual label shown here
+  // goes through formatGroupLabel for its short/common form where one
+  // exists — filtering itself (selectedGroups, toggleGroup, isAllSelected
+  // above) still only ever reads/writes the real, unformatted g.label.
+  const collectiveNoun = groupCollectiveNoun(allGroupLabels);
+  const selectedList = [...selectedGroups];
   const filterTriggerLabel = isAllSelected
-    ? "All Groups"
-    : selectedGroups.size === 1
-      ? [...selectedGroups][0]
-      : `${selectedGroups.size} Groups Selected`;
+    ? `All ${collectiveNoun}`
+    : selectedList.length === 1
+      ? formatGroupLabel(selectedList[0])
+      : selectedList.length === 2
+        ? selectedList.map(formatGroupLabel).join(" + ")
+        : `${selectedList.length} ${collectiveNoun} Selected`;
 
   if (openTeam) {
     return (
@@ -96,7 +108,7 @@ export default function TeamDirectory({ sport, groups }: { sport: string; groups
             <span className="spx-directory__filter-caret" aria-hidden="true">▾</span>
           </button>
           {filterOpen && (
-            <div id="spx-directory-filter-menu" className="spx-directory__filter-menu" role="dialog" aria-label="Filter teams by group">
+            <div id="spx-directory-filter-menu" className="spx-directory__filter-menu" role="dialog" aria-label={`Filter teams by ${collectiveNoun.toLowerCase()}`}>
               <div className="spx-directory__filter-actions">
                 <button type="button" onClick={() => setSelectedGroups(new Set(allGroupLabels))}>Select All</button>
                 <button type="button" onClick={() => setSelectedGroups(new Set())}>Clear Selection</button>
@@ -109,7 +121,7 @@ export default function TeamDirectory({ sport, groups }: { sport: string; groups
                       checked={selectedGroups.size > 0 && selectedGroups.has(g.label)}
                       onChange={() => toggleGroup(g.label)}
                     />
-                    <span>{g.label}</span>
+                    <span>{formatGroupLabel(g.label)}</span>
                   </label>
                 ))}
               </div>
@@ -120,10 +132,10 @@ export default function TeamDirectory({ sport, groups }: { sport: string; groups
       )}
       {visibleGroups.map((g) => (
         <div key={g.label} className="spx-standings__group">
-          <h3 className="spx-standings__group-label">{g.label}</h3>
+          <h3 className="spx-standings__group-label">{formatGroupLabel(g.label)}</h3>
           {g.divisions.map((d) => (
             <div key={d.label} className="spx-standings__division">
-              {d.label && <h4 className="spx-standings__division-label">{d.label}</h4>}
+              {d.label && <h4 className="spx-standings__division-label">{formatGroupLabel(d.label)}</h4>}
               <div className="spx-directory__grid">
                 {d.teams.map((team) => (
                   <div key={team.id} className="spx-directory__team">

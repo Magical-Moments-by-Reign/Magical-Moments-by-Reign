@@ -8,6 +8,7 @@ import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
@@ -81,27 +82,6 @@ const COMING_SOON_COPY: Record<"f1" | "mma", { body: string; followNoun: string 
     followNoun: "a Fighter",
   },
 };
-
-// A few provider group labels get a friendlier, still-accurate display form
-// (e.g. a bare "east" becomes "Eastern Conference", matching how the league
-// itself refers to it) — every other label is just cased consistently.
-const GROUP_LABEL_OVERRIDES: Record<string, string> = { east: "Eastern Conference", west: "Western Conference" };
-const KNOWN_ABBR = new Set(["afc", "nfc", "al", "nl", "ncaa"]);
-
-/** Cases a provider label consistently — known abbreviations (AFC/NFC/AL/NL)
- *  stay uppercase, everything else is title-cased — regardless of whatever
- *  case the provider itself used. The string content always comes straight
- *  from the provider (or, for a group derived from a division prefix, a
- *  standard expansion of the provider's own abbreviation) — never invented
- *  or hardcoded by team name. */
-function formatGroupLabel(raw: string): string {
-  const key = raw.trim().toLowerCase();
-  if (GROUP_LABEL_OVERRIDES[key]) return GROUP_LABEL_OVERRIDES[key];
-  return raw
-    .split(/\s+/)
-    .map((word) => (KNOWN_ABBR.has(word.toLowerCase()) ? word.toUpperCase() : word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : word))
-    .join(" ");
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string }> }): Promise<Metadata> {
   const { sport } = await params;
