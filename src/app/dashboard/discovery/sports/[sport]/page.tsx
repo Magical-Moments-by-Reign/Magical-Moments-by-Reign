@@ -395,7 +395,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // happens to have something the catalog call couldn't reach.
   const teamCatalog = !hasVerifiedReference(sport) && hasLeague ? await getLeagueTeamCatalog(sport, league).catch(() => []) : [];
   const directoryGroups: DirectoryGroup[] = hasVerifiedReference(sport)
-    ? await getTeamDirectory(sport, standingsGroups).catch(() => [])
+    ? await getTeamDirectory(sport, standingsGroups, isOwner).catch(() => [])
     : teamCatalog.length
       ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted)
       : standingsGroups.map((g) => ({

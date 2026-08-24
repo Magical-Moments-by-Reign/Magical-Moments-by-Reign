@@ -144,18 +144,14 @@ function buildCatalogNameIndex(catalog: SportsTeam[]): Map<string, SportsTeam> {
  *  spells this specific team differently. Never a substring/fuzzy match —
  *  "LA" must never match "Los Angeles", and two real teams that share a
  *  city name must never cross-match. Returns null (never a guessed team)
- *  when nothing in the real catalog matches confidently, and logs
- *  (server-only, never shown to a member) so a genuine mismatch can be
- *  found and, once independently confirmed, added to
- *  VERIFIED_TEAM_ALIASES. */
+ *  when nothing in the real catalog matches confidently — logging a miss
+ *  is the caller's job (see resolveDivisions), not this function's, so a
+ *  page rendering 30 teams doesn't emit 30 separate log lines. */
 function resolveVerifiedTeamIdentity(sport: SportSlug, staticName: string, catalogByName: Map<string, SportsTeam>): SportsTeam | null {
   const direct = catalogByName.get(normalize(staticName));
   if (direct) return direct;
   const alias = VERIFIED_TEAM_ALIASES[sport]?.[staticName];
-  const aliased = alias ? catalogByName.get(normalize(alias)) : undefined;
-  if (aliased) return aliased;
-  console.warn(`[team-directory] "${staticName}" (${sport}) has no real match in the live team catalog — showing without id/logo. If this is a real provider naming difference, add a confirmed VERIFIED_TEAM_ALIASES entry.`);
-  return null;
+  return alias ? catalogByName.get(normalize(alias)) ?? null : null;
 }
 
 /** Fetches the real, live team catalog for a VERIFIED_REFERENCE sport's
@@ -226,21 +222,15 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
   }
 }
 
-async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>): Promise<DirectoryGroup[]> {
+async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean): Promise<DirectoryGroup[]> {
   try {
     const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport));
-    // One row per real static team — logged as a single block (rather than
-    // scattered per-team warnings) so the full STATIC NAME / PROVIDER NAME
-    // / PROVIDER ID / MATCH-MISS comparison is easy to read from wherever
-    // this runs with real provider access (this sandbox has none). Only
-    // emitted when at least one team actually misses, to stay quiet on a
-    // page load where every real team already resolves cleanly.
-    const diagnostics: { staticName: string; providerName: string | null; providerId: string | null; match: boolean }[] = [];
+    const misses: string[] = [];
     const byConference = new Map<string, DirectoryDivision[]>();
     for (const { conference, division, teams } of spec) {
       const resolved: DirectoryTeam[] = teams.map((name) => {
         const team = resolveVerifiedTeamIdentity(sport, name, catalogByName);
-        diagnostics.push({ staticName: name, providerName: team?.name ?? null, providerId: team?.id ?? null, match: Boolean(team) });
+        if (!team && logDiagnostics) misses.push(name);
         // See getVerifiedStandingsFallback's comment on this same pattern —
         // an unresolved team gets no id, never its own name standing in.
         // A resolved team's record comes from the real standings the
@@ -252,11 +242,19 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
       divisions.push({ label: division, teams: resolved });
       byConference.set(conference, divisions);
     }
-    if (diagnostics.some((d) => !d.match)) {
-      console.warn(`[team-directory] ${sport} verified-reference identity check — ${diagnostics.filter((d) => !d.match).length} of ${diagnostics.length} static team(s) had no real catalog match:`);
-      for (const d of diagnostics) {
-        console.log(`[team-directory] ${sport}: "${d.staticName}" -> ${d.match ? `MATCH (provider name: "${d.providerName}", id: ${d.providerId})` : "MISS"}`);
-      }
+    // ONE aggregated log line, never one per team — and only when the
+    // caller has explicitly opted in (getTeamDirectory gates this to the
+    // Owner's own page views, the same admin-diagnostic trust boundary
+    // /api/discovery/sports/team-roster already uses for its
+    // ownerDiagnostic field), so this never spams production logs on
+    // every member's page view. A team the real catalog genuinely can't
+    // match is still shown (honestly, with no id/logo) regardless of
+    // whether logDiagnostics is on — this only controls whether the miss
+    // gets reported anywhere. Once a listed name is independently
+    // confirmed as a real provider naming difference (not a genuine
+    // catalog gap), add it to VERIFIED_TEAM_ALIASES.
+    if (logDiagnostics && misses.length) {
+      console.warn(`[team-directory] ${sport}: ${misses.length} of ${spec.reduce((n, s) => n + s.teams.length, 0)} static team(s) had no real catalog match — ${misses.join(", ")}`);
     }
     return Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions }));
   } catch {
@@ -274,11 +272,13 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
  *  the Standings panel already derived from real provider data for that
  *  sport. `standingsGroups` defaults to [] for callers (e.g. the Team
  *  Detail page's own getTeamById lookup) that don't need a record on the
- *  result and already fetch one separately when they do. */
-export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = []): Promise<DirectoryGroup[]> {
+ *  result and already fetch one separately when they do. `logDiagnostics`
+ *  should only ever be true for an Owner's own page view (see
+ *  resolveDivisions) — never wired to a member-visible request. */
+export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = [], logDiagnostics = false): Promise<DirectoryGroup[]> {
   const spec = VERIFIED_REFERENCE[sport];
   if (!spec) return [];
-  return resolveDivisions(sport, spec, buildRecordByTeamId(standingsGroups));
+  return resolveDivisions(sport, spec, buildRecordByTeamId(standingsGroups), logDiagnostics);
 }
 
 /** Whether this sport has a verified, hardcoded-but-real conference/
