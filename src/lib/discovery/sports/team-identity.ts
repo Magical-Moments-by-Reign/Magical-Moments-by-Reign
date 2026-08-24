@@ -62,11 +62,26 @@ export async function getSdioTeamDirectory(league: SdioLeague): Promise<SdioTeam
  *  never the reverse, and never a fuzzy guess across different teams.
  *  Returns null when nothing in the real directory matches confidently. */
 export async function resolveSdioTeamId(league: SdioLeague, teamName: string): Promise<string | null> {
+  const identity = await resolveSdioTeamIdentity(league, teamName);
+  return identity?.teamId ?? null;
+}
+
+/** Resolves any real, provider-supplied team identifier — a full franchise
+ *  name ("Golden State Valkyries") OR a short SportsDataIO team code/Key
+ *  ("GSV") — to its full canonical identity from the real directory above.
+ *  This is the fix point for SportsDataIO's Games endpoints occasionally
+ *  omitting HomeTeamName/AwayTeamName and leaving only the short Key on the
+ *  row (see toSdioGame in providers/sportsdata.ts): callers that only have
+ *  that raw string can resolve it back to the real full name here instead
+ *  of showing the code to a member. Same full-name-first-then-Key
+ *  precedence as resolveSdioTeamId, never a fuzzy/partial guess — a code
+ *  this directory doesn't recognize returns null, never a guessed team.
+ *  This is also what correctly distinguishes teams with similar names
+ *  (e.g. Miami (FL) vs. Miami (OH)) since Key/full-name equality is exact,
+ *  never a loose "contains" match. */
+export async function resolveSdioTeamIdentity(league: SdioLeague, raw: string): Promise<SdioTeamIdentity | null> {
   const directory = await getSdioTeamDirectory(league);
   if (!directory.length) return null;
-  const target = normalize(teamName);
-  const byFullName = directory.find((t) => normalize(t.fullName) === target);
-  if (byFullName) return byFullName.teamId;
-  const byKey = directory.find((t) => t.key && normalize(t.key) === target);
-  return byKey?.teamId ?? null;
+  const target = normalize(raw);
+  return directory.find((t) => normalize(t.fullName) === target) ?? directory.find((t) => t.key && normalize(t.key) === target) ?? null;
 }

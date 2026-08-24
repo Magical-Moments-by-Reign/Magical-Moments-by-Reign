@@ -10,7 +10,7 @@ import { withCache, cacheKeyFor } from "../cache";
 import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
-import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
+import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
@@ -131,8 +131,15 @@ async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsG
           // schema migration defaulted to "regular" — or one synced before
           // the provider's own stage label caught up — corrects itself the
           // next real time this exact game is fetched, instead of staying
-          // permanently mislabeled.
+          // permanently mislabeled. Team identity fields are refreshed here
+          // too for the same reason: a row synced before a resolver fix
+          // shipped (e.g. a raw SportsDataIO team code like "GSV" that
+          // leaked in as homeTeamName before resolveSdioGameTeam existed)
+          // must self-heal the next time this exact game is fetched, not
+          // stay wrong forever just because it already exists in the DB.
           seasonPhase: classifySeasonPhase(g.stage),
+          homeTeamId: g.homeTeam.id || null, homeTeamName: g.homeTeam.name, homeTeamLogoUrl: g.homeTeam.logoUrl,
+          awayTeamId: g.awayTeam.id || null, awayTeamName: g.awayTeam.name, awayTeamLogoUrl: g.awayTeam.logoUrl,
           status: g.status, period: g.period, homeScore: g.homeScore, awayScore: g.awayScore, lastSyncedAt: new Date(),
         },
       }).catch(() => null)
@@ -427,12 +434,30 @@ function sdioStatusToGameStatus(status: string | undefined): "scheduled" | "live
   return "scheduled";
 }
 
+/** Resolves a raw SportsDataIO team string — which toSdioGame may have had
+ *  to fall back to a short team code/Key for (e.g. "GSV") when the
+ *  provider's Games row omitted HomeTeamName/AwayTeamName — to a real,
+ *  customer-facing identity: canonical full name from the SportsDataIO
+ *  team-identity directory (resolveSdioTeamIdentity), and API-Sports'
+ *  id/logo looked up BY that canonical name rather than the raw code, so a
+ *  code that would never match anything in API-Sports' own catalog no
+ *  longer breaks logo resolution too. Falls back to the raw string as the
+ *  name only when the real directory genuinely has no match for it —
+ *  never invented, always the best real name available. */
+async function resolveSdioGameTeam(sport: SportSlug, league: SdioLeague, raw: string): Promise<{ id: string; name: string; logoUrl?: string }> {
+  const identity = await resolveSdioTeamIdentity(league, raw);
+  const name = identity?.fullName ?? raw;
+  const resolved = await resolveTeamByName(sport, name);
+  return { id: resolved?.id ?? "", name, logoUrl: resolved?.logoUrl };
+}
+
 /** Real games for one date from SportsDataIO, for any sport with a
  *  SportsDataIO product connected (see sdioLeagueFor) — secondary source
  *  for Today's Games when API-Sports has nothing for that date. Each team
- *  is resolved to its real API-Sports logo the same way the hero countdown
- *  does. Returns [] on missing config, an unsupported sport, a failed
- *  call, or a genuinely empty schedule for that date. */
+ *  is resolved to its real canonical name and API-Sports logo (see
+ *  resolveSdioGameTeam) the same way the hero countdown does. Returns []
+ *  on missing config, an unsupported sport, a failed call, or a genuinely
+ *  empty schedule for that date. */
 async function getGamesByDateFromSportsData(sport: SportSlug, dateISO: string): Promise<SportsGameSummary[]> {
   const league = sdioLeagueFor(sport);
   if (!league) return [];
@@ -442,13 +467,13 @@ async function getGamesByDateFromSportsData(sport: SportSlug, dateISO: string): 
   if (!games.length) return [];
   const defaultLeague = defaultLeagueId(sport);
   return Promise.all(games.map(async (g): Promise<SportsGameSummary> => {
-    const [home, away] = await Promise.all([resolveTeamByName(sport, g.homeTeam), resolveTeamByName(sport, g.awayTeam)]);
+    const [home, away] = await Promise.all([resolveSdioGameTeam(sport, league, g.homeTeam), resolveSdioGameTeam(sport, league, g.awayTeam)]);
     return {
       externalId: g.externalId,
       sport,
       league: defaultLeague,
-      homeTeam: { id: home?.id ?? "", name: g.homeTeam, logoUrl: home?.logoUrl },
-      awayTeam: { id: away?.id ?? "", name: g.awayTeam, logoUrl: away?.logoUrl },
+      homeTeam: home,
+      awayTeam: away,
       startsAt: g.startsAt,
       status: sdioStatusToGameStatus(g.status),
     };

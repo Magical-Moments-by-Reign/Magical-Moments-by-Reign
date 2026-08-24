@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
+import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
 
 function mockStandings(rows: { Name: string; TeamID: number; Key: string; Wins?: number; Losses?: number }[]) {
   return (async () =>
@@ -105,6 +105,57 @@ test("resolveSdioTeamId: returns null when unconfigured or the provider has noth
     assert.equal(await resolveSdioTeamId("nba", "Boston Celtics"), null);
   } finally {
     if (originalKey !== undefined) process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
+});
+
+const WNBA_STANDINGS = [
+  { Name: "Golden State Valkyries", TeamID: 101, Key: "GSV" },
+  { Name: "Minnesota Lynx", TeamID: 102, Key: "MIN" },
+  { Name: "Atlanta Dream", TeamID: 103, Key: "ATL" },
+  { Name: "Los Angeles Sparks", TeamID: 104, Key: "LA" },
+];
+
+test("resolveSdioTeamIdentity: a raw short team code (e.g. 'GSV') resolves to its real full name — the exact SportsDataIO Games row shape that leaked provider codes into Magical Picks when HomeTeamName/AwayTeamName were absent", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  global.fetch = mockStandings(WNBA_STANDINGS);
+  try {
+    assert.deepEqual(await resolveSdioTeamIdentity("wnba", "GSV"), { teamId: "101", key: "GSV", fullName: "Golden State Valkyries" });
+    assert.deepEqual(await resolveSdioTeamIdentity("wnba", "ATL"), { teamId: "103", key: "ATL", fullName: "Atlanta Dream" });
+    assert.deepEqual(await resolveSdioTeamIdentity("wnba", "LA"), { teamId: "104", key: "LA", fullName: "Los Angeles Sparks" });
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
+});
+
+test("resolveSdioTeamIdentity: an already-full team name resolves to itself, not just a code", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  global.fetch = mockStandings(WNBA_STANDINGS);
+  try {
+    assert.deepEqual(await resolveSdioTeamIdentity("wnba", "Minnesota Lynx"), { teamId: "102", key: "MIN", fullName: "Minnesota Lynx" });
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalKey;
+  }
+});
+
+test("resolveSdioTeamIdentity: an unrecognized code returns null — never a guessed team", async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.SPORTSDATAIO_API_KEY;
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  global.fetch = mockStandings(WNBA_STANDINGS);
+  try {
+    assert.equal(await resolveSdioTeamIdentity("wnba", "ZZZ"), null);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalKey;
   }
 });
 
