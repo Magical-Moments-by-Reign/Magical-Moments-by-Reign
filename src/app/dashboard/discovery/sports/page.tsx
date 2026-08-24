@@ -365,7 +365,7 @@ async function SportsDynamicContent({ accountId }: { accountId: string }) {
       </div>
 
       <nav className="spx-bar" aria-label="Sports quick links">
-        <Link href="/dashboard/discovery/sports/schedule" className="spx-bar__item"><SportsIcon name="bolt" /><span><b>Live Scores</b><i>Real-time updates every second</i></span></Link>
+        <Link href="/dashboard/discovery/sports/schedule" className="spx-bar__item"><SportsIcon name="bolt" /><span><b>Live Scores</b><i>Scores &amp; updates every 15 seconds</i></span></Link>
         <Link href={`/dashboard/discovery/sports/${followedSports[0] ?? "nfl"}#standings`} className="spx-bar__item"><SportsIcon name="chart" /><span><b>Stats &amp; Standings</b><i>In-depth stats and league standings</i></span></Link>
         <Link href="/dashboard/discovery/sports/picks" className="spx-bar__item"><SportsIcon name="trophy" /><span><b>Magical Picks</b><i>Make picks, create polls and win together</i></span></Link>
         <Link href="/dashboard/discovery/sports/schedule" className="spx-bar__item"><SportsIcon name="play" /><span><b>Live Games</b><i>Follow live action as it happens</i></span></Link>
