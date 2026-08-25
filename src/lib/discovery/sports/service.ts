@@ -11,6 +11,7 @@ import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeag
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
+import { resolveNbaRosterViaOpenAI, type SportsDataProvenance } from "./openai-resolver";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
@@ -634,6 +635,11 @@ export interface RosterResult {
    *  member-facing response (see team-roster/route.ts); it's for owner/admin
    *  diagnostics only. */
   planRestrictedReason?: string;
+  /** Set only when this roster was resolved through the OpenAI web_search
+   *  fallback (see openai-resolver.ts) — never set for a Tier 1/2 provider
+   *  hit. Route handlers must surface this to the client so the citation
+   *  can be shown; see team-roster/route.ts and TeamRosterPanel.tsx. */
+  provenance?: SportsDataProvenance;
 }
 
 /** A followed team's real current-season roster — we can't show injuries
@@ -649,7 +655,11 @@ export interface RosterResult {
  *  can never be silently rendered as "this team just has no roster" — see
  *  RosterStatus above. A plan-restricted response is never cached (same
  *  "don't cache an outage" discipline as getGamesByDate). */
-export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<RosterResult> {
+export async function getTeamRoster(
+  sport: SportSlug,
+  teamExternalId: string,
+  opts?: { teamName?: string; allowSecondarySource?: boolean; allowOpenAiFallback?: boolean },
+): Promise<RosterResult> {
   if (!teamExternalId) return { players: [], status: "not_supported" };
 
   let status: RosterStatus = "not_supported";
@@ -674,6 +684,27 @@ export async function getTeamRoster(sport: SportSlug, teamExternalId: string, op
   if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName) {
     const secondary = await getRosterFromSportsData(sport, opts.teamName);
     if (secondary.length) return { players: secondary, status: "hit" };
+  }
+
+  // Tier 3+4 of the Verified Sports Data Source Ladder — NBA rosters only,
+  // Phase 1 (see openai-resolver.ts). Owner-gated at the route level today
+  // (see team-roster/route.ts) pending live verification against a real
+  // OpenAI account before broader exposure. Never runs for any other sport.
+  if (sport === "nba" && opts?.allowOpenAiFallback && opts.teamName) {
+    const resolved = await resolveNbaRosterViaOpenAI(opts.teamName);
+    if (resolved?.players.length) {
+      const players: SportsRosterPlayer[] = resolved.players.map((p) => ({
+        // No real provider id exists for an OpenAI-resolved player — a
+        // stable, deterministic synthetic id (never a random one, so it
+        // stays the same across cache hits/re-renders) rather than an
+        // invented provider id that could be mistaken for a real one.
+        id: `openai:nba:${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        name: p.name,
+        position: p.position,
+        number: p.number,
+      }));
+      return { players, status: "hit", provenance: resolved.provenance };
+    }
   }
 
   return { players: [], status, planRestrictedReason };

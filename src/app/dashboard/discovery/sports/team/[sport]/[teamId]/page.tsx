@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
 import { SPORT_CATALOG, resolveDefaultLeagueId, getStandings, getTeamSchedule, getTeamInjuries, getTeamFollow, sdioLeagueFor, type TeamScheduleGame } from "@/lib/discovery/sports/service";
 import { getTeamById, hasVerifiedReference, getVerifiedStandingsFallback } from "@/lib/discovery/sports/team-directory";
+import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
 import { TeamRosterPanel } from "../../../TeamRosterPanel";
@@ -13,21 +14,6 @@ import "../../../../discovery.css";
 import "../../../sports-home.css";
 
 export const dynamic = "force-dynamic";
-
-// Same small display-casing convention [sport]/page.tsx's own Standings
-// panel uses for a provider's real group/division label (e.g. a bare
-// "east" reads as "Eastern Conference") — duplicated here rather than
-// exported since it's a tiny, page-local presentation helper.
-const GROUP_LABEL_OVERRIDES: Record<string, string> = { east: "Eastern Conference", west: "Western Conference" };
-const KNOWN_ABBR = new Set(["afc", "nfc", "al", "nl", "ncaa"]);
-function formatGroupLabel(raw: string): string {
-  const key = raw.trim().toLowerCase();
-  if (GROUP_LABEL_OVERRIDES[key]) return GROUP_LABEL_OVERRIDES[key];
-  return raw
-    .split(/\s+/)
-    .map((word) => (KNOWN_ABBR.has(word.toLowerCase()) ? word.toUpperCase() : word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : word))
-    .join(" ");
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ sport: string; teamId: string }> }): Promise<Metadata> {
   const { sport } = await params;

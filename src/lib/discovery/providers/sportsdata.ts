@@ -83,18 +83,29 @@ function apiKey(): string | undefined {
   return process.env.SPORTSDATAIO_API_KEY?.trim() || undefined;
 }
 
+// Same fail-fast guard as apiSportsFetch in providers/sports.ts — a hung
+// upstream connection must never run out the serverless function's own
+// execution-time limit (which returns a raw platform error page instead of
+// this module's honest null).
+const PROVIDER_TIMEOUT_MS = 8_000;
+
 async function sdioFetch(league: SdioLeague, path: string): Promise<unknown | null> {
   const key = apiKey();
   if (!key) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
   try {
     const res = await fetch(`https://${HOST[league]}${path}`, {
       headers: { "Ocp-Apim-Subscription-Key": key },
       next: { revalidate: 900 },
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     return await res.json();
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
