@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster } from "./service";
 
 // ── Regression: followed-team roster/injury enrichment must never take the
 // whole Sport page down. resolveWithFailureIsolation is the exact shared
@@ -198,3 +198,86 @@ test("Sports page top-level load: every optional enrichment source throws — th
   assert.equal(featuredMatchup, null);
   assert.deepEqual(fantasyLeagues, []);
 });
+
+// ── getTeamRoster: OpenAI fallback wiring (Tier 3+4 of the Verified Sports
+// Data Source Ladder). These exercise the SERVICE-LEVEL wiring only — the
+// resolver's own evidence-validation logic has its own direct tests in
+// openai-resolver.test.ts. No API-Sports/SportsDataIO key exists in this
+// sandbox, so Tier 1/2 are naturally unconfigured/empty here, isolating
+// the new NBA branch.
+
+function withOpenAIKey<T>(fn: () => Promise<T>): Promise<T> {
+  const original = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "test-key";
+  return fn().finally(() => {
+    if (original === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = original;
+  });
+}
+
+function mockTwoStepOpenAIFetch(): () => void {
+  const originalFetch = global.fetch;
+  global.fetch = (async (_url: any, init: any) => {
+    const req = JSON.parse(init.body);
+    if (req.tools) {
+      return new Response(
+        JSON.stringify({
+          output: [
+            { type: "web_search_call" },
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: "five real players",
+                  annotations: [{ type: "url_citation", url: "https://www.nba.com/team/x/roster", title: "Official Roster" }],
+                },
+              ],
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    const players = Array.from({ length: 6 }, (_, i) => ({ name: `Player ${i}`, position: "G", number: i }));
+    return new Response(JSON.stringify({ output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ players }) }] }] }), { status: 200 });
+  }) as typeof fetch;
+  return () => {
+    global.fetch = originalFetch;
+  };
+}
+
+test("getTeamRoster: OpenAI fallback never runs for a non-NBA sport, even when allowOpenAiFallback is true", async () => {
+  const restore = mockTwoStepOpenAIFetch();
+  try {
+    const result = await withOpenAIKey(() => getTeamRoster("nfl", "some-id", { teamName: "Some Team", allowOpenAiFallback: true }));
+    assert.equal(result.status, "not_supported");
+    assert.equal(result.players.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("getTeamRoster: OpenAI fallback never runs when allowOpenAiFallback is not set, even for NBA — opt-in only", async () => {
+  const restore = mockTwoStepOpenAIFetch();
+  try {
+    const result = await withOpenAIKey(() => getTeamRoster("nba", "some-id", { teamName: "Some Team" }));
+    assert.equal(result.players.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("getTeamRoster: NBA + allowOpenAiFallback resolves a validated roster with synthetic stable ids and provenance, once Tier 1/2 have nothing", () =>
+  withOpenAIKey(async () => {
+    const restore = mockTwoStepOpenAIFetch();
+    try {
+      const result = await getTeamRoster("nba", "some-id", { teamName: `Test Team ${Date.now()}`, allowOpenAiFallback: true });
+      assert.equal(result.status, "hit");
+      assert.equal(result.players.length, 6);
+      assert.equal(result.players[0].id, "openai:nba:player-0");
+      assert.equal(result.provenance?.resolver, "openai_web_search");
+    } finally {
+      restore();
+    }
+  }));

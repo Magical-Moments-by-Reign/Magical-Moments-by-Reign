@@ -222,7 +222,17 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
   }
 }
 
-async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean): Promise<DirectoryGroup[]> {
+export interface ResolvedDivisions {
+  groups: DirectoryGroup[];
+  /** Real static team names that had no match in the live catalog on this
+   *  resolution — always populated regardless of logDiagnostics (that flag
+   *  only controls the console.warn line below); getTeamDirectory surfaces
+   *  this to the Owner-only UI banner so a real mismatch is visible without
+   *  needing server console access. */
+  misses: string[];
+}
+
+async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean): Promise<ResolvedDivisions> {
   try {
     const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport));
     const misses: string[] = [];
@@ -230,7 +240,7 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
     for (const { conference, division, teams } of spec) {
       const resolved: DirectoryTeam[] = teams.map((name) => {
         const team = resolveVerifiedTeamIdentity(sport, name, catalogByName);
-        if (!team && logDiagnostics) misses.push(name);
+        if (!team) misses.push(name);
         // See getVerifiedStandingsFallback's comment on this same pattern —
         // an unresolved team gets no id, never its own name standing in.
         // A resolved team's record comes from the real standings the
@@ -256,11 +266,11 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
     if (logDiagnostics && misses.length) {
       console.warn(`[team-directory] ${sport}: ${misses.length} of ${spec.reduce((n, s) => n + s.teams.length, 0)} static team(s) had no real catalog match — ${misses.join(", ")}`);
     }
-    return Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions }));
+    return { groups: Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions })), misses };
   } catch {
     // A live team-resolution call failing unexpectedly must never take the
     // All Teams directory down with it.
-    return [];
+    return { groups: [], misses: [] };
   }
 }
 
@@ -275,9 +285,9 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
  *  result and already fetch one separately when they do. `logDiagnostics`
  *  should only ever be true for an Owner's own page view (see
  *  resolveDivisions) — never wired to a member-visible request. */
-export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = [], logDiagnostics = false): Promise<DirectoryGroup[]> {
+export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = [], logDiagnostics = false): Promise<ResolvedDivisions> {
   const spec = VERIFIED_REFERENCE[sport];
-  if (!spec) return [];
+  if (!spec) return { groups: [], misses: [] };
   return resolveDivisions(sport, spec, buildRecordByTeamId(standingsGroups), logDiagnostics);
 }
 
@@ -350,7 +360,7 @@ export function buildTeamDirectoryFromCatalog(
 export async function getTeamById(sport: SportSlug, teamId: string): Promise<DirectoryTeam | null> {
   if (!teamId) return null;
   if (hasVerifiedReference(sport)) {
-    const groups = await getTeamDirectory(sport).catch(() => []);
+    const { groups } = await getTeamDirectory(sport).catch(() => ({ groups: [], misses: [] }) as ResolvedDivisions);
     for (const g of groups) {
       for (const d of g.divisions) {
         const match = d.teams.find((t) => t.id === teamId);

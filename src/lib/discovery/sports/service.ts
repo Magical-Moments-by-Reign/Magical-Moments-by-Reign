@@ -10,7 +10,8 @@ import { withCache, cacheKeyFor } from "../cache";
 import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
-import { resolveSdioTeamId, getSdioTeamDirectory } from "./team-identity";
+import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
+import { resolveNbaRosterViaOpenAI, type SportsDataProvenance } from "./openai-resolver";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
@@ -131,8 +132,15 @@ async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsG
           // schema migration defaulted to "regular" — or one synced before
           // the provider's own stage label caught up — corrects itself the
           // next real time this exact game is fetched, instead of staying
-          // permanently mislabeled.
+          // permanently mislabeled. Team identity fields are refreshed here
+          // too for the same reason: a row synced before a resolver fix
+          // shipped (e.g. a raw SportsDataIO team code like "GSV" that
+          // leaked in as homeTeamName before resolveSdioGameTeam existed)
+          // must self-heal the next time this exact game is fetched, not
+          // stay wrong forever just because it already exists in the DB.
           seasonPhase: classifySeasonPhase(g.stage),
+          homeTeamId: g.homeTeam.id || null, homeTeamName: g.homeTeam.name, homeTeamLogoUrl: g.homeTeam.logoUrl,
+          awayTeamId: g.awayTeam.id || null, awayTeamName: g.awayTeam.name, awayTeamLogoUrl: g.awayTeam.logoUrl,
           status: g.status, period: g.period, homeScore: g.homeScore, awayScore: g.awayScore, lastSyncedAt: new Date(),
         },
       }).catch(() => null)
@@ -427,12 +435,30 @@ function sdioStatusToGameStatus(status: string | undefined): "scheduled" | "live
   return "scheduled";
 }
 
+/** Resolves a raw SportsDataIO team string — which toSdioGame may have had
+ *  to fall back to a short team code/Key for (e.g. "GSV") when the
+ *  provider's Games row omitted HomeTeamName/AwayTeamName — to a real,
+ *  customer-facing identity: canonical full name from the SportsDataIO
+ *  team-identity directory (resolveSdioTeamIdentity), and API-Sports'
+ *  id/logo looked up BY that canonical name rather than the raw code, so a
+ *  code that would never match anything in API-Sports' own catalog no
+ *  longer breaks logo resolution too. Falls back to the raw string as the
+ *  name only when the real directory genuinely has no match for it —
+ *  never invented, always the best real name available. */
+async function resolveSdioGameTeam(sport: SportSlug, league: SdioLeague, raw: string): Promise<{ id: string; name: string; logoUrl?: string }> {
+  const identity = await resolveSdioTeamIdentity(league, raw);
+  const name = identity?.fullName ?? raw;
+  const resolved = await resolveTeamByName(sport, name);
+  return { id: resolved?.id ?? "", name, logoUrl: resolved?.logoUrl };
+}
+
 /** Real games for one date from SportsDataIO, for any sport with a
  *  SportsDataIO product connected (see sdioLeagueFor) — secondary source
  *  for Today's Games when API-Sports has nothing for that date. Each team
- *  is resolved to its real API-Sports logo the same way the hero countdown
- *  does. Returns [] on missing config, an unsupported sport, a failed
- *  call, or a genuinely empty schedule for that date. */
+ *  is resolved to its real canonical name and API-Sports logo (see
+ *  resolveSdioGameTeam) the same way the hero countdown does. Returns []
+ *  on missing config, an unsupported sport, a failed call, or a genuinely
+ *  empty schedule for that date. */
 async function getGamesByDateFromSportsData(sport: SportSlug, dateISO: string): Promise<SportsGameSummary[]> {
   const league = sdioLeagueFor(sport);
   if (!league) return [];
@@ -442,13 +468,13 @@ async function getGamesByDateFromSportsData(sport: SportSlug, dateISO: string): 
   if (!games.length) return [];
   const defaultLeague = defaultLeagueId(sport);
   return Promise.all(games.map(async (g): Promise<SportsGameSummary> => {
-    const [home, away] = await Promise.all([resolveTeamByName(sport, g.homeTeam), resolveTeamByName(sport, g.awayTeam)]);
+    const [home, away] = await Promise.all([resolveSdioGameTeam(sport, league, g.homeTeam), resolveSdioGameTeam(sport, league, g.awayTeam)]);
     return {
       externalId: g.externalId,
       sport,
       league: defaultLeague,
-      homeTeam: { id: home?.id ?? "", name: g.homeTeam, logoUrl: home?.logoUrl },
-      awayTeam: { id: away?.id ?? "", name: g.awayTeam, logoUrl: away?.logoUrl },
+      homeTeam: home,
+      awayTeam: away,
       startsAt: g.startsAt,
       status: sdioStatusToGameStatus(g.status),
     };
@@ -609,6 +635,11 @@ export interface RosterResult {
    *  member-facing response (see team-roster/route.ts); it's for owner/admin
    *  diagnostics only. */
   planRestrictedReason?: string;
+  /** Set only when this roster was resolved through the OpenAI web_search
+   *  fallback (see openai-resolver.ts) — never set for a Tier 1/2 provider
+   *  hit. Route handlers must surface this to the client so the citation
+   *  can be shown; see team-roster/route.ts and TeamRosterPanel.tsx. */
+  provenance?: SportsDataProvenance;
 }
 
 /** A followed team's real current-season roster — we can't show injuries
@@ -624,7 +655,11 @@ export interface RosterResult {
  *  can never be silently rendered as "this team just has no roster" — see
  *  RosterStatus above. A plan-restricted response is never cached (same
  *  "don't cache an outage" discipline as getGamesByDate). */
-export async function getTeamRoster(sport: SportSlug, teamExternalId: string, opts?: { teamName?: string; allowSecondarySource?: boolean }): Promise<RosterResult> {
+export async function getTeamRoster(
+  sport: SportSlug,
+  teamExternalId: string,
+  opts?: { teamName?: string; allowSecondarySource?: boolean; allowOpenAiFallback?: boolean },
+): Promise<RosterResult> {
   if (!teamExternalId) return { players: [], status: "not_supported" };
 
   let status: RosterStatus = "not_supported";
@@ -649,6 +684,27 @@ export async function getTeamRoster(sport: SportSlug, teamExternalId: string, op
   if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName) {
     const secondary = await getRosterFromSportsData(sport, opts.teamName);
     if (secondary.length) return { players: secondary, status: "hit" };
+  }
+
+  // Tier 3+4 of the Verified Sports Data Source Ladder — NBA rosters only,
+  // Phase 1 (see openai-resolver.ts). Owner-gated at the route level today
+  // (see team-roster/route.ts) pending live verification against a real
+  // OpenAI account before broader exposure. Never runs for any other sport.
+  if (sport === "nba" && opts?.allowOpenAiFallback && opts.teamName) {
+    const resolved = await resolveNbaRosterViaOpenAI(opts.teamName);
+    if (resolved?.players.length) {
+      const players: SportsRosterPlayer[] = resolved.players.map((p) => ({
+        // No real provider id exists for an OpenAI-resolved player — a
+        // stable, deterministic synthetic id (never a random one, so it
+        // stays the same across cache hits/re-renders) rather than an
+        // invented provider id that could be mistaken for a real one.
+        id: `openai:nba:${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        name: p.name,
+        position: p.position,
+        number: p.number,
+      }));
+      return { players, status: "hit", provenance: resolved.provenance };
+    }
   }
 
   return { players: [], status, planRestrictedReason };
@@ -1788,10 +1844,54 @@ export interface MyPickHistoryRow {
   seasonPhase: "preseason" | "regular" | "postseason";
 }
 
+// Generous buffer for ANY real sport's game length (including overtime) —
+// past this, a game still marked anything other than "final" locally is
+// almost certainly just stale, not still in progress.
+const OVERDUE_PICK_MS = 6 * 60 * 60 * 1000; // 6h
+
+/** Resyncs any game this account has a still-pending pick on, whose start
+ *  time is safely in the past but whose local row was never refreshed to
+ *  "final" — because nothing has browsed back to that date since it
+ *  happened. Reuses the exact same getGamesByDate pipeline every other
+ *  Sports page already goes through, which grades any now-final games as a
+ *  side effect (see syncGamesToLocal) — no separate grading path, no
+ *  guessed result. A game the provider still doesn't report as final (or
+ *  an Owner-entered game with no externalId to resync) stays honestly
+ *  pending. One getGamesByDate call per distinct (sport, date, league)
+ *  combination among the overdue picks, never one per pick — and each of
+ *  those calls is itself cached for hours, so a member re-opening My Picks
+ *  repeatedly doesn't repeatedly hit the paid provider. */
+async function reconcileOverduePicks(accountId: string): Promise<void> {
+  const overdue = await prisma.sportsPick.findMany({
+    where: {
+      accountId,
+      pickType: "HEAD_TO_HEAD",
+      isCorrect: null,
+      game: { status: { not: "final" }, startsAt: { lt: new Date(Date.now() - OVERDUE_PICK_MS) }, externalId: { not: null } },
+    },
+    include: { game: { select: { sport: true, league: true, startsAt: true } } },
+  });
+  if (!overdue.length) return;
+  const seen = new Set<string>();
+  const jobs: { sport: SportSlug; dateISO: string; league: string }[] = [];
+  for (const p of overdue) {
+    const dateISO = p.game.startsAt.toISOString().slice(0, 10);
+    const key = `${p.game.sport}:${dateISO}:${p.game.league}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    jobs.push({ sport: p.game.sport as SportSlug, dateISO, league: p.game.league });
+  }
+  await resolveWithFailureIsolation(jobs, (j) => getGamesByDate(j.sport, j.dateISO, j.league), () => null);
+}
+
 /** A member's own real pick rows, most recent game first — My Picks / Pick
  *  History on the unified Magical Picks page. RACE_WINNER (F1) picks are
- *  excluded — they have no single team side to show in this shape. */
+ *  excluded — they have no single team side to show in this shape.
+ *  Reconciles any overdue-but-still-pending pick first (see
+ *  reconcileOverduePicks) so a game that actually finished shows its real
+ *  result instead of staying stuck on "Pending" forever. */
 export async function getMyPickHistory(accountId: string, limit = 30): Promise<MyPickHistoryRow[]> {
+  await reconcileOverduePicks(accountId).catch(() => {});
   const rows = await prisma.sportsPick.findMany({
     where: { accountId, pickType: "HEAD_TO_HEAD" },
     include: { game: { select: { sport: true, homeTeamName: true, homeTeamLogoUrl: true, awayTeamName: true, awayTeamLogoUrl: true, startsAt: true, status: true, seasonPhase: true } } },
