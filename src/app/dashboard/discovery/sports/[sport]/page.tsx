@@ -12,7 +12,7 @@ import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
-import { ApiSportsProvider, MATCHUP_SPORTS, type SportSlug } from "@/lib/discovery/providers/sports";
+import { ApiSportsProvider, MATCHUP_SPORTS, fetchSeasonCatalogDiagnostic, seasonParam, previousSeasonParam, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -410,6 +410,19 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // once VERIFIED_TEAM_ALIASES is filled in and every team resolves — see
   // team-directory.ts's own doc comments on both.
   const directoryLiveCatalog = isOwner ? (verifiedDirectory?.liveCatalog ?? []) : [];
+  // TEMPORARY DIAGNOSTIC — proves or disproves the "current NBA season
+  // isn't fully populated yet" hypothesis: the real /teams request run for
+  // BOTH the current and previous season, side by side, Owner-only. NBA
+  // only, and only when there's an actual miss to investigate (never an
+  // extra provider round-trip on every NBA page view). Remove this block
+  // and its rendering once the hypothesis is resolved and any resulting
+  // fix has shipped — see fetchSeasonCatalogDiagnostic's own doc comment.
+  const seasonDiagnostics = sport === "nba" && isOwner && directoryMisses.length > 0
+    ? await Promise.all([
+        fetchSeasonCatalogDiagnostic("nba", league, seasonParam("nba", new Date().toISOString())),
+        fetchSeasonCatalogDiagnostic("nba", league, previousSeasonParam("nba", new Date().toISOString())),
+      ]).catch(() => [])
+    : [];
   const directoryGroups: DirectoryGroup[] = verifiedDirectory
     ? verifiedDirectory.groups
     : teamCatalog.length
@@ -756,6 +769,24 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                       <li key={t.id}>{t.name} <span style={{ opacity: 0.65 }}>(id: {t.id})</span></li>
                     ))}
                   </ul>
+                </details>
+              )}
+              {seasonDiagnostics.length > 0 && (
+                <details className="spx-panel__owner-diagnostic">
+                  <summary>Owner diagnostic — current vs. previous season comparison</summary>
+                  <p style={{ margin: ".5rem 0" }}>Same real /teams request, two seasons — checks whether the current season&rsquo;s catalog is simply not fully populated yet.</p>
+                  {seasonDiagnostics.map((d) => (
+                    <div key={d.season} style={{ marginBottom: ".8rem" }}>
+                      <p style={{ margin: "0 0 .3rem", fontWeight: 700 }}>
+                        Season {d.season}: {d.requestSucceeded ? "request succeeded" : "request failed"} · raw response count {d.rawResponseCount ?? "n/a"} · paging {d.pagingCurrent ?? "n/a"}/{d.pagingTotal ?? "n/a"} · parsed catalog {d.parsedCatalogCount}
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
+                        {d.teams.map((t) => (
+                          <li key={t.id}>{t.name} <span style={{ opacity: 0.65 }}>(id: {t.id})</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </details>
               )}
             </>
