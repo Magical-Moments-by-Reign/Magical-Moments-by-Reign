@@ -11,7 +11,8 @@ import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeag
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
-import { resolveNbaRosterViaOpenAI, type SportsDataProvenance } from "./openai-resolver";
+import { resolveRosterViaOpenAI, type SportsDataProvenance } from "./openai-resolver";
+import { normalizePlayerName } from "./player-name";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
 import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
@@ -766,13 +767,19 @@ export async function getNbaHeroState(): Promise<NbaHeroState | null> {
 /** Distinguishes WHY a roster call came back with no players — the member-
  *  facing gap this closes: "our plan can't ask for this" (plan_restricted)
  *  looked identical to "the provider genuinely has nothing" (empty) before
- *  this existed, both collapsing to the same silent []. `hit` covers both a
- *  real API-Sports roster AND a real SportsDataIO fallback roster — callers
- *  that need to know which provider answered already have that from
- *  allowSecondarySource being the only way SportsDataIO gets asked at all.
- *  `not_supported` is for a team with no resolvable id at all (nothing to
- *  even ask a provider for) or a sport API-Sports doesn't cover. */
+ *  this existed, both collapsing to the same silent []. `hit` covers a real
+ *  roster from any tier (or a merge across tiers) — see RosterResult.sources
+ *  for which one(s) actually contributed. `not_supported` is for a team with
+ *  no resolvable id at all (nothing to even ask a provider for) or a sport
+ *  API-Sports doesn't cover. */
 export type RosterStatus = "hit" | "empty" | "plan_restricted" | "error" | "not_supported";
+
+/** Which real source(s) contributed to a roster response — never inferred,
+ *  always exactly the tiers that returned usable data for THIS response.
+ *  More than one entry means Tier 1 supplied real player identity and a
+ *  later tier genuinely filled in fields Tier 1 was missing (see
+ *  mergeRosterPlayerFields) — not that a later tier replaced Tier 1. */
+export type RosterSourceTier = "api-sports" | "sportsdataio" | "openai_web_search";
 
 export interface RosterResult {
   players: SportsRosterPlayer[];
@@ -782,21 +789,99 @@ export interface RosterResult {
    *  member-facing response (see team-roster/route.ts); it's for owner/admin
    *  diagnostics only. */
   planRestrictedReason?: string;
-  /** Set only when this roster was resolved through the OpenAI web_search
-   *  fallback (see openai-resolver.ts) — never set for a Tier 1/2 provider
-   *  hit. Route handlers must surface this to the client so the citation
-   *  can be shown; see team-roster/route.ts and TeamRosterPanel.tsx. */
+  /** Set only when at least one field in this roster was resolved through
+   *  the OpenAI web_search fallback (see openai-resolver.ts) — whether that
+   *  tier supplied the whole roster or only enriched missing fields on an
+   *  otherwise real Tier 1/2 roster. Never set when OpenAI contributed
+   *  nothing. Route handlers surface this so the citation can be shown; see
+   *  team-roster/route.ts and TeamRosterPanel.tsx. */
   provenance?: SportsDataProvenance;
+  /** Real source attribution for this response — see RosterSourceTier.
+   *  Always present once at least one tier was actually reached; absent
+   *  only for the trivial "no team id at all" early return, which never
+   *  asked any provider anything. */
+  sources?: RosterSourceTier[];
 }
 
-/** A followed team's real current-season roster — we can't show injuries
- *  (not part of the connected API-Sports plan), so this is the honest
- *  substitute: real players, real jersey numbers/positions, straight from
- *  the provider. Never invents a name. Falls back to SportsDataIO (NBA
- *  only, and only when the caller passes `allowSecondarySource` — see
- *  getNbaRosterFromSportsData's doc comment for why this one's gated more
- *  cautiously than the schedule/standings fallbacks) when API-Sports has
- *  nothing for this team.
+/** True when a real roster player is still missing a field a later tier
+ *  could legitimately fill — the trigger for attempting Tier 2/3
+ *  enrichment even though Tier 1 already returned real players. Scoped to
+ *  position/number (the fields the Owner-reported gap was actually about,
+ *  and the fields every tier can realistically supply) — deliberately NOT
+ *  triggered by a missing photoUrl alone, which is common and would
+ *  otherwise force an extra provider call on nearly every roster fetch
+ *  (cost-aware, see CLAUDE.md §18); a photo is still opportunistically
+ *  filled by mergeRosterPlayerFields whenever a supplement call happens
+ *  for position/number reasons anyway. Exported for tests. */
+export function playerNeedsEnrichment(p: SportsRosterPlayer): boolean {
+  return p.position === undefined || p.number === undefined;
+}
+
+/** The field-level completeness fix: merges REAL fields from `supplement`
+ *  into `base` for players that already exist in `base` — never adds a
+ *  player `base` doesn't have, never removes one, and never overwrites a
+ *  field `base` already has a real value for. This is what lets Tier 1
+ *  (whichever provider answered first) keep real identity/roster
+ *  membership while a later tier only fills in what Tier 1's own response
+ *  was missing (e.g. API-Sports had name+id but no position for some
+ *  players; SportsDataIO's directory has the missing positions) — the
+ *  fix for "some players have a position, others don't," which the old
+ *  roster-level "any nonzero list wins" logic could never close (a partial
+ *  Tier 1 hit used to skip every later tier entirely, even though those
+ *  tiers might have had exactly the missing fields).
+ *
+ *  Players are matched by real, provider-reported name only — normalized
+ *  via normalizePlayerName (never a fuzzy/substring match) — since the two
+ *  providers use different id spaces with no shared key. An unmatched
+ *  supplement player is simply not used (this never adds a name Tier 1
+ *  doesn't already know about). Returns the SAME array reference when
+ *  nothing actually changed, so callers can detect a real merge with a
+ *  plain reference check (same idiom as mergeCatalogWithPriorSeason
+ *  above). Exported for tests. */
+export function mergeRosterPlayerFields(base: SportsRosterPlayer[], supplement: SportsRosterPlayer[]): SportsRosterPlayer[] {
+  if (!supplement.length) return base;
+  const supplementByName = new Map<string, SportsRosterPlayer>();
+  for (const s of supplement) {
+    const key = normalizePlayerName(s.name);
+    if (!supplementByName.has(key)) supplementByName.set(key, s);
+  }
+  let changed = false;
+  const merged = base.map((p) => {
+    const match = supplementByName.get(normalizePlayerName(p.name));
+    if (!match) return p;
+    const position = p.position ?? match.position;
+    const number = p.number ?? match.number;
+    const photoUrl = p.photoUrl ?? match.photoUrl;
+    if (position === p.position && number === p.number && photoUrl === p.photoUrl) return p;
+    changed = true;
+    return { ...p, position, number, photoUrl };
+  });
+  return changed ? merged : base;
+}
+
+/** A team's real, CURRENT-season roster — we can't show injuries (not part
+ *  of the connected API-Sports plan), so this is the honest substitute:
+ *  real players, real jersey numbers/positions, straight from the
+ *  provider(s). Never invents a name, never presents a prior season's
+ *  roster as the current one (see the module-level notes on the shared
+ *  roster architecture fix — a roster's real membership can genuinely
+ *  differ season to season, unlike team identity, so there is deliberately
+ *  no previous-season retry here the way getStandingsWithOffSeasonFallback/
+ *  getLeagueTeamCatalogWithOffSeasonFallback have for standings/catalogs).
+ *
+ *  Field-aware across tiers (the shared fix for the Owner-reported "some
+ *  players have a position, others don't" gap): Tier 1 (API-Sports) sets
+ *  the real roster identity; Tier 2 (SportsDataIO, gated by
+ *  `allowSecondarySource` — see getRosterFromSportsData's doc comment for
+ *  why this one's gated more cautiously than the schedule/standings
+ *  fallbacks) and Tier 3 (OpenAI verified web_search, gated by
+ *  `allowOpenAiFallback`, and only for a league with a real trusted-domain
+ *  policy — see openai-resolver.ts) are each attempted whenever Tier 1 (or
+ *  whatever ran before them) either has NOTHING or has real players still
+ *  missing position/number — never only when the prior tier was totally
+ *  empty. A later tier only FILLS missing fields on players Tier 1 already
+ *  identified (see mergeRosterPlayerFields) — it never overwrites a real
+ *  Tier 1 value, and never adds a player Tier 1 doesn't already know about.
  *
  *  Always returns a `status` alongside the players so a plan restriction
  *  can never be silently rendered as "this team just has no roster" — see
@@ -811,6 +896,9 @@ export async function getTeamRoster(
 
   let status: RosterStatus = "not_supported";
   let planRestrictedReason: string | undefined;
+  let base: SportsRosterPlayer[] | null = null;
+  let provenance: SportsDataProvenance | undefined;
+  const sources: RosterSourceTier[] = [];
 
   if (ApiSportsProvider.isConfigured(sport)) {
     const season = seasonParam(sport, new Date().toISOString());
@@ -823,38 +911,76 @@ export async function getTeamRoster(
       }
       return result;
     });
-    if (cached?.data?.players.length) return { players: cached.data.players, status: "hit" };
-    status = restriction ? "plan_restricted" : cached?.data ? "empty" : "error";
-    planRestrictedReason = restriction;
+    if (cached?.data?.players.length) {
+      base = cached.data.players;
+      sources.push("api-sports");
+    } else {
+      status = restriction ? "plan_restricted" : cached?.data ? "empty" : "error";
+      planRestrictedReason = restriction;
+    }
   }
 
-  if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName) {
+  // Tier 2: SportsDataIO — attempted whenever Tier 1 has nothing yet, OR
+  // has real players still missing a field it can supply (never only on a
+  // fully-empty Tier 1, which was the old, insufficient "roster-level hit"
+  // check). When Tier 1 already has a real roster, this only ever FILLS
+  // missing fields (see mergeRosterPlayerFields) — Tier 1's own real
+  // identity/roster membership is never replaced.
+  if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName && (base === null || base.some(playerNeedsEnrichment))) {
     const secondary = await getRosterFromSportsData(sport, opts.teamName);
-    if (secondary.length) return { players: secondary, status: "hit" };
+    if (secondary.length) {
+      if (base) {
+        const merged = mergeRosterPlayerFields(base, secondary);
+        if (merged !== base) {
+          base = merged;
+          sources.push("sportsdataio");
+        }
+      } else {
+        base = secondary;
+        sources.push("sportsdataio");
+      }
+    }
   }
 
-  // Tier 3+4 of the Verified Sports Data Source Ladder — NBA rosters only,
-  // Phase 1 (see openai-resolver.ts). Owner-gated at the route level today
-  // (see team-roster/route.ts) pending live verification against a real
-  // OpenAI account before broader exposure. Never runs for any other sport.
-  if (sport === "nba" && opts?.allowOpenAiFallback && opts.teamName) {
-    const resolved = await resolveNbaRosterViaOpenAI(opts.teamName);
+  // Tier 3+4 of the Verified Sports Data Source Ladder — same
+  // fills-missing-fields-only discipline as Tier 2. resolveRosterViaOpenAI
+  // is the single source of truth for which leagues have a real,
+  // reviewed trusted-domain policy (see openai-resolver.ts's
+  // ROSTER_RESOLVER_LEAGUES) — it returns null immediately, before any
+  // network call, for an unsupported league (e.g. ncaaf today), so this
+  // call site needs no sport-specific gate of its own. Owner-gated at the
+  // route level (see team-roster/route.ts) pending live verification
+  // against a real OpenAI account before broader member exposure.
+  if (opts?.allowOpenAiFallback && opts.teamName && (base === null || base.some(playerNeedsEnrichment))) {
+    const resolved = await resolveRosterViaOpenAI(sport, opts.teamName);
     if (resolved?.players.length) {
-      const players: SportsRosterPlayer[] = resolved.players.map((p) => ({
+      const openAiPlayers: SportsRosterPlayer[] = resolved.players.map((p) => ({
         // No real provider id exists for an OpenAI-resolved player — a
         // stable, deterministic synthetic id (never a random one, so it
         // stays the same across cache hits/re-renders) rather than an
         // invented provider id that could be mistaken for a real one.
-        id: `openai:nba:${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        id: `openai:${sport}:${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
         name: p.name,
         position: p.position,
         number: p.number,
       }));
-      return { players, status: "hit", provenance: resolved.provenance };
+      if (base) {
+        const merged = mergeRosterPlayerFields(base, openAiPlayers);
+        if (merged !== base) {
+          base = merged;
+          sources.push("openai_web_search");
+          provenance = resolved.provenance;
+        }
+      } else {
+        base = openAiPlayers;
+        sources.push("openai_web_search");
+        provenance = resolved.provenance;
+      }
     }
   }
 
-  return { players: [], status, planRestrictedReason };
+  if (base && base.length) return { players: base, status: "hit", sources, ...(provenance ? { provenance } : {}) };
+  return { players: [], status, planRestrictedReason, sources };
 }
 
 const TTL_INJURIES = 60; // 1h — a real injury report changes daily during the season, faster-moving than the roster/standings caches

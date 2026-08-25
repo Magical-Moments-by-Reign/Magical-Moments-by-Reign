@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { careerStartYear, sumCareerTotals, resolveProfileLinksFromDirectory, getPlayerIdDirectoryByName, type PlayerSeasonLine } from "./player-profile";
+import { normalizePlayerName } from "./player-name";
 
 test("careerStartYear: a real draft year is authoritative — Mack Hollins entered the NFL in 2017", () => {
   assert.equal(careerStartYear({ draftYear: 2017 }, 2026), 2017);
@@ -81,6 +82,26 @@ test("resolveProfileLinksFromDirectory: a directory that failed to fetch (empty 
 
 test("resolveProfileLinksFromDirectory: an unmatched real name resolves to null, never a guess", () => {
   const links = resolveProfileLinksFromDirectory([{ id: "p1", name: "Real Player Name" }], new Map([["someone else", "sdio-1"]]));
+  assert.equal(links.get("p1"), null);
+});
+
+// ── Shared roster architecture fix: cross-provider name matching now goes
+// through normalizePlayerName (suffix/diacritic-insensitive) instead of a
+// bare .toLowerCase().trim() — closing a real, previously-silent class of
+// "player exists in both providers but never resolves a profile link"
+// failures (e.g. one provider reports "Jr."/"III", the other omits it).
+test("resolveProfileLinksFromDirectory: matches across a generational suffix difference between providers (e.g. Tier 1 has \"Jr.\", the directory doesn't)", () => {
+  const links = resolveProfileLinksFromDirectory([{ id: "p1", name: "Marvin Harrison Jr." }], new Map([["marvin harrison", "sdio-1"]]));
+  assert.equal(links.get("p1"), "sdio-1");
+});
+
+test("resolveProfileLinksFromDirectory: \"Mike Williams\" and \"Mike Williams Jr.\" normalize to the same key (the suffix strip is intentional — the two providers likely mean the same real person)", () => {
+  const links = resolveProfileLinksFromDirectory([{ id: "p1", name: "Mike Williams" }], new Map([[normalizePlayerName("Mike Williams Jr."), "sdio-1"]]));
+  assert.equal(links.get("p1"), "sdio-1");
+});
+
+test("resolveProfileLinksFromDirectory: still never conflates two genuinely different real names", () => {
+  const links = resolveProfileLinksFromDirectory([{ id: "p1", name: "Mike Williams" }], new Map([[normalizePlayerName("Mike Evans"), "sdio-1"]]));
   assert.equal(links.get("p1"), null);
 });
 
