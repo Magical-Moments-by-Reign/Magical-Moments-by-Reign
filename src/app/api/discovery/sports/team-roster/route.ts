@@ -34,12 +34,17 @@ export async function GET(req: NextRequest) {
 
     const isOwner = await isOwnerAccount(account.id);
     const allowSdio = Boolean(sdioLeagueFor(sport)) && sdioConfigured() && (sdioCommercialMode() || isOwner);
-    // OpenAI web_search fallback (NBA only, Phase 1) — Owner-only for now.
-    // Broader member exposure is gated behind the Owner performing a live
-    // verification pass against the real configured OpenAI account (see
-    // the PR description's Live Verification Gate) — this is not a
-    // permanent restriction, just today's rollout state.
-    const allowOpenAiFallback = sport === "nba" && isOwner;
+    // OpenAI web_search fallback — Owner-only for now, for every league
+    // that resolver actually supports (see resolveRosterViaOpenAI's own
+    // ROSTER_RESOLVER_LEAGUES map in openai-resolver.ts — that map is the
+    // single source of truth for which sports this fallback covers; this
+    // route deliberately does NOT duplicate a sport allowlist here, only
+    // the Owner-preview rollout decision). Broader member exposure is
+    // gated behind the Owner performing a live verification pass against
+    // the real configured OpenAI account (see the PR description's Live
+    // Verification Gate) — this is not a permanent restriction, just
+    // today's rollout state.
+    const allowOpenAiFallback = isOwner;
 
     const result = await getTeamRoster(sport, teamId, { teamName: teamName || undefined, allowSecondarySource: allowSdio, allowOpenAiFallback });
     if (!result.players.length) {
@@ -67,12 +72,17 @@ export async function GET(req: NextRequest) {
       return { ...p, profileHref: profilePlayerId ? `/dashboard/discovery/sports/player/${sdioLeague}/${profilePlayerId}` : null };
     });
 
-    // provenance is only ever present when the roster came from the OpenAI
-    // fallback (see getTeamRoster) — a Tier 1/2 provider hit never sets it,
-    // so a regular provider-backed roster renders with no citation line.
+    // provenance is only ever present when at least one field in this
+    // roster came from the OpenAI fallback (see getTeamRoster) — a pure
+    // Tier 1/2 provider hit never sets it, so a regular provider-backed
+    // roster renders with no citation line. `sources` is safe to always
+    // include (real provider names only, never a key/header/secret) —
+    // real per-response attribution of which tier(s) actually contributed,
+    // for the same "preserve provenance" discipline as `provenance`.
     return NextResponse.json({
       roster: withLinks,
       status: "hit",
+      sources: result.sources ?? [],
       ...(result.provenance ? { provenance: result.provenance } : {}),
     });
   } catch {

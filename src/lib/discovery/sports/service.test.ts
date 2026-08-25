@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNcaafLiveDiagnostic } from "./service";
-import type { SportsTeam } from "../providers/sports";
+import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNcaafLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields } from "./service";
+import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
 // both the current-season and (when retried) prior-season /teams calls
@@ -307,12 +307,171 @@ test("Sports page top-level load: every optional enrichment source throws — th
   assert.deepEqual(fantasyLeagues, []);
 });
 
+// ── playerNeedsEnrichment / mergeRosterPlayerFields: the shared roster
+// field-completeness fix. Pure, no network — the real logic under every
+// tier's "should I even attempt this?" and "what does merging actually do?"
+// decisions in getTeamRoster below.
+
+function player(overrides: Partial<SportsRosterPlayer> & { id: string; name: string }): SportsRosterPlayer {
+  return { position: undefined, number: undefined, photoUrl: undefined, ...overrides };
+}
+
+test("playerNeedsEnrichment: true when position or number is missing, false when both are present", () => {
+  assert.equal(playerNeedsEnrichment(player({ id: "1", name: "A" })), true);
+  assert.equal(playerNeedsEnrichment(player({ id: "1", name: "A", position: "G" })), true);
+  assert.equal(playerNeedsEnrichment(player({ id: "1", name: "A", number: 5 })), true);
+  assert.equal(playerNeedsEnrichment(player({ id: "1", name: "A", position: "G", number: 5 })), false);
+});
+
+test("playerNeedsEnrichment: a missing photoUrl alone does NOT trigger enrichment (cost-aware — position/number only)", () => {
+  assert.equal(playerNeedsEnrichment(player({ id: "1", name: "A", position: "G", number: 5, photoUrl: undefined })), false);
+});
+
+test("mergeRosterPlayerFields: Tier 1 partial roster — Tier 2 fills ONLY the missing fields, never overwrites a real Tier 1 value", () => {
+  const base = [
+    player({ id: "1", name: "Alice Smith", position: "G" }), // missing number
+    player({ id: "2", name: "Bob Jones" }), // missing both
+  ];
+  const supplement = [
+    player({ id: "sdio-1", name: "Alice Smith", position: "F", number: 10 }), // position differs — Tier 1 wins
+    player({ id: "sdio-2", name: "Bob Jones", position: "C", number: 22 }),
+  ];
+  const merged = mergeRosterPlayerFields(base, supplement);
+  assert.equal(merged[0].id, "1"); // real Tier 1 id preserved, never swapped for Tier 2's id
+  assert.equal(merged[0].position, "G"); // Tier 1's real value wins over a conflicting Tier 2 value
+  assert.equal(merged[0].number, 10); // filled from Tier 2, since Tier 1 had none
+  assert.equal(merged[1].position, "C");
+  assert.equal(merged[1].number, 22);
+});
+
+test("mergeRosterPlayerFields: a fully complete Tier 1 roster is untouched — same array reference returned (no-op, cost-aware)", () => {
+  const base = [player({ id: "1", name: "Alice Smith", position: "G", number: 5 })];
+  const supplement = [player({ id: "sdio-1", name: "Alice Smith", position: "F", number: 99 })];
+  const merged = mergeRosterPlayerFields(base, supplement);
+  assert.equal(merged, base);
+});
+
+test("mergeRosterPlayerFields: never adds a player the base roster doesn't already have", () => {
+  const base = [player({ id: "1", name: "Alice Smith" })];
+  const supplement = [player({ id: "sdio-1", name: "Alice Smith", position: "G", number: 5 }), player({ id: "sdio-2", name: "Someone Else", position: "F", number: 9 })];
+  const merged = mergeRosterPlayerFields(base, supplement);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].name, "Alice Smith");
+});
+
+test("mergeRosterPlayerFields: matches players by normalized name across providers (suffix/diacritic-insensitive), never a different real player", () => {
+  const base = [player({ id: "1", name: "José Álvarez Jr." })];
+  const supplement = [player({ id: "sdio-1", name: "Jose Alvarez", position: "C", number: 44 })];
+  const merged = mergeRosterPlayerFields(base, supplement);
+  assert.equal(merged[0].position, "C");
+  assert.equal(merged[0].number, 44);
+});
+
+test("mergeRosterPlayerFields: an empty supplement is a no-op, returns base unchanged", () => {
+  const base = [player({ id: "1", name: "Alice Smith" })];
+  assert.equal(mergeRosterPlayerFields(base, []), base);
+});
+
+// ── getTeamRoster: multi-tier field enrichment + provenance (the shared
+// roster architecture fix). Mocks BOTH the API-Sports host
+// (v1.american-football.api-sports.io — Tier 1) and the SportsDataIO host
+// (api.sportsdata.io — Tier 2's team-identity Standings call + its Players
+// roster call) by routing on the request URL, the same pattern already
+// used in providers/sports.test.ts and providers/sportsdata.test.ts.
+
+function withProviderKeys<T>(fn: () => Promise<T>): Promise<T> {
+  const originalApiSports = process.env.API_SPORTS_KEY;
+  const originalSdio = process.env.SPORTSDATAIO_API_KEY;
+  process.env.API_SPORTS_KEY = "test-key";
+  process.env.SPORTSDATAIO_API_KEY = "test-key";
+  return fn().finally(() => {
+    if (originalApiSports === undefined) delete process.env.API_SPORTS_KEY;
+    else process.env.API_SPORTS_KEY = originalApiSports;
+    if (originalSdio === undefined) delete process.env.SPORTSDATAIO_API_KEY;
+    else process.env.SPORTSDATAIO_API_KEY = originalSdio;
+  });
+}
+
+function mockRosterProviders(): () => void {
+  const originalFetch = global.fetch;
+  global.fetch = (async (input: any) => {
+    const url = String(input);
+    if (url.includes("v1.american-football.api-sports.io/players")) {
+      // Tier 1: real players, real ids — one complete, one missing position/number.
+      return new Response(JSON.stringify({
+        response: [
+          { player: { id: 1, name: "Josh Allen" }, statistics: [{ position: "QB", number: 17 }] },
+          { player: { id: 2, name: "Stefon Diggs" } }, // no statistics block — position/number missing
+        ],
+      }), { status: 200 });
+    }
+    if (url.includes("api.sportsdata.io") && url.includes("/Standings/")) {
+      // Tier 2's team-identity resolver (getSdioTeamDirectory).
+      return new Response(JSON.stringify([{ Team: "Buffalo Bills", TeamID: 2, Key: "BUF", Wins: 11, Losses: 6 }]), { status: 200 });
+    }
+    if (url.includes("api.sportsdata.io") && url.includes("/Players")) {
+      // Tier 2's real roster — has the field Tier 1 was missing for Stefon Diggs.
+      return new Response(JSON.stringify([
+        { PlayerID: 501, Name: "Stefon Diggs", Team: "BUF", TeamID: 2, Position: "WR", Jersey: 14 },
+        { PlayerID: 502, Name: "Josh Allen", Team: "BUF", TeamID: 2, Position: "RB", Jersey: 99 }, // conflicting — Tier 1 already had this player complete
+      ]), { status: 200 });
+    }
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  return () => { global.fetch = originalFetch; };
+}
+
+test("getTeamRoster: Tier 1 fully complete roster renders as-is, sources = [api-sports] only, Tier 2 never even called", () =>
+  withProviderKeys(async () => {
+    const originalFetch = global.fetch;
+    let sdioCalled = false;
+    global.fetch = (async (input: any) => {
+      const url = String(input);
+      if (url.includes("v1.american-football.api-sports.io/players")) {
+        return new Response(JSON.stringify({
+          response: [{ player: { id: 1, name: "Josh Allen" }, statistics: [{ position: "QB", number: 17 }] }],
+        }), { status: 200 });
+      }
+      if (url.includes("api.sportsdata.io")) sdioCalled = true;
+      return new Response("[]", { status: 200 });
+    }) as typeof fetch;
+    try {
+      const result = await getTeamRoster("nfl", "2", { teamName: "Buffalo Bills", allowSecondarySource: true });
+      assert.equal(result.status, "hit");
+      assert.equal(result.players[0].position, "QB");
+      assert.equal(result.players[0].number, 17);
+      assert.deepEqual(result.sources, ["api-sports"]);
+      assert.equal(sdioCalled, false, "a fully complete Tier 1 roster must never trigger a Tier 2 call — cost-aware, see CLAUDE.md §18");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  }));
+
+test("getTeamRoster: Tier 1 partial roster — Tier 2 enriches the missing fields, Tier 1 identity/ids preserved, sources reflects both tiers", () =>
+  withProviderKeys(async () => {
+    const restore = mockRosterProviders();
+    try {
+      const result = await getTeamRoster("nfl", "2", { teamName: "Buffalo Bills", allowSecondarySource: true });
+      assert.equal(result.status, "hit");
+      const diggs = result.players.find((p) => p.id === "2");
+      assert.ok(diggs, "Tier 1's real player id must be preserved, never replaced by Tier 2's own id space");
+      assert.equal(diggs?.position, "WR"); // filled from Tier 2
+      assert.equal(diggs?.number, 14); // filled from Tier 2
+      const allen = result.players.find((p) => p.id === "1");
+      assert.equal(allen?.position, "QB"); // Tier 1's real value, NOT Tier 2's conflicting "RB"
+      assert.equal(allen?.number, 17); // Tier 1's real value, NOT Tier 2's conflicting 99
+      assert.deepEqual(result.sources, ["api-sports", "sportsdataio"]);
+    } finally {
+      restore();
+    }
+  }));
+
 // ── getTeamRoster: OpenAI fallback wiring (Tier 3+4 of the Verified Sports
 // Data Source Ladder). These exercise the SERVICE-LEVEL wiring only — the
 // resolver's own evidence-validation logic has its own direct tests in
 // openai-resolver.test.ts. No API-Sports/SportsDataIO key exists in this
 // sandbox, so Tier 1/2 are naturally unconfigured/empty here, isolating
-// the new NBA branch.
+// the OpenAI branch.
 
 function withOpenAIKey<T>(fn: () => Promise<T>): Promise<T> {
   const original = process.env.OPENAI_API_KEY;
@@ -323,7 +482,7 @@ function withOpenAIKey<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
-function mockTwoStepOpenAIFetch(): () => void {
+function mockTwoStepOpenAIFetch(citationUrl = "https://www.nba.com/team/x/roster"): () => void {
   const originalFetch = global.fetch;
   global.fetch = (async (_url: any, init: any) => {
     const req = JSON.parse(init.body);
@@ -338,7 +497,7 @@ function mockTwoStepOpenAIFetch(): () => void {
                 {
                   type: "output_text",
                   text: "five real players",
-                  annotations: [{ type: "url_citation", url: "https://www.nba.com/team/x/roster", title: "Official Roster" }],
+                  annotations: [{ type: "url_citation", url: citationUrl, title: "Official Roster" }],
                 },
               ],
             },
@@ -355,10 +514,10 @@ function mockTwoStepOpenAIFetch(): () => void {
   };
 }
 
-test("getTeamRoster: OpenAI fallback never runs for a non-NBA sport, even when allowOpenAiFallback is true", async () => {
+test("getTeamRoster: OpenAI fallback never runs for ncaaf — no verified single-domain trusted source exists for college football (see ROSTER_RESOLVER_LEAGUES in openai-resolver.ts)", async () => {
   const restore = mockTwoStepOpenAIFetch();
   try {
-    const result = await withOpenAIKey(() => getTeamRoster("nfl", "some-id", { teamName: "Some Team", allowOpenAiFallback: true }));
+    const result = await withOpenAIKey(() => getTeamRoster("ncaaf", "some-id", { teamName: "Some Team", allowOpenAiFallback: true }));
     assert.equal(result.status, "not_supported");
     assert.equal(result.players.length, 0);
   } finally {
@@ -366,7 +525,7 @@ test("getTeamRoster: OpenAI fallback never runs for a non-NBA sport, even when a
   }
 });
 
-test("getTeamRoster: OpenAI fallback never runs when allowOpenAiFallback is not set, even for NBA — opt-in only", async () => {
+test("getTeamRoster: OpenAI fallback never runs when allowOpenAiFallback is not set, even for a supported league — opt-in only", async () => {
   const restore = mockTwoStepOpenAIFetch();
   try {
     const result = await withOpenAIKey(() => getTeamRoster("nba", "some-id", { teamName: "Some Team" }));
@@ -385,6 +544,33 @@ test("getTeamRoster: NBA + allowOpenAiFallback resolves a validated roster with 
       assert.equal(result.players.length, 6);
       assert.equal(result.players[0].id, "openai:nba:player-0");
       assert.equal(result.provenance?.resolver, "openai_web_search");
+      assert.deepEqual(result.sources, ["openai_web_search"]);
+    } finally {
+      restore();
+    }
+  }));
+
+test("getTeamRoster: WNBA + allowOpenAiFallback works the same way (generalized fallback, not NBA-only)", () =>
+  withOpenAIKey(async () => {
+    const restore = mockTwoStepOpenAIFetch("https://www.wnba.com/team/x/roster");
+    try {
+      const result = await getTeamRoster("wnba", "some-id", { teamName: `Test Team ${Date.now()}`, allowOpenAiFallback: true });
+      assert.equal(result.status, "hit");
+      assert.equal(result.players.length, 6);
+      assert.equal(result.players[0].id, "openai:wnba:player-0");
+    } finally {
+      restore();
+    }
+  }));
+
+test("getTeamRoster: NFL + allowOpenAiFallback works the same way (generalized fallback, not NBA-only)", () =>
+  withOpenAIKey(async () => {
+    const restore = mockTwoStepOpenAIFetch("https://www.nfl.com/team/x/roster");
+    try {
+      const result = await getTeamRoster("nfl", "some-id", { teamName: `Test Team ${Date.now()}`, allowOpenAiFallback: true });
+      assert.equal(result.status, "hit");
+      assert.equal(result.players.length, 6);
+      assert.equal(result.players[0].id, "openai:nfl:player-0");
     } finally {
       restore();
     }

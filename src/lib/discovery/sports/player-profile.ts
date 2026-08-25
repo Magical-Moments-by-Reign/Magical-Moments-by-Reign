@@ -27,6 +27,7 @@ import { AWARD_RACES, getAwardRace } from "./awards";
 import { resolveTeamByName, sportSlugForSdio } from "./service";
 import { getCollegeCareerProfile, type CollegeCareerProfile } from "./college-career";
 import { getPlayerKnowledge } from "./player-knowledge";
+import { normalizePlayerName } from "./player-name";
 import type { TeamMembership } from "../providers/wikidata";
 
 const TTL_ROSTER = 360; // minutes — matches the roster-list TTL used elsewhere for this same endpoint
@@ -341,8 +342,8 @@ export async function findPlayerIdByName(league: SdioLeague, name: string): Prom
   const rosterCached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, kind: "all_players" }), TTL_ROSTER, () => fetchAllPlayers(league));
   const roster = rosterCached?.data;
   if (!roster?.length) return null;
-  const target = name.toLowerCase().trim();
-  return roster.find((p) => p.name.toLowerCase().trim() === target)?.playerId ?? null;
+  const target = normalizePlayerName(name);
+  return roster.find((p) => normalizePlayerName(p.name) === target)?.playerId ?? null;
 }
 
 /** Bulk version of findPlayerIdByName — resolves an ENTIRE roster's worth of
@@ -362,7 +363,7 @@ export async function getPlayerIdDirectoryByName(league: SdioLeague): Promise<Ma
   const rosterCached = await withCache("sports", "sportsdataio", cacheKeyFor({ league, kind: "all_players" }), TTL_ROSTER, () => fetchAllPlayers(league)).catch(() => null);
   const roster = rosterCached?.data ?? [];
   const map = new Map<string, string>();
-  for (const p of roster) map.set(p.name.toLowerCase().trim(), p.playerId);
+  for (const p of roster) map.set(normalizePlayerName(p.name), p.playerId);
   return map;
 }
 
@@ -378,7 +379,7 @@ export function resolveProfileLinksFromDirectory<T extends { id: string; name: s
   const links = new Map<string, string | null>();
   for (const p of players) {
     if (links.has(p.id)) continue;
-    links.set(p.id, directory.get(p.name.toLowerCase().trim()) ?? null);
+    links.set(p.id, directory.get(normalizePlayerName(p.name)) ?? null);
   }
   return links;
 }

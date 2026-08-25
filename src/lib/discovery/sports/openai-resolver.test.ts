@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveNbaRosterViaOpenAI, TRUSTED_NBA_DOMAINS } from "./openai-resolver";
+import { resolveNbaRosterViaOpenAI, resolveRosterViaOpenAI, TRUSTED_NBA_DOMAINS } from "./openai-resolver";
 
 function withKey<T>(fn: () => Promise<T>): Promise<T> {
   const original = process.env.OPENAI_API_KEY;
@@ -162,5 +162,87 @@ test("resolveNbaRosterViaOpenAI: never populates a photoUrl in this phase", () =
       const result = await resolveNbaRosterViaOpenAI(`Test Team ${Date.now()}`);
       assert.ok(result);
       for (const p of result!.players) assert.equal("photoUrl" in p, false);
+    }),
+  ));
+
+// ── resolveRosterViaOpenAI: the generalized, sport-parameterized entry
+// point behind resolveNbaRosterViaOpenAI (shared roster architecture fix).
+// resolveNbaRosterViaOpenAI("nba") is now a thin wrapper over this — these
+// tests cover the leagues it added (WNBA, NFL) and the leagues it must NOT
+// cover (ncaaf, and any sport with no SportsDataIO/roster product at all).
+
+test("resolveRosterViaOpenAI: WNBA — same evidence-validation discipline, restricted to wnba.com", () =>
+  withKey(() =>
+    withTwoStepFetch(
+      { output: [{ type: "web_search_call" }, { type: "message", content: [{ type: "output_text", text: "five real players", annotations: [{ type: "url_citation", url: "https://www.wnba.com/team/x/roster", title: "Official Roster" }] }] }] },
+      normalizeWith(FIVE_VALID_PLAYERS),
+      async () => {
+        const result = await resolveRosterViaOpenAI("wnba", `Test Team ${Date.now()}`);
+        assert.ok(result);
+        assert.equal(result!.players.length, 5);
+      },
+    ),
+  ));
+
+test("resolveRosterViaOpenAI: WNBA rejects a citation outside wnba.com (e.g. nba.com) — leagues never share each other's trust", () =>
+  withKey(() =>
+    withTwoStepFetch(
+      { output: [{ type: "web_search_call" }, { type: "message", content: [{ type: "output_text", text: "five real players", annotations: [{ type: "url_citation", url: "https://www.nba.com/team/x/roster" }] }] }] },
+      normalizeWith(FIVE_VALID_PLAYERS),
+      async () => {
+        const result = await resolveRosterViaOpenAI("wnba", `Test Team ${Date.now()}`);
+        assert.equal(result, null);
+      },
+    ),
+  ));
+
+test("resolveRosterViaOpenAI: NFL — same evidence-validation discipline, restricted to nfl.com", () =>
+  withKey(() =>
+    withTwoStepFetch(
+      { output: [{ type: "web_search_call" }, { type: "message", content: [{ type: "output_text", text: "five real players", annotations: [{ type: "url_citation", url: "https://www.nfl.com/team/x/roster", title: "Official Roster" }] }] }] },
+      normalizeWith(FIVE_VALID_PLAYERS),
+      async () => {
+        const result = await resolveRosterViaOpenAI("nfl", `Test Team ${Date.now()}`);
+        assert.ok(result);
+        assert.equal(result!.players.length, 5);
+      },
+    ),
+  ));
+
+test("resolveRosterViaOpenAI: ncaaf has no trusted-domain policy — returns null immediately, never attempts a call", () =>
+  withKey(async () => {
+    const originalFetch = global.fetch;
+    let called = false;
+    global.fetch = (async () => { called = true; return new Response("{}", { status: 200 }); }) as typeof fetch;
+    try {
+      const result = await resolveRosterViaOpenAI("ncaaf", "Some Team");
+      assert.equal(result, null);
+      assert.equal(called, false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  }));
+
+test("resolveRosterViaOpenAI: an unrecognized/unsupported sport also returns null immediately, never attempts a call", () =>
+  withKey(async () => {
+    const originalFetch = global.fetch;
+    let called = false;
+    global.fetch = (async () => { called = true; return new Response("{}", { status: 200 }); }) as typeof fetch;
+    try {
+      const result = await resolveRosterViaOpenAI("mlb", "Some Team");
+      assert.equal(result, null);
+      assert.equal(called, false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  }));
+
+test("resolveNbaRosterViaOpenAI stays a byte-compatible wrapper: identical result shape to resolveRosterViaOpenAI(\"nba\", ...)", () =>
+  withKey(() =>
+    withTwoStepFetch(searchOk(), normalizeWith(FIVE_VALID_PLAYERS), async () => {
+      const viaWrapper = await resolveNbaRosterViaOpenAI("Same Team");
+      assert.ok(viaWrapper);
+      assert.equal(viaWrapper!.players.length, 5);
+      assert.equal(viaWrapper!.provenance.resolver, "openai_web_search");
     }),
   ));
