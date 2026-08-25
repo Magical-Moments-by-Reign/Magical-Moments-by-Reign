@@ -52,11 +52,13 @@ export async function GET(req: NextRequest) {
       // an internal error string, or anything that could hint at API keys /
       // provider internals). The real plan/subscription text API-Sports
       // reported is only ever included for the owner, as an admin diagnostic —
-      // never sent to a regular member.
+      // never sent to a regular member. rosterDiagnostic (TEMPORARY — see
+      // getTeamRoster's own doc comment) is Owner-only for the same reason.
       return NextResponse.json({
         roster: [],
         status: result.status,
         ...(isOwner && result.planRestrictedReason ? { ownerDiagnostic: result.planRestrictedReason } : {}),
+        ...(isOwner && result.diagnostic ? { rosterDiagnostic: result.diagnostic } : {}),
       });
     }
 
@@ -84,6 +86,7 @@ export async function GET(req: NextRequest) {
       status: "hit",
       sources: result.sources ?? [],
       ...(result.provenance ? { provenance: result.provenance } : {}),
+      ...(isOwner && result.diagnostic ? { rosterDiagnostic: result.diagnostic } : {}),
     });
   } catch {
     return NextResponse.json({ roster: [], status: "error" });
