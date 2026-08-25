@@ -1844,10 +1844,54 @@ export interface MyPickHistoryRow {
   seasonPhase: "preseason" | "regular" | "postseason";
 }
 
+// Generous buffer for ANY real sport's game length (including overtime) —
+// past this, a game still marked anything other than "final" locally is
+// almost certainly just stale, not still in progress.
+const OVERDUE_PICK_MS = 6 * 60 * 60 * 1000; // 6h
+
+/** Resyncs any game this account has a still-pending pick on, whose start
+ *  time is safely in the past but whose local row was never refreshed to
+ *  "final" — because nothing has browsed back to that date since it
+ *  happened. Reuses the exact same getGamesByDate pipeline every other
+ *  Sports page already goes through, which grades any now-final games as a
+ *  side effect (see syncGamesToLocal) — no separate grading path, no
+ *  guessed result. A game the provider still doesn't report as final (or
+ *  an Owner-entered game with no externalId to resync) stays honestly
+ *  pending. One getGamesByDate call per distinct (sport, date, league)
+ *  combination among the overdue picks, never one per pick — and each of
+ *  those calls is itself cached for hours, so a member re-opening My Picks
+ *  repeatedly doesn't repeatedly hit the paid provider. */
+async function reconcileOverduePicks(accountId: string): Promise<void> {
+  const overdue = await prisma.sportsPick.findMany({
+    where: {
+      accountId,
+      pickType: "HEAD_TO_HEAD",
+      isCorrect: null,
+      game: { status: { not: "final" }, startsAt: { lt: new Date(Date.now() - OVERDUE_PICK_MS) }, externalId: { not: null } },
+    },
+    include: { game: { select: { sport: true, league: true, startsAt: true } } },
+  });
+  if (!overdue.length) return;
+  const seen = new Set<string>();
+  const jobs: { sport: SportSlug; dateISO: string; league: string }[] = [];
+  for (const p of overdue) {
+    const dateISO = p.game.startsAt.toISOString().slice(0, 10);
+    const key = `${p.game.sport}:${dateISO}:${p.game.league}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    jobs.push({ sport: p.game.sport as SportSlug, dateISO, league: p.game.league });
+  }
+  await resolveWithFailureIsolation(jobs, (j) => getGamesByDate(j.sport, j.dateISO, j.league), () => null);
+}
+
 /** A member's own real pick rows, most recent game first — My Picks / Pick
  *  History on the unified Magical Picks page. RACE_WINNER (F1) picks are
- *  excluded — they have no single team side to show in this shape. */
+ *  excluded — they have no single team side to show in this shape.
+ *  Reconciles any overdue-but-still-pending pick first (see
+ *  reconcileOverduePicks) so a game that actually finished shows its real
+ *  result instead of staying stuck on "Pending" forever. */
 export async function getMyPickHistory(accountId: string, limit = 30): Promise<MyPickHistoryRow[]> {
+  await reconcileOverduePicks(accountId).catch(() => {});
   const rows = await prisma.sportsPick.findMany({
     where: { accountId, pickType: "HEAD_TO_HEAD" },
     include: { game: { select: { sport: true, homeTeamName: true, homeTeamLogoUrl: true, awayTeamName: true, awayTeamLogoUrl: true, startsAt: true, status: true, seasonPhase: true } } },
