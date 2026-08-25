@@ -1,6 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId } from "./sports";
+import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId, classifySeasonPhase, gamePhaseLabel } from "./sports";
+
+test("gamePhaseLabel: sport-neutral badge for a real per-game phase", () => {
+  assert.equal(gamePhaseLabel("preseason"), "PRESEASON");
+  assert.equal(gamePhaseLabel("postseason"), "POSTSEASON");
+  // "regular" is classifySeasonPhase's own ambiguous default for a game
+  // whose provider never exposed a stage label — never a misleading
+  // "REGULAR SEASON" badge asserting something that wasn't actually
+  // confirmed by the provider.
+  assert.equal(gamePhaseLabel("regular"), null);
+  // An unrecognized value (e.g. a stale DB row) degrades honestly too.
+  assert.equal(gamePhaseLabel("something-unexpected"), null);
+});
+
+test("gamePhaseLabel: matches classifySeasonPhase's own real stage-label output end to end", () => {
+  assert.equal(gamePhaseLabel(classifySeasonPhase("Pre Season")), "PRESEASON");
+  assert.equal(gamePhaseLabel(classifySeasonPhase("Playoffs")), "POSTSEASON");
+  assert.equal(gamePhaseLabel(classifySeasonPhase("Regular Season")), null);
+  assert.equal(gamePhaseLabel(classifySeasonPhase(undefined)), null);
+});
 
 test("seasonParam: nba/ncaab/nhl use split-year seasons, keyed off an August season start", () => {
   // nba, ncaab, and nhl each have a real season that genuinely spans a
