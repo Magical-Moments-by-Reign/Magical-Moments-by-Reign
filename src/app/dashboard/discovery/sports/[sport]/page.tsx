@@ -12,7 +12,7 @@ import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
-import { ApiSportsProvider, MATCHUP_SPORTS, type SportSlug } from "@/lib/discovery/providers/sports";
+import { ApiSportsProvider, MATCHUP_SPORTS, gamePhaseLabel, type SportSlug } from "@/lib/discovery/providers/sports";
 import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sportsdata";
 import { followTeamAction, unfollowAction } from "../actions";
 import SportBackdrop from "../SportBackdrop";
@@ -287,6 +287,21 @@ export default async function SportPage({ params, searchParams }: { params: Prom
     regularGameStartsAt: firstRegularSeasonGame?.startsAt,
     postseasonGameStartsAt: firstPostseasonGame?.startsAt,
   });
+  // Real, per-game phase (SportsGame.seasonPhase — set from the provider's
+  // own stage label at sync time, see classifySeasonPhase) wins over a
+  // generic date assumption whenever a game in this list actually carries
+  // one; "regular" is that classifier's own default for a game whose
+  // provider never exposed a stage at all, so that case falls back to this
+  // page's own real dated-openers check (standingsPhase) instead of
+  // silently assuming a real Preseason game is Regular Season. Sport-
+  // neutral (gamePhaseLabel never hardcodes a sport name) so every sport
+  // gets an honest PRESEASON/POSTSEASON label from the same code the
+  // moment its games carry a real stage — no per-sport wiring needed.
+  const gamesSectionPhase = games.find((g) => g.seasonPhase !== "regular")?.seasonPhase ?? standingsPhase;
+  const gamesPhaseBadge = gamePhaseLabel(gamesSectionPhase);
+  if (gamesPhaseBadge) {
+    gamesLabel = `${sportMeta.label} ${gamesPhaseBadge === "PRESEASON" ? "Preseason" : "Postseason"} — ${gamesLabel}`;
+  }
   // NBA/NFL (hasVerifiedReference) keep the existing plain getStandings +
   // getVerifiedStandingsFallback 0-0-zero-fill pair, unchanged. Every other
   // sport uses the off-season fallback instead — real prior-season
@@ -529,7 +544,10 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           <div className="spx-panels" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
             {games.map((g) => (
               <Link key={g.id} href={`/dashboard/discovery/sports/game/${g.id}`} className="spx-live-row">
-                <div className="spx-live-row__meta">{g.status === "live" ? (<><i />LIVE{g.period ? ` · ${g.period}` : ""}</>) : g.status === "final" ? "FINAL" : new Date(g.startsAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</div>
+                <div className="spx-live-row__meta">
+                  {g.status === "live" ? (<><i />LIVE{g.period ? ` · ${g.period}` : ""}</>) : g.status === "final" ? "FINAL" : new Date(g.startsAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                  {gamePhaseLabel(g.seasonPhase) && <span className="spx-live-row__phase-badge">{gamePhaseLabel(g.seasonPhase)}</span>}
+                </div>
                 <div className="spx-live-row__score">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}

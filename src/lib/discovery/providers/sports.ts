@@ -728,6 +728,29 @@ export function classifySeasonPhase(stage?: string | null): "preseason" | "regul
   return "regular";
 }
 
+/** Sport-neutral, member-facing badge for a real game/section phase — never
+ *  hardcodes one sport's name into shared copy, so every sport (NBA, NFL,
+ *  WNBA, NHL, college, soccer, ...) gets an honest label from the same
+ *  function once its own games carry a real `seasonPhase` (see
+ *  SportsGame.seasonPhase, set from this exact classifySeasonPhase output
+ *  at sync time in service.ts's syncGamesToLocal). "regular" is
+ *  classifySeasonPhase's own default when a provider doesn't expose a
+ *  stage label at all — deliberately returns null here rather than a
+ *  misleading "REGULAR SEASON" badge for a game the provider was actually
+ *  silent about; a caller with a stronger date-based signal (e.g. the
+ *  page's own determineSeasonPhase, comparing against real dated openers)
+ *  should be preferred in that ambiguous case instead of assuming this
+ *  null means "confirmed regular season." Never expanded to PLAY-IN/
+ *  FINALS granularity here — classifySeasonPhase doesn't distinguish those
+ *  from POSTSEASON yet; add that distinction to classifySeasonPhase itself
+ *  first if a future requirement needs it, so every caller of this
+ *  function inherits it automatically rather than guessing per-caller. */
+export function gamePhaseLabel(phase: string): "PRESEASON" | "POSTSEASON" | null {
+  if (phase === "preseason") return "PRESEASON";
+  if (phase === "postseason") return "POSTSEASON";
+  return null;
+}
+
 export async function fetchFirstPreseasonGame(sport: SportSlug, season: string, league?: string): Promise<SportsGameSummary | null> {
   const games = await fetchSeasonGames(sport, season, league);
   if (!games) return null;

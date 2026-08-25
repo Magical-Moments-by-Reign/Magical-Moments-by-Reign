@@ -283,6 +283,12 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-live-row { border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: .7rem .8rem; }
 .spx-live-row__meta { display: flex; align-items: center; gap: .4rem; font-size: .66rem; font-weight: 800; letter-spacing: .08em; color: #e05b48; margin-bottom: .5rem; }
 .spx-live-row__meta i { width: 6px; height: 6px; border-radius: 50%; background: #e05b48; display: inline-block; }
+/* PRESEASON/POSTSEASON — real, per-game phase (never LIVE's red urgency
+   color, which this badge must never be confused with). */
+.spx-live-row__phase-badge {
+  margin-left: auto; padding: .1rem .4rem; border-radius: 5px; font-size: .58rem; font-weight: 800; letter-spacing: .06em;
+  color: var(--gold); background: rgba(224,182,81,.14); border: 1px solid rgba(201,162,75,.35);
+}
 .spx-live-row__score { display: grid; grid-template-columns: 26px auto auto auto 26px; align-items: center; gap: .5rem; }
 .spx-live-row__score img { width: 26px; height: 26px; object-fit: contain; }
 .spx-live-row__score b { color: #f4f1ea; font-size: 1.15rem; font-weight: 800; text-align: center; }
