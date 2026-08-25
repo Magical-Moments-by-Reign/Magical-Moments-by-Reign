@@ -394,8 +394,17 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // has no teams for this league) — never a blank directory when standings
   // happens to have something the catalog call couldn't reach.
   const teamCatalog = !hasVerifiedReference(sport) && hasLeague ? await getLeagueTeamCatalog(sport, league).catch(() => []) : [];
-  const directoryGroups: DirectoryGroup[] = hasVerifiedReference(sport)
-    ? await getTeamDirectory(sport, standingsGroups, isOwner).catch(() => [])
+  const verifiedDirectory = hasVerifiedReference(sport)
+    ? await getTeamDirectory(sport, standingsGroups, isOwner).catch(() => ({ groups: [], misses: [] }))
+    : null;
+  // Owner-only: real static team names that had no match in the live
+  // catalog on this render — the same data resolveDivisions already
+  // computes for its console.warn, now visible on the page itself instead
+  // of requiring server log access to see which teams are showing blank
+  // logos/ids and why.
+  const directoryMisses = isOwner ? (verifiedDirectory?.misses ?? []) : [];
+  const directoryGroups: DirectoryGroup[] = verifiedDirectory
+    ? verifiedDirectory.groups
     : teamCatalog.length
       ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted)
       : standingsGroups.map((g) => ({
@@ -726,6 +735,11 @@ export default async function SportPage({ params, searchParams }: { params: Prom
       {directoryGroups.length > 0 && (
         <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
           <div className="spx-panel__head"><h2>All {sportMeta.label} Teams</h2></div>
+          {directoryMisses.length > 0 && (
+            <p className="spx-panel__owner-diagnostic">
+              Owner diagnostic — {directoryMisses.length} team{directoryMisses.length === 1 ? "" : "s"} didn&rsquo;t match the live provider catalog (blank logo/record above): {directoryMisses.join(", ")}.
+            </p>
+          )}
           <TeamDirectory sport={sport} groups={directoryGroups} />
         </div>
       )}

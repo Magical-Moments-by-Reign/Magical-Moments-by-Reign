@@ -238,6 +238,7 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-panel__head a { color: #9c8f76; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 .spx-panel__head a:hover { color: var(--gold-soft); }
 .spx-panel__empty { color: #9c8f76; font-size: .78rem; line-height: 1.5; margin: .2rem 0; }
+.spx-panel__owner-diagnostic { color: #c9a24b; font-size: .68rem; line-height: 1.5; background: rgba(201,162,75,.08); border: 1px solid rgba(201,162,75,.25); border-radius: 8px; padding: .55rem .75rem; margin: 0 0 .8rem; }
 .spx-panel__body { display: flex; flex-direction: column; gap: .6rem; }
 
 .spx-panels--picks-fantasy { grid-template-columns: 1fr 1fr; margin-bottom: var(--section-gap-standard); }
