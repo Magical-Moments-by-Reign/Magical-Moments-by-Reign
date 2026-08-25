@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId } from "./sports";
+import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape } from "./sports";
 
 test("seasonParam: nba/ncaab/nhl use split-year seasons, keyed off an August season start", () => {
   // nba, ncaab, and nhl each have a real season that genuinely spans a
@@ -369,4 +369,93 @@ test("mapTeamPlayerGameStats never fabricates a player whose real statistics are
     players: [{ player: { id: 102, name: "No Stats Player" }, statistics: [] }],
   });
   assert.deepEqual(row?.players, []);
+});
+
+// ── TEMPORARY ncaaf live catalog membership diagnostic ─────────────────
+// This sandbox has no live API_SPORTS_KEY, so every network-backed
+// diagnostic function must degrade honestly (never throw, never fabricate)
+// exactly like every other provider function in this file already does —
+// these tests prove that degrade path. The pure forensic/shape helpers are
+// tested directly against representative raw provider shapes.
+
+test("fetchLeagueDetailDiagnostic degrades honestly with no provider key configured", async () => {
+  const result = await fetchLeagueDetailDiagnostic("ncaaf", "2");
+  assert.deepEqual(result, { attempted: false, matchedId: null, matchedName: null, country: null, type: null, seasons: [] });
+});
+
+test("fetchRawTeamsResponseDiagnostic degrades honestly with no provider key configured", async () => {
+  const result = await fetchRawTeamsResponseDiagnostic("ncaaf", "2", "2026");
+  assert.deepEqual(result, { hasResponseField: false, responseIsArray: false, responseLength: 0, pagingPresent: false, pagingCurrent: null, pagingTotal: null, errorsFieldPresent: false, mappedTeamCount: 0 });
+});
+
+test("fetchRawTeamsArraysForDiagnostic degrades honestly with no provider key configured", async () => {
+  const result = await fetchRawTeamsArraysForDiagnostic("ncaaf", "2", "2026", "2025");
+  assert.deepEqual(result, { current: [], previous: [] });
+});
+
+test("findForensicTeamMatches reports a real match with its safe fields, including membership metadata", () => {
+  const currentRows = [
+    { team: { id: 1, name: "Green Bay Packers", country: "USA", league: "NFL", division: "NFC North" } },
+  ];
+  const matches = findForensicTeamMatches(currentRows, []);
+  const packers = matches.find((m) => m.queriedName === "Green Bay Packers");
+  assert.ok(packers);
+  assert.equal(packers?.foundInCurrentSeason, true);
+  assert.equal(packers?.foundInPreviousSeason, false);
+  assert.equal(packers?.hasMembershipMetadata, true);
+  assert.equal(packers?.fields?.name, "Green Bay Packers");
+  assert.equal(packers?.fields?.league, "NFL");
+  assert.equal(packers?.fields?.division, "NFC North");
+});
+
+test("findForensicTeamMatches honestly reports no membership metadata when none of the checked keys are present", () => {
+  const currentRows = [{ team: { id: 2, name: "Auburn", country: "USA" } }];
+  const matches = findForensicTeamMatches(currentRows, []);
+  const auburn = matches.find((m) => m.queriedName === "Auburn");
+  assert.equal(auburn?.hasMembershipMetadata, false);
+  assert.equal(auburn?.fields?.country, "USA");
+});
+
+test("findForensicTeamMatches reports a queried name absent from both seasons as not found, never fabricated", () => {
+  const matches = findForensicTeamMatches([], []);
+  for (const m of matches) {
+    assert.equal(m.foundInCurrentSeason, false);
+    assert.equal(m.foundInPreviousSeason, false);
+    assert.equal(m.fields, null);
+    assert.equal(m.hasMembershipMetadata, false);
+  }
+  assert.equal(matches.length, 7);
+});
+
+test("findForensicTeamMatches matches case-insensitively and prefers the current-season row when both seasons have one", () => {
+  const currentRows = [{ team: { id: 3, name: "denver broncos", division: "AFC West" } }];
+  const previousRows = [{ team: { id: 3, name: "Denver Broncos", division: "OLD DIVISION" } }];
+  const matches = findForensicTeamMatches(currentRows, previousRows);
+  const broncos = matches.find((m) => m.queriedName === "Denver Broncos");
+  assert.equal(broncos?.foundInCurrentSeason, true);
+  assert.equal(broncos?.foundInPreviousSeason, true);
+  assert.equal(broncos?.fields?.division, "AFC West");
+});
+
+test("summarizeTeamCatalogShape reports real row-0 key names (never values) and whether any row carries a membership key", () => {
+  const rows = [
+    { team: { id: 1, name: "Tuskegee", division: "D2" }, extra: true },
+    { team: { id: 2, name: "Michigan Tech" } },
+  ];
+  const summary = summarizeTeamCatalogShape(rows);
+  assert.equal(summary.rowCount, 2);
+  assert.equal(summary.anyRowHasMembershipKey, true);
+  assert.deepEqual(summary.sampleRootKeys.sort(), ["extra", "team"]);
+  assert.deepEqual(summary.sampleTeamKeys.sort(), ["division", "id", "name"]);
+});
+
+test("summarizeTeamCatalogShape honestly reports no membership key when none of the rows carry one", () => {
+  const rows = [{ team: { id: 1, name: "North Greenville" } }];
+  const summary = summarizeTeamCatalogShape(rows);
+  assert.equal(summary.anyRowHasMembershipKey, false);
+});
+
+test("summarizeTeamCatalogShape handles an empty catalog honestly (no fabricated sample keys)", () => {
+  const summary = summarizeTeamCatalogShape([]);
+  assert.deepEqual(summary, { rowCount: 0, anyRowHasMembershipKey: false, sampleRootKeys: [], sampleTeamKeys: [] });
 });
