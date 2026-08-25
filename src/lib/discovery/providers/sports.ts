@@ -677,6 +677,81 @@ export async function fetchTeamsForLeague(sport: SportSlug, league: string, seas
   return Array.from(byId.values());
 }
 
+/** The real, configured host for a sport (e.g. "v1.hockey.api-sports.io"
+ *  for nhl) — exported standalone so an Owner-only diagnostic can report
+ *  which host it's actually querying without re-deriving it separately
+ *  and risking drift from SPORT_CONFIG's real value. */
+export function sportHost(sport: SportSlug): string {
+  return SPORT_CONFIG[sport].host;
+}
+
+export interface RawTeamsResponseDiagnostic {
+  season: string;
+  requestSucceeded: boolean;
+  hasResponseField: boolean;
+  responseIsArray: boolean;
+  responseLength: number | null;
+  pagingPresent: boolean;
+  pagingCurrent: number | null;
+  pagingTotal: number | null;
+  errorsFieldPresent: boolean;
+  mappedTeamCount: number;
+}
+
+// TEMPORARY DIAGNOSTIC — real, safe structural evidence about a raw
+// /teams response (never the raw JSON, never headers/keys/secrets),
+// Owner-only. Reuses mapTeamsResponse for the parsed count so this can
+// never diverge from what fetchTeamsForLeague/production actually
+// resolves — the only "extra" work here is reading paging/response-shape
+// fields production doesn't otherwise expose. Remove this function and
+// its call site once the season/completeness investigation it was built
+// for is resolved.
+export async function fetchRawTeamsResponseDiagnostic(sport: SportSlug, league: string, season: string): Promise<RawTeamsResponseDiagnostic> {
+  const json = await apiSportsFetch(sport, "/teams", { league, season });
+  const hasResponseField = json != null && typeof json === "object" && "response" in (json as Record<string, unknown>);
+  const responseVal = hasResponseField ? (json as Record<string, unknown>).response : undefined;
+  const responseIsArray = Array.isArray(responseVal);
+  const paging = (json as Record<string, unknown> | null)?.paging as Record<string, unknown> | undefined;
+  const errorsVal = json != null && typeof json === "object" ? (json as Record<string, unknown>).errors : undefined;
+  return {
+    season,
+    requestSucceeded: json !== null,
+    hasResponseField,
+    responseIsArray,
+    responseLength: responseIsArray ? (responseVal as unknown[]).length : null,
+    pagingPresent: paging != null,
+    pagingCurrent: typeof paging?.current === "number" ? (paging.current as number) : null,
+    pagingTotal: typeof paging?.total === "number" ? (paging.total as number) : null,
+    errorsFieldPresent: errorsVal != null,
+    mappedTeamCount: mapTeamsResponse(json)?.length ?? 0,
+  };
+}
+
+export interface LeagueVerificationDiagnostic {
+  attempted: boolean;
+  matchedId: string | null;
+  matchedName: string | null;
+  confirmed: "YES" | "NO" | "UNCONFIRMED";
+}
+
+// TEMPORARY DIAGNOSTIC — verifies a configured league id against the
+// provider's own /leagues lookup rather than trusting SPORT_CONFIG's
+// static id blindly, the same "ask, don't assume" discipline
+// resolveNcaaBaseballLeagueId already uses elsewhere in this file. Never
+// exposes anything beyond the real league id/name the provider itself
+// returned. Remove alongside fetchRawTeamsResponseDiagnostic once
+// resolved.
+export async function fetchLeagueVerificationDiagnostic(sport: SportSlug, league: string, expectedNameMatch: RegExp): Promise<LeagueVerificationDiagnostic> {
+  const json = await apiSportsFetch(sport, "/leagues", { id: league });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : null;
+  const first = list?.[0];
+  const item = first?.league ?? first;
+  const matchedId = item?.id != null ? String(item.id) : null;
+  const matchedName = typeof item?.name === "string" ? item.name : null;
+  const confirmed: "YES" | "NO" | "UNCONFIRMED" = matchedName == null ? "UNCONFIRMED" : expectedNameMatch.test(matchedName) ? "YES" : "NO";
+  return { attempted: json !== null, matchedId, matchedName, confirmed };
+}
+
 export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const cfg = SPORT_CONFIG[sport];

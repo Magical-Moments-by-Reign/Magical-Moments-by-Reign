@@ -1,7 +1,27 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNhlLiveDiagnostic } from "./service";
 import type { SportsTeam } from "../providers/sports";
+
+test("getNhlLiveDiagnostic: no configured provider — every sub-result degrades honestly, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const result = await getNhlLiveDiagnostic("57", true, 1, 0);
+    assert.equal(result.config.host, "v1.hockey.api-sports.io");
+    assert.equal(result.config.leagueId, "57");
+    assert.equal(result.leagueVerification.confirmed, "UNCONFIRMED");
+    assert.equal(result.catalog.current.requestSucceeded, false);
+    assert.equal(result.catalog.mergedCount, 0);
+    assert.equal(result.catalog.fallbackExecuted, true); // isOffSeasonPhase true, 0 < minimumExpectedCount(1)
+    assert.equal(result.standings.current.requestSucceeded, false);
+    assert.equal(result.standings.finalTeamCount, 0);
+    assert.equal(result.standings.finalSeasonUsed, null);
+    assert.equal(result.completeness.countDistinctStandingsTeams, 0);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
 // both the current-season and (when retried) prior-season /teams calls

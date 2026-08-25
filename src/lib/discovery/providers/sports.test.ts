@@ -1,6 +1,44 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId } from "./sports";
+import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId, sportHost, fetchRawTeamsResponseDiagnostic, fetchLeagueVerificationDiagnostic } from "./sports";
+
+test("sportHost: returns the real configured host for a sport, matching SPORT_CONFIG", () => {
+  assert.equal(sportHost("nhl"), "v1.hockey.api-sports.io");
+  assert.equal(sportHost("nba"), "v1.basketball.api-sports.io");
+});
+
+test("fetchRawTeamsResponseDiagnostic: no configured provider — every field degrades to a safe, honest value, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const result = await fetchRawTeamsResponseDiagnostic("nhl", "57", "2026-2027");
+    assert.deepEqual(result, {
+      season: "2026-2027",
+      requestSucceeded: false,
+      hasResponseField: false,
+      responseIsArray: false,
+      responseLength: null,
+      pagingPresent: false,
+      pagingCurrent: null,
+      pagingTotal: null,
+      errorsFieldPresent: false,
+      mappedTeamCount: 0,
+    });
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("fetchLeagueVerificationDiagnostic: no configured provider — UNCONFIRMED, never a guessed match", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const result = await fetchLeagueVerificationDiagnostic("nhl", "57", /nhl/i);
+    assert.deepEqual(result, { attempted: false, matchedId: null, matchedName: null, confirmed: "UNCONFIRMED" });
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
 
 test("seasonParam: nba/ncaab/nhl use split-year seasons, keyed off an August season start", () => {
   // nba, ncaab, and nhl each have a real season that genuinely spans a

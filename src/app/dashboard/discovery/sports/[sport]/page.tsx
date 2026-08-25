@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId, getNhlLiveDiagnostic } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
@@ -429,6 +429,17 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // once VERIFIED_TEAM_ALIASES is filled in and every team resolves — see
   // team-directory.ts's own doc comments on both.
   const directoryLiveCatalog = isOwner ? (verifiedDirectory?.liveCatalog ?? []) : [];
+  // TEMPORARY DIAGNOSTIC — NHL only, Owner-only: proves or disproves why
+  // both the current- and previous-season catalog/standings attempts are
+  // coming back empty in production (Owner-reported live failure), with
+  // real evidence instead of a guess. Reuses the exact same
+  // league/isOffSeasonPhase/minimumExpectedTeamCount values this render
+  // already computed — never a second, possibly-diverging calculation.
+  // Remove this block and getNhlLiveDiagnostic once the investigation it
+  // was built for is resolved.
+  const nhlDiagnostic = sport === "nhl" && isOwner && hasLeague
+    ? await getNhlLiveDiagnostic(league, standingsPhase === "preseason", minimumExpectedTeamCount, countDistinctStandingsTeams(standingsGroups)).catch(() => null)
+    : null;
   const directoryGroups: DirectoryGroup[] = verifiedDirectory
     ? verifiedDirectory.groups
     : teamCatalog.length
@@ -788,6 +799,45 @@ export default async function SportPage({ params, searchParams }: { params: Prom
             unfollowAction={unfollowAction}
           />
         </div>
+      )}
+
+      {/* TEMPORARY DIAGNOSTIC — deliberately OUTSIDE the directoryGroups.length
+          gate above: this exists specifically to explain an EMPTY directory,
+          so it must still render when directoryGroups is []. Owner-only,
+          NHL-only. Remove alongside getNhlLiveDiagnostic once resolved. */}
+      {nhlDiagnostic && (
+        <details className="spx-panel__owner-diagnostic" style={{ marginTop: "1.4rem" }}>
+          <summary>Owner diagnostic — NHL live catalog/standings trace</summary>
+          <div style={{ margin: ".6rem 0", display: "grid", gap: ".3rem" }}>
+            <p style={{ margin: 0, fontWeight: 700 }}>Provider / config</p>
+            <p style={{ margin: 0 }}>Host: {nhlDiagnostic.config.host} · League id: {nhlDiagnostic.config.leagueId} · Current season: {nhlDiagnostic.config.currentSeason} · Previous season: {nhlDiagnostic.config.previousSeason}</p>
+
+            <p style={{ margin: ".5rem 0 0", fontWeight: 700 }}>League id {nhlDiagnostic.config.leagueId} = NHL?</p>
+            <p style={{ margin: 0 }}>
+              {nhlDiagnostic.leagueVerification.confirmed} — provider returned id {nhlDiagnostic.leagueVerification.matchedId ?? "n/a"}, name &ldquo;{nhlDiagnostic.leagueVerification.matchedName ?? "n/a"}&rdquo; {!nhlDiagnostic.leagueVerification.attempted && "(request failed/unconfigured)"}
+            </p>
+
+            <p style={{ margin: ".5rem 0 0", fontWeight: 700 }}>Team catalog</p>
+            <p style={{ margin: 0 }}>
+              Current ({nhlDiagnostic.catalog.current.season}): request {nhlDiagnostic.catalog.current.requestSucceeded ? "succeeded" : "failed"} · response field {nhlDiagnostic.catalog.current.hasResponseField ? "present" : "absent"} · is array: {String(nhlDiagnostic.catalog.current.responseIsArray)} · raw length {nhlDiagnostic.catalog.current.responseLength ?? "n/a"} · paging {nhlDiagnostic.catalog.current.pagingPresent ? `${nhlDiagnostic.catalog.current.pagingCurrent ?? "n/a"}/${nhlDiagnostic.catalog.current.pagingTotal ?? "n/a"}` : "absent"} · errors field: {String(nhlDiagnostic.catalog.current.errorsFieldPresent)} · mapped teams: {nhlDiagnostic.catalog.current.mappedTeamCount}
+            </p>
+            <p style={{ margin: 0 }}>
+              Previous ({nhlDiagnostic.catalog.previous.season}): request {nhlDiagnostic.catalog.previous.requestSucceeded ? "succeeded" : "failed"} · response field {nhlDiagnostic.catalog.previous.hasResponseField ? "present" : "absent"} · is array: {String(nhlDiagnostic.catalog.previous.responseIsArray)} · raw length {nhlDiagnostic.catalog.previous.responseLength ?? "n/a"} · paging {nhlDiagnostic.catalog.previous.pagingPresent ? `${nhlDiagnostic.catalog.previous.pagingCurrent ?? "n/a"}/${nhlDiagnostic.catalog.previous.pagingTotal ?? "n/a"}` : "absent"} · errors field: {String(nhlDiagnostic.catalog.previous.errorsFieldPresent)} · mapped teams: {nhlDiagnostic.catalog.previous.mappedTeamCount}
+            </p>
+            <p style={{ margin: 0 }}>Merged identity count: {nhlDiagnostic.catalog.mergedCount} · minimumExpectedCount: {nhlDiagnostic.catalog.minimumExpectedCount} · fallback executed: {String(nhlDiagnostic.catalog.fallbackExecuted)} — {nhlDiagnostic.catalog.fallbackNote}</p>
+
+            <p style={{ margin: ".5rem 0 0", fontWeight: 700 }}>Standings</p>
+            <p style={{ margin: 0 }}>Current ({nhlDiagnostic.config.currentSeason}): request {nhlDiagnostic.standings.current.requestSucceeded ? "succeeded" : "failed"} · teams: {nhlDiagnostic.standings.current.teamCount}</p>
+            <p style={{ margin: 0 }}>Previous ({nhlDiagnostic.config.previousSeason}): request {nhlDiagnostic.standings.previous.requestSucceeded ? "succeeded" : "failed"} · teams: {nhlDiagnostic.standings.previous.teamCount}</p>
+            <p style={{ margin: 0 }}>Final: {nhlDiagnostic.standings.finalTeamCount} teams, season used: {nhlDiagnostic.standings.finalSeasonUsed ?? "none — both empty"}</p>
+
+            <p style={{ margin: ".5rem 0 0", fontWeight: 700 }}>Completeness check (the circular-trap concern)</p>
+            <p style={{ margin: 0 }}>countDistinctStandingsTeams(standingsGroups) = {nhlDiagnostic.completeness.countDistinctStandingsTeams} → minimumExpectedCount = {nhlDiagnostic.completeness.minimumExpectedCount}</p>
+
+            <p style={{ margin: ".5rem 0 0", fontWeight: 700 }}>Directory</p>
+            <p style={{ margin: 0 }}>directoryGroups.length: {directoryGroups.length} · render gate: {String(directoryGroups.length > 0)}</p>
+          </div>
+        </details>
       )}
     </div>
   );
