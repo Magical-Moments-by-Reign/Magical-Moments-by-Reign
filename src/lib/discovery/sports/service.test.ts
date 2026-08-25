@@ -1,6 +1,85 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason } from "./service";
+import type { SportsTeam } from "../providers/sports";
+
+// ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
+// both the current-season and (when retried) prior-season /teams calls
+// honestly return [], never a fabricated catalog, whether or not the
+// caller says it's an off-season phase.
+
+test("getLeagueTeamCatalogWithOffSeasonFallback: no configured provider — returns [] regardless of isOffSeasonPhase, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    assert.deepEqual(await getLeagueTeamCatalogWithOffSeasonFallback("nhl", "57", false), []);
+    assert.deepEqual(await getLeagueTeamCatalogWithOffSeasonFallback("nhl", "57", true), []);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+// ── mergeCatalogWithPriorSeason: the real completeness+merge decision,
+// tested directly since the network calls around it can't be exercised
+// without a live provider key. This is the fix for the confirmed defect
+// where "any nonzero count" was previously treated as complete.
+
+function team(id: string, name: string): SportsTeam {
+  return { id, name };
+}
+
+test("mergeCatalogWithPriorSeason: empty current catalog — prior season fills it in completely", () => {
+  const prior = [team("1", "Team A"), team("2", "Team B")];
+  assert.deepEqual(mergeCatalogWithPriorSeason([], prior, 2), prior);
+});
+
+test("mergeCatalogWithPriorSeason: NBA-shaped partial current catalog (19 of 30) DOES trigger the prior-season completion — merged result reaches the full 30", () => {
+  const current: SportsTeam[] = Array.from({ length: 19 }, (_, i) => team(String(i + 1), `Current Team ${i + 1}`));
+  const prior: SportsTeam[] = Array.from({ length: 30 }, (_, i) => team(String(i + 1), `Prior Team ${i + 1}`));
+  const result = mergeCatalogWithPriorSeason(current, prior, 30);
+  assert.equal(result.length, 30);
+  // Every id current already had keeps CURRENT's own identity — prior never
+  // overwrites a real, already-known-current team.
+  for (let i = 1; i <= 19; i++) {
+    assert.equal(result.find((t) => t.id === String(i))?.name, `Current Team ${i}`);
+  }
+  // The 11 ids current was missing get filled in from the real prior season.
+  for (let i = 20; i <= 30; i++) {
+    assert.equal(result.find((t) => t.id === String(i))?.name, `Prior Team ${i}`);
+  }
+});
+
+test("mergeCatalogWithPriorSeason: complete current catalog — never touches the prior season at all, even when prior has different/conflicting data", () => {
+  const current = [team("1", "Real Current Name")];
+  const prior = [team("1", "Stale Prior Name"), team("2", "A Team Current Doesn't Have")];
+  assert.deepEqual(mergeCatalogWithPriorSeason(current, prior, 1), current);
+});
+
+test("mergeCatalogWithPriorSeason: current-season identity always wins for a shared id — protects expansion/relocation/rebrand entities current already knows about", () => {
+  const current = [team("1", "New Franchise Name"), team("2", "Team B")];
+  const prior = [team("1", "Old Franchise Name"), team("3", "Team C")];
+  const result = mergeCatalogWithPriorSeason(current, prior, 3);
+  assert.equal(result.find((t) => t.id === "1")?.name, "New Franchise Name");
+  assert.equal(result.find((t) => t.id === "2")?.name, "Team B");
+  assert.equal(result.find((t) => t.id === "3")?.name, "Team C");
+  assert.equal(result.length, 3);
+});
+
+test("mergeCatalogWithPriorSeason: empty prior season too — returns current unchanged, never fabricates a team", () => {
+  const current = [team("1", "Team A")];
+  assert.deepEqual(mergeCatalogWithPriorSeason(current, [], 30), current);
+});
+
+test("mergeCatalogWithPriorSeason: no real gain from merging (prior only repeats ids current already has) — returns current unchanged rather than a same-size reshuffled copy", () => {
+  const current = [team("1", "Team A")];
+  const prior = [team("1", "Old Team A Name")];
+  assert.deepEqual(mergeCatalogWithPriorSeason(current, prior, 30), current);
+});
+
+test("mergeCatalogWithPriorSeason: merged SportsTeam rows carry only stable identity fields — no record/roster/standings/schedule data ever appears", () => {
+  const result = mergeCatalogWithPriorSeason([], [{ id: "1", name: "Team A", logoUrl: "https://x/a.png", code: "TA" }], 1);
+  assert.deepEqual(Object.keys(result[0]).sort(), ["code", "id", "logoUrl", "name"].sort());
+});
 
 // ── Regression: followed-team roster/injury enrichment must never take the
 // whole Sport page down. resolveWithFailureIsolation is the exact shared

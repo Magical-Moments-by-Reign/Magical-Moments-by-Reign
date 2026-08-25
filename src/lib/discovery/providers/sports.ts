@@ -250,26 +250,26 @@ function apiKey(): string | undefined {
 // which uses this same seasonParam()) and the set below used to read
 // `["nba", "nhl"]` — reasoning from "does this SPORT's real calendar span
 // two years" rather than "which HOST/product is this sport served from."
-// That miscategorized wnba and ncaab: both live on the SAME
-// v1.basketball.api-sports.io host as nba (see SPORT_CONFIG above), so they
-// inherit that host's season-format requirement regardless of WNBA's own
-// real single-calendar-year (May–October) schedule — the provider's season
-// *key* is still the hyphenated string API-Basketball uses for its whole
-// /seasons catalog, independent of which real months a given league plays
-// in. Passing a bare year for WNBA/NCAAB either gets rejected outright or
-// comes back as a genuinely empty `response: []` — indistinguishable, from
-// this app's point of view, from an honest "no games/standings yet" result,
-// which is very likely why WNBA standings/rosters were reported empty in
-// production despite a valid key and a valid league id. Not independently
-// re-verified live for wnba/ncaab specifically (no API_SPORTS_KEY in this
-// environment) — re-check via the diagnostic page above once deployed, the
-// same NBA request already confirms the host-wide format.
+// That miscategorized ncaab (NCAAB's own real season IS split-year, so this
+// was harmless for ncaab specifically, but the reasoning was still wrong)
+// and, more seriously, wnba: it was moved into this set on host-membership
+// grounds alone (wnba lives on the SAME v1.basketball.api-sports.io host as
+// nba), without accounting for WNBA's own real calendar — a WNBA season
+// runs entirely within one calendar year (May-October), never spanning a
+// year boundary the way NBA/NHL/NCAAB genuinely do. A split "YYYY-YYYY" key
+// has no real WNBA season it could correspond to, which is the confirmed
+// root cause of WNBA's team catalog (and, before this file's off-season
+// catalog fallback was added below, its standings) coming back empty in
+// production — not a provider outage, not a wrong league id. WNBA has been
+// removed from this set; it now gets the same plain single-year format
+// every other non-hoops/hockey host already uses, which actually matches
+// its real season shape.
 //
 // Every other host used here (american-football, baseball, football/soccer
 // v3, rugby, volleyball) uses a plain single-year season. A split season
 // "starts" around August: a January 2026 game is part of the "2025-2026"
 // season, a November 2026 game starts "2026-2027".
-const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "wnba", "ncaab", "nhl"]);
+const SPLIT_SEASON_SPORTS: ReadonlySet<SportSlug> = new Set(["nba", "ncaab", "nhl"]);
 
 /** Exported for tests. */
 export function seasonParam(sport: SportSlug, dateISO: string): string {

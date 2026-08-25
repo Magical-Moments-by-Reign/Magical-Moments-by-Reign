@@ -424,6 +424,90 @@ export async function getLeagueTeamCatalog(sport: SportSlug, league: string): Pr
   return cached?.data ?? [];
 }
 
+/** getLeagueTeamCatalog, with the same off-season retry pattern already
+ *  proven for Standings (getStandingsWithOffSeasonFallback, just below):
+ *  when the CURRENT season's team catalog is missing real teams and the
+ *  caller has confirmed (via its own real dated-openers check, same as
+ *  Standings' `isOffSeasonPhase`) that this is a real off-season/preseason
+ *  window rather than a mid-season provider hiccup, retries against the
+ *  last REAL completed season and MERGES the two by real provider team id
+ *  — never simply checking "is the count zero."
+ *
+ *  `minimumExpectedCount` is the completeness bar: a real, already-known
+ *  team count for this league, sourced from either a VERIFIED_REFERENCE
+ *  spec's own real team list (NBA/NFL — see fetchVerifiedTeamCatalog in
+ *  team-directory.ts) or the number of distinct real team ids already
+ *  found in this same render's Standings result (every other sport — see
+ *  countDistinctStandingsTeams in team-directory.ts, which for a sport
+ *  using getStandingsWithOffSeasonFallback already reflects a real
+ *  prior-season roster during an off-season window). Either source is
+ *  real data this app already computed — never an independently guessed
+ *  number that would go stale the moment a league expands, realigns, or a
+ *  franchise relocates/rebrands. Deliberately NOT a hardcoded per-sport
+ *  number table: that would need constant manual upkeep (see, e.g., the
+ *  WNBA's own 2026 expansion) and would be exactly the kind of guess this
+ *  file's own house style avoids elsewhere. A caller with no strong
+ *  completeness signal available (e.g. a first render with no standings
+ *  data at all yet) should pass 1 — the previous, honest "empty is
+ *  incomplete, anything real is not" behavior — never 0, which would
+ *  disable the check entirely.
+ *
+ *  This is the confirmed root cause of NHL/College Basketball/College
+ *  Football's incomplete "All Teams" directories, and the confirmed cause
+ *  of NBA's own 19/30 gap (a merely nonzero catalog was previously,
+ *  incorrectly, treated as complete — see this function's own git history
+ *  for the earlier, insufficient `if (current.length || ...)` check this
+ *  replaced). Every sport that calls getLeagueTeamCatalog for its All
+ *  Teams directory (the generic path in [sport]/page.tsx, and NBA/NFL's
+ *  VERIFIED_REFERENCE path via fetchVerifiedTeamCatalog in
+ *  team-directory.ts) goes through this one fallback, so a future sport
+ *  never has to rediscover the same gap.
+ *
+ *  MERGE, never replace: the current season's real identity wins for
+ *  every provider id it already has (so a genuine rebrand/relocation/
+ *  expansion team the CURRENT catalog already knows about is never
+ *  overwritten by an older name/logo) — the prior season only FILLS IN
+ *  ids the current catalog is missing. A previous season's SportsTeam row
+ *  carries ONLY stable franchise identity (id/name/logoUrl/code) — it has
+ *  no win/loss/record/roster/schedule fields at all, so using it for team
+ *  identity can never leak stale competitive data into a page whose
+ *  standings/record/roster sections already resolve the CURRENT season
+ *  independently. Returns the current (possibly incomplete) result
+ *  unchanged outside an off-season phase, when it's already at/above the
+ *  expected count, or when the merge wouldn't actually add anything —
+ *  never fabricates a catalog entry that isn't real. */
+export async function getLeagueTeamCatalogWithOffSeasonFallback(sport: SportSlug, league: string, isOffSeasonPhase: boolean, minimumExpectedCount = 1): Promise<SportsTeam[]> {
+  const current = await getLeagueTeamCatalog(sport, league);
+  if (!isOffSeasonPhase || current.length >= minimumExpectedCount) return current;
+  const priorSeason = previousSeasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season: priorSeason, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
+    fetchTeamsForLeague(sport, league, priorSeason));
+  return mergeCatalogWithPriorSeason(current, cached?.data ?? [], minimumExpectedCount);
+}
+
+/** The pure completeness+merge decision getLeagueTeamCatalogWithOffSeasonFallback
+ *  makes once it has both real results in hand — split out because the
+ *  function above's real network calls can't be exercised in a sandbox with
+ *  no live provider key, but this decision logic itself needs real test
+ *  coverage (an empty catalog, a partial one like NBA's confirmed 19/30,
+ *  a complete one, and current-wins-over-prior-for-a-shared-id all need to
+ *  be provably correct). `current` is assumed already known to be below
+ *  `minimumExpectedCount` — this function still re-checks defensively so it
+ *  can't itself be called incorrectly and silently merge when it shouldn't.
+ *  MERGE, never replace: prior fills in only ids missing from current;
+ *  current's own real identity always wins for any id both share, so a
+ *  same-season expansion team or an already-updated rebrand/relocation
+ *  current already knows about is never overwritten by a stale prior-season
+ *  name/logo. Exported for tests. */
+export function mergeCatalogWithPriorSeason(current: SportsTeam[], prior: SportsTeam[], minimumExpectedCount: number): SportsTeam[] {
+  if (current.length >= minimumExpectedCount || !prior.length) return current;
+  const merged = new Map<string, SportsTeam>();
+  for (const t of prior) merged.set(t.id, t);
+  for (const t of current) merged.set(t.id, t);
+  const result = Array.from(merged.values());
+  return result.length > current.length ? result : current;
+}
+
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
 // F/OT/Postponed/Canceled, per its docs) — mapped conservatively to our
 // three-state model; anything not clearly finished or live is treated as

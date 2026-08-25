@@ -14,7 +14,36 @@ import type { DirectoryTeam, DirectoryGroup } from "@/lib/discovery/sports/team-
 import { formatGroupLabel, groupCollectiveNoun } from "@/lib/discovery/sports/group-labels";
 import { TeamRosterPanel } from "./TeamRosterPanel";
 
-export default function TeamDirectory({ sport, groups }: { sport: string; groups: DirectoryGroup[] }) {
+/** Up to two real letters from the team's own name — a monogram, never a
+ *  drawn/generated logo — for the one honest visual we can show when the
+ *  provider hasn't resolved a real logoUrl for this team yet. Prefers the
+ *  first letter of the last two words (e.g. "Boston Celtics" → "BC") so a
+ *  single-word name ("Alumni") still gets one clean letter rather than an
+ *  odd two-letter slice of the same word. */
+function teamMonogram(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[words.length - 2][0] + words[words.length - 1][0]).toUpperCase();
+  return (words[0]?.[0] ?? "?").toUpperCase();
+}
+
+export default function TeamDirectory({
+  sport,
+  groups,
+  followedTeamIds,
+  followIdByTeamId,
+  followTeamAction,
+  unfollowAction,
+}: {
+  sport: string;
+  groups: DirectoryGroup[];
+  /** Real provider teamExternalIds this account already follows — omit
+   *  entirely (all four follow props are optional) for a caller that
+   *  doesn't want a Follow control on the grid at all. */
+  followedTeamIds?: Set<string>;
+  followIdByTeamId?: Map<string, string>;
+  followTeamAction?: (formData: FormData) => void | Promise<void>;
+  unfollowAction?: (formData: FormData) => void | Promise<void>;
+}) {
   const [openTeam, setOpenTeam] = useState<{ team: DirectoryTeam; breadcrumb: string } | null>(null);
   // Real, working filter — built from the groups' own real labels (e.g.
   // MLB's "American League"/"National League", college football/basketball's
@@ -137,30 +166,52 @@ export default function TeamDirectory({ sport, groups }: { sport: string; groups
             <div key={d.label} className="spx-standings__division">
               {d.label && <h4 className="spx-standings__division-label">{formatGroupLabel(d.label)}</h4>}
               <div className="spx-directory__grid">
-                {d.teams.map((team) => (
-                  <div key={team.id} className="spx-directory__team">
-                    <button
-                      type="button"
-                      className="spx-directory__team-toggle"
-                      onClick={() => setOpenTeam({ team, breadcrumb: [g.label, d.label].filter(Boolean).join(" · ") })}
-                    >
-                      {team.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={team.logoUrl} alt="" className="spx-directory__team-logo" />
-                      ) : (
-                        <div className="spx-team-row__ph spx-directory__team-logo" />
-                      )}
-                      <span className="spx-directory__team-info">
-                        <span className="spx-directory__team-name">{team.name}</span>
-                        {(team.league || team.division) && (
-                          <span className="spx-directory__team-meta">{[team.league, team.division].filter(Boolean).join(" · ")}</span>
+                {d.teams.map((team) => {
+                  const isFollowing = followedTeamIds?.has(team.id) ?? false;
+                  const followId = followIdByTeamId?.get(team.id);
+                  const canFollow = Boolean(followTeamAction && unfollowAction && team.id);
+                  return (
+                    <div key={team.id} className="spx-directory__team">
+                      <button
+                        type="button"
+                        className="spx-directory__team-toggle"
+                        onClick={() => setOpenTeam({ team, breadcrumb: [g.label, d.label].filter(Boolean).join(" · ") })}
+                      >
+                        {team.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={team.logoUrl} alt="" className="spx-directory__team-logo" />
+                        ) : (
+                          <div className="spx-directory__team-logo spx-directory__team-logo--fallback" aria-hidden="true">
+                            {teamMonogram(team.name)}
+                          </div>
                         )}
-                        <span className="spx-directory__team-record">{team.record ?? "Record unavailable"}</span>
-                      </span>
-                      <span className="spx-directory__team-arrow" aria-hidden="true">▸</span>
-                    </button>
-                  </div>
-                ))}
+                        <span className="spx-directory__team-info">
+                          <span className="spx-directory__team-name">{team.name}</span>
+                          {(team.league || team.division) && (
+                            <span className="spx-directory__team-meta">{[team.league, team.division].filter(Boolean).join(" · ")}</span>
+                          )}
+                          {team.record && <span className="spx-directory__team-record">{team.record}</span>}
+                        </span>
+                        <span className="spx-directory__team-arrow" aria-hidden="true">▸</span>
+                      </button>
+                      {canFollow && (
+                        <form action={isFollowing ? unfollowAction : followTeamAction} className="spx-directory__team-follow">
+                          {isFollowing ? (
+                            <input type="hidden" name="followId" value={followId ?? ""} />
+                          ) : (
+                            <>
+                              <input type="hidden" name="sport" value={sport} />
+                              <input type="hidden" name="teamExternalId" value={team.id} />
+                              <input type="hidden" name="teamName" value={team.name} />
+                              {team.logoUrl && <input type="hidden" name="teamLogoUrl" value={team.logoUrl} />}
+                            </>
+                          )}
+                          <button type="submit" className="spx-directory__team-follow-btn">{isFollowing ? "Unfollow" : "Follow"}</button>
+                        </form>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
