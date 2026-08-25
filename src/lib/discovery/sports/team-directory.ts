@@ -230,11 +230,22 @@ export interface ResolvedDivisions {
    *  this to the Owner-only UI banner so a real mismatch is visible without
    *  needing server console access. */
   misses: string[];
+  /** TEMPORARY DIAGNOSTIC FIELD — the real, live API-Sports catalog rows
+   *  (id + exact provider name) for this sport/league, straight from the
+   *  same fetch resolveVerifiedTeamIdentity already matches against. Exists
+   *  solely so the Owner-only UI can show the actual live provider identity
+   *  for teams that don't resolve, instead of guessing why. Never populated
+   *  when misses is empty (nothing to investigate). Remove this field, its
+   *  UI, and this comment once VERIFIED_TEAM_ALIASES has been filled in
+   *  from Owner-confirmed real pairings and every team resolves — see
+   *  VERIFIED_TEAM_ALIASES's own doc comment. */
+  liveCatalog: { id: string; name: string }[];
 }
 
 async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean): Promise<ResolvedDivisions> {
   try {
-    const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport));
+    const catalog = await fetchVerifiedTeamCatalog(sport);
+    const catalogByName = buildCatalogNameIndex(catalog);
     const misses: string[] = [];
     const byConference = new Map<string, DirectoryDivision[]>();
     for (const { conference, division, teams } of spec) {
@@ -266,11 +277,15 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
     if (logDiagnostics && misses.length) {
       console.warn(`[team-directory] ${sport}: ${misses.length} of ${spec.reduce((n, s) => n + s.teams.length, 0)} static team(s) had no real catalog match — ${misses.join(", ")}`);
     }
-    return { groups: Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions })), misses };
+    // Only populated when there's actually something to investigate, and
+    // only real, already-fetched data — never a second provider call just
+    // for this. Real id/name pairs only, nothing else from the catalog row.
+    const liveCatalog = misses.length ? catalog.map((t) => ({ id: t.id, name: t.name })) : [];
+    return { groups: Array.from(byConference.entries()).map(([label, divisions]) => ({ label, divisions })), misses, liveCatalog };
   } catch {
     // A live team-resolution call failing unexpectedly must never take the
     // All Teams directory down with it.
-    return { groups: [], misses: [] };
+    return { groups: [], misses: [], liveCatalog: [] };
   }
 }
 
@@ -287,7 +302,7 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
  *  resolveDivisions) — never wired to a member-visible request. */
 export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = [], logDiagnostics = false): Promise<ResolvedDivisions> {
   const spec = VERIFIED_REFERENCE[sport];
-  if (!spec) return { groups: [], misses: [] };
+  if (!spec) return { groups: [], misses: [], liveCatalog: [] };
   return resolveDivisions(sport, spec, buildRecordByTeamId(standingsGroups), logDiagnostics);
 }
 
@@ -360,7 +375,7 @@ export function buildTeamDirectoryFromCatalog(
 export async function getTeamById(sport: SportSlug, teamId: string): Promise<DirectoryTeam | null> {
   if (!teamId) return null;
   if (hasVerifiedReference(sport)) {
-    const { groups } = await getTeamDirectory(sport).catch(() => ({ groups: [], misses: [] }) as ResolvedDivisions);
+    const { groups } = await getTeamDirectory(sport).catch(() => ({ groups: [], misses: [], liveCatalog: [] }) as ResolvedDivisions);
     for (const g of groups) {
       for (const d of g.divisions) {
         const match = d.teams.find((t) => t.id === teamId);

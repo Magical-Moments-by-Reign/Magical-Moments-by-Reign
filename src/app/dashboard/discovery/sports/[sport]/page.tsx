@@ -395,7 +395,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // happens to have something the catalog call couldn't reach.
   const teamCatalog = !hasVerifiedReference(sport) && hasLeague ? await getLeagueTeamCatalog(sport, league).catch(() => []) : [];
   const verifiedDirectory = hasVerifiedReference(sport)
-    ? await getTeamDirectory(sport, standingsGroups, isOwner).catch(() => ({ groups: [], misses: [] }))
+    ? await getTeamDirectory(sport, standingsGroups, isOwner).catch(() => ({ groups: [], misses: [], liveCatalog: [] }))
     : null;
   // Owner-only: real static team names that had no match in the live
   // catalog on this render — the same data resolveDivisions already
@@ -403,6 +403,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // of requiring server log access to see which teams are showing blank
   // logos/ids and why.
   const directoryMisses = isOwner ? (verifiedDirectory?.misses ?? []) : [];
+  // TEMPORARY DIAGNOSTIC — the real live API-Sports catalog rows (id +
+  // exact provider name), Owner-only, shown only alongside real misses so
+  // the Owner can read off the correct provider identity herself rather
+  // than anyone guessing an alias. Remove this and liveCatalog together
+  // once VERIFIED_TEAM_ALIASES is filled in and every team resolves — see
+  // team-directory.ts's own doc comments on both.
+  const directoryLiveCatalog = isOwner ? (verifiedDirectory?.liveCatalog ?? []) : [];
   const directoryGroups: DirectoryGroup[] = verifiedDirectory
     ? verifiedDirectory.groups
     : teamCatalog.length
@@ -736,9 +743,22 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
           <div className="spx-panel__head"><h2>All {sportMeta.label} Teams</h2></div>
           {directoryMisses.length > 0 && (
-            <p className="spx-panel__owner-diagnostic">
-              Owner diagnostic — {directoryMisses.length} team{directoryMisses.length === 1 ? "" : "s"} didn&rsquo;t match the live provider catalog (blank logo/record above): {directoryMisses.join(", ")}.
-            </p>
+            <>
+              <p className="spx-panel__owner-diagnostic">
+                Owner diagnostic — {directoryMisses.length} team{directoryMisses.length === 1 ? "" : "s"} didn&rsquo;t match the live provider catalog (blank logo/record above): {directoryMisses.join(", ")}.
+              </p>
+              {directoryLiveCatalog.length > 0 && (
+                <details className="spx-panel__owner-diagnostic">
+                  <summary>Owner diagnostic — real live provider catalog ({directoryLiveCatalog.length} teams)</summary>
+                  <p style={{ margin: ".5rem 0" }}>Compare against the unmatched names above — no automatic pairing is attempted.</p>
+                  <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
+                    {directoryLiveCatalog.map((t) => (
+                      <li key={t.id}>{t.name} <span style={{ opacity: 0.65 }}>(id: {t.id})</span></li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>
           )}
           <TeamDirectory sport={sport} groups={directoryGroups} />
         </div>
