@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, sportHost, fetchRawTeamsResponseDiagnostic, fetchLeagueVerificationDiagnostic, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
@@ -506,6 +506,91 @@ export function mergeCatalogWithPriorSeason(current: SportsTeam[], prior: Sports
   for (const t of current) merged.set(t.id, t);
   const result = Array.from(merged.values());
   return result.length > current.length ? result : current;
+}
+
+export interface NhlLiveDiagnostic {
+  config: { host: string; leagueId: string; currentSeason: string; previousSeason: string };
+  leagueVerification: { attempted: boolean; matchedId: string | null; matchedName: string | null; confirmed: "YES" | "NO" | "UNCONFIRMED" };
+  catalog: {
+    current: Awaited<ReturnType<typeof fetchRawTeamsResponseDiagnostic>>;
+    previous: Awaited<ReturnType<typeof fetchRawTeamsResponseDiagnostic>>;
+    mergedCount: number;
+    minimumExpectedCount: number;
+    fallbackExecuted: boolean;
+    fallbackNote: string;
+  };
+  standings: {
+    current: { requestSucceeded: boolean; teamCount: number };
+    previous: { requestSucceeded: boolean; teamCount: number };
+    finalTeamCount: number;
+    finalSeasonUsed: string | null;
+  };
+  completeness: { countDistinctStandingsTeams: number; minimumExpectedCount: number };
+}
+
+// TEMPORARY, OWNER-ONLY DIAGNOSTIC — built specifically to prove or
+// disprove why NHL's current AND previous-season catalog/standings
+// attempts are both coming back empty in production, with real evidence
+// rather than a guess. Deliberately reuses the exact same production
+// functions and parameters (mergeCatalogWithPriorSeason, fetchTeamsForLeague,
+// ApiSportsProvider.standings) the real page already calls, so its numbers
+// can never diverge from what production actually computed — this is
+// evidence-gathering only, it changes no fetch/fallback/completeness
+// behavior itself. `distinctStandingsTeams` and `minimumExpectedCount` are
+// passed in from the same values the calling page already computed (never
+// a second, possibly-diverging calculation). Never returns a header, key,
+// or any other request/credential detail. Remove this function and its
+// call site once the NHL investigation it was built for is resolved.
+export async function getNhlLiveDiagnostic(league: string, isOffSeasonPhase: boolean, minimumExpectedCount: number, distinctStandingsTeams: number): Promise<NhlLiveDiagnostic> {
+  const sport: SportSlug = "nhl";
+  const currentSeason = seasonParam(sport, new Date().toISOString());
+  const previousSeason = previousSeasonParam(sport, new Date().toISOString());
+
+  const [currentCatalogDiag, previousCatalogDiag, leagueVerification, currentStandings, previousStandings, currentTeams, previousTeams] = await Promise.all([
+    fetchRawTeamsResponseDiagnostic(sport, league, currentSeason),
+    fetchRawTeamsResponseDiagnostic(sport, league, previousSeason),
+    fetchLeagueVerificationDiagnostic(sport, league, /nhl|national hockey/i),
+    ApiSportsProvider.standings(sport, league, currentSeason),
+    ApiSportsProvider.standings(sport, league, previousSeason),
+    fetchTeamsForLeague(sport, league, currentSeason),
+    fetchTeamsForLeague(sport, league, previousSeason),
+  ]);
+
+  const current = currentTeams ?? [];
+  const previous = previousTeams ?? [];
+  const fallbackExecuted = isOffSeasonPhase && current.length < minimumExpectedCount;
+  const merged = fallbackExecuted ? mergeCatalogWithPriorSeason(current, previous, minimumExpectedCount) : current;
+  const fallbackNote = !isOffSeasonPhase
+    ? "isOffSeasonPhase is false — fallback never attempted"
+    : current.length >= minimumExpectedCount
+      ? `current mapped count (${current.length}) already met minimumExpectedCount (${minimumExpectedCount}) — fallback never attempted`
+      : previous.length > 0
+        ? "fallback executed — previous season had real data"
+        : "fallback executed — previous season was also empty";
+
+  const currentHasData = (currentStandings?.standings.length ?? 0) > 0;
+  const finalStandings = currentHasData ? currentStandings : previousStandings;
+  const finalHasData = (finalStandings?.standings.length ?? 0) > 0;
+
+  return {
+    config: { host: sportHost(sport), leagueId: league, currentSeason, previousSeason },
+    leagueVerification,
+    catalog: {
+      current: currentCatalogDiag,
+      previous: previousCatalogDiag,
+      mergedCount: merged.length,
+      minimumExpectedCount,
+      fallbackExecuted,
+      fallbackNote,
+    },
+    standings: {
+      current: { requestSucceeded: currentStandings !== null, teamCount: currentStandings?.standings.length ?? 0 },
+      previous: { requestSucceeded: previousStandings !== null, teamCount: previousStandings?.standings.length ?? 0 },
+      finalTeamCount: finalStandings?.standings.length ?? 0,
+      finalSeasonUsed: finalHasData ? (currentHasData ? currentSeason : previousSeason) : null,
+    },
+    completeness: { countDistinctStandingsTeams: distinctStandingsTeams, minimumExpectedCount },
+  };
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
