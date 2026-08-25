@@ -7,7 +7,7 @@ import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, g
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
-import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
@@ -403,8 +403,15 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // empty (unconfigured, league not resolved yet, or the provider genuinely
   // has no teams for this league) — never a blank directory when standings
   // happens to have something the catalog call couldn't reach.
+  // A real, self-updating completeness bar for this sport's catalog — the
+  // number of distinct real teams Standings already found (which, for a
+  // sport using getStandingsWithOffSeasonFallback, already reflects the
+  // last real completed season during an off-season window) — never a
+  // hardcoded per-sport team-count guess. See getLeagueTeamCatalogWithOffSeasonFallback's
+  // own doc comment for why "any nonzero count" was never a sufficient bar.
+  const minimumExpectedTeamCount = Math.max(1, countDistinctStandingsTeams(standingsGroups));
   const teamCatalog = !hasVerifiedReference(sport) && hasLeague
-    ? await getLeagueTeamCatalogWithOffSeasonFallback(sport, league, standingsPhase === "preseason").catch(() => [])
+    ? await getLeagueTeamCatalogWithOffSeasonFallback(sport, league, standingsPhase === "preseason", minimumExpectedTeamCount).catch(() => [])
     : [];
   const verifiedDirectory = hasVerifiedReference(sport)
     ? await getTeamDirectory(sport, standingsGroups, isOwner, standingsPhase === "preseason").catch(() => ({ groups: [], misses: [], liveCatalog: [] }))

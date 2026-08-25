@@ -27,8 +27,9 @@ export interface DirectoryTeam {
   /** A real "W-L" (or "W-L-T") record from the same live standings row
    *  used for grouping, when Standings has one for this team — never
    *  computed or guessed. Undefined when Standings doesn't have this team
-   *  yet (off-season, restriction, etc.); the UI shows "Record unavailable"
-   *  rather than a fabricated number. */
+   *  yet (off-season, restriction, etc.); the UI (TeamDirectory.tsx) omits
+   *  the record line entirely in that case rather than showing a
+   *  repetitive "Record unavailable" or a fabricated number. */
   record?: string;
 }
 
@@ -117,6 +118,24 @@ function buildRecordByTeamId(standingsGroups: StandingsGroup[]): Map<string, str
   return map;
 }
 
+/** Distinct real team ids appearing anywhere in a standings result — used
+ *  as a real, self-updating completeness signal for the live team catalog
+ *  (see getLeagueTeamCatalogWithOffSeasonFallback's minimumExpectedCount
+ *  param). For a sport whose Standings already went through
+ *  getStandingsWithOffSeasonFallback (falling back to the last real
+ *  completed season when the current one hasn't posted anything yet), the
+ *  number of real teams that fallback found is real evidence of how many
+ *  teams the league actually has — never a separately hardcoded guess that
+ *  could go stale the moment a league expands, realigns, or renames a
+ *  franchise. This deliberately covers every non-VERIFIED_REFERENCE sport,
+ *  college catalogs included, without ever hardcoding a school count.
+ *  Exported for the [sport]/page.tsx call site. */
+export function countDistinctStandingsTeams(standingsGroups: StandingsGroup[]): number {
+  const ids = new Set<string>();
+  for (const g of standingsGroups) for (const d of g.divisions) for (const r of d.rows) if (r.team.id) ids.add(r.team.id);
+  return ids.size;
+}
+
 // Confirmed, real provider naming differences ONLY — an entry here must
 // represent an independently verified real mismatch between our static
 // VERIFIED_REFERENCE name and the live API-Sports catalog's actual name
@@ -159,15 +178,19 @@ function resolveVerifiedTeamIdentity(sport: SportSlug, staticName: string, catal
  *  getVerifiedStandingsFallback use so a real API-Sports naming mismatch
  *  only ever needs fixing once. Returns [] on no resolved league or a
  *  failed call — callers already treat an empty catalog as "show every
- *  team without id/logo," never as an error. `isOffSeasonPhase` is passed
- *  straight through to getLeagueTeamCatalogWithOffSeasonFallback — see its
- *  own doc comment for why a genuinely empty current-season catalog
- *  retries against the last real completed season for identity purposes
- *  only (id/name/logo), never for record/roster/schedule. */
-async function fetchVerifiedTeamCatalog(sport: SportSlug, isOffSeasonPhase: boolean): Promise<SportsTeam[]> {
+ *  team without id/logo," never as an error. `isOffSeasonPhase` and
+ *  `minimumExpectedCount` are passed straight through to
+ *  getLeagueTeamCatalogWithOffSeasonFallback — see its own doc comment for
+ *  why a current-season catalog that's EMPTY *or* meaningfully short of
+ *  this sport's own real, already-known team count (the caller passes the
+ *  VERIFIED_REFERENCE spec's own real team count — see getTeamDirectory/
+ *  getVerifiedStandingsFallback) retries against the last real completed
+ *  season for identity purposes only (id/name/logo), never for
+ *  record/roster/schedule. */
+async function fetchVerifiedTeamCatalog(sport: SportSlug, isOffSeasonPhase: boolean, minimumExpectedCount: number): Promise<SportsTeam[]> {
   const league = await resolveDefaultLeagueId(sport).catch(() => null);
   if (!league) return [];
-  return getLeagueTeamCatalogWithOffSeasonFallback(sport, league, isOffSeasonPhase).catch(() => []);
+  return getLeagueTeamCatalogWithOffSeasonFallback(sport, league, isOffSeasonPhase, minimumExpectedCount).catch(() => []);
 }
 
 /** Fills in the complete, real league structure (every real team, under its
@@ -197,7 +220,7 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
     // window" signal — the same one that already gates whether missing
     // teams get a corroborated 0-0 below, reused here so a not-yet-
     // populated current season also gets the prior-season identity retry.
-    const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport, allowZeroFill));
+    const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport, allowZeroFill, totalRealTeams));
     const merged: SportsStanding[] = [];
     for (const { conference, division, teams } of spec) {
       for (const name of teams) {
@@ -252,7 +275,8 @@ export interface ResolvedDivisions {
 
 async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean, isOffSeasonPhase: boolean): Promise<ResolvedDivisions> {
   try {
-    const catalog = await fetchVerifiedTeamCatalog(sport, isOffSeasonPhase);
+    const totalRealTeams = spec.reduce((n, s) => n + s.teams.length, 0);
+    const catalog = await fetchVerifiedTeamCatalog(sport, isOffSeasonPhase, totalRealTeams);
     const catalogByName = buildCatalogNameIndex(catalog);
     const misses: string[] = [];
     const byConference = new Map<string, DirectoryDivision[]>();
@@ -283,7 +307,7 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
     // confirmed as a real provider naming difference (not a genuine
     // catalog gap), add it to VERIFIED_TEAM_ALIASES.
     if (logDiagnostics && misses.length) {
-      console.warn(`[team-directory] ${sport}: ${misses.length} of ${spec.reduce((n, s) => n + s.teams.length, 0)} static team(s) had no real catalog match — ${misses.join(", ")}`);
+      console.warn(`[team-directory] ${sport}: ${misses.length} of ${totalRealTeams} static team(s) had no real catalog match — ${misses.join(", ")}`);
     }
     // Only populated when there's actually something to investigate, and
     // only real, already-fetched data — never a second provider call just
