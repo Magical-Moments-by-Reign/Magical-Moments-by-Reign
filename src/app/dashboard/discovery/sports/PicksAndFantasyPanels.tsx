@@ -24,16 +24,26 @@ import type { MatchupCardContext } from "@/lib/discovery/sports/service";
 import type { FantasyLeagueSummary } from "@/lib/discovery/sports/fantasy-service";
 import type { SportSlug } from "@/lib/discovery/providers/sports";
 
-export function MagicalPicksPanel({ matchup, previewSportLabel, sport }: { matchup: MatchupCardContext | null; previewSportLabel?: string; sport?: SportSlug }) {
+export function MagicalPicksPanel({ matchup, previewSportLabel, sport, pageSport }: { matchup: MatchupCardContext | null; previewSportLabel?: string; sport?: SportSlug; pageSport?: SportSlug }) {
   // Real 5-day-ahead window (today, +1 .. +4) that Make Picks itself
   // resolves the date tabs from — this link jumps straight into that same
   // list, filtered to this sport, rather than the one game shown here.
   const selectAnotherHref = sport ? `/dashboard/discovery/sports/picks?tab=make&sport=${sport}` : "/dashboard/discovery/sports/picks?tab=make";
+  // pageSport is the SPORT PAGE this panel is rendered on (e.g. the NFL
+  // page) — distinct from `sport` (the currently-previewed matchup's
+  // sport, which the Sports Hub also sets even though the Hub itself isn't
+  // scoped to one sport). Only a real sport-page context should narrow
+  // "View All"/"Go to Magical Picks" to that one sport; the Hub's identical
+  // links must keep showing every sport, matching its own "Pick winners
+  // across every sport" copy just below.
+  const allPicksHref = pageSport ? `/dashboard/discovery/sports/picks?tab=make&sport=${pageSport}` : "/dashboard/discovery/sports/picks";
   return (
     <div className="spx-panel">
-      <div className="spx-panel__head"><h2>Magical Picks</h2><Link href="/dashboard/discovery/sports/picks">View All →</Link></div>
+      <div className="spx-panel__head"><h2>Magical Picks</h2><Link href={allPicksHref}>View All →</Link></div>
       <p className="spx-panel__empty" style={{ margin: "0 0 .8rem" }}>
-        Pick winners across every sport on Magical Moments — NFL, college football, NBA, MLB, NHL, soccer, MMA, F1, and more — and see how you stack up against family and friends.
+        {pageSport
+          ? `Pick winners in ${previewSportLabel ?? "this sport"} and see how you stack up against family and friends.`
+          : "Pick winners across every sport on Magical Moments — NFL, college football, NBA, MLB, NHL, soccer, MMA, F1, and more — and see how you stack up against family and friends."}
       </p>
       {!matchup ? (
         <p className="spx-panel__empty">No pickable {previewSportLabel ?? ""} matchup right now — check back closer to kickoff.</p>
@@ -73,7 +83,7 @@ export function MagicalPicksPanel({ matchup, previewSportLabel, sport }: { match
         </div>
       )}
       <Link href={selectAnotherHref} className="spx-poll__select-other">Select Another Game →</Link>
-      <Link href="/dashboard/discovery/sports/picks" className="spx-panel__cta">Go to Magical Picks</Link>
+      <Link href={allPicksHref} className="spx-panel__cta">Go to Magical Picks</Link>
     </div>
   );
 }

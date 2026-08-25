@@ -520,7 +520,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
 
       {sport === "nfl" && (
         <div className="spx-panels spx-panels--picks-fantasy">
-          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel="NFL" sport={sport} />
+          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel="NFL" sport={sport} pageSport={sport} />
           <FantasyFootballPanel leagues={myFantasyLeagues} />
         </div>
       )}
@@ -533,7 +533,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           card doesn't map onto a two-side "who you got" pick). */}
       {sport !== "nfl" && MATCHUP_SPORTS.includes(sport) && (
         <div className="spx-standard-solo" style={{ marginBottom: "var(--section-gap-standard)" }}>
-          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel={sportMeta.label} sport={sport} />
+          <MagicalPicksPanel matchup={picksFeaturedMatchup} previewSportLabel={sportMeta.label} sport={sport} pageSport={sport} />
         </div>
       )}
 
