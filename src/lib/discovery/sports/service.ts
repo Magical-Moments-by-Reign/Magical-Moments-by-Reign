@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
@@ -506,6 +506,69 @@ export function mergeCatalogWithPriorSeason(current: SportsTeam[], prior: Sports
   for (const t of current) merged.set(t.id, t);
   const result = Array.from(merged.values());
   return result.length > current.length ? result : current;
+}
+
+// ── TEMPORARY Owner-only diagnostic: College Football (ncaaf) live catalog
+// membership — see the module comment above findForensicTeamMatches in
+// providers/sports.ts for the full context. Hardcoded to sport="ncaaf" on
+// purpose (this is a one-league investigation, not a general-purpose
+// tool) — mirrors the shape of the NHL live diagnostic (getNhlLiveDiagnostic,
+// a separate, still-open diagnostic PR) without depending on it, since that
+// PR isn't merged yet and this one must stand alone on top of main. Every
+// number here comes straight from a real provider call or a real production
+// function (fetchTeamsForLeague, getLeagueTeamCatalogWithOffSeasonFallback,
+// mergeCatalogWithPriorSeason) — never recomputed or approximated
+// separately, so this diagnostic can never disagree with what the ncaaf
+// page itself actually shows. TEMPORARY: remove once the live evidence
+// resolves the contamination question and the real fix ships.
+export interface NcaafLiveDiagnostic {
+  configured: boolean;
+  league: string;
+  currentSeason: string;
+  previousSeason: string;
+  leagueDetail: LeagueDetailDiagnostic;
+  rawCurrent: RawTeamsResponseDiagnostic;
+  rawPrevious: RawTeamsResponseDiagnostic;
+  /** The real, production-identical merged catalog
+   *  (getLeagueTeamCatalogWithOffSeasonFallback's own output for ncaaf) —
+   *  the exact same team list the live page's directory renders from. */
+  mergedCatalogNames: string[];
+  mergedCatalogCount: number;
+  forensicMatches: ForensicTeamMatch[];
+  shapeSummary: TeamCatalogShapeSummary;
+}
+
+export async function getNcaafLiveDiagnostic(league: string, isOffSeasonPhase: boolean, minimumExpectedCount: number): Promise<NcaafLiveDiagnostic> {
+  const sport: SportSlug = "ncaaf";
+  const configured = ApiSportsProvider.isConfigured(sport);
+  const nowISO = new Date().toISOString();
+  const currentSeason = seasonParam(sport, nowISO);
+  const previousSeason = previousSeasonParam(sport, nowISO);
+
+  const [leagueDetail, rawCurrent, rawPrevious, rawArrays, mergedCatalog] = await Promise.all([
+    fetchLeagueDetailDiagnostic(sport, league),
+    fetchRawTeamsResponseDiagnostic(sport, league, currentSeason),
+    fetchRawTeamsResponseDiagnostic(sport, league, previousSeason),
+    fetchRawTeamsArraysForDiagnostic(sport, league, currentSeason, previousSeason),
+    getLeagueTeamCatalogWithOffSeasonFallback(sport, league, isOffSeasonPhase, minimumExpectedCount),
+  ]);
+
+  const forensicMatches = findForensicTeamMatches(rawArrays.current, rawArrays.previous);
+  const shapeSummary = summarizeTeamCatalogShape([...rawArrays.current, ...rawArrays.previous]);
+
+  return {
+    configured,
+    league,
+    currentSeason,
+    previousSeason,
+    leagueDetail,
+    rawCurrent,
+    rawPrevious,
+    mergedCatalogNames: mergedCatalog.map((t) => t.name).sort((a, b) => a.localeCompare(b)),
+    mergedCatalogCount: mergedCatalog.length,
+    forensicMatches,
+    shapeSummary,
+  };
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/

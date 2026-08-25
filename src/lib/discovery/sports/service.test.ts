@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNcaafLiveDiagnostic } from "./service";
 import type { SportsTeam } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -14,6 +14,35 @@ test("getLeagueTeamCatalogWithOffSeasonFallback: no configured provider — retu
   try {
     assert.deepEqual(await getLeagueTeamCatalogWithOffSeasonFallback("nhl", "57", false), []);
     assert.deepEqual(await getLeagueTeamCatalogWithOffSeasonFallback("nhl", "57", true), []);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+// ── getNcaafLiveDiagnostic: TEMPORARY Owner-only diagnostic — with no
+// provider key configured, every real-provider-backed field degrades
+// honestly (never throws, never fabricates), while the merged-catalog field
+// still reflects the real (empty) output of the same production function
+// the ncaaf page itself calls.
+
+test("getNcaafLiveDiagnostic: no configured provider — every field degrades honestly, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const result = await getNcaafLiveDiagnostic("2", false, 1);
+    assert.equal(result.configured, false);
+    assert.equal(result.league, "2");
+    assert.equal(result.leagueDetail.attempted, false);
+    assert.deepEqual(result.rawCurrent, { hasResponseField: false, responseIsArray: false, responseLength: 0, pagingPresent: false, pagingCurrent: null, pagingTotal: null, errorsFieldPresent: false, mappedTeamCount: 0 });
+    assert.deepEqual(result.rawPrevious, { hasResponseField: false, responseIsArray: false, responseLength: 0, pagingPresent: false, pagingCurrent: null, pagingTotal: null, errorsFieldPresent: false, mappedTeamCount: 0 });
+    assert.deepEqual(result.mergedCatalogNames, []);
+    assert.equal(result.mergedCatalogCount, 0);
+    assert.equal(result.forensicMatches.length, 7);
+    for (const m of result.forensicMatches) {
+      assert.equal(m.foundInCurrentSeason, false);
+      assert.equal(m.fields, null);
+    }
+    assert.deepEqual(result.shapeSummary, { rowCount: 0, anyRowHasMembershipKey: false, sampleRootKeys: [], sampleTeamKeys: [] });
   } finally {
     if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
   }

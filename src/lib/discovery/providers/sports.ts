@@ -742,6 +742,236 @@ export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> 
     : null;
 }
 
+// ── TEMPORARY Owner-only diagnostic: College Football (ncaaf) live catalog
+// membership ────────────────────────────────────────────────────────────
+// Owner reported NFL teams (e.g. Green Bay Packers, Denver Broncos) and
+// mixed-division schools appearing under ncaaf's team directory in
+// production. Every function that builds the ncaaf catalog (fetchTeamsForLeague,
+// getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason,
+// buildTeamDirectoryFromCatalog, countDistinctStandingsTeams) was already
+// traced end to end and confirmed to correctly thread sport="ncaaf"/
+// league="2" — no code path in this app can cross-contaminate leagues. That
+// leaves two real possibilities this diagnostic exists to distinguish using
+// nothing but real provider responses, reusing the exact same functions
+// production already calls wherever possible: (1) API-Sports' league id 2
+// on the american-football host is not actually what SPORT_CONFIG assumes
+// it is, or (2) it is the right league, and the provider's own /teams
+// response for it genuinely includes rows a human wouldn't call "college
+// football" (e.g. a real FCS/D2/D3/NAIA school, or an NFL row that isn't
+// actually league-scoped by the provider). This sandbox has no live
+// API_SPORTS_KEY, so every function below degrades honestly (empty/false)
+// with no key configured — the Owner runs this in production to get real
+// evidence. TEMPORARY: Owner-only, and should be removed (or converted into
+// supported admin tooling) once the live evidence resolves which case this
+// is and the real fix ships — see CLAUDE.md §17.
+//
+// Deliberately does NOT attempt automated FBS/FCS/D2/D3/NAIA classification
+// — this app has no verified source for that distinction, and guessing it
+// would be exactly the kind of fabrication CLAUDE.md §7 forbids. Instead
+// this surfaces the full merged team name list and whatever real
+// league/division/category/conference fields the provider itself returns,
+// so the Owner can classify by eye. Also deliberately does NOT touch the
+// separately-flagged MLB "American League"/"National League" mapper bug —
+// only reports whether the provider response *can* distinguish TEAM from
+// LEAGUE/CONFERENCE/DIVISION, as evidence for that future fix.
+
+/** Real, verified detail for one API-Sports league id — country, type, and
+ *  every season the provider itself lists as covered — straight from
+ *  `/leagues?id=X`, never inferred. `attempted: false` only when unconfigured
+ *  (no live key); a real call that returns nothing still reports
+ *  `attempted: true` with null/empty fields, which is itself real evidence
+ *  ("this league id resolves to nothing"). */
+export interface LeagueDetailDiagnostic {
+  attempted: boolean;
+  matchedId: string | null;
+  matchedName: string | null;
+  country: string | null;
+  type: string | null;
+  seasons: string[];
+}
+
+export async function fetchLeagueDetailDiagnostic(sport: SportSlug, league: string): Promise<LeagueDetailDiagnostic> {
+  if (!ApiSportsProvider.isConfigured(sport)) {
+    return { attempted: false, matchedId: null, matchedName: null, country: null, type: null, seasons: [] };
+  }
+  const json = await apiSportsFetch(sport, "/leagues", { id: league });
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : [];
+  const first = list[0];
+  const lg = first?.league ?? first;
+  const country = first?.country;
+  const seasonsList = Array.isArray(first?.seasons) ? first.seasons : [];
+  return {
+    attempted: true,
+    matchedId: lg?.id != null ? String(lg.id) : null,
+    matchedName: typeof lg?.name === "string" ? lg.name : null,
+    country: typeof country?.name === "string" ? country.name : typeof country === "string" ? country : null,
+    type: typeof lg?.type === "string" ? lg.type : null,
+    seasons: seasonsList
+      .map((s: any) => (typeof s === "string" ? s : typeof s?.season === "string" || typeof s?.season === "number" ? String(s.season) : null))
+      .filter((s: string | null): s is string => s !== null),
+  };
+}
+
+/** Safe structural evidence about a raw `/teams` response envelope — never
+ *  the rows themselves, only shape/counts — so the Owner can see whether the
+ *  provider is paginating, returning a plan-restriction error, or genuinely
+ *  answering with a given row count, independent of what mapTeamsResponse
+ *  keeps or drops. */
+export interface RawTeamsResponseDiagnostic {
+  hasResponseField: boolean;
+  responseIsArray: boolean;
+  responseLength: number;
+  pagingPresent: boolean;
+  pagingCurrent: number | null;
+  pagingTotal: number | null;
+  errorsFieldPresent: boolean;
+  mappedTeamCount: number;
+}
+
+export async function fetchRawTeamsResponseDiagnostic(sport: SportSlug, league: string, season: string): Promise<RawTeamsResponseDiagnostic> {
+  if (!ApiSportsProvider.isConfigured(sport)) {
+    return { hasResponseField: false, responseIsArray: false, responseLength: 0, pagingPresent: false, pagingCurrent: null, pagingTotal: null, errorsFieldPresent: false, mappedTeamCount: 0 };
+  }
+  const json = await apiSportsFetch(sport, "/teams", { league, season });
+  const hasResponseField = json != null && Object.prototype.hasOwnProperty.call(json as object, "response");
+  const responseIsArray = Array.isArray((json as any)?.response);
+  const responseLength = responseIsArray ? (json as any).response.length : 0;
+  const paging = (json as any)?.paging;
+  const mapped = mapTeamsResponse(json) ?? [];
+  return {
+    hasResponseField,
+    responseIsArray,
+    responseLength,
+    pagingPresent: paging != null,
+    pagingCurrent: typeof paging?.current === "number" ? paging.current : null,
+    pagingTotal: typeof paging?.total === "number" ? paging.total : null,
+    errorsFieldPresent: (json as any)?.errors != null,
+    mappedTeamCount: mapped.length,
+  };
+}
+
+/** Internal, server-only: the real, unmapped `/teams` response rows for one
+ *  sport/league/season — before mapTeamsResponse's id/name filter and
+ *  before fetchTeamsForLeague's pagination merge. Exists only so the
+ *  forensic helpers below can inspect what fields a raw row actually
+ *  carries (league/division/category/conference/etc.) without changing
+ *  what the production catalog itself reads. Never returned directly to a
+ *  client — only the curated, safe fields extracted below are ever exposed. */
+async function fetchRawTeamsArray(sport: SportSlug, league: string, season: string): Promise<{ requestSucceeded: boolean; rows: any[] }> {
+  if (!ApiSportsProvider.isConfigured(sport)) return { requestSucceeded: false, rows: [] };
+  const json = await apiSportsFetch(sport, "/teams", { league, season });
+  if (json == null) return { requestSucceeded: false, rows: [] };
+  const list = Array.isArray((json as any)?.response) ? (json as any).response : [];
+  return { requestSucceeded: true, rows: list };
+}
+
+/** Fetches the raw (unmapped) current- and previous-season `/teams` rows for
+ *  one league — the shared network step both findForensicTeamMatches and
+ *  summarizeTeamCatalogShape need, kept in one place so the diagnostic
+ *  orchestrator only calls it once per season. */
+export async function fetchRawTeamsArraysForDiagnostic(sport: SportSlug, league: string, currentSeason: string, previousSeason: string): Promise<{ current: any[]; previous: any[] }> {
+  const [current, previous] = await Promise.all([
+    fetchRawTeamsArray(sport, league, currentSeason),
+    fetchRawTeamsArray(sport, league, previousSeason),
+  ]);
+  return { current: current.rows, previous: previous.rows };
+}
+
+const FORENSIC_TEAM_NAMES = ["Green Bay Packers", "Denver Broncos", "Tennessee", "Auburn", "Tuskegee", "Michigan Tech", "North Greenville"] as const;
+
+const SAFE_FORENSIC_KEYS = ["id", "name", "country", "national", "founded", "code", "league", "league_id", "division", "category", "type", "conference", "season", "level"] as const;
+
+export type ForensicTeamRowFields = Partial<Record<(typeof SAFE_FORENSIC_KEYS)[number], string | number | boolean | null>>;
+
+/** Reads only the fixed, curated key list above off a raw row — checking
+ *  both the row root and its nested `team` object, since API-Sports' own
+ *  shape differs by endpoint/vertical. An object value (e.g. `{id, name}`
+ *  for a nested league reference) is reduced to its own `name` string
+ *  rather than exposed whole, so this can never leak an unexpected/unsafe
+ *  shape. A key genuinely absent from both locations stays undefined —
+ *  never fabricated as null-meaning-"checked and empty" versus
+ *  undefined-meaning-"provider doesn't have this field" (callers only need
+ *  the coarser "was any membership key present at all" signal, computed in
+ *  findForensicTeamMatches). */
+function extractForensicFields(row: any): ForensicTeamRowFields {
+  const nested = row?.team ?? {};
+  const out: ForensicTeamRowFields = {};
+  for (const key of SAFE_FORENSIC_KEYS) {
+    const raw = nested?.[key] !== undefined ? nested[key] : row?.[key];
+    if (raw === undefined) continue;
+    if (raw === null) { out[key] = null; continue; }
+    if (typeof raw === "object") { out[key] = typeof raw.name === "string" ? raw.name : null; continue; }
+    if (typeof raw === "string" || typeof raw === "number" || typeof raw === "boolean") out[key] = raw;
+  }
+  return out;
+}
+
+export interface ForensicTeamMatch {
+  queriedName: string;
+  foundInCurrentSeason: boolean;
+  foundInPreviousSeason: boolean;
+  fields: ForensicTeamRowFields | null;
+  /** Whether the matched row carried ANY of league/league_id/division/
+   *  category/type/conference/level — the direct evidence for whether this
+   *  provider response can distinguish league membership at all, separate
+   *  from whether the team itself belongs in ncaaf. */
+  hasMembershipMetadata: boolean;
+}
+
+/** Searches the real current- and previous-season raw `/teams` rows for
+ *  each of the 7 Owner-named entities by exact (case-insensitive) name
+ *  match, and reports exactly what safe fields that row carries — including
+ *  explicitly reporting "no membership metadata" when none of the checked
+ *  keys are present, rather than staying silent about the gap. A name not
+ *  found in either season is real negative evidence (this row doesn't
+ *  appear in api-sports' response for this league/season at all), not an
+ *  error. */
+export function findForensicTeamMatches(currentRows: any[], previousRows: any[]): ForensicTeamMatch[] {
+  const matchIn = (rows: any[], queriedName: string) =>
+    rows.find((row) => {
+      const name = row?.team?.name ?? row?.name;
+      return typeof name === "string" && name.trim().toLowerCase() === queriedName.toLowerCase();
+    });
+  return FORENSIC_TEAM_NAMES.map((queriedName) => {
+    const currentMatch = matchIn(currentRows, queriedName);
+    const previousMatch = matchIn(previousRows, queriedName);
+    const source = currentMatch ?? previousMatch;
+    const fields = source ? extractForensicFields(source) : null;
+    const hasMembershipMetadata = !!fields && ["league", "league_id", "division", "category", "type", "conference", "level"].some((k) => fields[k as keyof ForensicTeamRowFields] !== undefined);
+    return { queriedName, foundInCurrentSeason: !!currentMatch, foundInPreviousSeason: !!previousMatch, fields, hasMembershipMetadata };
+  });
+}
+
+/** Aggregate, catalog-wide evidence for the separately-flagged "can the
+ *  provider even distinguish TEAM from LEAGUE/CONFERENCE/DIVISION" question
+ *  (relevant to the MLB "American League"/"National League" mapper bug,
+ *  explicitly NOT fixed by this diagnostic) — whether ANY row in the whole
+ *  response carries a membership-shaped key, plus the real key names (never
+ *  values) present on row 0's root and nested `team` object, so the Owner
+ *  can see the actual response shape without this diagnostic exposing any
+ *  row's real data wholesale. */
+export interface TeamCatalogShapeSummary {
+  rowCount: number;
+  anyRowHasMembershipKey: boolean;
+  sampleRootKeys: string[];
+  sampleTeamKeys: string[];
+}
+
+export function summarizeTeamCatalogShape(rows: any[]): TeamCatalogShapeSummary {
+  const membershipKeys = ["league", "league_id", "division", "category", "conference"];
+  const anyRowHasMembershipKey = rows.some((row) => {
+    const nested = row?.team ?? {};
+    return membershipKeys.some((k) => nested?.[k] !== undefined || row?.[k] !== undefined);
+  });
+  const first = rows[0];
+  return {
+    rowCount: rows.length,
+    anyRowHasMembershipKey,
+    sampleRootKeys: first && typeof first === "object" ? Object.keys(first) : [],
+    sampleTeamKeys: first?.team && typeof first.team === "object" ? Object.keys(first.team) : [],
+  };
+}
+
 /** The full season's schedule for a league — queried by season only (no
  *  date, no team), which API-Sports' games/fixtures endpoints support
  *  directly. Used to find real preseason/season-opener dates rather than

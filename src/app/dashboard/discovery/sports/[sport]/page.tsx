@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId, getNcaafLiveDiagnostic } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
@@ -454,6 +454,21 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           })),
         }));
 
+  // TEMPORARY DIAGNOSTIC — Owner-only, ncaaf-only, real live-provider
+  // evidence for the reported College Football team-directory contamination
+  // (NFL teams + mixed-division schools showing under "College Football").
+  // Reuses the real production catalog computed just above (never a
+  // separate/duplicated fetch), plus real /leagues and /teams calls scoped
+  // to exactly this render's league id, so the numbers here can never
+  // disagree with what the page itself is actually showing. Computed
+  // regardless of whether the directory below ends up rendering anything,
+  // since an EMPTY directory is itself part of what this diagnostic needs
+  // to explain. See getNcaafLiveDiagnostic's own doc comment in service.ts
+  // for full scope and the removal criterion.
+  const ncaafDiagnostic = sport === "ncaaf" && isOwner && hasLeague
+    ? await getNcaafLiveDiagnostic(league, standingsPhase === "preseason", minimumExpectedTeamCount).catch(() => null)
+    : null;
+
   // The real season-opener countdown is the hero's dominant state. Once
   // its target passes, both this gate and CountdownClock's own internal
   // clock guard turn it off — the header falls back to the plain
@@ -818,6 +833,76 @@ export default async function SportPage({ params, searchParams }: { params: Prom
             followTeamAction={followTeamAction}
             unfollowAction={unfollowAction}
           />
+        </div>
+      )}
+
+      {/* TEMPORARY DIAGNOSTIC — Owner-only, ncaaf-only. Deliberately placed
+          OUTSIDE the directoryGroups.length > 0 gate above (and outside any
+          other render gate) so this evidence survives even if a future fix
+          changes the directory from "contaminated" to "empty" mid-review —
+          the diagnostic must never itself go dark. Reuses the exact same
+          production functions the page already called above; never a
+          separate/duplicated fetch. Remove once the contamination question
+          is resolved and the real fix ships — see getNcaafLiveDiagnostic's
+          doc comment in service.ts. */}
+      {ncaafDiagnostic && (
+        <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
+          <div className="spx-panel__head"><h2>Owner Diagnostic — College Football Live Catalog Membership</h2></div>
+          <p className="spx-panel__owner-diagnostic">
+            Provider configured: {String(ncaafDiagnostic.configured)} · league id queried: {ncaafDiagnostic.league} · current season: {ncaafDiagnostic.currentSeason} · previous season: {ncaafDiagnostic.previousSeason}
+          </p>
+          <details className="spx-panel__owner-diagnostic" open>
+            <summary>League identity — /leagues?id={ncaafDiagnostic.league}</summary>
+            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
+              <li>attempted: {String(ncaafDiagnostic.leagueDetail.attempted)}</li>
+              <li>matched id: {ncaafDiagnostic.leagueDetail.matchedId ?? "—"}</li>
+              <li>matched name: {ncaafDiagnostic.leagueDetail.matchedName ?? "—"}</li>
+              <li>country: {ncaafDiagnostic.leagueDetail.country ?? "—"}</li>
+              <li>type: {ncaafDiagnostic.leagueDetail.type ?? "—"}</li>
+              <li>seasons covered: {ncaafDiagnostic.leagueDetail.seasons.length ? ncaafDiagnostic.leagueDetail.seasons.join(", ") : "—"}</li>
+            </ul>
+          </details>
+          <details className="spx-panel__owner-diagnostic">
+            <summary>Raw /teams response shape — current vs. previous season</summary>
+            <p style={{ margin: ".5rem 0" }}><b>Current ({ncaafDiagnostic.currentSeason}):</b> hasResponseField={String(ncaafDiagnostic.rawCurrent.hasResponseField)}, responseIsArray={String(ncaafDiagnostic.rawCurrent.responseIsArray)}, responseLength={ncaafDiagnostic.rawCurrent.responseLength}, paging={String(ncaafDiagnostic.rawCurrent.pagingPresent)} (page {ncaafDiagnostic.rawCurrent.pagingCurrent ?? "—"}/{ncaafDiagnostic.rawCurrent.pagingTotal ?? "—"}), errorsPresent={String(ncaafDiagnostic.rawCurrent.errorsFieldPresent)}, mappedTeamCount={ncaafDiagnostic.rawCurrent.mappedTeamCount}</p>
+            <p style={{ margin: ".5rem 0" }}><b>Previous ({ncaafDiagnostic.previousSeason}):</b> hasResponseField={String(ncaafDiagnostic.rawPrevious.hasResponseField)}, responseIsArray={String(ncaafDiagnostic.rawPrevious.responseIsArray)}, responseLength={ncaafDiagnostic.rawPrevious.responseLength}, paging={String(ncaafDiagnostic.rawPrevious.pagingPresent)} (page {ncaafDiagnostic.rawPrevious.pagingCurrent ?? "—"}/{ncaafDiagnostic.rawPrevious.pagingTotal ?? "—"}), errorsPresent={String(ncaafDiagnostic.rawPrevious.errorsFieldPresent)}, mappedTeamCount={ncaafDiagnostic.rawPrevious.mappedTeamCount}</p>
+          </details>
+          <details className="spx-panel__owner-diagnostic">
+            <summary>Forensic team-row lookup — 7 named entities (Green Bay Packers, Denver Broncos, Tennessee, Auburn, Tuskegee, Michigan Tech, North Greenville)</summary>
+            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
+              {ncaafDiagnostic.forensicMatches.map((m) => (
+                <li key={m.queriedName} style={{ marginBottom: ".5rem" }}>
+                  <b>{m.queriedName}</b> — foundInCurrentSeason={String(m.foundInCurrentSeason)}, foundInPreviousSeason={String(m.foundInPreviousSeason)}
+                  {m.fields ? (
+                    <>
+                      , hasMembershipMetadata={String(m.hasMembershipMetadata)}
+                      <br />
+                      fields: {Object.entries(m.fields).map(([k, v]) => `${k}=${v === null ? "null" : String(v)}`).join(", ") || "(no safe fields present on this row)"}
+                    </>
+                  ) : (
+                    <> — not found in either season&rsquo;s response</>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+          <details className="spx-panel__owner-diagnostic">
+            <summary>Type-validation evidence (TEAM vs. LEAGUE/CONFERENCE/DIVISION) — aggregate, current + previous season rows</summary>
+            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
+              <li>row count inspected: {ncaafDiagnostic.shapeSummary.rowCount}</li>
+              <li>any row carries a league/league_id/division/category/conference key: {String(ncaafDiagnostic.shapeSummary.anyRowHasMembershipKey)}</li>
+              <li>sample row-0 root keys: {ncaafDiagnostic.shapeSummary.sampleRootKeys.length ? ncaafDiagnostic.shapeSummary.sampleRootKeys.join(", ") : "—"}</li>
+              <li>sample row-0 nested &ldquo;team&rdquo; keys: {ncaafDiagnostic.shapeSummary.sampleTeamKeys.length ? ncaafDiagnostic.shapeSummary.sampleTeamKeys.join(", ") : "—"}</li>
+            </ul>
+            <p style={{ margin: ".5rem 0" }}>This is evidence only — the separately-flagged MLB &ldquo;American League&rdquo;/&ldquo;National League&rdquo; mapper bug is NOT fixed by this diagnostic.</p>
+          </details>
+          <details className="spx-panel__owner-diagnostic">
+            <summary>Real merged catalog ({ncaafDiagnostic.mergedCatalogCount} teams) — the exact list the directory above renders from</summary>
+            <p style={{ margin: ".5rem 0" }}>No automated FBS/FCS/D2/D3/NAIA classification is attempted — there is no verified source for that distinction. Review this list by eye for anything that doesn&rsquo;t belong.</p>
+            <ul style={{ margin: 0, paddingLeft: "1.2rem", columns: 2 }}>
+              {ncaafDiagnostic.mergedCatalogNames.map((name) => <li key={name}>{name}</li>)}
+            </ul>
+          </details>
         </div>
       )}
     </div>
