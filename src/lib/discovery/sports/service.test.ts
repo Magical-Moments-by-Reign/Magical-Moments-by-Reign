@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNcaafLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields } from "./service";
 import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -108,6 +108,30 @@ test("mergeCatalogWithPriorSeason: no real gain from merging (prior only repeats
 test("mergeCatalogWithPriorSeason: merged SportsTeam rows carry only stable identity fields — no record/roster/standings/schedule data ever appears", () => {
   const result = mergeCatalogWithPriorSeason([], [{ id: "1", name: "Team A", logoUrl: "https://x/a.png", code: "TA" }], 1);
   assert.deepEqual(Object.keys(result[0]).sort(), ["code", "id", "logoUrl", "name"].sort());
+});
+
+// ── getLeagueTeamRosterMap: the Standings-logo lookup map, reusing
+// getLeagueTeamCatalogWithOffSeasonFallback (see its own doc comment for
+// why "any nonzero count" was never a safe completeness check — confirmed
+// live via NBA's 19-of-31 pre-season catalog gap). These exercise the real
+// exported wiring (no provider key configured, so both the current- and
+// prior-season network calls degrade to [] honestly), not a
+// reimplementation — the merge decision itself is already covered above.
+
+test("getLeagueTeamRosterMap: no configured provider — returns null for a non-single-league sport, and an empty (never fabricated) map otherwise, at any minimumExpectedCount", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    assert.equal(await getLeagueTeamRosterMap("f1"), null); // not in SINGLE_LEAGUE_SPORTS
+    const defaultCount = await getLeagueTeamRosterMap("nba");
+    assert.ok(defaultCount);
+    assert.equal(defaultCount!.size, 0);
+    const higherCount = await getLeagueTeamRosterMap("nba", 31);
+    assert.ok(higherCount);
+    assert.equal(higherCount!.size, 0);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
 });
 
 // ── Regression: followed-team roster/injury enrichment must never take the

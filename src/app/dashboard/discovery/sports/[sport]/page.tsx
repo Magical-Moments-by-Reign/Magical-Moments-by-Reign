@@ -9,7 +9,7 @@ import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } fr
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, filterToVerifiedFranchises, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
-import TeamDirectory from "../TeamDirectory";
+import TeamDirectory, { teamMonogram } from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
 import { ApiSportsProvider, MATCHUP_SPORTS, fetchSeasonCatalogDiagnostic, seasonParam, previousSeasonParam, type SportSlug } from "@/lib/discovery/providers/sports";
@@ -692,7 +692,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                           <StandingsTeamRow key={s.team.id} sport={sport} team={{ id: s.team.id, name: s.team.name, logoUrl: s.team.logoUrl }}>
                             <span style={{ color: "var(--gold)", fontSize: ".72rem", fontWeight: 800, width: 18 }}>{s.displayRank}</span>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {s.team.logoUrl ? <img src={s.team.logoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                            {s.team.logoUrl ? <img src={s.team.logoUrl} alt="" /> : <div className="spx-team-row__ph spx-team-row__ph--mono">{teamMonogram(s.team.name)}</div>}
                             <b style={{ flex: 1, textAlign: "left" }}>{s.team.name}</b>
                             <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 48, textAlign: "right" }}>{s.summary ?? (s.wins == null && s.losses == null ? "—" : `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}`)}</span>
                             <span style={{ color: "#9c8f76", fontSize: ".72rem", width: 40, textAlign: "right" }}>{hasPoints ? (s.points ?? "—") : s.wins == null && s.losses == null ? "—" : `${(((s.wins ?? 0) / Math.max((s.wins ?? 0) + (s.losses ?? 0), 1)) * 100).toFixed(1)}`}</span>

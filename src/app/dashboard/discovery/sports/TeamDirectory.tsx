@@ -20,7 +20,7 @@ import { TeamRosterPanel } from "./TeamRosterPanel";
  *  first letter of the last two words (e.g. "Boston Celtics" → "BC") so a
  *  single-word name ("Alumni") still gets one clean letter rather than an
  *  odd two-letter slice of the same word. */
-function teamMonogram(name: string): string {
+export function teamMonogram(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length >= 2) return (words[words.length - 2][0] + words[words.length - 1][0]).toUpperCase();
   return (words[0]?.[0] ?? "?").toUpperCase();

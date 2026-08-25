@@ -374,15 +374,26 @@ export async function resolveTeamByName(sport: SportSlug, name: string): Promise
  *  by the old (occasionally-duplicating) fetch logic can never keep being
  *  served under its still-unexpired TTL. Any future fix to fetchTeamsForLeague
  *  that changes what gets stored under this key should bump the suffix again
- *  rather than relying on the week-long TTL to self-heal. */
-export async function getLeagueTeamRosterMap(sport: SportSlug): Promise<Map<string, { id: string; logoUrl?: string }> | null> {
+ *  rather than relying on the week-long TTL to self-heal.
+ *
+ *  `minimumExpectedCount` opts into the SAME off-season identity fallback
+ *  the All Teams directory already relies on (getLeagueTeamCatalogWithOffSeasonFallback):
+ *  when the current season's live catalog is real but incomplete (confirmed
+ *  live evidence: NBA 19-of-31 teams during the pre-season catalog gap,
+ *  which is why a default of 1 would never have caught it — a 19-team
+ *  result already clears ">= 1"), the immediately-prior season's real
+ *  catalog fills in ONLY the missing team ids' identity (id/name/logoUrl/
+ *  code) — never win/loss/standings data, which this map never carries in
+ *  the first place. The current season's own real identity always wins for
+ *  any id it already has. This reuses that existing, already-tested
+ *  fallback rather than duplicating its merge logic here. Passing no count
+ *  (or 1) preserves the old only-fall-back-when-fully-empty behavior for
+ *  callers with no better completeness signal (see resolveTeamByName). */
+export async function getLeagueTeamRosterMap(sport: SportSlug, minimumExpectedCount = 1): Promise<Map<string, { id: string; logoUrl?: string }> | null> {
   if (!SINGLE_LEAGUE_SPORTS.has(sport)) return null;
   const league = await resolveDefaultLeagueId(sport);
   if (!league) return null;
-  const season = seasonParam(sport, new Date().toISOString());
-  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
-    fetchTeamsForLeague(sport, league, season));
-  const roster = cached?.data ?? [];
+  const roster = await getLeagueTeamCatalogWithOffSeasonFallback(sport, league, true, minimumExpectedCount);
   const map = new Map<string, { id: string; logoUrl?: string }>();
   for (const t of roster) {
     const entry = { id: t.id, logoUrl: t.logoUrl };
@@ -1430,7 +1441,15 @@ export async function getStandings(sport: SportSlug, league: string, season?: st
     // Falls back to the standings row's own logo only when the catalog
     // lookup itself comes back empty — never a blank card over a real (if
     // imperfect) provider-supplied logo.
-    const rosterMap = await getLeagueTeamRosterMap(sport);
+    //
+    // result.standings.length (real rows we already have in hand, right
+    // here) is passed as the roster map's minimumExpectedCount: a catalog
+    // that's real but merely INCOMPLETE relative to how many teams are
+    // actually standing today (confirmed live: NBA's 19-of-31 pre-season
+    // gap) now triggers the same off-season identity backfill the All Teams
+    // directory already gets, instead of silently accepting a partial
+    // catalog because it wasn't literally empty.
+    const rosterMap = await getLeagueTeamRosterMap(sport, result.standings.length);
     const resolvedStandings = await Promise.all(result.standings.map(async (s) => {
       const resolved = rosterMap ? rosterMap.get(normalizeTeamName(s.team.name)) ?? null : await resolveTeamByName(sport, s.team.name);
       return resolved?.logoUrl ? { ...s, team: { ...s.team, logoUrl: resolved.logoUrl } } : s;
