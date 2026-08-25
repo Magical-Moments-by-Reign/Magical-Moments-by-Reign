@@ -139,15 +139,22 @@ export function countDistinctStandingsTeams(standingsGroups: StandingsGroup[]): 
 // Confirmed, real provider naming differences ONLY — an entry here must
 // represent an independently verified real mismatch between our static
 // VERIFIED_REFERENCE name and the live API-Sports catalog's actual name
-// for that same real team; never a guess. Starts empty: this sandbox has
-// no live API-Sports key to compare against, so no mismatch here has been
-// confirmed yet. resolveVerifiedTeamIdentity's diagnostic log below is
-// exactly how a real mismatch gets discovered once this runs against a
-// live catalog — add the confirmed pair here only after that, never
-// speculatively. Never a substring/fuzzy rule (e.g. stripping "Los
-// Angeles" to "LA") — that risks silently cross-matching two differently
-// located real teams that happen to share a short form.
-const VERIFIED_TEAM_ALIASES: Partial<Record<SportSlug, Record<string, string>>> = {};
+// for that same real team; never a guess. resolveVerifiedTeamIdentity's
+// diagnostic log below is exactly how a real mismatch gets discovered once
+// this runs against a live catalog — add the confirmed pair here only
+// after that, never speculatively. Never a substring/fuzzy rule (e.g.
+// stripping "Los Angeles" to "LA") — that risks silently cross-matching
+// two differently located real teams that happen to share a short form;
+// every entry here is one exact, individually confirmed real pairing.
+//
+// nba["LA Clippers"]: Owner-confirmed via the live Owner-only diagnostic
+// (see [sport]/page.tsx's "real live provider catalog" panel) — API-Sports
+// reports this exact franchise (id 144, alongside all 29 other real NBA
+// teams) as "Los Angeles Clippers," never "LA Clippers." Every other NBA
+// static name matched the live catalog directly with no alias needed.
+const VERIFIED_TEAM_ALIASES: Partial<Record<SportSlug, Record<string, string>>> = {
+  nba: { "LA Clippers": "Los Angeles Clippers" },
+};
 
 function buildCatalogNameIndex(catalog: SportsTeam[]): Map<string, SportsTeam> {
   return new Map(catalog.map((t) => [normalize(t.name), t]));
@@ -165,12 +172,56 @@ function buildCatalogNameIndex(catalog: SportsTeam[]): Map<string, SportsTeam> {
  *  city name must never cross-match. Returns null (never a guessed team)
  *  when nothing in the real catalog matches confidently — logging a miss
  *  is the caller's job (see resolveDivisions), not this function's, so a
- *  page rendering 30 teams doesn't emit 30 separate log lines. */
-function resolveVerifiedTeamIdentity(sport: SportSlug, staticName: string, catalogByName: Map<string, SportsTeam>): SportsTeam | null {
+ *  page rendering 30 teams doesn't emit 30 separate log lines. Exported
+ *  for tests (VERIFIED_TEAM_ALIASES itself stays private/unexported —
+ *  tests exercise it indirectly through this resolver). */
+export function resolveVerifiedTeamIdentity(sport: SportSlug, staticName: string, catalogByName: Map<string, SportsTeam>): SportsTeam | null {
   const direct = catalogByName.get(normalize(staticName));
   if (direct) return direct;
   const alias = VERIFIED_TEAM_ALIASES[sport]?.[staticName];
   return alias ? catalogByName.get(normalize(alias)) ?? null : null;
+}
+
+/** The exact set of real, live-provider names this sport's VERIFIED_REFERENCE
+ *  actually covers — the static name itself, or its confirmed
+ *  VERIFIED_TEAM_ALIASES real-provider spelling when one exists (e.g. NBA's
+ *  "LA Clippers" resolves to "Los Angeles Clippers" here too, the same
+ *  pairing resolveVerifiedTeamIdentity uses). Returns null for a sport with
+ *  no VERIFIED_REFERENCE — callers must treat null as "no membership
+ *  boundary to check," never as "nothing is verified." */
+function verifiedFranchiseNameSet(sport: SportSlug): Set<string> | null {
+  const spec = VERIFIED_REFERENCE[sport];
+  if (!spec) return null;
+  const names = new Set<string>();
+  for (const { teams } of spec) {
+    for (const name of teams) {
+      const alias = VERIFIED_TEAM_ALIASES[sport]?.[name];
+      names.add(normalize(alias ?? name));
+    }
+  }
+  return names;
+}
+
+/** Keeps only this sport's verified real franchises out of a RAW,
+ *  unfiltered live catalog — the same membership boundary the All Teams
+ *  directory already enforces (resolveVerifiedTeamIdentity), applied to
+ *  any OTHER consumer of the raw catalog. Confirmed real defect this
+ *  closes: searchTeamsForSport (service.ts, the Follow-a-team search box)
+ *  reads the raw catalog directly with no filtering, so a non-franchise
+ *  provider row (e.g. NBA's "Team World") could be searched and followed
+ *  even though it can never appear in the All Teams directory. A sport
+ *  with no VERIFIED_REFERENCE (everything but NBA/NFL today, MLB
+ *  included) returns the input completely unchanged — this is
+ *  deliberately NOT a general entity-type/TEAM-vs-LEAGUE filter; MLB's
+ *  own "American League"/"National League" rows being followable is a
+ *  separate, confirmed, NOT-yet-designed issue (no static reference
+ *  exists to check MLB team rows against) and must not be silently
+ *  "fixed" by pretending MLB has this same architecture. Exported for
+ *  tests and for service.ts's searchTeamsForSport. */
+export function filterToVerifiedFranchises(sport: SportSlug, teams: SportsTeam[]): SportsTeam[] {
+  const verified = verifiedFranchiseNameSet(sport);
+  if (!verified) return teams;
+  return teams.filter((t) => verified.has(normalize(t.name)));
 }
 
 /** Fetches the real, live team catalog for a VERIFIED_REFERENCE sport's

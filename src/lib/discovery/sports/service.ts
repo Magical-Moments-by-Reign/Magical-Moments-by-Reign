@@ -1108,11 +1108,20 @@ export async function resolveWithFailureIsolation<T, R>(teams: T[], fetchOne: (t
  *  hand-rolling its own Promise.all. A genuine provider "plan restricted"
  *  or "empty" result from getTeamRoster is never converted to "error" here
  *  — only an actual thrown rejection is; those real statuses pass through
- *  untouched. */
-export async function resolveFollowedTeamRosters(sport: SportSlug, teams: FollowedTeamRef[], allowSecondarySource: boolean): Promise<Map<string, RosterResult>> {
+ *  untouched.
+ *
+ *  `allowOpenAiFallback` is threaded straight through to getTeamRoster,
+ *  the SAME option (and the SAME Owner-gated value) the TeamRosterPanel/
+ *  team-roster route already passes — confirmed defect fix: this "My
+ *  Teams" surface previously had no way to request Tier 3 at all, so the
+ *  identical real team could get different fallback capability depending
+ *  on which UI surface asked for its roster. No sport-specific branching
+ *  here; resolveRosterViaOpenAI's own league map (openai-resolver.ts)
+ *  still decides which sports Tier 3 actually covers. */
+export async function resolveFollowedTeamRosters(sport: SportSlug, teams: FollowedTeamRef[], allowSecondarySource: boolean, allowOpenAiFallback?: boolean): Promise<Map<string, RosterResult>> {
   const results = await resolveWithFailureIsolation(
     teams,
-    (t) => (t.teamExternalId ? getTeamRoster(sport, t.teamExternalId, { teamName: t.teamName ?? undefined, allowSecondarySource }) : Promise.resolve<RosterResult>({ players: [], status: "not_supported" })),
+    (t) => (t.teamExternalId ? getTeamRoster(sport, t.teamExternalId, { teamName: t.teamName ?? undefined, allowSecondarySource, allowOpenAiFallback }) : Promise.resolve<RosterResult>({ players: [], status: "not_supported" })),
     (): RosterResult => ({ players: [], status: "error" })
   );
   const map = new Map<string, RosterResult>();

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNcaafLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getNcaafLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields } from "./service";
 import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -611,6 +611,44 @@ test("getTeamRoster: NFL + allowOpenAiFallback works the same way (generalized f
       assert.equal(result.status, "hit");
       assert.equal(result.players.length, 6);
       assert.equal(result.players[0].id, "openai:nfl:player-0");
+    } finally {
+      restore();
+    }
+  }));
+
+// ── resolveFollowedTeamRosters: confirmed defect fix — this "My Teams"
+// surface previously had no way to request Tier 3 at all, so the SAME
+// real team could get a different real fallback capability depending on
+// which UI surface asked for its roster (TeamRosterPanel's API route
+// already passed allowOpenAiFallback; this one silently never did).
+// These prove BOTH call paths now receive equivalent Owner-gated
+// permission for the identical team/options.
+
+test("resolveFollowedTeamRosters: WITHOUT allowOpenAiFallback passed, Tier 3 never runs even for a supported league — the confirmed pre-fix gap, still reproducible if the option is simply omitted", () =>
+  withOpenAIKey(async () => {
+    const restore = mockTwoStepOpenAIFetch();
+    try {
+      const map = await resolveFollowedTeamRosters("nba", [{ followId: "f1", teamExternalId: null, teamName: "Some Team" }], false);
+      assert.equal(map.get("f1")?.players.length, 0);
+    } finally {
+      restore();
+    }
+  }));
+
+test("resolveFollowedTeamRosters: passing allowOpenAiFallback now reaches Tier 3, identically to the TeamRosterPanel/API-route path for the same team/options", () =>
+  withOpenAIKey(async () => {
+    const restore = mockTwoStepOpenAIFetch();
+    try {
+      const teamName = `Test Team ${Date.now()}`;
+      const [directResult, followedMap] = await Promise.all([
+        getTeamRoster("nba", "some-id", { teamName, allowOpenAiFallback: true }),
+        resolveFollowedTeamRosters("nba", [{ followId: "f1", teamExternalId: "some-id", teamName }], false, true),
+      ]);
+      const followedResult = followedMap.get("f1");
+      assert.equal(directResult.status, "hit");
+      assert.equal(followedResult?.status, "hit");
+      assert.equal(directResult.players.length, followedResult?.players.length);
+      assert.deepEqual(directResult.sources, followedResult?.sources);
     } finally {
       restore();
     }
