@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
@@ -377,6 +377,16 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const standingsSeasonLabel = formatSeasonLabel(standingsResult.season, standingsPhase)
     ?? (fallbackSeasonYear && standings.length > 0 ? `${fallbackSeasonYear} ${standingsPhase === "preseason" ? "Preseason" : standingsPhase === "postseason" ? "Postseason" : "Regular Season"} Standings` : null);
 
+  // Real follow-state for the All Teams directory's Follow/Unfollow control
+  // — reuses the same myTeamsForSport rows the My Teams panel above already
+  // computed (no second query), keyed by the real provider teamExternalId
+  // so a directory card can look itself up directly.
+  const teamFollowRefs = myTeamsForSport
+    .map((t) => ({ teamExternalId: t.follow.teamExternalId, followId: t.follow.id }))
+    .filter((r): r is { teamExternalId: string; followId: string } => Boolean(r.teamExternalId));
+  const followedTeamIds = new Set(teamFollowRefs.map((r) => r.teamExternalId));
+  const followIdByTeamId = new Map(teamFollowRefs.map((r) => [r.teamExternalId, r.followId]));
+
   // All Teams directory — every team in the league, with a live-resolved
   // logo. NBA/NFL have a verified static conference/division reference (see
   // team-directory.ts). Every other sport now sources this from the real,
@@ -393,9 +403,11 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // empty (unconfigured, league not resolved yet, or the provider genuinely
   // has no teams for this league) — never a blank directory when standings
   // happens to have something the catalog call couldn't reach.
-  const teamCatalog = !hasVerifiedReference(sport) && hasLeague ? await getLeagueTeamCatalog(sport, league).catch(() => []) : [];
+  const teamCatalog = !hasVerifiedReference(sport) && hasLeague
+    ? await getLeagueTeamCatalogWithOffSeasonFallback(sport, league, standingsPhase === "preseason").catch(() => [])
+    : [];
   const verifiedDirectory = hasVerifiedReference(sport)
-    ? await getTeamDirectory(sport, standingsGroups, isOwner).catch(() => ({ groups: [], misses: [], liveCatalog: [] }))
+    ? await getTeamDirectory(sport, standingsGroups, isOwner, standingsPhase === "preseason").catch(() => ({ groups: [], misses: [], liveCatalog: [] }))
     : null;
   // Owner-only: real static team names that had no match in the live
   // catalog on this render — the same data resolveDivisions already
@@ -760,7 +772,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
               )}
             </>
           )}
-          <TeamDirectory sport={sport} groups={directoryGroups} />
+          <TeamDirectory
+            sport={sport}
+            groups={directoryGroups}
+            followedTeamIds={followedTeamIds}
+            followIdByTeamId={followIdByTeamId}
+            followTeamAction={followTeamAction}
+            unfollowAction={unfollowAction}
+          />
         </div>
       )}
     </div>

@@ -2,22 +2,24 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId } from "./sports";
 
-test("seasonParam: sports on the basketball/hockey hosts use split-year seasons, keyed off an August season start", () => {
-  // nba, wnba, and ncaab all share v1.basketball.api-sports.io — the same
-  // host-wide split-season requirement applies to all three, not just nba
-  // (see seasonParam's doc comment for why wnba/ncaab were previously,
-  // incorrectly, treated as plain-year).
+test("seasonParam: nba/ncaab/nhl use split-year seasons, keyed off an August season start", () => {
+  // nba, ncaab, and nhl each have a real season that genuinely spans a
+  // calendar-year boundary — see seasonParam's doc comment.
   assert.equal(seasonParam("nba", "2026-01-15"), "2025-2026");
-  assert.equal(seasonParam("wnba", "2026-01-15"), "2025-2026");
   assert.equal(seasonParam("ncaab", "2026-01-15"), "2025-2026");
   assert.equal(seasonParam("nhl", "2026-01-15"), "2025-2026");
   assert.equal(seasonParam("nba", "2026-11-01"), "2026-2027");
   assert.equal(seasonParam("nba", "2026-08-01"), "2026-2027");
   assert.equal(seasonParam("nba", "2026-07-31"), "2025-2026");
-  assert.equal(seasonParam("wnba", "2026-08-23"), "2026-2027");
 });
 
-test("seasonParam: every other sport uses a plain single-year season", () => {
+test("seasonParam: wnba (and every other non-split sport) uses a plain single-year season", () => {
+  // wnba shares nba's basketball host, but its own real season runs
+  // entirely within one calendar year (May-October) — it was previously,
+  // incorrectly, forced into the split format on host-membership grounds
+  // alone. See SPLIT_SEASON_SPORTS' doc comment.
+  assert.equal(seasonParam("wnba", "2026-01-15"), "2026");
+  assert.equal(seasonParam("wnba", "2026-08-23"), "2026");
   assert.equal(seasonParam("nfl", "2026-01-15"), "2026");
   assert.equal(seasonParam("mlb", "2026-06-01"), "2026");
   assert.equal(seasonParam("soccer", "2026-11-01"), "2026");
@@ -25,8 +27,8 @@ test("seasonParam: every other sport uses a plain single-year season", () => {
 
 test("previousSeasonParam: steps back one season using the same per-sport split/plain convention", () => {
   assert.equal(previousSeasonParam("nba", "2026-08-23"), "2025-2026");
-  assert.equal(previousSeasonParam("wnba", "2026-08-23"), "2025-2026");
   assert.equal(previousSeasonParam("nhl", "2026-08-23"), "2025-2026");
+  assert.equal(previousSeasonParam("wnba", "2026-08-23"), "2025");
   assert.equal(previousSeasonParam("nfl", "2026-08-23"), "2025");
   assert.equal(previousSeasonParam("mlb", "2026-06-01"), "2025");
 });

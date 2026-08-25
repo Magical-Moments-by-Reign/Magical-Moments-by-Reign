@@ -12,7 +12,7 @@
 
 import type { SportSlug, SportsStanding, SportsTeam } from "../providers/sports";
 import type { StandingsGroup } from "./standings";
-import { getLeagueTeamCatalog, resolveDefaultLeagueId } from "./service";
+import { getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, resolveDefaultLeagueId } from "./service";
 
 export interface DirectoryTeam {
   id: string;
@@ -159,11 +159,15 @@ function resolveVerifiedTeamIdentity(sport: SportSlug, staticName: string, catal
  *  getVerifiedStandingsFallback use so a real API-Sports naming mismatch
  *  only ever needs fixing once. Returns [] on no resolved league or a
  *  failed call — callers already treat an empty catalog as "show every
- *  team without id/logo," never as an error. */
-async function fetchVerifiedTeamCatalog(sport: SportSlug): Promise<SportsTeam[]> {
+ *  team without id/logo," never as an error. `isOffSeasonPhase` is passed
+ *  straight through to getLeagueTeamCatalogWithOffSeasonFallback — see its
+ *  own doc comment for why a genuinely empty current-season catalog
+ *  retries against the last real completed season for identity purposes
+ *  only (id/name/logo), never for record/roster/schedule. */
+async function fetchVerifiedTeamCatalog(sport: SportSlug, isOffSeasonPhase: boolean): Promise<SportsTeam[]> {
   const league = await resolveDefaultLeagueId(sport).catch(() => null);
   if (!league) return [];
-  return getLeagueTeamCatalog(sport, league).catch(() => []);
+  return getLeagueTeamCatalogWithOffSeasonFallback(sport, league, isOffSeasonPhase).catch(() => []);
 }
 
 /** Fills in the complete, real league structure (every real team, under its
@@ -188,8 +192,12 @@ export async function getVerifiedStandingsFallback(sport: SportSlug, liveRows: S
     // Prefetched ONCE for the whole league rather than once per team — see
     // fetchVerifiedTeamCatalog's doc comment for why resolving 30 team
     // names via 30 separate concurrent live calls left different teams'
-    // logos randomly blank from one page load to the next.
-    const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport));
+    // logos randomly blank from one page load to the next. allowZeroFill is
+    // this caller's own real "is this genuinely an off-season/preseason
+    // window" signal — the same one that already gates whether missing
+    // teams get a corroborated 0-0 below, reused here so a not-yet-
+    // populated current season also gets the prior-season identity retry.
+    const catalogByName = buildCatalogNameIndex(await fetchVerifiedTeamCatalog(sport, allowZeroFill));
     const merged: SportsStanding[] = [];
     for (const { conference, division, teams } of spec) {
       for (const name of teams) {
@@ -242,9 +250,9 @@ export interface ResolvedDivisions {
   liveCatalog: { id: string; name: string }[];
 }
 
-async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean): Promise<ResolvedDivisions> {
+async function resolveDivisions(sport: SportSlug, spec: { conference: string; division: string; teams: string[] }[], recordByTeamId: Map<string, string>, logDiagnostics: boolean, isOffSeasonPhase: boolean): Promise<ResolvedDivisions> {
   try {
-    const catalog = await fetchVerifiedTeamCatalog(sport);
+    const catalog = await fetchVerifiedTeamCatalog(sport, isOffSeasonPhase);
     const catalogByName = buildCatalogNameIndex(catalog);
     const misses: string[] = [];
     const byConference = new Map<string, DirectoryDivision[]>();
@@ -299,11 +307,14 @@ async function resolveDivisions(sport: SportSlug, spec: { conference: string; di
  *  Detail page's own getTeamById lookup) that don't need a record on the
  *  result and already fetch one separately when they do. `logDiagnostics`
  *  should only ever be true for an Owner's own page view (see
- *  resolveDivisions) — never wired to a member-visible request. */
-export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = [], logDiagnostics = false): Promise<ResolvedDivisions> {
+ *  resolveDivisions) — never wired to a member-visible request.
+ *  `isOffSeasonPhase` is the caller's own real dated-openers check (the same
+ *  one already passed to getVerifiedStandingsFallback's `allowZeroFill`) —
+ *  see getLeagueTeamCatalogWithOffSeasonFallback for what it retries. */
+export async function getTeamDirectory(sport: SportSlug, standingsGroups: StandingsGroup[] = [], logDiagnostics = false, isOffSeasonPhase = false): Promise<ResolvedDivisions> {
   const spec = VERIFIED_REFERENCE[sport];
   if (!spec) return { groups: [], misses: [], liveCatalog: [] };
-  return resolveDivisions(sport, spec, buildRecordByTeamId(standingsGroups), logDiagnostics);
+  return resolveDivisions(sport, spec, buildRecordByTeamId(standingsGroups), logDiagnostics, isOffSeasonPhase);
 }
 
 /** Whether this sport has a verified, hardcoded-but-real conference/

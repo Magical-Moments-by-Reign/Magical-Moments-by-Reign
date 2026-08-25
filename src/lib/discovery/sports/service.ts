@@ -424,6 +424,44 @@ export async function getLeagueTeamCatalog(sport: SportSlug, league: string): Pr
   return cached?.data ?? [];
 }
 
+/** getLeagueTeamCatalog, with the same off-season retry pattern already
+ *  proven for Standings (getStandingsWithOffSeasonFallback, just below):
+ *  when the CURRENT season's team catalog comes back genuinely empty and
+ *  the caller has confirmed (via its own real dated-openers check, same as
+ *  Standings' `isOffSeasonPhase`) that this is a real off-season/preseason
+ *  window rather than a mid-season provider hiccup, retries once against
+ *  the last REAL completed season instead of leaving the All Teams
+ *  directory empty.
+ *
+ *  This is the confirmed root cause of NHL/College Basketball/College
+ *  Football's incomplete "All Teams" directories, and the leading
+ *  (diagnostic-pending) hypothesis for NBA's: the upcoming season's /teams
+ *  catalog simply isn't fully populated by the provider yet, and
+ *  getLeagueTeamCatalog had no retry — unlike Standings, which already
+ *  falls back correctly. Every sport that calls getLeagueTeamCatalog for
+ *  its All Teams directory (the generic path here, and NBA/NFL's
+ *  VERIFIED_REFERENCE path via fetchVerifiedTeamCatalog in
+ *  team-directory.ts) goes through this one fallback, so a future sport
+ *  never has to rediscover the same gap.
+ *
+ *  A previous season's SportsTeam row carries ONLY stable franchise
+ *  identity (id/name/logoUrl/code) — it has no win/loss/record/roster/
+ *  schedule fields at all, so using it for team identity can never leak
+ *  stale competitive data into a page whose standings/record/roster
+ *  sections already resolve the CURRENT season independently. Returns the
+ *  current (possibly empty) result unchanged outside an off-season phase,
+ *  or when the prior season also has nothing — never fabricates a catalog
+ *  entry that isn't real. */
+export async function getLeagueTeamCatalogWithOffSeasonFallback(sport: SportSlug, league: string, isOffSeasonPhase: boolean): Promise<SportsTeam[]> {
+  const current = await getLeagueTeamCatalog(sport, league);
+  if (current.length || !isOffSeasonPhase) return current;
+  const priorSeason = previousSeasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season: priorSeason, kind: "league_teams_v2" }), TTL_LEAGUE_TEAMS, () =>
+    fetchTeamsForLeague(sport, league, priorSeason));
+  const prior = cached?.data ?? [];
+  return prior.length ? prior : current;
+}
+
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
 // F/OT/Postponed/Canceled, per its docs) — mapped conservatively to our
 // three-state model; anything not clearly finished or live is treated as

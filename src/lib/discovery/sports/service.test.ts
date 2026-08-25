@@ -1,6 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, getLeagueTeamCatalogWithOffSeasonFallback } from "./service";
+
+// ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
+// both the current-season and (when retried) prior-season /teams calls
+// honestly return [], never a fabricated catalog, whether or not the
+// caller says it's an off-season phase.
+
+test("getLeagueTeamCatalogWithOffSeasonFallback: no configured provider — returns [] regardless of isOffSeasonPhase, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    assert.deepEqual(await getLeagueTeamCatalogWithOffSeasonFallback("nhl", "57", false), []);
+    assert.deepEqual(await getLeagueTeamCatalogWithOffSeasonFallback("nhl", "57", true), []);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
 
 // ── Regression: followed-team roster/injury enrichment must never take the
 // whole Sport page down. resolveWithFailureIsolation is the exact shared

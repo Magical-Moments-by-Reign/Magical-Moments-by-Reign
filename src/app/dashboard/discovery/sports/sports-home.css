@@ -569,6 +569,20 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
 .spx-directory__team-meta { color: var(--gold-soft); font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .spx-directory__team-record { color: #9c8f76; font-size: .7rem; font-weight: 600; }
 .spx-directory__team-arrow { color: var(--gold-soft); font-size: .8rem; }
+/* Polished branded placeholder for a team with no live-resolved logo yet —
+   never a blank gray square. Same gold/ivory palette as the rest of Sports,
+   a real letter monogram instead of an empty box. */
+.spx-directory__team-logo--fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(224,182,81,.22), rgba(201,162,75,.1));
+  color: var(--gold); font-weight: 800; font-size: .92rem; letter-spacing: .02em;
+}
+.spx-directory__team-follow { padding: 0 .8rem .7rem; }
+.spx-directory__team-follow-btn {
+  width: 100%; background: none; border: 1px solid rgba(201,162,75,.4); color: var(--gold);
+  border-radius: 8px; padding: .35rem .6rem; font-size: .68rem; font-weight: 700; cursor: pointer;
+}
+.spx-directory__team-follow-btn:hover { background: rgba(224,182,81,.1); }
 .spx-directory__roster { padding: 0 .8rem .9rem; }
 
 /* ── All Teams directory — single-team roster panel (replaces the grid) ── */
