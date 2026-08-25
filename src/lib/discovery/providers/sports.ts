@@ -677,6 +677,53 @@ export async function fetchTeamsForLeague(sport: SportSlug, league: string, seas
   return Array.from(byId.values());
 }
 
+export interface SeasonCatalogDiagnostic {
+  season: string;
+  /** False only when the page-1 request itself failed (bad status, network
+   *  error, or a plan-restricted response with no real `response` array) —
+   *  never conflated with "the provider genuinely returned zero teams." */
+  requestSucceeded: boolean;
+  /** Real length of page 1's raw `response` array, before any of our own
+   *  filtering — null only when requestSucceeded is false. */
+  rawResponseCount: number | null;
+  pagingCurrent: number | null;
+  pagingTotal: number | null;
+  /** Team count after the exact same parse+paginate+dedupe path production
+   *  uses (fetchTeamsForLeague) — never a second, diverging implementation. */
+  parsedCatalogCount: number;
+  teams: { id: string; name: string }[];
+}
+
+// TEMPORARY DIAGNOSTIC — proves or disproves the "current NBA season isn't
+// fully populated yet" hypothesis by running the real /teams request for
+// two seasons and reporting real counts/paging for each, Owner-only (see
+// the [sport]/page.tsx call site). Reuses fetchTeamsForLeague for the
+// parsed count so this can never silently diverge from what production
+// actually resolves — the only "extra" work here is one additional
+// page-1-only request per season purely to read paging.current/total and
+// the raw pre-filter count, which fetchTeamsForLeague doesn't expose.
+// Never returns headers, the API key, or any other request/credential
+// detail — only the real team id/name pairs and count/paging numbers.
+// Remove this function and its call site once the season hypothesis is
+// resolved and any resulting fix has shipped.
+export async function fetchSeasonCatalogDiagnostic(sport: SportSlug, league: string, season: string): Promise<SeasonCatalogDiagnostic> {
+  const [rawJson, parsed] = await Promise.all([
+    apiSportsFetch(sport, "/teams", { league, season }),
+    fetchTeamsForLeague(sport, league, season),
+  ]);
+  const rawList = Array.isArray((rawJson as any)?.response) ? (rawJson as any).response : null;
+  const paging = (rawJson as any)?.paging;
+  return {
+    season,
+    requestSucceeded: rawJson !== null,
+    rawResponseCount: rawList ? rawList.length : null,
+    pagingCurrent: typeof paging?.current === "number" ? paging.current : null,
+    pagingTotal: typeof paging?.total === "number" ? paging.total : null,
+    parsedCatalogCount: parsed?.length ?? 0,
+    teams: (parsed ?? []).map((t) => ({ id: t.id, name: t.name })),
+  };
+}
+
 export async function fetchLeagueLogo(sport: SportSlug): Promise<string | null> {
   if (!ApiSportsProvider.isConfigured(sport)) return null;
   const cfg = SPORT_CONFIG[sport];
