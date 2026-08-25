@@ -30,6 +30,30 @@ interface RosterProvenance {
   sources: { title?: string; url: string }[];
 }
 
+// TEMPORARY DIAGNOSTIC (see getTeamRoster's own doc comment in service.ts)
+// — only ever present in the API response for the Owner. Mirrors
+// RosterTierDiagnosticStep/RosterPipelineDiagnostic exactly; kept as a
+// local shape here (not imported) since this is a client component and
+// those types live in a server-only module.
+interface RosterTierTrace {
+  allowed: boolean;
+  attempted: boolean;
+  outcome: "hit" | "empty" | "error" | "plan_restricted" | "not_attempted";
+  playerCount: number;
+}
+interface RosterPipelineTrace {
+  sport: string;
+  teamExternalId: string;
+  season: string;
+  apiSportsConfigured: boolean;
+  tier1: RosterTierTrace;
+  tier2: RosterTierTrace;
+  tier3: RosterTierTrace;
+  finalStatus: string;
+  finalSources: string[];
+  finalPlayerCount: number;
+}
+
 // Real football position codes — used to order a roster Offense first, then
 // Defense, then Special Teams, the way a real depth chart reads. A sport
 // whose positions don't match any of these (e.g. NBA's G/F/C) simply lands
@@ -88,6 +112,7 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
   const [status, setStatus] = useState<RosterStatus | null>(null);
   const [error, setError] = useState(false);
   const [provenance, setProvenance] = useState<RosterProvenance | null>(null);
+  const [rosterDiagnostic, setRosterDiagnostic] = useState<RosterPipelineTrace | null>(null);
 
   useEffect(() => {
     // No verified provider id for this team (see team-directory.ts) — a
@@ -106,6 +131,7 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
     setRoster(null);
     setStatus(null);
     setProvenance(null);
+    setRosterDiagnostic(null);
     fetch(`/api/discovery/sports/team-roster?sport=${sport}&teamId=${encodeURIComponent(team.id)}&teamName=${encodeURIComponent(team.name)}`)
       .then((res) => {
         // A non-2xx or non-JSON response means the server hit something
@@ -122,6 +148,10 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
         setRoster(Array.isArray(data?.roster) ? data.roster : []);
         setStatus(typeof data?.status === "string" ? (data.status as RosterStatus) : "empty");
         setProvenance(data?.provenance?.resolver === "openai_web_search" ? data.provenance : null);
+        // Owner-only — the route only ever includes this field for the
+        // Owner (see team-roster/route.ts); its presence alone is the gate,
+        // no separate isOwner prop needs threading through every caller.
+        setRosterDiagnostic(data?.rosterDiagnostic ?? null);
       })
       .catch(() => { if (!cancelled) setError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -179,6 +209,18 @@ export function TeamRosterPanel({ sport, team, breadcrumb, onBack, backLabel = "
             {g.players.map((p) => <RosterPlayerRow key={p.id} player={p} />)}
           </div>
         ))}
+        {!loading && rosterDiagnostic && (
+          <details className="spx-panel__owner-diagnostic">
+            <summary>Owner diagnostic — roster pipeline trace ({rosterDiagnostic.sport}, team {rosterDiagnostic.teamExternalId}, season {rosterDiagnostic.season})</summary>
+            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
+              <li>API-Sports configured: {String(rosterDiagnostic.apiSportsConfigured)}</li>
+              <li>Tier 1 (API-Sports) — allowed: {String(rosterDiagnostic.tier1.allowed)}, attempted: {String(rosterDiagnostic.tier1.attempted)}, outcome: {rosterDiagnostic.tier1.outcome}, players: {rosterDiagnostic.tier1.playerCount}</li>
+              <li>Tier 2 (SportsDataIO) — allowed: {String(rosterDiagnostic.tier2.allowed)}, attempted: {String(rosterDiagnostic.tier2.attempted)}, outcome: {rosterDiagnostic.tier2.outcome}, players: {rosterDiagnostic.tier2.playerCount}</li>
+              <li>Tier 3 (OpenAI) — allowed: {String(rosterDiagnostic.tier3.allowed)}, attempted: {String(rosterDiagnostic.tier3.attempted)}, outcome: {rosterDiagnostic.tier3.outcome}, players: {rosterDiagnostic.tier3.playerCount}</li>
+              <li>Final — status: {rosterDiagnostic.finalStatus}, sources: {rosterDiagnostic.finalSources.length ? rosterDiagnostic.finalSources.join(", ") : "(none)"}, players: {rosterDiagnostic.finalPlayerCount}</li>
+            </ul>
+          </details>
+        )}
       </div>
     </div>
   );

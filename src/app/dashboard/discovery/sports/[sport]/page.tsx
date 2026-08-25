@@ -742,6 +742,28 @@ export default async function SportPage({ params, searchParams }: { params: Prom
                         : `Roster not posted yet for ${follow.teamName}.`}
                     </p>
                   )}
+                  {/* TEMPORARY DIAGNOSTIC — Owner-only, see getTeamRoster's
+                      doc comment in service.ts. This "My Teams" surface is
+                      a SEPARATE call site from TeamRosterPanel's own API
+                      route (it resolves followed-team rosters directly via
+                      resolveFollowedTeamRosters, server-rendered here) —
+                      showing this trace for BOTH surfaces is exactly how a
+                      real gap that's specific to one call site (e.g. one
+                      surface never passing allowOpenAiFallback) becomes
+                      visible without needing two different debugging
+                      paths. */}
+                  {isOwner && rosterResult?.diagnostic && (
+                    <details className="spx-panel__owner-diagnostic">
+                      <summary>Owner diagnostic — roster pipeline trace ({rosterResult.diagnostic.season})</summary>
+                      <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
+                        <li>API-Sports configured: {String(rosterResult.diagnostic.apiSportsConfigured)}</li>
+                        <li>Tier 1 (API-Sports) — allowed: {String(rosterResult.diagnostic.tier1.allowed)}, attempted: {String(rosterResult.diagnostic.tier1.attempted)}, outcome: {rosterResult.diagnostic.tier1.outcome}, players: {rosterResult.diagnostic.tier1.playerCount}</li>
+                        <li>Tier 2 (SportsDataIO) — allowed: {String(rosterResult.diagnostic.tier2.allowed)}, attempted: {String(rosterResult.diagnostic.tier2.attempted)}, outcome: {rosterResult.diagnostic.tier2.outcome}, players: {rosterResult.diagnostic.tier2.playerCount}</li>
+                        <li>Tier 3 (OpenAI) — allowed: {String(rosterResult.diagnostic.tier3.allowed)}, attempted: {String(rosterResult.diagnostic.tier3.attempted)}, outcome: {rosterResult.diagnostic.tier3.outcome}, players: {rosterResult.diagnostic.tier3.playerCount}</li>
+                        <li>Final — status: {rosterResult.diagnostic.finalStatus}, sources: {rosterResult.diagnostic.finalSources.length ? rosterResult.diagnostic.finalSources.join(", ") : "(none)"}, players: {rosterResult.diagnostic.finalPlayerCount}</li>
+                      </ul>
+                    </details>
+                  )}
                   {teamInjuries.length > 0 && (
                     <details className="spx-roster">
                       <summary>Injury Report ({teamInjuries.length})</summary>

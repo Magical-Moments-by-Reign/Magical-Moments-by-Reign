@@ -801,6 +801,51 @@ export interface RosterResult {
    *  only for the trivial "no team id at all" early return, which never
    *  asked any provider anything. */
   sources?: RosterSourceTier[];
+  /** TEMPORARY DIAGNOSTIC FIELD — a real, per-tier trace of exactly what
+   *  happened on THIS call, captured inline as each tier actually executes
+   *  (never a separate/duplicated pipeline, so it can never diverge from
+   *  the real players/status/sources above). Always computed (cheap — no
+   *  extra provider calls) but only ever surfaced to the Owner; route
+   *  handlers/pages must keep this out of the member-facing response, same
+   *  discipline as planRestrictedReason. Exists to answer "was this tier
+   *  even attempted, and what did it actually return" without needing a
+   *  live debugger session — remove once the roster pipeline's live
+   *  behavior is fully understood and any real defects it surfaces are
+   *  fixed. See CLAUDE.md §17. */
+  diagnostic?: RosterPipelineDiagnostic;
+}
+
+/** One tier's real, observed outcome for a single getTeamRoster call —
+ *  never a guess, never fabricated: `attempted` is only true when this
+ *  tier's own network/provider call actually ran; `allowed` distinguishes
+ *  "the caller's gate was closed" (allowed: false, attempted: false) from
+ *  "the gate was open but the tier had nothing" (allowed: true, attempted:
+ *  false, e.g. Tier 1 already fully complete) from "the gate was open and
+ *  this tier actually ran" (attempted: true). `playerCount` is always the
+ *  real length of whatever this tier itself returned, never the merged
+ *  running total. */
+export interface RosterTierDiagnosticStep {
+  allowed: boolean;
+  attempted: boolean;
+  outcome: "hit" | "empty" | "error" | "plan_restricted" | "not_attempted";
+  playerCount: number;
+}
+
+/** TEMPORARY DIAGNOSTIC TYPE — see RosterResult.diagnostic's doc comment.
+ *  season/apiSportsConfigured are captured once, at Tier 1, since they're
+ *  real values already computed there — never recomputed a second time
+ *  for the diagnostic alone. */
+export interface RosterPipelineDiagnostic {
+  sport: SportSlug;
+  teamExternalId: string;
+  season: string;
+  apiSportsConfigured: boolean;
+  tier1: RosterTierDiagnosticStep;
+  tier2: RosterTierDiagnosticStep;
+  tier3: RosterTierDiagnosticStep;
+  finalStatus: RosterStatus;
+  finalSources: RosterSourceTier[];
+  finalPlayerCount: number;
 }
 
 /** True when a real roster player is still missing a field a later tier
@@ -900,8 +945,14 @@ export async function getTeamRoster(
   let provenance: SportsDataProvenance | undefined;
   const sources: RosterSourceTier[] = [];
 
-  if (ApiSportsProvider.isConfigured(sport)) {
-    const season = seasonParam(sport, new Date().toISOString());
+  const season = seasonParam(sport, new Date().toISOString());
+  const apiSportsConfigured = ApiSportsProvider.isConfigured(sport);
+  const tier1: RosterTierDiagnosticStep = { allowed: apiSportsConfigured, attempted: false, outcome: "not_attempted", playerCount: 0 };
+  const tier2: RosterTierDiagnosticStep = { allowed: false, attempted: false, outcome: "not_attempted", playerCount: 0 };
+  const tier3: RosterTierDiagnosticStep = { allowed: false, attempted: false, outcome: "not_attempted", playerCount: 0 };
+
+  if (apiSportsConfigured) {
+    tier1.attempted = true;
     let restriction: string | undefined;
     const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, season, team: teamExternalId, kind: "roster" }), TTL_ROSTER, async () => {
       const result = await fetchTeamRoster(sport, teamExternalId, season);
@@ -914,9 +965,12 @@ export async function getTeamRoster(
     if (cached?.data?.players.length) {
       base = cached.data.players;
       sources.push("api-sports");
+      tier1.outcome = "hit";
+      tier1.playerCount = base.length;
     } else {
       status = restriction ? "plan_restricted" : cached?.data ? "empty" : "error";
       planRestrictedReason = restriction;
+      tier1.outcome = status === "plan_restricted" ? "plan_restricted" : status === "empty" ? "empty" : "error";
     }
   }
 
@@ -926,8 +980,12 @@ export async function getTeamRoster(
   // check). When Tier 1 already has a real roster, this only ever FILLS
   // missing fields (see mergeRosterPlayerFields) — Tier 1's own real
   // identity/roster membership is never replaced.
-  if (sdioLeagueFor(sport) && opts?.allowSecondarySource && opts.teamName && (base === null || base.some(playerNeedsEnrichment))) {
-    const secondary = await getRosterFromSportsData(sport, opts.teamName);
+  tier2.allowed = Boolean(sdioLeagueFor(sport)) && Boolean(opts?.allowSecondarySource) && Boolean(opts?.teamName);
+  if (tier2.allowed && (base === null || base.some(playerNeedsEnrichment))) {
+    tier2.attempted = true;
+    const secondary = await getRosterFromSportsData(sport, opts!.teamName!);
+    tier2.playerCount = secondary.length;
+    tier2.outcome = secondary.length ? "hit" : "empty";
     if (secondary.length) {
       if (base) {
         const merged = mergeRosterPlayerFields(base, secondary);
@@ -951,8 +1009,12 @@ export async function getTeamRoster(
   // call site needs no sport-specific gate of its own. Owner-gated at the
   // route level (see team-roster/route.ts) pending live verification
   // against a real OpenAI account before broader member exposure.
-  if (opts?.allowOpenAiFallback && opts.teamName && (base === null || base.some(playerNeedsEnrichment))) {
-    const resolved = await resolveRosterViaOpenAI(sport, opts.teamName);
+  tier3.allowed = Boolean(opts?.allowOpenAiFallback) && Boolean(opts?.teamName);
+  if (tier3.allowed && (base === null || base.some(playerNeedsEnrichment))) {
+    tier3.attempted = true;
+    const resolved = await resolveRosterViaOpenAI(sport, opts!.teamName!);
+    tier3.playerCount = resolved?.players.length ?? 0;
+    tier3.outcome = resolved?.players.length ? "hit" : "empty";
     if (resolved?.players.length) {
       const openAiPlayers: SportsRosterPlayer[] = resolved.players.map((p) => ({
         // No real provider id exists for an OpenAI-resolved player — a
@@ -979,8 +1041,15 @@ export async function getTeamRoster(
     }
   }
 
-  if (base && base.length) return { players: base, status: "hit", sources, ...(provenance ? { provenance } : {}) };
-  return { players: [], status, planRestrictedReason, sources };
+  const diagnostic: RosterPipelineDiagnostic = {
+    sport, teamExternalId, season, apiSportsConfigured, tier1, tier2, tier3,
+    finalStatus: base && base.length ? "hit" : status,
+    finalSources: sources,
+    finalPlayerCount: base?.length ?? 0,
+  };
+
+  if (base && base.length) return { players: base, status: "hit", sources, diagnostic, ...(provenance ? { provenance } : {}) };
+  return { players: [], status, planRestrictedReason, sources, diagnostic };
 }
 
 const TTL_INJURIES = 60; // 1h — a real injury report changes daily during the season, faster-moving than the roster/standings caches

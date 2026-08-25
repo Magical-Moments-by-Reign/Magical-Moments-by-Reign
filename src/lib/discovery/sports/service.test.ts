@@ -442,6 +442,19 @@ test("getTeamRoster: Tier 1 fully complete roster renders as-is, sources = [api-
       assert.equal(result.players[0].number, 17);
       assert.deepEqual(result.sources, ["api-sports"]);
       assert.equal(sdioCalled, false, "a fully complete Tier 1 roster must never trigger a Tier 2 call — cost-aware, see CLAUDE.md §18");
+      // Diagnostic must reflect "gate open, tier not attempted" (allowed vs
+      // attempted are DIFFERENT signals) — this is the exact distinction
+      // needed to tell "the gate was closed" apart from "the gate was open
+      // but the tier had nothing to do."
+      assert.equal(result.diagnostic?.tier1.attempted, true);
+      assert.equal(result.diagnostic?.tier1.outcome, "hit");
+      assert.equal(result.diagnostic?.tier1.playerCount, 1);
+      assert.equal(result.diagnostic?.tier2.allowed, true);
+      assert.equal(result.diagnostic?.tier2.attempted, false);
+      assert.equal(result.diagnostic?.tier2.outcome, "not_attempted");
+      assert.equal(result.diagnostic?.tier3.allowed, false, "allowOpenAiFallback was never passed in this call");
+      assert.equal(result.diagnostic?.finalStatus, "hit");
+      assert.equal(result.diagnostic?.finalPlayerCount, 1);
     } finally {
       global.fetch = originalFetch;
     }
@@ -461,10 +474,37 @@ test("getTeamRoster: Tier 1 partial roster — Tier 2 enriches the missing field
       assert.equal(allen?.position, "QB"); // Tier 1's real value, NOT Tier 2's conflicting "RB"
       assert.equal(allen?.number, 17); // Tier 1's real value, NOT Tier 2's conflicting 99
       assert.deepEqual(result.sources, ["api-sports", "sportsdataio"]);
+      assert.equal(result.diagnostic?.tier1.outcome, "hit");
+      assert.equal(result.diagnostic?.tier2.allowed, true);
+      assert.equal(result.diagnostic?.tier2.attempted, true, "Tier 1 had a real player still missing fields, so Tier 2 must actually run");
+      assert.equal(result.diagnostic?.tier2.outcome, "hit");
+      assert.equal(result.diagnostic?.finalSources.length, 2);
     } finally {
       restore();
     }
   }));
+
+test("getTeamRoster: diagnostic distinguishes a CLOSED gate (allowed: false) from an open gate the tier didn't need — the exact signal a real 'why didn't Tier 3 run' investigation needs", () =>
+  withProviderKeys(async () => {
+    const restore = mockRosterProviders();
+    try {
+      // allowOpenAiFallback is never passed here — exactly the real gap in
+      // resolveFollowedTeamRosters (service.ts), which calls getTeamRoster
+      // without ever offering that option at all.
+      const result = await getTeamRoster("nfl", "2", { teamName: "Buffalo Bills", allowSecondarySource: true });
+      assert.equal(result.diagnostic?.tier3.allowed, false);
+      assert.equal(result.diagnostic?.tier3.attempted, false);
+      assert.equal(result.diagnostic?.tier3.outcome, "not_attempted");
+    } finally {
+      restore();
+    }
+  }));
+
+test("getTeamRoster: diagnostic on total failure (no team id) — no tier claims to have been allowed or attempted", async () => {
+  const result = await getTeamRoster("nfl", "");
+  assert.equal(result.status, "not_supported");
+  assert.equal(result.diagnostic, undefined, "the trivial no-team-id early return never asked any provider anything, so there's nothing to trace");
+});
 
 // ── getTeamRoster: OpenAI fallback wiring (Tier 3+4 of the Verified Sports
 // Data Source Ladder). These exercise the SERVICE-LEVEL wiring only — the
