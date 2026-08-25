@@ -1,12 +1,91 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getVerifiedStandingsFallback, hasVerifiedReference, getTeamDirectory, buildTeamDirectoryFromCatalog } from "./team-directory";
+import { getVerifiedStandingsFallback, hasVerifiedReference, getTeamDirectory, buildTeamDirectoryFromCatalog, resolveVerifiedTeamIdentity, filterToVerifiedFranchises } from "./team-directory";
 import type { SportsStanding, SportsTeam } from "../providers/sports";
 import type { StandingsGroup } from "./standings";
 
 function standingsRow(teamId: string, wins?: number, losses?: number, ties?: number): SportsStanding & { displayRank: number; gb: number | null } {
   return { team: { id: teamId, name: `Team ${teamId}` }, wins, losses, ties, displayRank: 1, gb: null };
 }
+
+// ── resolveVerifiedTeamIdentity: the NBA "LA Clippers" alias fix ────────
+// Owner-confirmed via the live Owner-only diagnostic (real live catalog
+// panel) — API-Sports reports this exact franchise as "Los Angeles
+// Clippers," never our VERIFIED_REFERENCE's "LA Clippers." This closes
+// that one confirmed real mismatch; every other NBA static name matches
+// the live catalog directly with no alias needed.
+
+function catalogIndex(teams: SportsTeam[]): Map<string, SportsTeam> {
+  return new Map(teams.map((t) => [t.name.toLowerCase().trim(), t]));
+}
+
+test("resolveVerifiedTeamIdentity: exact direct match needs no alias", () => {
+  const catalog = catalogIndex([{ id: "133", name: "Boston Celtics" }]);
+  const team = resolveVerifiedTeamIdentity("nba", "Boston Celtics", catalog);
+  assert.equal(team?.id, "133");
+});
+
+test("resolveVerifiedTeamIdentity: \"LA Clippers\" resolves via the confirmed alias to the real provider name \"Los Angeles Clippers\"", () => {
+  const catalog = catalogIndex([{ id: "144", name: "Los Angeles Clippers" }]);
+  const team = resolveVerifiedTeamIdentity("nba", "LA Clippers", catalog);
+  assert.equal(team?.id, "144");
+});
+
+test("resolveVerifiedTeamIdentity: the Clippers alias never cross-matches a different real Los Angeles team", () => {
+  const catalog = catalogIndex([{ id: "145", name: "Los Angeles Lakers" }]);
+  const team = resolveVerifiedTeamIdentity("nba", "LA Clippers", catalog);
+  assert.equal(team, null);
+});
+
+test("resolveVerifiedTeamIdentity: an unresolved team with no alias returns null, never a guess", () => {
+  const catalog = catalogIndex([{ id: "999", name: "Some Other Team" }]);
+  const team = resolveVerifiedTeamIdentity("nba", "Nonexistent Team", catalog);
+  assert.equal(team, null);
+});
+
+test("resolveVerifiedTeamIdentity: the Clippers alias is NBA-only — it never applies to another sport's static name lookup", () => {
+  const catalog = catalogIndex([{ id: "144", name: "Los Angeles Clippers" }]);
+  const team = resolveVerifiedTeamIdentity("nfl", "LA Clippers", catalog);
+  assert.equal(team, null);
+});
+
+// ── filterToVerifiedFranchises: keeps a non-franchise provider row (e.g.
+// NBA's real "Team World" row, confirmed via the live Owner diagnostic)
+// out of ANY raw-catalog consumer, not just the All Teams directory —
+// today's confirmed real defect this closes is searchTeamsForSport
+// (service.ts), which reads the raw catalog with no filtering at all.
+
+test("filterToVerifiedFranchises: NBA — keeps real verified franchises, drops a non-franchise provider row", () => {
+  const raw: SportsTeam[] = [
+    { id: "133", name: "Boston Celtics" },
+    { id: "144", name: "Los Angeles Clippers" }, // resolves via the confirmed alias
+    { id: "1414", name: "Team World" }, // real provider row, not one of the 30 franchises
+  ];
+  const result = filterToVerifiedFranchises("nba", raw);
+  assert.deepEqual(result.map((t) => t.id).sort(), ["133", "144"]);
+});
+
+test("filterToVerifiedFranchises: legitimate NBA teams remain searchable, including via the Clippers alias", () => {
+  const raw: SportsTeam[] = [{ id: "144", name: "Los Angeles Clippers" }];
+  const result = filterToVerifiedFranchises("nba", raw);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, "144");
+});
+
+test("filterToVerifiedFranchises: legitimate NFL teams remain searchable", () => {
+  const raw: SportsTeam[] = [{ id: "1", name: "Buffalo Bills" }];
+  const result = filterToVerifiedFranchises("nfl", raw);
+  assert.equal(result.length, 1);
+});
+
+test("filterToVerifiedFranchises: a sport with no VERIFIED_REFERENCE (e.g. MLB) returns the raw catalog completely unchanged — this is NOT a general entity-type filter", () => {
+  const raw: SportsTeam[] = [
+    { id: "1", name: "New York Yankees" },
+    { id: "50", name: "American League" }, // the separately-flagged, NOT-fixed-here MLB defect
+  ];
+  const result = filterToVerifiedFranchises("mlb", raw);
+  assert.deepEqual(result, raw);
+});
 
 test("hasVerifiedReference: true only for sports with a real, hardcoded conference/division reference", () => {
   assert.equal(hasVerifiedReference("nba"), true);

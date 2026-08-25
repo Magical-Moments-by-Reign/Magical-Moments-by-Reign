@@ -7,7 +7,7 @@ import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, g
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
-import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, filterToVerifiedFranchises, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import TeamDirectory from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
@@ -154,7 +154,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const league = await resolveDefaultLeagueId(sport);
   const hasLeague = Boolean(league);
 
-  const [myTeams, searchResults, logos, firstPreseasonGame, firstRegularSeasonGame, firstPostseasonGame, nbaHeroState] = await Promise.all([
+  const [myTeams, rawSearchResults, logos, firstPreseasonGame, firstRegularSeasonGame, firstPostseasonGame, nbaHeroState] = await Promise.all([
     getMyTeams(account.id),
     q?.trim() ? searchTeamsForSport(sport, q) : Promise.resolve([]),
     getLeagueLogos(),
@@ -165,6 +165,13 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   ]);
   const leagueLogo = FOOTBALL_LOGO_BADGE[sport] ?? (SPORT_VISUALS[sport].kind === "league-logo" ? logos[sport] : undefined);
   const myTeamsForSport = myTeams.filter((t) => t.follow.sport === sport);
+  // Confirmed real defect fix: searchTeamsForSport reads the RAW,
+  // unfiltered live catalog — a non-franchise provider row (e.g. NBA's
+  // "Team World") could be searched and followed even though it could
+  // never appear in the All Teams directory below. filterToVerifiedFranchises
+  // enforces the SAME VERIFIED_REFERENCE membership boundary here; a no-op
+  // for every sport without one (everything but NBA/NFL today).
+  const searchResults = filterToVerifiedFranchises(sport, rawSearchResults);
 
   // Real rosters for followed teams — the honest substitute where a real
   // Injuries panel (below) has nothing for this team yet. API-Sports first;
@@ -176,6 +183,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const isOwner = await isOwnerAccount(account.id);
   const allowSdio = Boolean(sdioLeagueFor(sport)) && sdioConfigured() && (sdioCommercialMode() || isOwner);
   const allowSdioRoster = allowSdio;
+  // Same Owner-preview rollout gate the team-roster API route already uses
+  // for TeamRosterPanel (see that route's own comment) — this "My Teams"
+  // surface previously never passed this option at all, meaning the exact
+  // same real team could get a different real fallback capability
+  // depending on which UI surface asked for its roster. resolveRosterViaOpenAI's
+  // own league map (openai-resolver.ts) still decides which sports this
+  // actually covers; nothing sport-specific belongs here.
+  const allowOpenAiFallbackRoster = isOwner;
   // A followed team's roster/injuries are real content, not core content —
   // the page (hero, games, standings, teams, Picks, Fantasy, bracket,
   // schedules) must render even if one team's fetch throws for a reason no
@@ -185,7 +200,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // than each page hand-rolling its own Promise.all.
   const followedTeamRefs = myTeamsForSport.map((t) => ({ followId: t.follow.id, teamExternalId: t.follow.teamExternalId, teamName: t.follow.teamName ?? null }));
   const rosters = myTeamsForSport.length
-    ? await resolveFollowedTeamRosters(sport, followedTeamRefs, allowSdioRoster)
+    ? await resolveFollowedTeamRosters(sport, followedTeamRefs, allowSdioRoster, allowOpenAiFallbackRoster)
     : new Map<string, Awaited<ReturnType<typeof getTeamRoster>>>();
 
   // Real injury reports for followed teams — same SportsDataIO source/gate
