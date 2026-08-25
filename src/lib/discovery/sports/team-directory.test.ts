@@ -125,12 +125,16 @@ test("getTeamDirectory: unconfigured provider — every real NBA team still appe
   delete process.env.API_SPORTS_KEY;
   try {
     const standingsGroups: StandingsGroup[] = [{ label: "Eastern Conference", divisions: [{ label: "Atlantic Division", rows: [standingsRow("2", 40, 20)] }] }];
-    const { groups, misses } = await getTeamDirectory("nba", standingsGroups);
+    const { groups, misses, liveCatalog } = await getTeamDirectory("nba", standingsGroups);
     const allTeams = groups.flatMap((g) => g.divisions).flatMap((d) => d.teams);
     assert.equal(allTeams.length, 30);
     // Every real team is honestly unresolved with no catalog access — this
     // is exactly what the Owner-only diagnostic banner surfaces.
     assert.equal(misses.length, 30);
+    // No live catalog was actually reachable either — the temporary
+    // Owner-only diagnostic must never show a fabricated/empty-looking
+    // catalog dump when there's genuinely nothing real to show.
+    assert.deepEqual(liveCatalog, []);
     // With no provider access, no static team can resolve a real id — so
     // even though standings has a real record for teamId "2", nothing here
     // has a resolved id to join it against, and every record stays honestly
