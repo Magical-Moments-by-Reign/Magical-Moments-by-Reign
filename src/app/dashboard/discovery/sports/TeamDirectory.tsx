@@ -26,6 +26,28 @@ export function teamMonogram(name: string): string {
   return (words[0]?.[0] ?? "?").toUpperCase();
 }
 
+/** A team logo that falls back to the branded monogram not just when the
+ *  provider never returned a logoUrl (the existing case), but also when a
+ *  real logoUrl was returned and the browser fails to actually load it (a
+ *  dead/expired image link) — confirmed real defect: a broken-image icon
+ *  was showing instead of the monogram for exactly this case. Client-only
+ *  (needs onError), so this can't live in the server-rendered Standings
+ *  row today — scoped to the All Teams directory, where the bug was seen. */
+function TeamLogo({ logoUrl, name, className }: { logoUrl?: string; name: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!logoUrl || failed) {
+    return (
+      <div className={`${className} ${className}--fallback`} aria-hidden="true">
+        {teamMonogram(name)}
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={logoUrl} alt="" className={className} onError={() => setFailed(true)} />
+  );
+}
+
 export default function TeamDirectory({
   sport,
   groups,
@@ -177,14 +199,7 @@ export default function TeamDirectory({
                         className="spx-directory__team-toggle"
                         onClick={() => setOpenTeam({ team, breadcrumb: [g.label, d.label].filter(Boolean).join(" · ") })}
                       >
-                        {team.logoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={team.logoUrl} alt="" className="spx-directory__team-logo" />
-                        ) : (
-                          <div className="spx-directory__team-logo spx-directory__team-logo--fallback" aria-hidden="true">
-                            {teamMonogram(team.name)}
-                          </div>
-                        )}
+                        <TeamLogo logoUrl={team.logoUrl} name={team.name} className="spx-directory__team-logo" />
                         <span className="spx-directory__team-info">
                           <span className="spx-directory__team-name">{team.name}</span>
                           {(team.league || team.division) && (

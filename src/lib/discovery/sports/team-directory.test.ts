@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getVerifiedStandingsFallback, hasVerifiedReference, getTeamDirectory, buildTeamDirectoryFromCatalog, resolveVerifiedTeamIdentity, filterToVerifiedFranchises } from "./team-directory";
+import { getVerifiedStandingsFallback, hasVerifiedReference, getTeamDirectory, buildTeamDirectoryFromCatalog, resolveVerifiedTeamIdentity, filterToVerifiedFranchises, excludeKnownProLeagueContamination } from "./team-directory";
 import type { SportsStanding, SportsTeam } from "../providers/sports";
 import type { StandingsGroup } from "./standings";
 
@@ -85,6 +85,59 @@ test("filterToVerifiedFranchises: a sport with no VERIFIED_REFERENCE (e.g. MLB) 
   ];
   const result = filterToVerifiedFranchises("mlb", raw);
   assert.deepEqual(result, raw);
+});
+
+// ── excludeKnownProLeagueContamination: closes the confirmed real defect —
+// real NFL rows (Green Bay Packers, Denver Broncos) appearing in the live
+// ncaaf All Teams directory, mixed in with real college programs.
+
+test("excludeKnownProLeagueContamination: drops real NFL rows leaked into an ncaaf catalog, keeps every real college program", () => {
+  const raw: SportsTeam[] = [
+    { id: "gb", name: "Green Bay Packers" }, // real NFL row, confirmed leaked
+    { id: "den", name: "Denver Broncos" }, // real NFL row, confirmed leaked
+    { id: "osu", name: "Ohio State" },
+    { id: "bama", name: "Alabama" },
+  ];
+  const result = excludeKnownProLeagueContamination("ncaaf", raw);
+  assert.deepEqual(result.map((t) => t.id).sort(), ["bama", "osu"]);
+});
+
+test("excludeKnownProLeagueContamination: also catches an NBA row leaked into a non-NBA catalog (ncaab)", () => {
+  const raw: SportsTeam[] = [
+    { id: "bos", name: "Boston Celtics" }, // real NBA row
+    { id: "duke", name: "Duke" },
+  ];
+  const result = excludeKnownProLeagueContamination("ncaab", raw);
+  assert.deepEqual(result.map((t) => t.id), ["duke"]);
+});
+
+test("excludeKnownProLeagueContamination: a no-op for a sport that itself HAS a VERIFIED_REFERENCE (NBA/NFL) — never filters its own real roster", () => {
+  const raw: SportsTeam[] = [{ id: "gb", name: "Green Bay Packers" }, { id: "buf", name: "Buffalo Bills" }];
+  const result = excludeKnownProLeagueContamination("nfl", raw);
+  assert.deepEqual(result, raw);
+});
+
+test("excludeKnownProLeagueContamination: a sport with no real leaked rows returns the catalog unchanged", () => {
+  const raw: SportsTeam[] = [{ id: "osu", name: "Ohio State" }, { id: "bama", name: "Alabama" }];
+  const result = excludeKnownProLeagueContamination("ncaaf", raw);
+  assert.deepEqual(result, raw);
+});
+
+test("buildTeamDirectoryFromCatalog: passing sport=\"ncaaf\" excludes a leaked NFL row from the built directory", () => {
+  const catalog: SportsTeam[] = [
+    { id: "gb", name: "Green Bay Packers" },
+    { id: "osu", name: "Ohio State" },
+  ];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  const names = groups.flatMap((g) => g.divisions.flatMap((d) => d.teams.map((t) => t.name)));
+  assert.deepEqual(names, ["Ohio State"]);
+});
+
+test("buildTeamDirectoryFromCatalog: omitting sport keeps prior behavior unchanged (no exclusion applied)", () => {
+  const catalog: SportsTeam[] = [{ id: "gb", name: "Green Bay Packers" }, { id: "osu", name: "Ohio State" }];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, [], true);
+  const names = groups.flatMap((g) => g.divisions.flatMap((d) => d.teams.map((t) => t.name)));
+  assert.deepEqual(names.sort(), ["Green Bay Packers", "Ohio State"]);
 });
 
 test("hasVerifiedReference: true only for sports with a real, hardcoded conference/division reference", () => {
