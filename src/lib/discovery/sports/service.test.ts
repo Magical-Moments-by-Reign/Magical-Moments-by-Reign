@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
 import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -46,6 +46,39 @@ test("getNcaafLiveDiagnostic: no configured provider — every field degrades ho
   } finally {
     if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
   }
+});
+
+// ── getLeagueLiveDiagnostic: the 5-sport live-verification diagnostic —
+// no configured provider (this sandbox's real state) degrades every field
+// honestly, same discipline as getNcaafLiveDiagnostic above. Also confirms
+// the "no league id at all" branch (ncaabaseball's real unresolved-id
+// case, when resolveDefaultLeagueId comes back "") degrades the same way.
+
+test("getLeagueLiveDiagnostic: no configured provider — every field degrades honestly, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const result = await getLeagueLiveDiagnostic("ncaab", "116");
+    assert.equal(result.sport, "ncaab");
+    assert.equal(result.configured, false);
+    assert.equal(result.configuredLeagueId, "116");
+    assert.deepEqual(result.leagueDetail, { attempted: false, matchedId: null, matchedName: null, country: null, type: null, seasons: [] });
+    assert.equal(result.teamCount, 0);
+    assert.equal(result.gameCount, 0);
+    assert.deepEqual(result.distinctStageStrings, []);
+    assert.equal(result.postseasonGameCount, 0);
+    assert.equal(result.firstPostseasonGame, null);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("getLeagueLiveDiagnostic: no league id at all (ncaabaseball's real unresolved case) — degrades the same honest way, never throws", async () => {
+  const result = await getLeagueLiveDiagnostic("ncaabaseball", "");
+  assert.equal(result.configuredLeagueId, "");
+  assert.equal(result.teamCount, 0);
+  assert.equal(result.gameCount, 0);
+  assert.equal(result.postseasonGameCount, 0);
 });
 
 // ── mergeCatalogWithPriorSeason: the real completeness+merge decision,
