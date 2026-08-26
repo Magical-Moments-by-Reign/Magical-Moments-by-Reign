@@ -499,6 +499,7 @@ export function buildTeamDirectoryFromCatalog(
   standingsGroups: StandingsGroup[],
   standingsAvailable: boolean,
   sport?: SportSlug,
+  gamesDerivedTeamIds?: Set<string> | null,
 ): DirectoryGroup[] {
   if (!catalog.length) return [];
   // Confirmed real defect fix: a raw catalog for a sport with no
@@ -507,7 +508,22 @@ export function buildTeamDirectoryFromCatalog(
   // comment. `sport` is optional only so existing callers that predate
   // this parameter still compile; every real caller in this codebase now
   // passes it.
-  const cleaned = sport ? excludeKnownProLeagueContamination(sport, catalog) : catalog;
+  const proLeagueCleaned = sport ? excludeKnownProLeagueContamination(sport, catalog) : catalog;
+  // Real, evidence-based scoping — NOT a guess. Confirmed live evidence for
+  // ncaaf (see getSeasonGamesDerivedTeamIds and its call site in
+  // [sport]/page.tsx): the raw catalog carries 702 rows spanning multiple
+  // real divisions, while only 238 of those teams actually appear in this
+  // season's real games, every one of which reports the identical real
+  // stage string "FBS (Division I-A)" — a real, self-updating signal for
+  // which raw-catalog rows belong in this season's directory. Only applied
+  // when the caller actually has this evidence (a non-null Set) — every
+  // other sport/caller keeps the unfiltered catalog exactly as before.
+  // Honest caveat this deliberately does NOT paper over: a real FBS team's
+  // real non-conference opponent can itself be a real FCS/D2 school, so
+  // this set can still include a small number of real non-FBS teams — it
+  // is a much tighter, real boundary than the raw catalog, not a claimed
+  // perfectly clean FBS-only one.
+  const cleaned = gamesDerivedTeamIds ? proLeagueCleaned.filter((t) => gamesDerivedTeamIds.has(t.id)) : proLeagueCleaned;
   const overlay = sport ? conferenceOverlayFor(sport) : null;
   const locationByTeamId = new Map<string, { group: string; division: string; record?: string }>();
   for (const g of standingsGroups) {
@@ -520,15 +536,23 @@ export function buildTeamDirectoryFromCatalog(
   const fallbackGroupLabel = standingsAvailable ? sportLabel : `${sportLabel} (Standings unavailable)`;
   const groups = new Map<string, Map<string, DirectoryTeam[]>>();
   for (const t of cleaned) {
-    // Real standings grouping wins when present (it's live and already
-    // correct); the verified conference overlay only steps in for a team
-    // standings didn't already place, upgrading it out of the generic
-    // fallback bucket into its own real conference — see conferenceOverlayFor's
-    // own doc comment for why this is deliberately never exhaustive/
-    // team-removing the way VERIFIED_REFERENCE is.
+    // The verified conference overlay's own label wins for a team it
+    // covers — a confirmed real membership (e.g. SWAC) is more specific and
+    // more stable than whatever grouping a live standings response happens
+    // to carry for that team, and a provider has been observed grouping a
+    // real SWAC school inconsistently (missing conference, wrong bucket)
+    // even though the school's real conference membership never changes
+    // mid-season. This was flipped from "standings wins" after Owner
+    // feedback that a confirmed SWAC school wasn't showing as SWAC — the
+    // real win/loss record itself still always comes from live standings
+    // (never invented), only the group/division label authority changed.
+    // A team the overlay doesn't cover is unaffected: falls through to
+    // standings' own grouping exactly as before.
+    const standingsLoc = locationByTeamId.get(t.id);
     const overlayLoc = overlay?.get(normalize(t.name));
-    const loc = locationByTeamId.get(t.id)
-      ?? (overlayLoc ? { group: overlayLoc.group, division: overlayLoc.division, record: undefined } : { group: fallbackGroupLabel, division: "", record: undefined });
+    const loc = overlayLoc
+      ? { group: overlayLoc.group, division: overlayLoc.division, record: standingsLoc?.record }
+      : (standingsLoc ?? { group: fallbackGroupLabel, division: "", record: undefined });
     const divisions = groups.get(loc.group) ?? new Map<string, DirectoryTeam[]>();
     const teams = divisions.get(loc.division) ?? [];
     teams.push({ id: t.id, name: t.name, logoUrl: t.logoUrl, league: loc.group, division: loc.division, record: loc.record });

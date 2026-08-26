@@ -140,6 +140,28 @@ test("buildTeamDirectoryFromCatalog: omitting sport keeps prior behavior unchang
   assert.deepEqual(names.sort(), ["Green Bay Packers", "Ohio State"]);
 });
 
+// ── gamesDerivedTeamIds: real, evidence-based scoping for a raw catalog
+// that spans multiple divisions (confirmed live evidence for ncaaf — see
+// getSeasonGamesDerivedTeamIds in service.ts). Only applied when the caller
+// actually passes this evidence; every other caller is unaffected.
+
+test("buildTeamDirectoryFromCatalog: gamesDerivedTeamIds, when passed, keeps only catalog teams that actually appear in this season's real games", () => {
+  const catalog: SportsTeam[] = [
+    { id: "osu", name: "Ohio State" }, // real FBS team, appears in real season games
+    { id: "d3school", name: "Some D3 School" }, // real catalog row, never plays a real game this season
+  ];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf", new Set(["osu"]));
+  const names = groups.flatMap((g) => g.divisions.flatMap((d) => d.teams.map((t) => t.name)));
+  assert.deepEqual(names, ["Ohio State"]);
+});
+
+test("buildTeamDirectoryFromCatalog: omitting gamesDerivedTeamIds (null/undefined) keeps every catalog team — no filtering applied", () => {
+  const catalog: SportsTeam[] = [{ id: "osu", name: "Ohio State" }, { id: "d3school", name: "Some D3 School" }];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  const names = groups.flatMap((g) => g.divisions.flatMap((d) => d.teams.map((t) => t.name)));
+  assert.deepEqual(names.sort(), ["Ohio State", "Some D3 School"]);
+});
+
 // ── SWAC conference overlay: real, Owner-confirmed HBCU conference
 // membership (all 12 real SWAC schools, East/West) enriches ncaaf/ncaab's
 // directory grouping without ever hiding a team or overriding real live
@@ -166,17 +188,33 @@ test("buildTeamDirectoryFromCatalog: a SWAC school with no standings grouping ge
   assert.deepEqual(generic.divisions.flatMap((d) => d.teams.map((t) => t.name)), ["Ohio State"]);
 });
 
-test("buildTeamDirectoryFromCatalog: real live standings grouping for a SWAC school always wins over the overlay — never overrides live data", () => {
+test("buildTeamDirectoryFromCatalog: the overlay's real SWAC label wins over a live standings grouping for a covered school, but its real W-L record is still kept from standings", () => {
   const catalog: SportsTeam[] = [{ id: "as", name: "Alabama State" }];
   const standingsGroups: StandingsGroup[] = [
     {
       label: "Some Real Live Group",
-      divisions: [{ label: "Some Real Live Division", rows: [{ team: { id: "as", name: "Alabama State" }, wins: 5, losses: 2 }] }],
+      divisions: [{ label: "Some Real Live Division", rows: [standingsRow("as", 5, 2)] }],
     },
   ];
   const groups = buildTeamDirectoryFromCatalog("College Football", catalog, standingsGroups, true, "ncaaf");
   assert.equal(groups.length, 1);
-  assert.equal(groups[0].label, "Some Real Live Group");
+  assert.equal(groups[0].label, "SWAC");
+  assert.equal(groups[0].divisions[0].label, "East");
+  assert.equal(groups[0].divisions[0].teams[0].record, "5-2");
+});
+
+test("buildTeamDirectoryFromCatalog: a team standings groups that the overlay does NOT cover is completely unaffected — standings still wins", () => {
+  const catalog: SportsTeam[] = [{ id: "osu", name: "Ohio State" }];
+  const standingsGroups: StandingsGroup[] = [
+    {
+      label: "Big Ten",
+      divisions: [{ label: "East", rows: [standingsRow("osu", 9, 1)] }],
+    },
+  ];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, standingsGroups, true, "ncaaf");
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].label, "Big Ten");
+  assert.equal(groups[0].divisions[0].teams[0].record, "9-1");
 });
 
 test("buildTeamDirectoryFromCatalog: the SWAC overlay only applies to ncaaf/ncaab — a no-op for every other sport", () => {
