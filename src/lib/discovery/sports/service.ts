@@ -48,6 +48,8 @@ export const SPORT_CATALOG: { slug: SportSlug; label: string; category: SportCat
   { slug: "mma", label: "MMA", category: "world" },
   { slug: "rugby", label: "Rugby", category: "world" },
   { slug: "volleyball", label: "Volleyball", category: "world" },
+  { slug: "tennis", label: "Tennis", category: "world" },
+  { slug: "olympics", label: "Olympics", category: "world" },
 ];
 
 function sportLabel(sport: SportSlug): string {

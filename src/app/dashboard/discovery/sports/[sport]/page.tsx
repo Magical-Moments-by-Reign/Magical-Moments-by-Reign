@@ -69,10 +69,10 @@ const BRACKET_CTA_PROJECTED_COPY: Partial<Record<SportSlug, string>> = {
   nhl: "See the full Eastern & Western field if the playoffs started today — First Round through the Stanley Cup Final.",
 };
 
-// F1/MMA Coming Soon copy — see the early-return above. Never claims a
-// launch date; states plainly what isn't connected rather than what will
-// eventually exist.
-const COMING_SOON_COPY: Record<"f1" | "mma", { body: string; followNoun: string }> = {
+// F1/MMA/Tennis/Olympics Coming Soon copy — see the early-return above.
+// Never claims a launch date; states plainly what isn't connected rather
+// than what will eventually exist.
+const COMING_SOON_COPY: Record<"f1" | "mma" | "tennis" | "olympics", { body: string; followNoun: string }> = {
   f1: {
     body: "Once a real Formula 1 data source is connected, this page will show real race schedules, results, and constructor/driver standings — and Race Winner Picks once that's genuinely ready. Nothing here is fabricated in the meantime.",
     followNoun: "a Driver or Team",
@@ -80,6 +80,14 @@ const COMING_SOON_COPY: Record<"f1" | "mma", { body: string; followNoun: string 
   mma: {
     body: "Once a real MMA data source is connected, this page will show real event cards, results, and fighter records — and Fight Picks once that's genuinely ready. Nothing here is fabricated in the meantime.",
     followNoun: "a Fighter",
+  },
+  tennis: {
+    body: "Tennis doesn't fit a team/league standings page the way most sports here do — it's ranked players and tournaments, not a home/away season. Once a real tennis data source is connected, this page will show real tournament schedules, results, and ATP/WTA rankings — and Match Winner Picks once that's genuinely ready. Nothing here is fabricated in the meantime.",
+    followNoun: "a Player",
+  },
+  olympics: {
+    body: "The Olympics are a periodic multi-sport event, not an ongoing league, so this page works differently from the rest of Sports. Once a real Olympics data source is connected for the next Games, this page will show the real event schedule and medal table — and Picks for marquee events once that's genuinely ready. Nothing here is fabricated in the meantime.",
+    followNoun: "a Team USA Sport",
   },
 };
 
@@ -97,16 +105,18 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   if (!sportMeta) notFound();
   const sport = sportParam as SportSlug;
 
-  // F1 and MMA: ApiSportsProvider.isConfigured() hardcodes these to false
-  // regardless of any API key (see that function — neither fits the
-  // games/fixtures shape this provider maps today), so every dimension of
-  // this page (games, standings, teams, follow, Magical Picks) is
-  // structurally dead for them, not just unconfigured today. Rather than
-  // render a page full of individually-empty panels (misleading — reads as
-  // "broken", not "not built yet"), these two sports get one honest,
-  // on-brand Coming Soon state instead of the normal page body. See
-  // COMING_SOON_COPY below.
-  if (sport === "mma" || sport === "f1") {
+  // F1, MMA, Tennis, Olympics: ApiSportsProvider.isConfigured() hardcodes
+  // these to false regardless of any API key (see that function), so every
+  // dimension of this page (games, standings, teams, follow, Magical Picks)
+  // is structurally dead for them, not just unconfigured today — F1/MMA
+  // because they're fights/races, not the games/fixtures shape this
+  // provider maps; Tennis because no host/product for it has ever been
+  // confirmed in this codebase; Olympics because it isn't a continuous
+  // league at all. Rather than render a page full of individually-empty
+  // panels (misleading — reads as "broken", not "not built yet"), these
+  // four sports get one honest, on-brand Coming Soon state instead of the
+  // normal page body. See COMING_SOON_COPY below.
+  if (sport === "mma" || sport === "f1" || sport === "tennis" || sport === "olympics") {
     const heroBackdrop = HERO_BACKDROP_IMAGE[sport];
     const copy = COMING_SOON_COPY[sport];
     return (

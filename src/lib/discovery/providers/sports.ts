@@ -8,7 +8,7 @@
 // every method returns null on missing config or a failed/empty response.
 
 export type SportSlug =
-  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "ncaabaseball" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1";
+  | "nfl" | "ncaaf" | "nba" | "wnba" | "ncaab" | "mlb" | "ncaabaseball" | "soccer" | "nhl" | "mma" | "rugby" | "volleyball" | "f1" | "tennis" | "olympics";
 
 export interface SportsTeam {
   id: string;
@@ -185,10 +185,25 @@ export const HighSchoolPendingProvider: SportsProvider = {
 // finds nothing, exactly like MMA/F1 do today for their own empty default.
 interface SportConfig {
   host: string;
-  shape: "games" | "fixtures" | "fights" | "races";
+  shape: "games" | "fixtures" | "fights" | "races" | "individual" | "event";
   defaultLeague: string;
 }
 
+// tennis and olympics: host and defaultLeague are both deliberately "" —
+// unlike volleyball/rugby/ncaaf/ncaab (real, best-known-but-unverified
+// hosts/league ids awaiting a live key to confirm), NEITHER of these has
+// ANY host or league id claimed here at all, because neither has been
+// confirmed anywhere in this codebase's history: no prior investigation,
+// PR, or doc references API-Sports carrying a tennis product, and Olympics
+// isn't a continuous league in the first place (a periodic multi-sport,
+// multi-country event — medal tables and per-sport event schedules, not a
+// team's season standings), so it structurally can't be described by this
+// same-shaped "one host, one league, home/away games" config at all. `shape`
+// still records the real reason each is unlike every other sport here
+// ("individual": ranked player-vs-player matches/tournaments, not a
+// two-team season; "event": a periodic multi-sport occasion, not an
+// ongoing league) even though, like fights/races, isConfigured() below
+// gates both off before this shape is ever dispatched on.
 const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   nfl: { host: "v1.american-football.api-sports.io", shape: "games", defaultLeague: "1" },
   ncaaf: { host: "v1.american-football.api-sports.io", shape: "games", defaultLeague: "2" },
@@ -206,6 +221,8 @@ const SPORT_CONFIG: Record<SportSlug, SportConfig> = {
   volleyball: { host: "v1.volleyball.api-sports.io", shape: "games", defaultLeague: "1" },
   mma: { host: "v1.mma.api-sports.io", shape: "fights", defaultLeague: "" },
   f1: { host: "v1.formula-1.api-sports.io", shape: "races", defaultLeague: "" },
+  tennis: { host: "", shape: "individual", defaultLeague: "" },
+  olympics: { host: "", shape: "event", defaultLeague: "" },
 };
 
 /** Resolves NCAA/college baseball's real API-Sports league id by searching
@@ -476,8 +493,11 @@ export const ApiSportsProvider: SportsProvider = {
 
   isConfigured(sport?: SportSlug): boolean {
     if (!apiKey()) return false;
-    // MMA and F1 don't fit the games/fixtures shape this provider maps today.
-    if (sport === "mma" || sport === "f1") return false;
+    // MMA and F1 don't fit the games/fixtures shape this provider maps
+    // today. Tennis has no confirmed host/product at all (see SPORT_CONFIG's
+    // comment); Olympics isn't a continuous league this provider (or any
+    // provider connected to this codebase) has ever been confirmed to carry.
+    if (sport === "mma" || sport === "f1" || sport === "tennis" || sport === "olympics") return false;
     return true;
   },
 

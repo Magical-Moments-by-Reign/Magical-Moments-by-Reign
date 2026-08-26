@@ -31,6 +31,7 @@ const SPORT_KIND: Record<SportSlug, string> = {
   nfl: "Football", ncaaf: "Football", nba: "Basketball", wnba: "Basketball", ncaab: "Basketball", mlb: "Baseball", ncaabaseball: "Baseball",
   soccer: "Football", nhl: "Hockey", mma: "Mixed Martial Arts",
   rugby: "Rugby", volleyball: "Volleyball", f1: "Racing",
+  tennis: "Tennis", olympics: "Olympics",
 };
 
 const CATEGORY_LABEL: Record<SportCategory, string> = {

@@ -28,4 +28,6 @@ export const SPORT_VISUALS: Record<SportSlug, SportVisual> = {
   rugby: { kind: "sport-icon", glyph: "rugby" },
   volleyball: { kind: "sport-icon", glyph: "volleyball" },
   mma: { kind: "sport-icon", glyph: "mma" },
+  tennis: { kind: "sport-icon", glyph: "tennis" },
+  olympics: { kind: "sport-icon", glyph: "olympics" },
 };
