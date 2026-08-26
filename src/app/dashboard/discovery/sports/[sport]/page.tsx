@@ -9,7 +9,8 @@ import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } fr
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
 import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, filterToVerifiedFranchises, excludeKnownProLeagueContamination, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
-import TeamDirectory, { teamMonogram } from "../TeamDirectory";
+import TeamDirectory from "../TeamDirectory";
+import { teamMonogram } from "../team-monogram";
 import StandingsTeamRow from "../StandingsTeamRow";
 import { MagicalPicksPanel, FantasyFootballPanel } from "../PicksAndFantasyPanels";
 import { ApiSportsProvider, MATCHUP_SPORTS, fetchSeasonCatalogDiagnostic, seasonParam, previousSeasonParam, type SportSlug } from "@/lib/discovery/providers/sports";
