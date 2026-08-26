@@ -585,6 +585,105 @@ export async function getNcaafLiveDiagnostic(league: string, isOffSeasonPhase: b
   };
 }
 
+// A local mirror of the tournament-round vocabulary a sibling PR adds to
+// providers/sports.ts's shared postseason detector (First Four, Sweet 16,
+// etc., alongside the existing post-season/bowl/championship wording) —
+// duplicated here, not imported, so this diagnostic stands on its own PR
+// and never depends on that unmerged bracket work. Used ONLY to answer
+// "would today's shared postseason detector recognize this real game" for
+// the Owner's own live review — never to gate or fabricate anything.
+const LIVE_DIAGNOSTIC_POSTSEASON_PATTERN = /post.?season|play.?offs?|championship|bowl|tournament|first.?four|first.?round|second.?round|sweet.?16|elite.?eight|final.?four|quarter.?final|semi.?final/i;
+
+/** TEMPORARY Owner-only diagnostic: real, live evidence for whether a
+ *  sport's configured league id actually resolves to a real competition
+ *  with real games — for the 5 sports whose default league id has never
+ *  been confirmed against a live key (ncaaf "2", ncaab "116", ncaabaseball
+ *  — no static id at all, rugby "1", volleyball "1"; see
+ *  docs/DISCOVERY_SPORTS.md's own caveat). Sport-agnostic (unlike
+ *  getNcaafLiveDiagnostic above, which is deliberately ncaaf-only and
+ *  scoped to the separate FBS-contamination question) — every field here
+ *  comes straight from real production functions (ApiSportsProvider,
+ *  fetchLeagueDetailDiagnostic, fetchTeamsForLeague, fetchSeasonGames),
+ *  never a separate/guessed source, and every field is safe to show the
+ *  Owner: league metadata, counts, and real stage strings — no secrets, no
+ *  API keys. TEMPORARY: remove once each sport's league id has been
+ *  live-verified and, where needed, corrected. */
+export interface LeagueLiveDiagnostic {
+  sport: SportSlug;
+  configured: boolean;
+  configuredLeagueId: string;
+  currentSeason: string;
+  /** Real /leagues?id=X detail — country/type/seasons covered, and
+   *  crucially the provider's own verbatim league name (matchedName),
+   *  which is the direct evidence for the ncaab Men's/Women's question. */
+  leagueDetail: LeagueDetailDiagnostic;
+  teamCount: number;
+  gameCount: number;
+  /** Every distinct real `stage` string seen across this season's games —
+   *  sorted, deduplicated. Empty when the provider returns no games, or
+   *  never reports a stage for this sport/league at all. */
+  distinctStageStrings: string[];
+  /** How many of this season's real games would be recognized as
+   *  postseason by LIVE_DIAGNOSTIC_POSTSEASON_PATTERN above. */
+  postseasonGameCount: number;
+  /** The earliest real game LIVE_DIAGNOSTIC_POSTSEASON_PATTERN recognized,
+   *  if any — direct evidence for whether a bracket could ever activate
+   *  for this league id as currently configured. */
+  firstPostseasonGame: { stage: string; startsAt: string } | null;
+}
+
+export async function getLeagueLiveDiagnostic(sport: SportSlug, league: string): Promise<LeagueLiveDiagnostic> {
+  const configured = ApiSportsProvider.isConfigured(sport);
+  const currentSeason = seasonParam(sport, new Date().toISOString());
+  if (!configured || !league) {
+    return {
+      sport,
+      configured,
+      configuredLeagueId: league,
+      currentSeason,
+      leagueDetail: { attempted: false, matchedId: null, matchedName: null, country: null, type: null, seasons: [] },
+      teamCount: 0,
+      gameCount: 0,
+      distinctStageStrings: [],
+      postseasonGameCount: 0,
+      firstPostseasonGame: null,
+    };
+  }
+
+  const [leagueDetail, teams, games] = await Promise.all([
+    fetchLeagueDetailDiagnostic(sport, league),
+    fetchTeamsForLeague(sport, league, currentSeason),
+    fetchSeasonGames(sport, currentSeason, league),
+  ]);
+  const gameList = games ?? [];
+
+  const stagesSeen = new Set<string>();
+  let postseasonGameCount = 0;
+  let firstPostseasonGame: { stage: string; startsAt: string } | null = null;
+  for (const g of gameList) {
+    if (!g.stage) continue;
+    stagesSeen.add(g.stage);
+    if (!LIVE_DIAGNOSTIC_POSTSEASON_PATTERN.test(g.stage)) continue;
+    postseasonGameCount++;
+    if (!firstPostseasonGame || +new Date(g.startsAt) < +new Date(firstPostseasonGame.startsAt)) {
+      firstPostseasonGame = { stage: g.stage, startsAt: g.startsAt };
+    }
+  }
+
+  return {
+    sport,
+    configured,
+    configuredLeagueId: league,
+    currentSeason,
+    leagueDetail,
+    teamCount: (teams ?? []).length,
+    gameCount: gameList.length,
+    distinctStageStrings: Array.from(stagesSeen).sort(),
+    postseasonGameCount,
+    firstPostseasonGame,
+  };
+}
+
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
 // F/OT/Postponed/Canceled, per its docs) — mapped conservatively to our
 // three-state model; anything not clearly finished or live is treated as
