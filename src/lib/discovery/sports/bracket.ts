@@ -992,3 +992,162 @@ export function buildNhlBracketData(params: {
     ],
   };
 }
+
+// ── CFP adapter (College Football Playoff) ─────────────────────────────
+// Real, structural difference from every big-4 adapter above: the CFP field
+// is a 12-team human Selection Committee choice, not something computable
+// from standings — postseason.ts's REGULAR_SEASON_GAMES deliberately
+// excludes ncaaf for exactly this reason (a college season's real length
+// also varies team to team, compounding the same problem). So there is NO
+// seed-based projection fallback here at all, unlike buildNflBracketData
+// etc: every round is built ONLY from real, already-announced/scheduled
+// postseason games (never a guessed pairing), and a round with no real
+// games yet simply renders with zero matchups — an honest empty column,
+// never a fabricated "TBD vs TBD" pairing invented without real seed data
+// to justify it. The caller (service.ts's getCfpPlayoffBracket) returns
+// null instead of calling this at all until at least one real CFP game
+// exists, so a member never sees an all-empty bracket shell — they see the
+// honest "field hasn't been announced yet" state instead. Every team view
+// here is real (straight from the real game's own home/away team) with no
+// seed number and no badge, since no seed data exists to assign either
+// from — reuses realGameToMatchup/sortedByKickoff with an empty seed list,
+// which already degrades to exactly this plain, seed-less team view (see
+// gameSideView's own fallback branch above).
+
+export type CfpBracketRoundId = "firstround" | "quarterfinal" | "semifinal" | "championship";
+
+/** Classifies one real CFP postseason game's provider-reported `stage`
+ *  string into one of the 4 real CFP rounds (12-team format: on-campus
+ *  First Round, then the bowl-named Quarterfinals/Semifinals, then the
+ *  National Championship) — same regex-based, priority-ordered,
+ *  best-known-but-live-unverified discipline as classifyNflPostseasonStage
+ *  and every other classifier in this file (see that function's own doc
+ *  comment). Returns "unknown" for anything that matches none of them. */
+export function classifyCfpPostseasonStage(stage: string): CfpBracketRoundId | "unknown" {
+  if (/national.?championship|cfp.?championship/i.test(stage)) return "championship";
+  if (/semi.?final/i.test(stage)) return "semifinal";
+  if (/quarter.?final/i.test(stage)) return "quarterfinal";
+  if (/first.?round|1st.?round|round.?1\b/i.test(stage)) return "firstround";
+  return "unknown";
+}
+
+function groupCfpByRound(games: BracketRealGame[]): Record<CfpBracketRoundId, BracketRealGame[]> {
+  const grouped: Record<CfpBracketRoundId, BracketRealGame[]> = { firstround: [], quarterfinal: [], semifinal: [], championship: [] };
+  for (const g of games) {
+    const round = classifyCfpPostseasonStage(g.stage);
+    if (round === "unknown") continue;
+    grouped[round].push(g);
+  }
+  return grouped;
+}
+
+/** Builds the official 12-team CFP bracket from ONLY real, announced
+ *  postseason games — see this section's top comment for why there's no
+ *  seed/projection fallback. `mode` is always "official": there is no
+ *  "projected" phase for this bracket at all (the caller never invokes this
+ *  before at least one real game exists). */
+export function buildCfpBracketData(params: { seasonLabel: string; postseasonGames: BracketRealGame[] }): BracketData {
+  const { seasonLabel, postseasonGames } = params;
+  const grouped = groupCfpByRound(postseasonGames);
+  const noSeeds: BracketSeedInput[] = [];
+  const toMatchups = (games: BracketRealGame[], idPrefix: string) =>
+    sortedByKickoff(games).map((g, i) => realGameToMatchup(`${idPrefix}-${i}`, g, noSeeds, "official"));
+
+  return {
+    sportLabel: "College Football Playoff",
+    seasonLabel,
+    mode: "official",
+    headline: `${seasonLabel} College Football Playoff`,
+    subhead: "The official 12-team CFP bracket — real, announced games only. Advances automatically as real results come in.",
+    rounds: [
+      { id: "firstround", label: "First Round", matchups: toMatchups(grouped.firstround, "cfp-r1") },
+      { id: "quarterfinal", label: "Quarterfinals", matchups: toMatchups(grouped.quarterfinal, "cfp-qf") },
+      { id: "semifinal", label: "Semifinals", matchups: toMatchups(grouped.semifinal, "cfp-sf") },
+      { id: "championship", label: "National Championship", matchups: toMatchups(grouped.championship, "cfp-nc") },
+    ],
+  };
+}
+
+// ── NCAA Tournament adapter ("March Madness") ───────────────────────────
+// Same real, structural difference as the CFP adapter above: the 68-team
+// NCAA Tournament field is a Selection Committee choice (plus automatic
+// conference-tournament-winner bids), not computable from standings — same
+// "no seed/projection fallback, real games only" discipline as CFP.
+//
+// MEN'S vs WOMEN'S — genuinely unresolved, disclosed rather than assumed:
+// this codebase's ncaab sport slug resolves to exactly one API-Sports
+// league id (SPORT_CONFIG.ncaab.defaultLeague, "116" — itself only a
+// best-known, live-unverified default per docs/DISCOVERY_SPORTS.md), with
+// no separate league/slug for a second (e.g. women's) tournament anywhere
+// in this codebase. Nothing here has ever verified, live, whether league
+// 116 is the Men's tournament, the Women's tournament, or something else —
+// so this adapter and its bracket copy deliberately say "NCAA Tournament,"
+// never "Men's" or "the National Championship for both," since either
+// claim would be a guess. The Owner-only diagnostic (a separate, later PR)
+// surfaces the real provider-reported league name so this can be confirmed
+// or corrected live, without guessing here.
+
+export type MarchMadnessBracketRoundId = "firstfour" | "firstround" | "secondround" | "sweet16" | "eliteeight" | "finalfour" | "championship";
+
+/** Classifies one real NCAA Tournament postseason game's provider-reported
+ *  `stage` string into one of the 7 real tournament rounds — same
+ *  regex-based, priority-ordered, best-known-but-live-unverified discipline
+ *  as every other classify*PostseasonStage function in this file. Checked
+ *  most-specific-first (championship before finalfour before eliteeight
+ *  before sweet16 before secondround before firstround before firstfour) —
+ *  none of these 7 real round names actually share a substring with any
+ *  other, so this ordering is a matter of house style/readability here
+ *  rather than a collision this priority order is resolving, unlike (say)
+ *  NBA's "semifinal"-contains-"final" case above. */
+export function classifyMarchMadnessPostseasonStage(stage: string): MarchMadnessBracketRoundId | "unknown" {
+  if (/national.?championship/i.test(stage)) return "championship";
+  if (/final.?four/i.test(stage)) return "finalfour";
+  if (/elite.?eight|elite.?8\b/i.test(stage)) return "eliteeight";
+  if (/sweet.?16|sweet.?sixteen/i.test(stage)) return "sweet16";
+  if (/second.?round|2nd.?round|round.?of.?32/i.test(stage)) return "secondround";
+  if (/first.?round|1st.?round|round.?of.?64/i.test(stage)) return "firstround";
+  if (/first.?four/i.test(stage)) return "firstfour";
+  return "unknown";
+}
+
+function groupMarchMadnessByRound(games: BracketRealGame[]): Record<MarchMadnessBracketRoundId, BracketRealGame[]> {
+  const grouped: Record<MarchMadnessBracketRoundId, BracketRealGame[]> = {
+    firstfour: [], firstround: [], secondround: [], sweet16: [], eliteeight: [], finalfour: [], championship: [],
+  };
+  for (const g of games) {
+    const round = classifyMarchMadnessPostseasonStage(g.stage);
+    if (round === "unknown") continue;
+    grouped[round].push(g);
+  }
+  return grouped;
+}
+
+/** Builds the official NCAA Tournament bracket from ONLY real, announced
+ *  postseason games — see this section's top comment for why there's no
+ *  seed/projection fallback, and for the disclosed Men's/Women's coverage
+ *  gap. `mode` is always "official" — there is no "projected" phase for
+ *  this bracket at all. */
+export function buildMarchMadnessBracketData(params: { seasonLabel: string; postseasonGames: BracketRealGame[] }): BracketData {
+  const { seasonLabel, postseasonGames } = params;
+  const grouped = groupMarchMadnessByRound(postseasonGames);
+  const noSeeds: BracketSeedInput[] = [];
+  const toMatchups = (games: BracketRealGame[], idPrefix: string) =>
+    sortedByKickoff(games).map((g, i) => realGameToMatchup(`${idPrefix}-${i}`, g, noSeeds, "official"));
+
+  return {
+    sportLabel: "NCAA Tournament",
+    seasonLabel,
+    mode: "official",
+    headline: `${seasonLabel} NCAA Tournament`,
+    subhead: "The official NCAA Tournament bracket — real, announced games only. Advances automatically as real results come in.",
+    rounds: [
+      { id: "firstfour", label: "First Four", matchups: toMatchups(grouped.firstfour, "mm-f4") },
+      { id: "firstround", label: "First Round", matchups: toMatchups(grouped.firstround, "mm-r1") },
+      { id: "secondround", label: "Second Round", matchups: toMatchups(grouped.secondround, "mm-r2") },
+      { id: "sweet16", label: "Sweet 16", matchups: toMatchups(grouped.sweet16, "mm-s16") },
+      { id: "eliteeight", label: "Elite Eight", matchups: toMatchups(grouped.eliteeight, "mm-e8") },
+      { id: "finalfour", label: "Final Four", matchups: toMatchups(grouped.finalfour, "mm-ff") },
+      { id: "championship", label: "National Championship", matchups: toMatchups(grouped.championship, "mm-nc") },
+    ],
+  };
+}

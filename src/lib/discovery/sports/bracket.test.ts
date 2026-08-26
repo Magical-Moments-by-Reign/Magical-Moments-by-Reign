@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildNflBracketData, classifyNflPostseasonStage, formatRecord, type NflBracketSeedInput, type NflBracketRealGame } from "./bracket";
+import { buildNflBracketData, classifyNflPostseasonStage, formatRecord, buildCfpBracketData, classifyCfpPostseasonStage, buildMarchMadnessBracketData, classifyMarchMadnessPostseasonStage, type NflBracketSeedInput, type NflBracketRealGame, type BracketRealGame } from "./bracket";
 
 function seed(seed: number, teamId: string, wins: number, losses: number, clinched = true): NflBracketSeedInput {
   return { teamId, teamName: `Team ${teamId}`, seed, wins, losses, isDivisionWinner: seed <= 4, clinched };
@@ -100,4 +100,137 @@ test("a game with an unrecognized stage is never silently mis-bucketed into a ro
   const wildcard = data.rounds.find((r) => r.id === "wildcard")!;
   // Falls back to the projected pairing structure since no real Wild Card game was recognized.
   assert.equal(wildcard.matchups.filter((m) => m.confLabel === "AFC" && !m.isBye).length, 3);
+});
+
+// ── CFP (College Football Playoff) ──────────────────────────────────────
+// No seed-based projection exists for this bracket at all (see
+// buildCfpBracketData's own doc comment) — every test here works from real
+// games only, confirming rounds map correctly and nothing is ever
+// fabricated before real games exist.
+
+function cfpGame(stage: string, homeId: string, awayId: string, startsAt: string, opts: Partial<BracketRealGame> = {}): BracketRealGame {
+  return {
+    externalId: `${homeId}-${awayId}`,
+    gameId: null,
+    stage,
+    status: "scheduled",
+    startsAt,
+    homeTeam: { id: homeId, name: `Team ${homeId}` },
+    awayTeam: { id: awayId, name: `Team ${awayId}` },
+    ...opts,
+  };
+}
+
+test("classifyCfpPostseasonStage recognizes every real CFP round, case/spacing-insensitive", () => {
+  assert.equal(classifyCfpPostseasonStage("First Round"), "firstround");
+  assert.equal(classifyCfpPostseasonStage("first round"), "firstround");
+  assert.equal(classifyCfpPostseasonStage("Quarterfinal"), "quarterfinal");
+  assert.equal(classifyCfpPostseasonStage("CFP Quarterfinal"), "quarterfinal");
+  assert.equal(classifyCfpPostseasonStage("Semifinal"), "semifinal");
+  assert.equal(classifyCfpPostseasonStage("National Championship"), "championship");
+  assert.equal(classifyCfpPostseasonStage("Regular Season"), "unknown");
+});
+
+test("buildCfpBracketData: real postseason games map to the correct round, and never touch a round they don't belong to", () => {
+  const games: BracketRealGame[] = [
+    cfpGame("First Round", "team-5", "team-12", "2025-12-19T00:00:00Z"),
+    cfpGame("First Round", "team-6", "team-11", "2025-12-19T20:00:00Z"),
+    cfpGame("Quarterfinal — Sugar Bowl", "team-1", "team-8", "2025-12-31T00:00:00Z"),
+  ];
+  const data = buildCfpBracketData({ seasonLabel: "2025", postseasonGames: games });
+  const firstRound = data.rounds.find((r) => r.id === "firstround")!;
+  const quarterfinal = data.rounds.find((r) => r.id === "quarterfinal")!;
+  const semifinal = data.rounds.find((r) => r.id === "semifinal")!;
+  const championship = data.rounds.find((r) => r.id === "championship")!;
+  assert.equal(firstRound.matchups.length, 2);
+  assert.equal(quarterfinal.matchups.length, 1);
+  assert.equal(semifinal.matchups.length, 0); // no real semifinal game yet — empty, not guessed
+  assert.equal(championship.matchups.length, 0);
+  assert.equal(quarterfinal.matchups[0].top.team?.teamId, "team-8");
+  assert.equal(quarterfinal.matchups[0].bottom.team?.teamId, "team-1");
+  // No seed data exists for this bracket — never a fabricated seed number or badge.
+  assert.equal(quarterfinal.matchups[0].top.team?.seed, undefined);
+  assert.equal(quarterfinal.matchups[0].top.team?.badge, null);
+  assert.equal(data.mode, "official");
+});
+
+test("buildCfpBracketData: with zero real games, every round is honestly empty — never a placeholder/projected field", () => {
+  const data = buildCfpBracketData({ seasonLabel: "2025", postseasonGames: [] });
+  for (const round of data.rounds) assert.equal(round.matchups.length, 0);
+});
+
+test("buildCfpBracketData: the bracket advances as results arrive — a final score and real game id flow through untouched", () => {
+  const game = cfpGame("National Championship", "team-1", "team-3", "2026-01-19T00:00:00Z", {
+    gameId: "local-cfp-nc",
+    status: "final",
+    homeScore: 27,
+    awayScore: 24,
+  });
+  const data = buildCfpBracketData({ seasonLabel: "2025", postseasonGames: [game] });
+  const championship = data.rounds.find((r) => r.id === "championship")!;
+  assert.equal(championship.matchups.length, 1);
+  assert.equal(championship.matchups[0].status, "final");
+  assert.equal(championship.matchups[0].bottomScore, 27);
+  assert.equal(championship.matchups[0].topScore, 24);
+  assert.equal(championship.matchups[0].gameId, "local-cfp-nc");
+});
+
+// ── NCAA Tournament ("March Madness") ───────────────────────────────────
+
+function mmGame(stage: string, homeId: string, awayId: string, startsAt: string, opts: Partial<BracketRealGame> = {}): BracketRealGame {
+  return cfpGame(stage, homeId, awayId, startsAt, opts);
+}
+
+test("classifyMarchMadnessPostseasonStage recognizes every real NCAA Tournament round, case/spacing-insensitive", () => {
+  assert.equal(classifyMarchMadnessPostseasonStage("First Four"), "firstfour");
+  assert.equal(classifyMarchMadnessPostseasonStage("First Round"), "firstround");
+  assert.equal(classifyMarchMadnessPostseasonStage("Second Round"), "secondround");
+  assert.equal(classifyMarchMadnessPostseasonStage("Sweet 16"), "sweet16");
+  assert.equal(classifyMarchMadnessPostseasonStage("sweet sixteen"), "sweet16");
+  assert.equal(classifyMarchMadnessPostseasonStage("Elite Eight"), "eliteeight");
+  assert.equal(classifyMarchMadnessPostseasonStage("Elite 8"), "eliteeight");
+  assert.equal(classifyMarchMadnessPostseasonStage("Final Four"), "finalfour");
+  assert.equal(classifyMarchMadnessPostseasonStage("National Championship"), "championship");
+  assert.equal(classifyMarchMadnessPostseasonStage("Regular Season"), "unknown");
+});
+
+test("classifyMarchMadnessPostseasonStage never confuses First Four with First Round, or Final Four with the Finals/Championship", () => {
+  assert.equal(classifyMarchMadnessPostseasonStage("First Four"), "firstfour");
+  assert.notEqual(classifyMarchMadnessPostseasonStage("First Four"), "firstround");
+  assert.equal(classifyMarchMadnessPostseasonStage("Final Four"), "finalfour");
+  assert.notEqual(classifyMarchMadnessPostseasonStage("Final Four"), "championship");
+});
+
+test("buildMarchMadnessBracketData: every real round is recognized and correctly bucketed", () => {
+  const games: BracketRealGame[] = [
+    mmGame("First Four", "t-a", "t-b", "2026-03-17T00:00:00Z"),
+    mmGame("First Round", "t-1", "t-16", "2026-03-19T00:00:00Z"),
+    mmGame("Second Round", "t-1", "t-9", "2026-03-21T00:00:00Z"),
+    mmGame("Sweet 16", "t-1", "t-5", "2026-03-26T00:00:00Z"),
+    mmGame("Elite Eight", "t-1", "t-2", "2026-03-28T00:00:00Z"),
+    mmGame("Final Four", "t-1", "t-3", "2026-04-04T00:00:00Z"),
+    mmGame("National Championship", "t-1", "t-4", "2026-04-06T00:00:00Z"),
+  ];
+  const data = buildMarchMadnessBracketData({ seasonLabel: "2026", postseasonGames: games });
+  const byId = new Map(data.rounds.map((r) => [r.id, r]));
+  assert.equal(byId.get("firstfour")!.matchups.length, 1);
+  assert.equal(byId.get("firstround")!.matchups.length, 1);
+  assert.equal(byId.get("secondround")!.matchups.length, 1);
+  assert.equal(byId.get("sweet16")!.matchups.length, 1);
+  assert.equal(byId.get("eliteeight")!.matchups.length, 1);
+  assert.equal(byId.get("finalfour")!.matchups.length, 1);
+  assert.equal(byId.get("championship")!.matchups.length, 1);
+  assert.equal(data.mode, "official");
+});
+
+test("buildMarchMadnessBracketData: with zero real games, every round is honestly empty — never a derived-from-standings field", () => {
+  const data = buildMarchMadnessBracketData({ seasonLabel: "2026", postseasonGames: [] });
+  for (const round of data.rounds) assert.equal(round.matchups.length, 0);
+  assert.equal(data.rounds.length, 7);
+});
+
+test("buildMarchMadnessBracketData: a game with an unrecognized stage is never silently mis-bucketed into a round", () => {
+  const mystery = mmGame("Regular Season", "t-1", "t-2", "2026-01-01T00:00:00Z");
+  const data = buildMarchMadnessBracketData({ seasonLabel: "2026", postseasonGames: [mystery] });
+  for (const round of data.rounds) assert.equal(round.matchups.length, 0);
 });

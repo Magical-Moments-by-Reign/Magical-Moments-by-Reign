@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
@@ -15,7 +15,7 @@ import { resolveRosterViaOpenAI, type SportsDataProvenance } from "./openai-reso
 import { normalizePlayerName } from "./player-name";
 import { gradeGamePicks, tallyVotes, isPickLocked, summarizePicks, gradeRacePicks, leaderboardPeriodStart, startOfWeek, recordInRange, currentPhasePicks, type VoteTally, type PicksSummary, type LeaderboardPeriod } from "./picks";
 import { projectNflConferenceSeeds, projectMlbLeagueSeeds, projectNhlConferenceSeeds, projectNbaConferencePicture, computePostseasonPicture } from "./postseason";
-import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame } from "./bracket";
+import { buildNflBracketData, buildNbaBracketData, buildWnbaBracketData, buildMlbBracketData, buildNhlBracketData, buildCfpBracketData, buildMarchMadnessBracketData, type BracketData, type NflBracketRealGame, type NbaBracketRealGame, type WnbaBracketRealGame, type MlbBracketRealGame, type NhlBracketRealGame, type BracketRealGame } from "./bracket";
 import { evaluateEarnedBadges, SPORTS_BADGES, type BadgeId } from "./badges";
 import { dispatchNotification } from "@/lib/notify";
 
@@ -1945,6 +1945,82 @@ export async function getWnbaPlayoffBracket(season?: string): Promise<BracketDat
   }
 
   return buildWnbaBracketData({ seasonLabel, mode, seeds, postseasonGames });
+}
+
+/** THE FIELD-ANNOUNCED SIGNAL for the CFP bracket — genuinely different
+ *  from every big-4 sport's bracket resolver above: those all fall back to
+ *  a real, standings-derived "projected" mode before the postseason starts.
+ *  The CFP field is a 12-team human Selection Committee choice, not
+ *  computable from standings (postseason.ts's REGULAR_SEASON_GAMES
+ *  deliberately excludes ncaaf for exactly this reason), so there is no
+ *  "projected" mode for this bracket AT ALL — this returns null outright
+ *  until a real CFP game exists (getFirstPostseasonGame("ncaaf", ...) !==
+ *  null, the same real signal every other sport's resolver uses), and the
+ *  bracket page shows an honest "field hasn't been announced yet" state in
+ *  the meantime — never a projected/guessed field. */
+export async function getCfpPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("ncaaf");
+  const firstPostseasonGame = await getFirstPostseasonGame("ncaaf", league || undefined);
+  if (!firstPostseasonGame) return null;
+
+  const seasonQuery = season ?? seasonParam("ncaaf", new Date().toISOString());
+  const seasonGames = await fetchSeasonGames("ncaaf", seasonQuery, league || undefined);
+  const real = (seasonGames ?? []).filter((g) => g.stage && POSTSEASON_STAGE_PATTERN.test(g.stage));
+  if (!real.length) return null;
+
+  const synced = await syncGamesToLocal("ncaaf", league, real);
+  const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+  const postseasonGames: BracketRealGame[] = real.map((g) => ({
+    externalId: g.externalId,
+    gameId: localIdByExternalId.get(g.externalId) ?? null,
+    stage: g.stage ?? "",
+    status: g.status,
+    startsAt: g.startsAt,
+    homeTeam: g.homeTeam,
+    awayTeam: g.awayTeam,
+    homeScore: g.homeScore,
+    awayScore: g.awayScore,
+  }));
+
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame.startsAt).getUTCFullYear());
+  return buildCfpBracketData({ seasonLabel, postseasonGames });
+}
+
+/** THE FIELD-ANNOUNCED SIGNAL for the NCAA Tournament bracket — same
+ *  "no projected mode at all" contract as getCfpPlayoffBracket above, for
+ *  the same real reason (a 68-team Selection Committee choice plus
+ *  automatic conference-tournament bids, not standings math). See
+ *  bracket.ts's own MEN'S vs WOMEN'S doc comment on buildMarchMadnessBracketData:
+ *  this resolves whatever real tournament SPORT_CONFIG.ncaab's single
+ *  configured league id (see docs/DISCOVERY_SPORTS.md) actually is — never
+ *  verified live in this codebase — so this never claims "Men's" or "both"
+ *  in its own copy either. */
+export async function getMarchMadnessPlayoffBracket(season?: string): Promise<BracketData | null> {
+  const league = defaultLeagueId("ncaab");
+  const firstPostseasonGame = await getFirstPostseasonGame("ncaab", league || undefined);
+  if (!firstPostseasonGame) return null;
+
+  const seasonQuery = season ?? seasonParam("ncaab", new Date().toISOString());
+  const seasonGames = await fetchSeasonGames("ncaab", seasonQuery, league || undefined);
+  const real = (seasonGames ?? []).filter((g) => g.stage && POSTSEASON_STAGE_PATTERN.test(g.stage));
+  if (!real.length) return null;
+
+  const synced = await syncGamesToLocal("ncaab", league, real);
+  const localIdByExternalId = new Map(synced.map((r) => [r.externalId, r.id]));
+  const postseasonGames: BracketRealGame[] = real.map((g) => ({
+    externalId: g.externalId,
+    gameId: localIdByExternalId.get(g.externalId) ?? null,
+    stage: g.stage ?? "",
+    status: g.status,
+    startsAt: g.startsAt,
+    homeTeam: g.homeTeam,
+    awayTeam: g.awayTeam,
+    homeScore: g.homeScore,
+    awayScore: g.awayScore,
+  }));
+
+  const seasonLabel = season?.slice(0, 4) ?? String(new Date(firstPostseasonGame.startsAt).getUTCFullYear());
+  return buildMarchMadnessBracketData({ seasonLabel, postseasonGames });
 }
 
 /** Real win-loss(-tie) records for the two teams in one matchup, resolved
