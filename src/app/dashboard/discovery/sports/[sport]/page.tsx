@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, getStandingsWithOffSeasonFallback, getLeagueTeamCatalog, getLeagueTeamCatalogWithOffSeasonFallback, getMyTeams, searchTeamsForSport, getLeagueLogos, getFirstPreseasonGame, getFirstRegularSeasonGame, getFirstPostseasonGame, getTeamRoster, getTeamInjuries, resolveFollowedTeamRosters, resolveFollowedTeamInjuries, getNbaHeroState, getMlbPlayoffPicture, getNhlPlayoffPicture, getNbaPlayoffPicture, getWnbaPlayoffPicture, sdioLeagueFor, resolveDefaultLeagueId, getSeasonGamesDerivedTeamIds, getLeagueLiveDiagnostic } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
@@ -68,14 +68,17 @@ const BRACKET_READY_SPORTS = new Set<SportSlug>(["nfl", "nba", "wnba", "mlb", "n
 // per-sport check) so the CTA render below reads as one condition.
 const COMMITTEE_SELECTED_BRACKET_SPORTS = new Set<SportSlug>(["ncaaf", "ncaab"]);
 
-// TEMPORARY — the 5 sports whose default league id has never been
-// confirmed against a live key (see docs/DISCOVERY_SPORTS.md's own caveat,
-// and resolveNcaaBaseballLeagueId's doc comment for ncaabaseball
-// specifically). Gates the Owner-only live-verification diagnostic
-// (getLeagueLiveDiagnostic) below — remove this set, its diagnostic call,
-// and its render block together once every one of these league ids has
-// been live-verified (and corrected, if needed).
-const LIVE_DIAGNOSTIC_SPORTS = new Set<SportSlug>(["ncaaf", "ncaab", "ncaabaseball", "rugby", "volleyball"]);
+// TEMPORARY — the sports whose default league id has never been confirmed
+// against a live key (see docs/DISCOVERY_SPORTS.md's own caveat, and
+// resolveNcaaBaseballLeagueId's doc comment for ncaabaseball specifically).
+// Gates the Owner-only live-verification diagnostic (getLeagueLiveDiagnostic)
+// below — remove this set, its diagnostic call, and its render block
+// together once every one of these league ids has been live-verified (and
+// corrected, if needed). ncaaf was removed from this set once its own real,
+// live evidence (the 702-vs-238-team catalog-contamination question) was
+// resolved and acted on via getSeasonGamesDerivedTeamIds above — ncaaf's
+// league id itself was never in question, only its catalog's scope.
+const LIVE_DIAGNOSTIC_SPORTS = new Set<SportSlug>(["ncaab", "ncaabaseball", "rugby", "volleyball"]);
 
 // Body copy for the projected-phase Playoff Bracket CTA, per sport — real
 // round names for each sport's own real postseason format (see bracket.ts's
@@ -491,10 +494,22 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         fetchSeasonCatalogDiagnostic("nba", league, previousSeasonParam("nba", new Date().toISOString())),
       ]).catch(() => [])
     : [];
+  // Real, evidence-based scoping for ncaaf only — see
+  // getSeasonGamesDerivedTeamIds's own doc comment in service.ts for the
+  // full live evidence (702-team raw catalog vs. 238 teams that actually
+  // appear in this season's real games, a real signal the previous
+  // Owner-only diagnostic on this page surfaced). null for every other
+  // sport, and buildTeamDirectoryFromCatalog treats null as "no evidence,
+  // don't filter" — this can never hide a team for a sport with no such
+  // evidence.
+  const ncaafGamesDerivedTeamIds = sport === "ncaaf" && hasLeague
+    ? await getSeasonGamesDerivedTeamIds(sport, league).catch(() => null)
+    : null;
+
   const directoryGroups: DirectoryGroup[] = verifiedDirectory
     ? verifiedDirectory.groups
     : teamCatalog.length
-      ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted, sport)
+      ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted, sport, ncaafGamesDerivedTeamIds)
       : standingsGroups.map((g) => ({
           label: g.label || sportMeta.label,
           divisions: g.divisions.map((d) => ({
@@ -503,25 +518,15 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           })),
         }));
 
-  // TEMPORARY DIAGNOSTIC — Owner-only, ncaaf-only, real live-provider
-  // evidence for the reported College Football team-directory contamination
-  // (NFL teams + mixed-division schools showing under "College Football").
-  // Reuses the real production catalog computed just above (never a
-  // separate/duplicated fetch), plus real /leagues and /teams calls scoped
-  // to exactly this render's league id, so the numbers here can never
-  // disagree with what the page itself is actually showing. Computed
-  // regardless of whether the directory below ends up rendering anything,
-  // since an EMPTY directory is itself part of what this diagnostic needs
-  // to explain. See getNcaafLiveDiagnostic's own doc comment in service.ts
-  // for full scope and the removal criterion.
-  const ncaafDiagnostic = sport === "ncaaf" && isOwner && hasLeague
-    ? await getNcaafLiveDiagnostic(league, standingsPhase === "preseason", minimumExpectedTeamCount).catch(() => null)
-    : null;
-
   // TEMPORARY Owner-only live-verification diagnostic — see
   // LIVE_DIAGNOSTIC_SPORTS' own comment above and getLeagueLiveDiagnostic's
   // doc comment in service.ts. Real evidence only (league metadata, real
   // stage strings, counts) — never a separate/guessed source, no secrets.
+  // ncaaf was removed from LIVE_DIAGNOSTIC_SPORTS once its own open
+  // question (the FBS catalog-contamination evidence) was resolved and
+  // acted on above — this block now only ever computes for ncaab/
+  // ncaabaseball/rugby/volleyball, whose league-identity questions remain
+  // open.
   const leagueLiveDiagnostic = isOwner && hasLeague && LIVE_DIAGNOSTIC_SPORTS.has(sport)
     ? await getLeagueLiveDiagnostic(sport, league).catch(() => null)
     : null;
@@ -917,85 +922,14 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         </div>
       )}
 
-      {/* TEMPORARY DIAGNOSTIC — Owner-only, ncaaf-only. Deliberately placed
-          OUTSIDE the directoryGroups.length > 0 gate above (and outside any
-          other render gate) so this evidence survives even if a future fix
-          changes the directory from "contaminated" to "empty" mid-review —
-          the diagnostic must never itself go dark. Reuses the exact same
-          production functions the page already called above; never a
-          separate/duplicated fetch. Remove once the contamination question
-          is resolved and the real fix ships — see getNcaafLiveDiagnostic's
-          doc comment in service.ts. */}
-      {ncaafDiagnostic && (
-        <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
-          <div className="spx-panel__head"><h2>Owner Diagnostic — College Football Live Catalog Membership</h2></div>
-          <p className="spx-panel__owner-diagnostic">
-            Provider configured: {String(ncaafDiagnostic.configured)} · league id queried: {ncaafDiagnostic.league} · current season: {ncaafDiagnostic.currentSeason} · previous season: {ncaafDiagnostic.previousSeason}
-          </p>
-          <details className="spx-panel__owner-diagnostic" open>
-            <summary>League identity — /leagues?id={ncaafDiagnostic.league}</summary>
-            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
-              <li>attempted: {String(ncaafDiagnostic.leagueDetail.attempted)}</li>
-              <li>matched id: {ncaafDiagnostic.leagueDetail.matchedId ?? "—"}</li>
-              <li>matched name: {ncaafDiagnostic.leagueDetail.matchedName ?? "—"}</li>
-              <li>country: {ncaafDiagnostic.leagueDetail.country ?? "—"}</li>
-              <li>type: {ncaafDiagnostic.leagueDetail.type ?? "—"}</li>
-              <li>seasons covered: {ncaafDiagnostic.leagueDetail.seasons.length ? ncaafDiagnostic.leagueDetail.seasons.join(", ") : "—"}</li>
-            </ul>
-          </details>
-          <details className="spx-panel__owner-diagnostic">
-            <summary>Raw /teams response shape — current vs. previous season</summary>
-            <p style={{ margin: ".5rem 0" }}><b>Current ({ncaafDiagnostic.currentSeason}):</b> hasResponseField={String(ncaafDiagnostic.rawCurrent.hasResponseField)}, responseIsArray={String(ncaafDiagnostic.rawCurrent.responseIsArray)}, responseLength={ncaafDiagnostic.rawCurrent.responseLength}, paging={String(ncaafDiagnostic.rawCurrent.pagingPresent)} (page {ncaafDiagnostic.rawCurrent.pagingCurrent ?? "—"}/{ncaafDiagnostic.rawCurrent.pagingTotal ?? "—"}), errorsPresent={String(ncaafDiagnostic.rawCurrent.errorsFieldPresent)}, mappedTeamCount={ncaafDiagnostic.rawCurrent.mappedTeamCount}</p>
-            <p style={{ margin: ".5rem 0" }}><b>Previous ({ncaafDiagnostic.previousSeason}):</b> hasResponseField={String(ncaafDiagnostic.rawPrevious.hasResponseField)}, responseIsArray={String(ncaafDiagnostic.rawPrevious.responseIsArray)}, responseLength={ncaafDiagnostic.rawPrevious.responseLength}, paging={String(ncaafDiagnostic.rawPrevious.pagingPresent)} (page {ncaafDiagnostic.rawPrevious.pagingCurrent ?? "—"}/{ncaafDiagnostic.rawPrevious.pagingTotal ?? "—"}), errorsPresent={String(ncaafDiagnostic.rawPrevious.errorsFieldPresent)}, mappedTeamCount={ncaafDiagnostic.rawPrevious.mappedTeamCount}</p>
-          </details>
-          <details className="spx-panel__owner-diagnostic">
-            <summary>Forensic team-row lookup — 7 named entities (Green Bay Packers, Denver Broncos, Tennessee, Auburn, Tuskegee, Michigan Tech, North Greenville)</summary>
-            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
-              {ncaafDiagnostic.forensicMatches.map((m) => (
-                <li key={m.queriedName} style={{ marginBottom: ".5rem" }}>
-                  <b>{m.queriedName}</b> — foundInCurrentSeason={String(m.foundInCurrentSeason)}, foundInPreviousSeason={String(m.foundInPreviousSeason)}
-                  {m.fields ? (
-                    <>
-                      , hasMembershipMetadata={String(m.hasMembershipMetadata)}
-                      <br />
-                      fields: {Object.entries(m.fields).map(([k, v]) => `${k}=${v === null ? "null" : String(v)}`).join(", ") || "(no safe fields present on this row)"}
-                    </>
-                  ) : (
-                    <> — not found in either season&rsquo;s response</>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-          <details className="spx-panel__owner-diagnostic">
-            <summary>Type-validation evidence (TEAM vs. LEAGUE/CONFERENCE/DIVISION) — aggregate, current + previous season rows</summary>
-            <ul style={{ margin: ".5rem 0", paddingLeft: "1.2rem" }}>
-              <li>row count inspected: {ncaafDiagnostic.shapeSummary.rowCount}</li>
-              <li>any row carries a league/league_id/division/category/conference key: {String(ncaafDiagnostic.shapeSummary.anyRowHasMembershipKey)}</li>
-              <li>sample row-0 root keys: {ncaafDiagnostic.shapeSummary.sampleRootKeys.length ? ncaafDiagnostic.shapeSummary.sampleRootKeys.join(", ") : "—"}</li>
-              <li>sample row-0 nested &ldquo;team&rdquo; keys: {ncaafDiagnostic.shapeSummary.sampleTeamKeys.length ? ncaafDiagnostic.shapeSummary.sampleTeamKeys.join(", ") : "—"}</li>
-            </ul>
-            <p style={{ margin: ".5rem 0" }}>This is evidence only — the separately-flagged MLB &ldquo;American League&rdquo;/&ldquo;National League&rdquo; mapper bug is NOT fixed by this diagnostic.</p>
-          </details>
-          <details className="spx-panel__owner-diagnostic">
-            <summary>Real merged catalog ({ncaafDiagnostic.mergedCatalogCount} teams) — the exact list the directory above renders from</summary>
-            <p style={{ margin: ".5rem 0" }}>No automated FBS/FCS/D2/D3/NAIA classification is attempted — there is no verified source for that distinction. Review this list by eye for anything that doesn&rsquo;t belong.</p>
-            <ul style={{ margin: 0, paddingLeft: "1.2rem", columns: 2 }}>
-              {ncaafDiagnostic.mergedCatalogNames.map((name) => <li key={name}>{name}</li>)}
-            </ul>
-          </details>
-        </div>
-      )}
-
       {/* TEMPORARY DIAGNOSTIC — Owner-only, real evidence for whether this
           sport's configured league id resolves to a real competition with
           real games. See LIVE_DIAGNOSTIC_SPORTS' own comment above and
           getLeagueLiveDiagnostic's doc comment in service.ts. Placed
-          outside every other render gate for the same reason as the ncaaf
-          diagnostic above — this evidence must never itself go dark.
-          Remove this block, its computation above, and LIVE_DIAGNOSTIC_SPORTS
-          together once every one of these 5 league ids has been
-          live-verified. */}
+          outside every other render gate so this evidence must never
+          itself go dark. Remove this block, its computation above, and
+          LIVE_DIAGNOSTIC_SPORTS together once every one of these league ids
+          has been live-verified. */}
       {leagueLiveDiagnostic && (
         <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
           <div className="spx-panel__head"><h2>Owner Diagnostic — Live League/Postseason Verification</h2></div>
