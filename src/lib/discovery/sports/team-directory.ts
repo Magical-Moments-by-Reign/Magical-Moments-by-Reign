@@ -224,6 +224,35 @@ export function filterToVerifiedFranchises(sport: SportSlug, teams: SportsTeam[]
   return teams.filter((t) => verified.has(normalize(t.name)));
 }
 
+/** Excludes any row from a RAW, unfiltered live catalog whose real name
+ *  exactly matches a VERIFIED_REFERENCE pro franchise from ANY sport (NBA,
+ *  NFL) — confirmed real defect: the ncaaf All Teams directory has shown
+ *  real NFL rows (Green Bay Packers, Denver Broncos) mixed into the real
+ *  college programs, live evidence a college-league query on a shared host
+ *  can return pro-league rows too. Never a guess — a real college program
+ *  can never literally carry an exact NFL/NBA franchise's brand name, so
+ *  an exact match here is confirmed contamination, not a false positive.
+ *
+ *  Deliberately NOT scoped to just "NFL rows out of ncaaf" — the same
+ *  class of provider leak could affect any sport sharing a host with a
+ *  VERIFIED_REFERENCE league (e.g. ncaab shares basketball's host with
+ *  NBA/WNBA), so this checks every VERIFIED_REFERENCE sport's real roster
+ *  at once, a shared exclusion rather than a one-off ncaaf patch. A no-op
+ *  for a sport that itself HAS a VERIFIED_REFERENCE (NBA/NFL) — this only
+ *  ever removes a DIFFERENT sport's real teams from THIS sport's catalog,
+ *  never touches a VERIFIED_REFERENCE sport's own real roster. Exported
+ *  for tests. */
+export function excludeKnownProLeagueContamination(sport: SportSlug, teams: SportsTeam[]): SportsTeam[] {
+  if (hasVerifiedReference(sport)) return teams;
+  const contamination = new Set<string>();
+  for (const otherSport of Object.keys(VERIFIED_REFERENCE) as SportSlug[]) {
+    const names = verifiedFranchiseNameSet(otherSport);
+    if (names) for (const n of names) contamination.add(n);
+  }
+  if (!contamination.size) return teams;
+  return teams.filter((t) => !contamination.has(normalize(t.name)));
+}
+
 /** Fetches the real, live team catalog for a VERIFIED_REFERENCE sport's
  *  resolved league — the one shared fetch point both getTeamDirectory and
  *  getVerifiedStandingsFallback use so a real API-Sports naming mismatch
@@ -422,8 +451,16 @@ export function buildTeamDirectoryFromCatalog(
   catalog: SportsTeam[],
   standingsGroups: StandingsGroup[],
   standingsAvailable: boolean,
+  sport?: SportSlug,
 ): DirectoryGroup[] {
   if (!catalog.length) return [];
+  // Confirmed real defect fix: a raw catalog for a sport with no
+  // VERIFIED_REFERENCE of its own (ncaaf included) can carry another real
+  // league's team rows — see excludeKnownProLeagueContamination's own doc
+  // comment. `sport` is optional only so existing callers that predate
+  // this parameter still compile; every real caller in this codebase now
+  // passes it.
+  const cleaned = sport ? excludeKnownProLeagueContamination(sport, catalog) : catalog;
   const locationByTeamId = new Map<string, { group: string; division: string; record?: string }>();
   for (const g of standingsGroups) {
     for (const d of g.divisions) {
@@ -434,7 +471,7 @@ export function buildTeamDirectoryFromCatalog(
   }
   const fallbackGroupLabel = standingsAvailable ? sportLabel : `${sportLabel} (Standings unavailable)`;
   const groups = new Map<string, Map<string, DirectoryTeam[]>>();
-  for (const t of catalog) {
+  for (const t of cleaned) {
     const loc = locationByTeamId.get(t.id) ?? { group: fallbackGroupLabel, division: "", record: undefined };
     const divisions = groups.get(loc.group) ?? new Map<string, DirectoryTeam[]>();
     const teams = divisions.get(loc.division) ?? [];

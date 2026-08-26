@@ -7,7 +7,7 @@ import { SPORT_CATALOG, getGamesByDate, getGamesWithVoteContext, getStandings, g
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { normalizeStandingsBySport, determineSeasonPhase, formatSeasonLabel } from "@/lib/discovery/sports/standings";
 import { getPlayerIdDirectoryByName, resolveProfileLinksFromDirectory } from "@/lib/discovery/sports/player-profile";
-import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, filterToVerifiedFranchises, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
+import { getTeamDirectory, getVerifiedStandingsFallback, hasVerifiedReference, buildTeamDirectoryFromCatalog, countDistinctStandingsTeams, filterToVerifiedFranchises, excludeKnownProLeagueContamination, type DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import { formatGroupLabel } from "@/lib/discovery/sports/group-labels";
 import TeamDirectory, { teamMonogram } from "../TeamDirectory";
 import StandingsTeamRow from "../StandingsTeamRow";
@@ -200,7 +200,11 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   // never appear in the All Teams directory below. filterToVerifiedFranchises
   // enforces the SAME VERIFIED_REFERENCE membership boundary here; a no-op
   // for every sport without one (everything but NBA/NFL today).
-  const searchResults = filterToVerifiedFranchises(sport, rawSearchResults);
+  // excludeKnownProLeagueContamination closes the same real cross-league
+  // leak (NFL rows appearing under ncaaf) here too — same real fix as
+  // buildTeamDirectoryFromCatalog below, so a leaked NFL row can never be
+  // searched/followed here even though the directory itself already hides it.
+  const searchResults = excludeKnownProLeagueContamination(sport, filterToVerifiedFranchises(sport, rawSearchResults));
 
   // Real rosters for followed teams — the honest substitute where a real
   // Injuries panel (below) has nothing for this team yet. API-Sports first;
@@ -489,7 +493,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
   const directoryGroups: DirectoryGroup[] = verifiedDirectory
     ? verifiedDirectory.groups
     : teamCatalog.length
-      ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted)
+      ? buildTeamDirectoryFromCatalog(sportMeta.label, teamCatalog, standingsGroups, standings.length > 0 && !standingsRestricted, sport)
       : standingsGroups.map((g) => ({
           label: g.label || sportMeta.label,
           divisions: g.divisions.map((d) => ({
