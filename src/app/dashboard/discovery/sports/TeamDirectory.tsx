@@ -13,18 +13,13 @@ import { useEffect, useRef, useState } from "react";
 import type { DirectoryTeam, DirectoryGroup } from "@/lib/discovery/sports/team-directory";
 import { formatGroupLabel, groupCollectiveNoun } from "@/lib/discovery/sports/group-labels";
 import { TeamRosterPanel } from "./TeamRosterPanel";
+import { teamMonogram } from "./team-monogram";
 
-/** Up to two real letters from the team's own name — a monogram, never a
- *  drawn/generated logo — for the one honest visual we can show when the
- *  provider hasn't resolved a real logoUrl for this team yet. Prefers the
- *  first letter of the last two words (e.g. "Boston Celtics" → "BC") so a
- *  single-word name ("Alumni") still gets one clean letter rather than an
- *  odd two-letter slice of the same word. */
-export function teamMonogram(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return (words[words.length - 2][0] + words[words.length - 1][0]).toUpperCase();
-  return (words[0]?.[0] ?? "?").toUpperCase();
-}
+// teamMonogram moved to its own plain (non-"use client") module — see that
+// file's own comment. Re-exported here so no other importer's path needs to
+// change; only [sport]/page.tsx (a Server Component) needed to switch to
+// importing directly from team-monogram.ts instead of from this file.
+export { teamMonogram };
 
 /** A team logo that falls back to the branded monogram not just when the
  *  provider never returned a logoUrl (the existing case), but also when a
