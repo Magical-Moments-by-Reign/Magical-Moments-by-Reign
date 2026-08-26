@@ -2,6 +2,42 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { seasonParam, previousSeasonParam, detectPlanRestriction, ApiSportsProvider, mapGameItem, mapRosterPlayer, rankTeamMatches, fetchTeamsForLeague, flattenStatEntry, mapTeamGameStats, mapTeamPlayerGameStats, resolveNcaaBaseballLeagueId, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape } from "./sports";
 
+// ── isConfigured: tennis and olympics — same permanently-gated-off shape as
+// MMA/F1 (fights/races), for different real reasons (see SPORT_CONFIG's own
+// doc comment): tennis has no confirmed API-Sports host/product anywhere in
+// this codebase's history, and Olympics isn't a continuous league at all —
+// so both stay honestly gated off even with a real key configured, same as
+// MMA/F1, rather than attempting a fetch against an unverified/nonexistent
+// endpoint.
+
+test("ApiSportsProvider.isConfigured: tennis and olympics report false even with a key configured — same permanent gate as mma/f1, for their own real reasons", () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  process.env.API_SPORTS_KEY = "test-key";
+  try {
+    assert.equal(ApiSportsProvider.isConfigured("tennis"), false);
+    assert.equal(ApiSportsProvider.isConfigured("olympics"), false);
+    assert.equal(ApiSportsProvider.isConfigured("mma"), false);
+    assert.equal(ApiSportsProvider.isConfigured("f1"), false);
+    // A real, mapped sport still reports true — confirms the gate is
+    // specific to these four slugs, not a regression breaking every sport.
+    assert.equal(ApiSportsProvider.isConfigured("nba"), true);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+    else delete process.env.API_SPORTS_KEY;
+  }
+});
+
+test("ApiSportsProvider.isConfigured: tennis and olympics report false with no key either — never fetches, same as every other sport", () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    assert.equal(ApiSportsProvider.isConfigured("tennis"), false);
+    assert.equal(ApiSportsProvider.isConfigured("olympics"), false);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
 test("seasonParam: nba/ncaab/nhl use split-year seasons, keyed off an August season start", () => {
   // nba, ncaab, and nhl each have a real season that genuinely spans a
   // calendar-year boundary — see seasonParam's doc comment.

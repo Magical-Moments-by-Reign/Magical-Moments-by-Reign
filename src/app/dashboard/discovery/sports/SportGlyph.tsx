@@ -9,7 +9,7 @@
 
 export type SportGlyphKey =
   | "football" | "basketball" | "baseball" | "hockey" | "racing"
-  | "soccer" | "rugby" | "volleyball" | "mma" | "golf";
+  | "soccer" | "rugby" | "volleyball" | "mma" | "golf" | "tennis" | "olympics";
 
 const GOLD = "#e0b651";
 const GOLD_SOFT = "rgba(224,182,81,.55)";
@@ -132,6 +132,30 @@ function Golf() {
   );
 }
 
+function Tennis() {
+  return (
+    <Medallion>
+      <circle cx="24" cy="24" r="10" fill="none" stroke={GOLD} strokeWidth="2" transform="rotate(-30 24 24)" />
+      <path d="M15 17c3 3 12 3 15-2M17 33c-3-4-3-14 2-18" fill="none" stroke={GOLD} strokeWidth="1.2" transform="rotate(-30 24 24)" />
+      <line x1="31" y1="31" x2="41" y2="41" stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" />
+    </Medallion>
+  );
+}
+
+function Olympics() {
+  return (
+    <Medallion>
+      <g fill="none" stroke={GOLD} strokeWidth="1.8">
+        <circle cx="20" cy="24" r="5.6" />
+        <circle cx="30" cy="24" r="5.6" />
+        <circle cx="40" cy="24" r="5.6" />
+        <circle cx="25" cy="31" r="5.6" />
+        <circle cx="35" cy="31" r="5.6" />
+      </g>
+    </Medallion>
+  );
+}
+
 const GLYPHS: Record<SportGlyphKey, () => React.ReactElement> = {
   football: Football,
   basketball: Basketball,
@@ -143,6 +167,8 @@ const GLYPHS: Record<SportGlyphKey, () => React.ReactElement> = {
   volleyball: Volleyball,
   mma: Mma,
   golf: Golf,
+  tennis: Tennis,
+  olympics: Olympics,
 };
 
 export default function SportGlyph({ sport }: { sport: SportGlyphKey }) {
