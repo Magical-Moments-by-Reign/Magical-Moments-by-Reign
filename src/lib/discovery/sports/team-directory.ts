@@ -84,6 +84,53 @@ const VERIFIED_REFERENCE: Partial<Record<SportSlug, { conference: string; divisi
   nfl: NFL_DIVISIONS,
 };
 
+// Real, current SWAC (Southwestern Athletic Conference) membership — all 12
+// institutions are HBCUs, in the real East/West divisional alignment SWAC
+// itself put in place for the 2021-22 realignment (after adding Florida
+// A&M and Bethune-Cookman) and still uses today. Owner-confirmed real fact
+// (CLAUDE.md §12), cross-checked against SWAC's own conference reporting
+// and independent team-season records before being added here — never
+// guessed. Same conference, same 12 members, across both football (ncaaf)
+// and basketball (ncaab), which is why this one list covers both sports
+// below rather than being duplicated per sport.
+const SWAC_DIVISIONS: { conference: string; division: string; teams: string[] }[] = [
+  { conference: "SWAC", division: "East", teams: ["Alabama A&M", "Alabama State", "Bethune-Cookman", "Florida A&M", "Jackson State", "Mississippi Valley State"] },
+  { conference: "SWAC", division: "West", teams: ["Alcorn State", "Arkansas-Pine Bluff", "Grambling State", "Prairie View A&M", "Southern", "Texas Southern"] },
+];
+
+/** A real, verified conference-membership OVERLAY — deliberately NOT the
+ *  same thing as VERIFIED_REFERENCE above. VERIFIED_REFERENCE is an
+ *  EXHAUSTIVE membership boundary (every real team in the sport, nothing
+ *  else) — right for NBA/NFL, where the full league is small and fully
+ *  known, but wrong for ncaaf/ncaab: FBS alone has 130+ teams across ~10
+ *  conferences, and no exhaustive verified list exists for either sport
+ *  yet (this is the still-open, harder classification question). Adding
+ *  ncaaf/ncaab to VERIFIED_REFERENCE with only these 12 SWAC teams would
+ *  make getTeamDirectory treat that as the WHOLE sport and silently drop
+ *  every other real team — the opposite of what's wanted here.
+ *
+ *  This overlay instead only SUPPLIES a real conference/division label for
+ *  the specific teams it covers, layered on top of buildTeamDirectoryFromCatalog's
+ *  existing real-standings-first grouping (see its own use of this map) —
+ *  it never removes a team, never limits which teams appear, and never
+ *  overrides a grouping standings data already provided; it only upgrades
+ *  a SWAC team that would otherwise land in the generic "no group" fallback
+ *  bucket into its own real conference/division. */
+const CONFERENCE_OVERLAY: Partial<Record<SportSlug, { conference: string; division: string; teams: string[] }[]>> = {
+  ncaaf: SWAC_DIVISIONS,
+  ncaab: SWAC_DIVISIONS,
+};
+
+function conferenceOverlayFor(sport: SportSlug): Map<string, { group: string; division: string }> | null {
+  const spec = CONFERENCE_OVERLAY[sport];
+  if (!spec) return null;
+  const map = new Map<string, { group: string; division: string }>();
+  for (const { conference, division, teams } of spec) {
+    for (const name of teams) map.set(normalize(name), { group: conference, division });
+  }
+  return map;
+}
+
 function normalize(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -461,6 +508,7 @@ export function buildTeamDirectoryFromCatalog(
   // this parameter still compile; every real caller in this codebase now
   // passes it.
   const cleaned = sport ? excludeKnownProLeagueContamination(sport, catalog) : catalog;
+  const overlay = sport ? conferenceOverlayFor(sport) : null;
   const locationByTeamId = new Map<string, { group: string; division: string; record?: string }>();
   for (const g of standingsGroups) {
     for (const d of g.divisions) {
@@ -472,7 +520,15 @@ export function buildTeamDirectoryFromCatalog(
   const fallbackGroupLabel = standingsAvailable ? sportLabel : `${sportLabel} (Standings unavailable)`;
   const groups = new Map<string, Map<string, DirectoryTeam[]>>();
   for (const t of cleaned) {
-    const loc = locationByTeamId.get(t.id) ?? { group: fallbackGroupLabel, division: "", record: undefined };
+    // Real standings grouping wins when present (it's live and already
+    // correct); the verified conference overlay only steps in for a team
+    // standings didn't already place, upgrading it out of the generic
+    // fallback bucket into its own real conference — see conferenceOverlayFor's
+    // own doc comment for why this is deliberately never exhaustive/
+    // team-removing the way VERIFIED_REFERENCE is.
+    const overlayLoc = overlay?.get(normalize(t.name));
+    const loc = locationByTeamId.get(t.id)
+      ?? (overlayLoc ? { group: overlayLoc.group, division: overlayLoc.division, record: undefined } : { group: fallbackGroupLabel, division: "", record: undefined });
     const divisions = groups.get(loc.group) ?? new Map<string, DirectoryTeam[]>();
     const teams = divisions.get(loc.division) ?? [];
     teams.push({ id: t.id, name: t.name, logoUrl: t.logoUrl, league: loc.group, division: loc.division, record: loc.record });

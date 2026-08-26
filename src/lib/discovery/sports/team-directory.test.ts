@@ -140,6 +140,58 @@ test("buildTeamDirectoryFromCatalog: omitting sport keeps prior behavior unchang
   assert.deepEqual(names.sort(), ["Green Bay Packers", "Ohio State"]);
 });
 
+// ── SWAC conference overlay: real, Owner-confirmed HBCU conference
+// membership (all 12 real SWAC schools, East/West) enriches ncaaf/ncaab's
+// directory grouping without ever hiding a team or overriding real live
+// standings data — see conferenceOverlayFor's own doc comment for why this
+// is deliberately NOT the same mechanism as VERIFIED_REFERENCE (NBA/NFL).
+
+test("buildTeamDirectoryFromCatalog: a SWAC school with no standings grouping gets its real SWAC conference/division instead of the generic fallback bucket", () => {
+  const catalog: SportsTeam[] = [
+    { id: "as", name: "Alabama State" },
+    { id: "aam", name: "Alabama A&M" },
+    { id: "gram", name: "Grambling State" },
+    { id: "osu", name: "Ohio State" }, // real FBS team, not SWAC — must land in the generic bucket, unaffected
+  ];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  const byGroup = new Map(groups.map((g) => [g.label, g]));
+  const swac = byGroup.get("SWAC")!;
+  assert.ok(swac);
+  const east = swac.divisions.find((d) => d.label === "East")!;
+  const west = swac.divisions.find((d) => d.label === "West")!;
+  assert.deepEqual(east.teams.map((t) => t.name).sort(), ["Alabama A&M", "Alabama State"]);
+  assert.deepEqual(west.teams.map((t) => t.name), ["Grambling State"]);
+  // Ohio State (a real, non-SWAC FBS team) still appears, in the generic bucket — never dropped.
+  const generic = byGroup.get("College Football")!;
+  assert.deepEqual(generic.divisions.flatMap((d) => d.teams.map((t) => t.name)), ["Ohio State"]);
+});
+
+test("buildTeamDirectoryFromCatalog: real live standings grouping for a SWAC school always wins over the overlay — never overrides live data", () => {
+  const catalog: SportsTeam[] = [{ id: "as", name: "Alabama State" }];
+  const standingsGroups: StandingsGroup[] = [
+    {
+      label: "Some Real Live Group",
+      divisions: [{ label: "Some Real Live Division", rows: [{ team: { id: "as", name: "Alabama State" }, wins: 5, losses: 2 }] }],
+    },
+  ];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, standingsGroups, true, "ncaaf");
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].label, "Some Real Live Group");
+});
+
+test("buildTeamDirectoryFromCatalog: the SWAC overlay only applies to ncaaf/ncaab — a no-op for every other sport", () => {
+  const catalog: SportsTeam[] = [{ id: "as", name: "Alabama State" }];
+  const groups = buildTeamDirectoryFromCatalog("Some Sport", catalog, [], true, "ncaabaseball");
+  assert.equal(groups[0].label, "Some Sport"); // falls to the generic fallback bucket, not SWAC
+});
+
+test("buildTeamDirectoryFromCatalog: ncaab gets the SAME real SWAC overlay as ncaaf — one conference, both sports", () => {
+  const catalog: SportsTeam[] = [{ id: "ts", name: "Texas Southern" }];
+  const groups = buildTeamDirectoryFromCatalog("College Basketball", catalog, [], true, "ncaab");
+  assert.equal(groups[0].label, "SWAC");
+  assert.equal(groups[0].divisions[0].label, "West");
+});
+
 test("hasVerifiedReference: true only for sports with a real, hardcoded conference/division reference", () => {
   assert.equal(hasVerifiedReference("nba"), true);
   assert.equal(hasVerifiedReference("nfl"), true);
