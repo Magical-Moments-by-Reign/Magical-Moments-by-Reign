@@ -1013,15 +1013,32 @@ export async function fetchSeasonGames(sport: SportSlug, season: string, league?
  *  provider doesn't expose a stage/round distinction for this sport, or
  *  simply has no preseason games in its response. Never a computed/assumed
  *  date. */
+/** The shared "is this game's real provider-reported stage a postseason
+ *  game at all" signal — used by classifySeasonPhase and
+ *  fetchFirstPostseasonGame below, and by the CFP/NCAA Tournament bracket
+ *  resolvers in service.ts (which need the identical broad filter before
+ *  their own round-specific classify*PostseasonStage in bracket.ts narrows
+ *  further). Originally just `/post.?season|play.?offs?|championship|bowl/i`
+ *  (still covers every big-4 sport's real stage wording, and CFP's bowl-
+ *  named quarterfinal/semifinal games via "bowl", plus its championship game
+ *  via "championship"); extended for the CFP's real on-campus "First Round"
+ *  (no bowl name) and the NCAA Tournament's real round vocabulary, none of
+ *  which any big-4 sport's real REGULAR-season stage label ever uses (that's
+ *  always "Regular Season" — see fetchFirstRegularSeasonGame's own regex —
+ *  so this extension only ever adds correct postseason detections, never a
+ *  false positive against a real regular-season game). Exported so it's
+ *  defined in exactly one place, never duplicated. */
+export const POSTSEASON_STAGE_PATTERN = /post.?season|play.?offs?|championship|bowl|tournament|first.?four|first.?round|second.?round|sweet.?16|elite.?eight|final.?four|quarter.?final|semi.?final/i;
+
 /** Classifies a game's real season phase from the provider's own stage
- *  label — same three regexes fetchFirstPreseasonGame/fetchFirstRegularSeasonGame/
+ *  label — same regexes fetchFirstPreseasonGame/fetchFirstRegularSeasonGame/
  *  fetchFirstPostseasonGame already use to find each phase's opener, reused
  *  here so every synced game is tagged with its real phase (never guessed).
  *  A missing/unrecognized stage (most sports don't expose one) defaults to
  *  "regular" — the correct assumption for a provider with no phase concept. */
 export function classifySeasonPhase(stage?: string | null): "preseason" | "regular" | "postseason" {
   if (stage && /pre.?season/i.test(stage)) return "preseason";
-  if (stage && /post.?season|play.?offs?|championship|bowl/i.test(stage)) return "postseason";
+  if (stage && POSTSEASON_STAGE_PATTERN.test(stage)) return "postseason";
   return "regular";
 }
 
@@ -1058,7 +1075,7 @@ export async function fetchFirstPostseasonGame(sport: SportSlug, season: string,
   const games = await fetchSeasonGames(sport, season, league);
   if (!games) return null;
   const postseason = games
-    .filter((g) => g.stage && /post.?season|play.?offs?|championship|bowl/i.test(g.stage))
+    .filter((g) => g.stage && POSTSEASON_STAGE_PATTERN.test(g.stage))
     .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
   return postseason[0] ?? null;
 }

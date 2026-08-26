@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
 import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -162,6 +162,34 @@ test("getLeagueTeamRosterMap: no configured provider — returns null for a non-
     const higherCount = await getLeagueTeamRosterMap("nba", 31);
     assert.ok(higherCount);
     assert.equal(higherCount!.size, 0);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+// ── getCfpPlayoffBracket / getMarchMadnessPlayoffBracket: no provider key
+// configured — both must return null (honest "field not announced yet")
+// rather than throwing or fabricating a bracket. This is the SAME real
+// degradation path as every other resolver in this file with no live key;
+// the round-mapping/no-fabrication behavior itself is covered directly
+// against buildCfpBracketData/buildMarchMadnessBracketData in bracket.test.ts,
+// since the real network calls here can't be exercised without one.
+
+test("getCfpPlayoffBracket: no configured provider — returns null, never throws, never fabricates a field", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    assert.equal(await getCfpPlayoffBracket(), null);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
+});
+
+test("getMarchMadnessPlayoffBracket: no configured provider — returns null, never throws, never fabricates a field", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    assert.equal(await getMarchMadnessPlayoffBracket(), null);
   } finally {
     if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
   }

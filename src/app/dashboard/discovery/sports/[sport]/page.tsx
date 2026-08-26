@@ -54,8 +54,18 @@ const PRESEASON_PHASE_SPORTS: Partial<Record<SportSlug, true>> = { nba: true };
 // [sport]/bracket/page.tsx's own BRACKET_READY_SPORTS, which this mirrors).
 // Used both to gate the spx-bracket-cta entry-point card below and to
 // exclude these sports from the older list-based "Playoff Picture" panel
-// (playoffPictureGroups) they've been superseded by.
-const BRACKET_READY_SPORTS = new Set<SportSlug>(["nfl", "nba", "wnba", "mlb", "nhl"]);
+// (playoffPictureGroups) they've been superseded by. ncaaf/ncaab
+// (CFP/NCAA Tournament) are real members of this set too, but — unlike the
+// other 5 — never get a "projected" phase at all (see getCfpPlayoffBracket/
+// getMarchMadnessPlayoffBracket's own doc comments: a human committee
+// selection, not standings math), which is why the CTA copy just below
+// branches separately for them rather than reusing standingsPhase.
+const BRACKET_READY_SPORTS = new Set<SportSlug>(["nfl", "nba", "wnba", "mlb", "nhl", "ncaaf", "ncaab"]);
+
+// ncaaf/ncaab never have a projected bracket phase — see BRACKET_READY_SPORTS'
+// own comment above. Kept as its own small set (rather than an inline
+// per-sport check) so the CTA render below reads as one condition.
+const COMMITTEE_SELECTED_BRACKET_SPORTS = new Set<SportSlug>(["ncaaf", "ncaab"]);
 
 // TEMPORARY — the 5 sports whose default league id has never been
 // confirmed against a live key (see docs/DISCOVERY_SPORTS.md's own caveat,
@@ -648,9 +658,11 @@ export default async function SportPage({ params, searchParams }: { params: Prom
         <Link href={`/dashboard/discovery/sports/${sport}/bracket`} className="spx-bracket-cta">
           <span className="spx-bracket-cta__icon" aria-hidden="true">🏆</span>
           <span className="spx-bracket-cta__copy">
-            <b>{standingsPhase === "postseason" ? "Playoff Bracket" : "Projected Playoff Bracket"}</b>
+            <b>{COMMITTEE_SELECTED_BRACKET_SPORTS.has(sport) ? "Playoff Bracket" : standingsPhase === "postseason" ? "Playoff Bracket" : "Projected Playoff Bracket"}</b>
             <span>
-              {standingsPhase === "postseason"
+              {COMMITTEE_SELECTED_BRACKET_SPORTS.has(sport)
+                ? `See the official ${sportMeta.label === "College Football" ? "College Football Playoff" : "NCAA Tournament"} bracket once the real field is announced — never a projected one.`
+                : standingsPhase === "postseason"
                 ? `Follow the real ${sportMeta.label} playoff bracket as results come in.`
                 : BRACKET_CTA_PROJECTED_COPY[sport] ?? "See the full projected field if the playoffs started today."}
             </span>
