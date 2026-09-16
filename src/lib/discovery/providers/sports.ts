@@ -870,6 +870,77 @@ export async function fetchRawTeamsResponseDiagnostic(sport: SportSlug, league: 
   };
 }
 
+export interface RawGameStatusDiagnostic {
+  externalId: string;
+  matchup: string;
+  /** What our own statusOf() maps this row to — the exact value the real
+   *  Live Now / Upcoming Games panels would use for this game. */
+  mappedStatus: "scheduled" | "live" | "final";
+  /** The provider's own real short/long status codes, straight off the raw
+   *  row, before statusOf() ever touches them — the direct evidence for
+   *  whether a mis-mapping (not a missing game) is the real cause of a
+   *  "should be live but isn't showing as live" report. */
+  rawShortStatus: string | null;
+  rawLongStatus: string | null;
+  startsAt: string;
+}
+
+/** TEMPORARY Owner-only diagnostic: real, live evidence for the "Live Now"
+ *  panel's "todayISO" query for one sport — built specifically to answer
+ *  "why isn't a real, currently-live game showing here" without guessing.
+ *  Real evidence only, safe to show the Owner: the exact date/season/league
+ *  this app is actually querying with, the real Unix-derived server clock
+ *  moment that query was built from (for spotting a UTC/local date-boundary
+ *  mismatch), and — critically — every game row's REAL raw provider status
+ *  code side by side with what our own statusOf() mapped it to, so a
+ *  status-mapping gap is directly visible rather than inferred. Never a
+ *  second/duplicated fetch path: calls the exact same apiSportsFetch +
+ *  mapGameItem/mapFixtureItem this sport's real Live Now panel uses.
+ *  TEMPORARY: remove once the real cause of a "should be live" report is
+ *  found and fixed. */
+export async function fetchTodayGamesRawDiagnostic(sport: SportSlug, league: string): Promise<{
+  sport: SportSlug;
+  configured: boolean;
+  serverNowISO: string;
+  queriedDateISO: string;
+  season: string;
+  league: string;
+  planRestricted: string | null;
+  hasResponseField: boolean;
+  rawResponseLength: number;
+  games: RawGameStatusDiagnostic[];
+}> {
+  const configured = ApiSportsProvider.isConfigured(sport);
+  const serverNowISO = new Date().toISOString();
+  const queriedDateISO = serverNowISO.slice(0, 10);
+  const season = seasonParam(sport, queriedDateISO);
+  const empty = { sport, configured, serverNowISO, queriedDateISO, season, league, planRestricted: null, hasResponseField: false, rawResponseLength: 0, games: [] };
+  if (!configured) return empty;
+
+  const cfg = SPORT_CONFIG[sport];
+  const path = cfg.shape === "fixtures" ? "/fixtures" : "/games";
+  const json = await apiSportsFetch(sport, path, { date: queriedDateISO, league, season });
+  if (json == null) return empty;
+
+  const planRestricted = detectPlanRestriction(json);
+  const hasResponseField = Object.prototype.hasOwnProperty.call(json as object, "response");
+  const list: any[] = Array.isArray((json as any)?.response) ? (json as any).response : [];
+  const games: RawGameStatusDiagnostic[] = list.map((item) => {
+    const mapped = cfg.shape === "fixtures" ? mapFixtureItem(league, item) : mapGameItem(sport, league, item);
+    const rawStatus = cfg.shape === "fixtures" ? item?.fixture?.status : (item?.game?.status ?? item?.status);
+    return {
+      externalId: String(item?.fixture?.id ?? item?.game?.id ?? item?.id ?? "?"),
+      matchup: mapped ? `${mapped.awayTeam.name} @ ${mapped.homeTeam.name}` : "(row failed to map — see id above)",
+      mappedStatus: mapped?.status ?? "scheduled",
+      rawShortStatus: typeof rawStatus?.short === "string" ? rawStatus.short : null,
+      rawLongStatus: typeof rawStatus?.long === "string" ? rawStatus.long : null,
+      startsAt: mapped?.startsAt ?? "",
+    };
+  });
+
+  return { sport, configured, serverNowISO, queriedDateISO, season, league, planRestricted, hasResponseField, rawResponseLength: list.length, games };
+}
+
 /** Internal, server-only: the real, unmapped `/teams` response rows for one
  *  sport/league/season — before mapTeamsResponse's id/name filter and
  *  before fetchTeamsForLeague's pagination merge. Exists only so the

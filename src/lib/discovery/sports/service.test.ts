@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic, getTodayGamesRawDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
 import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -79,6 +79,28 @@ test("getLeagueLiveDiagnostic: no league id at all (ncaabaseball's real unresolv
   assert.equal(result.teamCount, 0);
   assert.equal(result.gameCount, 0);
   assert.equal(result.postseasonGameCount, 0);
+});
+
+// ── getTodayGamesRawDiagnostic: the "why isn't a real live game showing"
+// diagnostic — no configured provider degrades every field honestly, same
+// discipline as every other diagnostic above, never throws.
+
+test("getTodayGamesRawDiagnostic: no configured provider — every field degrades honestly, never throws", async () => {
+  const originalKey = process.env.API_SPORTS_KEY;
+  delete process.env.API_SPORTS_KEY;
+  try {
+    const result = await getTodayGamesRawDiagnostic("mlb");
+    assert.equal(result.sport, "mlb");
+    assert.equal(result.configured, false);
+    assert.equal(result.league, "1");
+    assert.equal(result.season, new Date().getFullYear().toString());
+    assert.equal(result.planRestricted, null);
+    assert.equal(result.hasResponseField, false);
+    assert.equal(result.rawResponseLength, 0);
+    assert.deepEqual(result.games, []);
+  } finally {
+    if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
+  }
 });
 
 // ── mergeCatalogWithPriorSeason: the real completeness+merge decision,

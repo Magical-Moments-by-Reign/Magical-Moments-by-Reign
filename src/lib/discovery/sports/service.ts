@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, fetchTodayGamesRawDiagnostic, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
@@ -718,6 +718,23 @@ export async function getLeagueLiveDiagnostic(sport: SportSlug, league: string):
     postseasonGameCount,
     firstPostseasonGame,
   };
+}
+
+/** TEMPORARY Owner-only diagnostic: real evidence for a "this sport should
+ *  show as live right now, but the Live Now panel says nothing's live"
+ *  report — built for MLB after the Owner confirmed a real live MLB game
+ *  still wasn't showing even with a reactivated API-Sports subscription
+ *  (ruling out the lapsed-key/stale-cache explanation). Thin wrapper over
+ *  fetchTodayGamesRawDiagnostic (providers/sports.ts) — see its own doc
+ *  comment for exactly what real evidence this surfaces (queried date/
+ *  season/league, and every game's real raw provider status code next to
+ *  what our own mapping produced). Resolves the league the same way every
+ *  other real caller in this file does (resolveDefaultLeagueId — a no-op
+ *  static lookup for every sport except ncaabaseball). TEMPORARY: remove
+ *  once the real cause is found and fixed. */
+export async function getTodayGamesRawDiagnostic(sport: SportSlug) {
+  const league = await resolveDefaultLeagueId(sport);
+  return fetchTodayGamesRawDiagnostic(sport, league);
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
