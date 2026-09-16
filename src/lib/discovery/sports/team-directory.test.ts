@@ -230,6 +230,75 @@ test("buildTeamDirectoryFromCatalog: ncaab gets the SAME real SWAC overlay as nc
   assert.equal(groups[0].divisions[0].label, "West");
 });
 
+// ── MEAC/CIAA/SIAC conference overlays: the same real, verified-membership
+// mechanism as SWAC, extended to the other three major HBCU athletic
+// conferences — see CONFERENCE_OVERLAY's own doc comment for why Hampton,
+// NC A&T, West Virginia State, and Lincoln (MO) are deliberately excluded
+// (real non-HBCU conferences a live standings response should already
+// label correctly).
+
+test("buildTeamDirectoryFromCatalog: a MEAC football school gets the real MEAC label with no division (MEAC currently runs undivided)", () => {
+  const catalog: SportsTeam[] = [{ id: "how", name: "Howard" }];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  assert.equal(groups[0].label, "MEAC");
+  assert.equal(groups[0].divisions[0].label, "");
+});
+
+test("buildTeamDirectoryFromCatalog: Coppin State (MEAC basketball, no football program) gets the MEAC label for ncaab but is absent from the ncaaf overlay", () => {
+  const catalog: SportsTeam[] = [{ id: "cop", name: "Coppin State" }];
+  const basketball = buildTeamDirectoryFromCatalog("College Basketball", catalog, [], true, "ncaab");
+  assert.equal(basketball[0].label, "MEAC");
+  const football = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  assert.equal(football[0].label, "College Football"); // no real MEAC football overlay entry — generic fallback bucket, never guessed
+});
+
+test("buildTeamDirectoryFromCatalog: CIAA football (no divisions) vs. CIAA basketball (real North/South divisions) resolve differently for the same school", () => {
+  const catalog: SportsTeam[] = [{ id: "vu", name: "Virginia Union" }];
+  const football = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  assert.equal(football[0].label, "CIAA");
+  assert.equal(football[0].divisions[0].label, "");
+  const basketball = buildTeamDirectoryFromCatalog("College Basketball", catalog, [], true, "ncaab");
+  assert.equal(basketball[0].label, "CIAA");
+  assert.equal(basketball[0].divisions[0].label, "North");
+});
+
+test("buildTeamDirectoryFromCatalog: Claflin (CIAA basketball only, no football) is absent from the CIAA football overlay", () => {
+  const catalog: SportsTeam[] = [{ id: "cla", name: "Claflin" }];
+  const basketball = buildTeamDirectoryFromCatalog("College Basketball", catalog, [], true, "ncaab");
+  assert.equal(basketball[0].label, "CIAA");
+  assert.equal(basketball[0].divisions[0].label, "South");
+  const football = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  assert.equal(football[0].label, "College Football");
+});
+
+test("buildTeamDirectoryFromCatalog: SIAC football (no divisions) vs. SIAC basketball (real East/West divisions) resolve differently for the same school", () => {
+  const catalog: SportsTeam[] = [{ id: "tus", name: "Tuskegee" }];
+  const football = buildTeamDirectoryFromCatalog("College Football", catalog, [], true, "ncaaf");
+  assert.equal(football[0].label, "SIAC");
+  assert.equal(football[0].divisions[0].label, "");
+  const basketball = buildTeamDirectoryFromCatalog("College Basketball", catalog, [], true, "ncaab");
+  assert.equal(basketball[0].label, "SIAC");
+  assert.equal(basketball[0].divisions[0].label, "West");
+});
+
+test("buildTeamDirectoryFromCatalog: Spring Hill (SIAC's non-HBCU basketball member) still gets the real SIAC label — this overlay reflects real conference membership, not an HBCU-only claim", () => {
+  const catalog: SportsTeam[] = [{ id: "sh", name: "Spring Hill" }];
+  const groups = buildTeamDirectoryFromCatalog("College Basketball", catalog, [], true, "ncaab");
+  assert.equal(groups[0].label, "SIAC");
+  assert.equal(groups[0].divisions[0].label, "West");
+});
+
+test("buildTeamDirectoryFromCatalog: the overlay's real MEAC label wins over a live standings grouping too, not just SWAC's — same priority-flip behavior for every covered conference", () => {
+  const catalog: SportsTeam[] = [{ id: "how", name: "Howard" }];
+  const standingsGroups: StandingsGroup[] = [
+    { label: "Some Real Live Group", divisions: [{ label: "Some Real Live Division", rows: [standingsRow("how", 3, 4)] }] },
+  ];
+  const groups = buildTeamDirectoryFromCatalog("College Football", catalog, standingsGroups, true, "ncaaf");
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].label, "MEAC");
+  assert.equal(groups[0].divisions[0].teams[0].record, "3-4");
+});
+
 test("hasVerifiedReference: true only for sports with a real, hardcoded conference/division reference", () => {
   assert.equal(hasVerifiedReference("nba"), true);
   assert.equal(hasVerifiedReference("nfl"), true);

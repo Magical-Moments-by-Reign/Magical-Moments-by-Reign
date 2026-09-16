@@ -79,7 +79,12 @@ const NFL_DIVISIONS: { conference: string; division: string; teams: string[] }[]
   { conference: "NFC", division: "NFC West", teams: ["Arizona Cardinals", "Los Angeles Rams", "San Francisco 49ers", "Seattle Seahawks"] },
 ];
 
-const VERIFIED_REFERENCE: Partial<Record<SportSlug, { conference: string; division: string; teams: string[] }[]>> = {
+// A single real conference/division-membership entry — shared shape for
+// every VERIFIED_REFERENCE and CONFERENCE_OVERLAY spec below, so this
+// isn't repeated as an inline object-literal type at every use site.
+type ConferenceSpec = { conference: string; division: string; teams: string[] };
+
+const VERIFIED_REFERENCE: Partial<Record<SportSlug, ConferenceSpec[]>> = {
   nba: NBA_DIVISIONS,
   nfl: NFL_DIVISIONS,
 };
@@ -93,9 +98,63 @@ const VERIFIED_REFERENCE: Partial<Record<SportSlug, { conference: string; divisi
 // guessed. Same conference, same 12 members, across both football (ncaaf)
 // and basketball (ncaab), which is why this one list covers both sports
 // below rather than being duplicated per sport.
-const SWAC_DIVISIONS: { conference: string; division: string; teams: string[] }[] = [
+const SWAC_DIVISIONS: ConferenceSpec[] = [
   { conference: "SWAC", division: "East", teams: ["Alabama A&M", "Alabama State", "Bethune-Cookman", "Florida A&M", "Jackson State", "Mississippi Valley State"] },
   { conference: "SWAC", division: "West", teams: ["Alcorn State", "Arkansas-Pine Bluff", "Grambling State", "Prairie View A&M", "Southern", "Texas Southern"] },
+];
+
+// Real, current MEAC (Mid-Eastern Athletic Conference) membership —
+// verified for the 2025-26 season by cross-checking conference reporting,
+// school athletics sites, and independent HBCU sports coverage. MEAC has
+// run undivided (no North/South split) since its 2021 membership drop to
+// 8 schools, for both football and basketball — division left "" here to
+// match the same no-division pattern the fallback grouping already uses,
+// rather than inventing a division that doesn't currently exist. Two
+// membership lists, not one, because MEAC's football and basketball
+// rosters genuinely differ: Coppin State and Maryland-Eastern Shore
+// sponsor basketball but not football (Maryland-Eastern Shore dropped
+// tackle football after the 1979 season and hasn't revived it).
+const MEAC_FOOTBALL: ConferenceSpec[] = [
+  { conference: "MEAC", division: "", teams: ["Delaware State", "Howard", "Morgan State", "Norfolk State", "North Carolina Central", "South Carolina State"] },
+];
+const MEAC_BASKETBALL: ConferenceSpec[] = [
+  { conference: "MEAC", division: "", teams: ["Coppin State", "Delaware State", "Howard", "Maryland-Eastern Shore", "Morgan State", "Norfolk State", "North Carolina Central", "South Carolina State"] },
+];
+
+// Real, current CIAA (Central Intercollegiate Athletic Association, D-II)
+// membership — verified for 2025-26. St. Augustine's University was
+// suspended from the conference for this season (excluded here — not a
+// current real member) and Claflin does not sponsor football, so the
+// football list (11 schools) is a real subset of the 12 full members.
+// CIAA football eliminated its North/South divisional split starting in
+// 2025 (teams are now ranked 1-11 overall) — division left "" to match
+// that real current structure — but basketball KEPT its North/South
+// divisions, so football and basketball genuinely need separate specs
+// here, the same real structural split MEAC does not have.
+const CIAA_FOOTBALL: ConferenceSpec[] = [
+  { conference: "CIAA", division: "", teams: ["Bowie State", "Bluefield State", "Elizabeth City State", "Fayetteville State", "Johnson C. Smith", "Lincoln (PA)", "Livingstone", "Shaw", "Virginia State", "Virginia Union", "Winston-Salem State"] },
+];
+const CIAA_BASKETBALL: ConferenceSpec[] = [
+  { conference: "CIAA", division: "North", teams: ["Bowie State", "Bluefield State", "Elizabeth City State", "Lincoln (PA)", "Virginia State", "Virginia Union"] },
+  { conference: "CIAA", division: "South", teams: ["Claflin", "Fayetteville State", "Johnson C. Smith", "Livingstone", "Shaw", "Winston-Salem State"] },
+];
+
+// Real, current SIAC (Southern Intercollegiate Athletic Conference, D-II)
+// membership — verified for 2025-26. LeMoyne-Owen does not sponsor
+// football; Spring Hill is the SIAC's one non-HBCU member (a Jesuit
+// college) but is included here since this overlay reflects real
+// conference membership, not an HBCU-only claim — so the basketball list
+// (15) is one school larger than the football list (13). SIAC football
+// runs as a single unified table (no East/West split) for the 2025
+// season, but basketball KEPT real East/West divisions — the same
+// football-undivided/basketball-divided pattern CIAA has, so these need
+// separate specs too.
+const SIAC_FOOTBALL: ConferenceSpec[] = [
+  { conference: "SIAC", division: "", teams: ["Albany State", "Allen", "Benedict", "Central State", "Clark Atlanta", "Edward Waters", "Fort Valley State", "Kentucky State", "Lane", "Miles", "Morehouse", "Savannah State", "Tuskegee"] },
+];
+const SIAC_BASKETBALL: ConferenceSpec[] = [
+  { conference: "SIAC", division: "East", teams: ["Morehouse", "Savannah State", "Clark Atlanta", "Edward Waters", "Albany State", "Fort Valley State", "Benedict", "Allen"] },
+  { conference: "SIAC", division: "West", teams: ["Tuskegee", "Miles", "LeMoyne-Owen", "Lane", "Kentucky State", "Central State", "Spring Hill"] },
 ];
 
 /** A real, verified conference-membership OVERLAY — deliberately NOT the
@@ -105,20 +164,31 @@ const SWAC_DIVISIONS: { conference: string; division: string; teams: string[] }[
  *  known, but wrong for ncaaf/ncaab: FBS alone has 130+ teams across ~10
  *  conferences, and no exhaustive verified list exists for either sport
  *  yet (this is the still-open, harder classification question). Adding
- *  ncaaf/ncaab to VERIFIED_REFERENCE with only these 12 SWAC teams would
- *  make getTeamDirectory treat that as the WHOLE sport and silently drop
- *  every other real team — the opposite of what's wanted here.
+ *  ncaaf/ncaab to VERIFIED_REFERENCE with only these HBCU conference
+ *  teams would make getTeamDirectory treat that as the WHOLE sport and
+ *  silently drop every other real team — the opposite of what's wanted
+ *  here.
  *
  *  This overlay instead only SUPPLIES a real conference/division label for
  *  the specific teams it covers, layered on top of buildTeamDirectoryFromCatalog's
  *  existing real-standings-first grouping (see its own use of this map) —
  *  it never removes a team, never limits which teams appear, and never
  *  overrides a grouping standings data already provided; it only upgrades
- *  a SWAC team that would otherwise land in the generic "no group" fallback
- *  bucket into its own real conference/division. */
-const CONFERENCE_OVERLAY: Partial<Record<SportSlug, { conference: string; division: string; teams: string[] }[]>> = {
-  ncaaf: SWAC_DIVISIONS,
-  ncaab: SWAC_DIVISIONS,
+ *  a covered team that would otherwise land in the generic "no group"
+ *  fallback bucket into its own real conference/division. Covers all four
+ *  major HBCU athletic conferences: SWAC, MEAC, CIAA, SIAC. A handful of
+ *  HBCUs (Hampton, North Carolina A&T, West Virginia State, Lincoln
+ *  University-Missouri) play in real non-HBCU-branded conferences (CAA,
+ *  Mountain East, GLVC) instead — deliberately left out of this overlay,
+ *  since those are ordinary conferences a live standings response should
+ *  already label correctly, unlike these four. As with
+ *  VERIFIED_TEAM_ALIASES, a team name here that doesn't exactly
+ *  normalize-match the live catalog simply never gets upgraded — never a
+ *  broken or incorrect label, since a miss just falls through to the
+ *  existing standings/fallback behavior. */
+const CONFERENCE_OVERLAY: Partial<Record<SportSlug, ConferenceSpec[]>> = {
+  ncaaf: [...SWAC_DIVISIONS, ...MEAC_FOOTBALL, ...CIAA_FOOTBALL, ...SIAC_FOOTBALL],
+  ncaab: [...SWAC_DIVISIONS, ...MEAC_BASKETBALL, ...CIAA_BASKETBALL, ...SIAC_BASKETBALL],
 };
 
 function conferenceOverlayFor(sport: SportSlug): Map<string, { group: string; division: string }> | null {
