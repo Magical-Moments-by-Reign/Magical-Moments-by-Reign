@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import { requireAccount, isOwnerAccount } from "@/lib/guard";
-import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, resolveWithFailureIsolation, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
+import { SPORT_CATALOG, getMyTeams, getLeagueLogos, getSportsLandingGames, getGamesWithVoteContext, getMatchup, resolveWithFailureIsolation, getTodayGamesRawDiagnostic, type MatchupCardContext, type SportCategory } from "@/lib/discovery/sports/service";
 import { getMyFantasyLeagues } from "@/lib/discovery/sports/fantasy-service";
 import { MATCHUP_SPORTS, ApiSportsProvider, type SportSlug } from "@/lib/discovery/providers/sports";
 import { getAwardRace, AWARD_RACES, getCollegeFootballRankings } from "@/lib/discovery/sports/awards";
@@ -152,7 +152,7 @@ async function SportsDynamicContent({ accountId }: { accountId: string }) {
   // page (catalog/hero/nav) — one provider/DB outage on any single source
   // must never take the whole page down with it, so every branch gets its
   // own safe, honest-empty fallback rather than joining one bare Promise.all.
-  const [logos, { live, upcoming }, featuredMatchup, myFantasyLeagues, awardRaces, rankings, trackedPlayers] = await Promise.all([
+  const [logos, { live, upcoming }, featuredMatchup, myFantasyLeagues, awardRaces, rankings, trackedPlayers, todayGamesDiagnostic] = await Promise.all([
     getLeagueLogos().catch((): Partial<Record<SportSlug, string>> => ({})),
     getSportsLandingGames(followedSports.length ? followedSports : (["nfl", "nba", "mlb", "nhl"] as SportSlug[])).catch(() => ({ live: [], upcoming: [] })),
     pickFeaturedMatchup(myTeams, followedSports, accountId).catch(() => null),
@@ -162,6 +162,11 @@ async function SportsDynamicContent({ accountId }: { accountId: string }) {
       : Promise.resolve([]),
     showSdio ? getCollegeFootballRankings().catch(() => []) : Promise.resolve([]),
     showSdio ? getMyTrackedPlayers(accountId).catch(() => []) : Promise.resolve([]),
+    // TEMPORARY Owner-only diagnostic — see getTodayGamesRawDiagnostic's own
+    // doc comment in service.ts. Scoped to MLB only (the sport the Owner
+    // asked to investigate first) — remove once the real "should be live
+    // but isn't showing" cause is found and fixed.
+    isOwner ? getTodayGamesRawDiagnostic("mlb").catch(() => null) : Promise.resolve(null),
   ]);
   const featuredMatchupSportLabel = featuredMatchup ? SPORT_CATALOG.find((s) => s.slug === featuredMatchup.game.sport)?.label : undefined;
   const trackedKeys = trackedPlayers.map((t) => `${t.league}:${t.playerId}`);
@@ -364,6 +369,53 @@ async function SportsDynamicContent({ accountId }: { accountId: string }) {
           <Link href="/dashboard/discovery/sports/my-teams" className="spx-panel__cta">View All My Teams</Link>
         </div>
       </div>
+
+      {/* TEMPORARY DIAGNOSTIC — Owner-only, MLB-only. See
+          getTodayGamesRawDiagnostic's own doc comment in service.ts. Real
+          evidence only: the exact date/season/league this page's own Live
+          Now query used, and every real game row's raw provider status
+          code next to what our own mapping produced — built to answer
+          "why isn't a real live MLB game showing here" without guessing.
+          Remove once the real cause is found and fixed. */}
+      {todayGamesDiagnostic && (
+        <div className="spx-panel" style={{ marginTop: "1.4rem" }}>
+          <div className="spx-panel__head"><h2>Owner Diagnostic — MLB &ldquo;Live Now&rdquo; Query</h2></div>
+          <p className="spx-panel__owner-diagnostic">
+            Provider configured: {String(todayGamesDiagnostic.configured)} · server clock (UTC): {todayGamesDiagnostic.serverNowISO} · queried date: {todayGamesDiagnostic.queriedDateISO} · season: {todayGamesDiagnostic.season} · league id: {todayGamesDiagnostic.league || "—"}
+          </p>
+          {todayGamesDiagnostic.planRestricted && (
+            <p className="spx-panel__owner-diagnostic"><b>Plan restriction reported by the provider:</b> {todayGamesDiagnostic.planRestricted}</p>
+          )}
+          <p className="spx-panel__owner-diagnostic">
+            Real response received: {String(todayGamesDiagnostic.hasResponseField)} · real game rows for this date: {todayGamesDiagnostic.rawResponseLength}
+          </p>
+          {todayGamesDiagnostic.games.length > 0 && (
+            <table className="spx-panel__owner-diagnostic" style={{ width: "100%", borderCollapse: "collapse", marginTop: ".5rem" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: ".3rem" }}>Matchup</th>
+                  <th style={{ textAlign: "left", padding: ".3rem" }}>Our mapped status</th>
+                  <th style={{ textAlign: "left", padding: ".3rem" }}>Provider&rsquo;s real raw status</th>
+                  <th style={{ textAlign: "left", padding: ".3rem" }}>Starts at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todayGamesDiagnostic.games.map((g) => (
+                  <tr key={g.externalId}>
+                    <td style={{ padding: ".3rem" }}>{g.matchup}</td>
+                    <td style={{ padding: ".3rem" }}><b>{g.mappedStatus}</b></td>
+                    <td style={{ padding: ".3rem" }}>{g.rawShortStatus ?? "—"}{g.rawLongStatus ? ` (${g.rawLongStatus})` : ""}</td>
+                    <td style={{ padding: ".3rem" }}>{g.startsAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {todayGamesDiagnostic.rawResponseLength === 0 && (
+            <p className="spx-panel__owner-diagnostic">The provider returned zero real game rows for this exact date/season/league combination — if a real MLB game is live right now, this is real evidence the query itself (date, season, or league id) is the gap, not the status mapping.</p>
+          )}
+        </div>
+      )}
 
       <nav className="spx-bar" aria-label="Sports quick links">
         <Link href="/dashboard/discovery/sports/schedule" className="spx-bar__item"><SportsIcon name="bolt" /><span><b>Live Scores</b><i>Real-time updates every second</i></span></Link>

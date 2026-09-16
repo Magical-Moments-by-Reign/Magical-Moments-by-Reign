@@ -3,6 +3,7 @@ import Link from "next/link";
 import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
 import { SPORT_CATALOG, getSportsLandingGames } from "@/lib/discovery/sports/service";
+import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import "../../discovery.css";
 import "../sports-home.css";
 
@@ -29,11 +30,9 @@ export default async function SportsSchedulePage() {
               <Link key={g.id} href={`/dashboard/discovery/sports/game/${g.id}`} className="spx-live-row">
                 <div className="spx-live-row__meta"><i />LIVE{g.period ? ` · ${g.period}` : ""} · {SPORT_CATALOG.find((s) => s.slug === g.sport)?.label}</div>
                 <div className="spx-live-row__score">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                  <DiscoveryImage src={g.awayTeamLogoUrl} alt={g.awayTeamName} fallback={g.awayTeamName.slice(0, 3).toUpperCase()} />
                   <b>{g.awayScore ?? "—"}</b><span>VS</span><b>{g.homeScore ?? "—"}</b>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {g.homeTeamLogoUrl ? <img src={g.homeTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                  <DiscoveryImage src={g.homeTeamLogoUrl} alt={g.homeTeamName} fallback={g.homeTeamName.slice(0, 3).toUpperCase()} />
                 </div>
                 <div className="spx-live-row__names"><span>{g.awayTeamName}</span><span>{g.homeTeamName}</span></div>
               </Link>
@@ -48,11 +47,9 @@ export default async function SportsSchedulePage() {
               <p className="spx-panel__empty">No scheduled games found in the next week.</p>
             ) : upcoming.map((g) => (
               <Link key={g.id} href={`/dashboard/discovery/sports/game/${g.id}`} className="spx-up-row">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {g.awayTeamLogoUrl ? <img src={g.awayTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={g.awayTeamLogoUrl} alt={g.awayTeamName} fallback={g.awayTeamName.slice(0, 3).toUpperCase()} />
                 <span className="spx-up-row__vs">@</span>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {g.homeTeamLogoUrl ? <img src={g.homeTeamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                <DiscoveryImage src={g.homeTeamLogoUrl} alt={g.homeTeamName} fallback={g.homeTeamName.slice(0, 3).toUpperCase()} />
                 <div className="spx-up-row__meta">
                   <b>{g.awayTeamName} @ {g.homeTeamName}</b>
                   <span>{SPORT_CATALOG.find((s) => s.slug === g.sport)?.label} · {g.startsAt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {g.startsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>

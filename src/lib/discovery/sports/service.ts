@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, fetchTodayGamesRawDiagnostic, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
@@ -117,7 +117,43 @@ export async function unfollow(accountId: string, followId: string) {
 
 // ── Games: fetch (cached) → sync to local SportsGame → return local rows ──
 
-async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsGameSummary[]) {
+/** Confirmed real defect this closes: API-Sports' own /games (and
+ *  /fixtures) response frequently omits a team's logo field even though
+ *  the exact same real team has one in the provider's /teams catalog — a
+ *  gap observed across the Curated-For-You Sports card, the Live Now /
+ *  Upcoming Games panels, and the Schedule page, all of which source their
+ *  team identity straight from this same raw game payload with nothing
+ *  resolving the gap. Backfills ONLY the missing side (a team the raw
+ *  payload already has a logo for is left exactly as the provider sent
+ *  it), via the same real, already-cached team-catalog resolver
+ *  (resolveTeamByName) Standings/Team Directory/the SportsDataIO fallback
+ *  path all already share — never a second/guessed source, never
+ *  overwrites a real id/name the game payload already had. Runs once here,
+ *  upstream of syncGamesToLocal's upsert, so every consumer of local
+ *  SportsGame rows (My Teams, Team schedules, the landing page, this page)
+ *  benefits automatically and self-heals on the next real sync, the same
+ *  discipline the upsert's own `update` branch already uses for other
+ *  fields. A resolution failure/miss leaves that team's logo exactly as
+ *  the provider sent it (still possibly absent) — never fabricated. */
+async function enrichMissingTeamLogos(sport: SportSlug, games: SportsGameSummary[]): Promise<SportsGameSummary[]> {
+  return Promise.all(
+    games.map(async (g) => {
+      const [home, away] = await Promise.all([
+        g.homeTeam.logoUrl ? null : resolveTeamByName(sport, g.homeTeam.name).catch(() => null),
+        g.awayTeam.logoUrl ? null : resolveTeamByName(sport, g.awayTeam.name).catch(() => null),
+      ]);
+      if (!home && !away) return g;
+      return {
+        ...g,
+        homeTeam: home ? { ...g.homeTeam, id: g.homeTeam.id || home.id, logoUrl: home.logoUrl } : g.homeTeam,
+        awayTeam: away ? { ...g.awayTeam, id: g.awayTeam.id || away.id, logoUrl: away.logoUrl } : g.awayTeam,
+      };
+    })
+  );
+}
+
+async function syncGamesToLocal(sport: SportSlug, league: string, rawGames: SportsGameSummary[]) {
+  const games = await enrichMissingTeamLogos(sport, rawGames);
   const rows = await Promise.all(
     games.map((g) =>
       prisma.sportsGame.upsert({
@@ -682,6 +718,23 @@ export async function getLeagueLiveDiagnostic(sport: SportSlug, league: string):
     postseasonGameCount,
     firstPostseasonGame,
   };
+}
+
+/** TEMPORARY Owner-only diagnostic: real evidence for a "this sport should
+ *  show as live right now, but the Live Now panel says nothing's live"
+ *  report — built for MLB after the Owner confirmed a real live MLB game
+ *  still wasn't showing even with a reactivated API-Sports subscription
+ *  (ruling out the lapsed-key/stale-cache explanation). Thin wrapper over
+ *  fetchTodayGamesRawDiagnostic (providers/sports.ts) — see its own doc
+ *  comment for exactly what real evidence this surfaces (queried date/
+ *  season/league, and every game's real raw provider status code next to
+ *  what our own mapping produced). Resolves the league the same way every
+ *  other real caller in this file does (resolveDefaultLeagueId — a no-op
+ *  static lookup for every sport except ncaabaseball). TEMPORARY: remove
+ *  once the real cause is found and fixed. */
+export async function getTodayGamesRawDiagnostic(sport: SportSlug) {
+  const league = await resolveDefaultLeagueId(sport);
+  return fetchTodayGamesRawDiagnostic(sport, league);
 }
 
 // SportsDataIO's own status strings for NBA (Scheduled/InProgress/Final/
