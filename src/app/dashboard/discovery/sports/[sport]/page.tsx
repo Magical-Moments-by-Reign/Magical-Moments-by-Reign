@@ -22,6 +22,7 @@ import JerseyAvatar from "../JerseyAvatar";
 import PlayerAvatar from "../PlayerAvatar";
 import SportCardVisual from "../SportCardVisual";
 import { SPORT_VISUALS } from "../visuals";
+import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import "../../discovery.css";
 import "../sports-home.css";
 
@@ -585,14 +586,28 @@ export default async function SportPage({ params, searchParams }: { params: Prom
           </div>
         )}
 
-        {firstPreseasonGame && (
+        {/* Confirmed real defect: this used to render unconditionally
+            whenever a real preseason opener had ever been fetched, with no
+            check for whether that date had already passed — so once the
+            season moved past preseason, the header kept parroting a stale
+            "Preseason begins [past date]" line indefinitely (the hero
+            countdown above it already had this exact guard via
+            preseasonNotYetStarted; this line just never reused it). Gated
+            the same way now — this stops appearing the moment the real
+            preseason opener itself has passed, same as the countdown. */}
+        {firstPreseasonGame && preseasonNotYetStarted && (
           <p className="spx-sport-header__preseason">
             Preseason begins {new Date(firstPreseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             {" "}— {firstPreseasonGame.awayTeam.name} @ {firstPreseasonGame.homeTeam.name}
           </p>
         )}
 
-        {firstPostseasonGame && (
+        {/* Same real defect and same fix as the preseason line above — a
+            real fetched postseason opener stays truthy forever once
+            fetched, so this needs its own "hasn't happened yet" guard too,
+            or it keeps announcing a postseason that has already started
+            (or finished) as still upcoming. */}
+        {firstPostseasonGame && +new Date(firstPostseasonGame.startsAt) > Date.now() && (
           <p className="spx-sport-header__preseason">
             Postseason begins {new Date(firstPostseasonGame.startsAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             {" "}— {firstPostseasonGame.awayTeam.name} @ {firstPostseasonGame.homeTeam.name}
@@ -765,8 +780,7 @@ export default async function SportPage({ params, searchParams }: { params: Prom
               return (
                 <div key={follow.id} className="spx-my-team">
                   <div className="spx-team-row">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div className="spx-team-row__ph" />}
+                    <DiscoveryImage src={follow.teamLogoUrl} alt={follow.teamName ?? "Followed team"} fallback={(follow.teamName ?? "Team").slice(0, 3).toUpperCase()} />
                     <b>{follow.teamName}</b>
                     <form action={unfollowAction} style={{ marginLeft: "auto" }}>
                       <input type="hidden" name="followId" value={follow.id} />

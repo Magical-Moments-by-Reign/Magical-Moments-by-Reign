@@ -335,7 +335,11 @@ a.spx-roster__player:hover .spx-roster__name { color: var(--gold-soft); }
   background: linear-gradient(135deg, rgba(224,182,81,.22), rgba(201,162,75,.1));
   color: var(--gold); font-weight: 800; font-size: .62rem; letter-spacing: .02em;
 }
-.spx-live-row .discovery-image-fallback,.spx-up-row .discovery-image-fallback,.spx-poll__vs .discovery-image-fallback,.spx-team-row > .discovery-image-fallback { width:30px; height:30px; flex:0 0 auto; padding:.15rem; border-radius:6px; font-size:.46rem; }
+/* Confirmed real defect: at .46rem (~7px) these team-initial fallbacks
+   were functionally illegible — reported as "blank" boxes even though
+   real text was technically there. Bumped the box up enough to hold a
+   readable 3-letter mark at a sane size. */
+.spx-live-row .discovery-image-fallback,.spx-up-row .discovery-image-fallback,.spx-poll__vs .discovery-image-fallback,.spx-team-row > .discovery-image-fallback { width:30px; height:30px; flex:0 0 auto; padding:.05rem; border-radius:6px; font-size:.6rem; }
 .spx-team-row b { display: block; color: #f4f1ea; font-size: .78rem; }
 .spx-team-row span { color: #9c8f76; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; }
 .spx-team-row__icons { margin-left: auto; display: flex; gap: .4rem; color: var(--gold); }

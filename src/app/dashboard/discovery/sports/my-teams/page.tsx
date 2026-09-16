@@ -4,6 +4,7 @@ import SmartBackLink from "../SmartBackLink";
 import { requireAccount } from "@/lib/guard";
 import { getMyTeams, SPORT_CATALOG, searchSports } from "@/lib/discovery/sports/service";
 import { unfollowAction, followTeamAction } from "../actions";
+import DiscoveryImage from "@/components/discovery/DiscoveryImage";
 import "../../discovery.css";
 
 export const dynamic = "force-dynamic";
@@ -64,8 +65,7 @@ export default async function MyTeamsPage({ searchParams }: { searchParams: Prom
             const sportLabel = SPORT_CATALOG.find((s) => s.slug === follow.sport)?.label ?? follow.sport;
             return (
               <div key={follow.id} className="sports-team-row" style={{ marginBottom: ".7rem" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {follow.teamLogoUrl ? <img src={follow.teamLogoUrl} alt="" /> : <div style={{ width: 38, height: 38, borderRadius: 8, background: "#efe6d5" }} />}
+                <DiscoveryImage src={follow.teamLogoUrl} alt={follow.teamName ?? "Followed team"} fallback={(follow.teamName ?? "Team").slice(0, 3).toUpperCase()} />
                 <span className="grow">
                   <b>{follow.teamName}</b>
                   <span>{sportLabel}{upcoming ? ` · Next: ${upcoming.awayTeam.name === follow.teamName ? upcoming.homeTeam.name : upcoming.awayTeam.name} on ${new Date(upcoming.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : recent ? ` · Last: ${recent.status === "final" ? `${recent.homeScore}-${recent.awayScore}` : recent.status}` : " · No scheduled games found"}</span>

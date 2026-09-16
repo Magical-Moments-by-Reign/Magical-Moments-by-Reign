@@ -9,16 +9,13 @@ import { sdioConfigured, sdioCommercialMode } from "@/lib/discovery/providers/sp
 import type { NewsStory } from "@/lib/discovery/providers/news";
 import type { MovieItem, WatchItem } from "@/lib/discovery/providers/tmdb";
 import DiscoveryNav from "./_nav";
+import Artwork from "./DiscoveryArtwork";
 import "./discovery.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Magical Discovery", robots: { index: false } };
 
 type Feature = { label: string; title: string; description?: string; image?: string; href: string; external?: boolean; logo?: boolean };
-
-function Artwork({ src, alt, sizes }: { src?: string; alt: string; sizes: string }) {
-  return src ? <Image src={src} alt={alt} fill sizes={sizes} quality={90} className="disc-lux__image" /> : <div className="disc-lux__placeholder" aria-hidden="true">✦</div>;
-}
 
 // Image on top (fixed height, so it stays recognizable instead of being
 // stretched to fill the card), title/description in a separate solid box

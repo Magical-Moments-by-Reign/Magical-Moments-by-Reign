@@ -117,7 +117,43 @@ export async function unfollow(accountId: string, followId: string) {
 
 // ── Games: fetch (cached) → sync to local SportsGame → return local rows ──
 
-async function syncGamesToLocal(sport: SportSlug, league: string, games: SportsGameSummary[]) {
+/** Confirmed real defect this closes: API-Sports' own /games (and
+ *  /fixtures) response frequently omits a team's logo field even though
+ *  the exact same real team has one in the provider's /teams catalog — a
+ *  gap observed across the Curated-For-You Sports card, the Live Now /
+ *  Upcoming Games panels, and the Schedule page, all of which source their
+ *  team identity straight from this same raw game payload with nothing
+ *  resolving the gap. Backfills ONLY the missing side (a team the raw
+ *  payload already has a logo for is left exactly as the provider sent
+ *  it), via the same real, already-cached team-catalog resolver
+ *  (resolveTeamByName) Standings/Team Directory/the SportsDataIO fallback
+ *  path all already share — never a second/guessed source, never
+ *  overwrites a real id/name the game payload already had. Runs once here,
+ *  upstream of syncGamesToLocal's upsert, so every consumer of local
+ *  SportsGame rows (My Teams, Team schedules, the landing page, this page)
+ *  benefits automatically and self-heals on the next real sync, the same
+ *  discipline the upsert's own `update` branch already uses for other
+ *  fields. A resolution failure/miss leaves that team's logo exactly as
+ *  the provider sent it (still possibly absent) — never fabricated. */
+async function enrichMissingTeamLogos(sport: SportSlug, games: SportsGameSummary[]): Promise<SportsGameSummary[]> {
+  return Promise.all(
+    games.map(async (g) => {
+      const [home, away] = await Promise.all([
+        g.homeTeam.logoUrl ? null : resolveTeamByName(sport, g.homeTeam.name).catch(() => null),
+        g.awayTeam.logoUrl ? null : resolveTeamByName(sport, g.awayTeam.name).catch(() => null),
+      ]);
+      if (!home && !away) return g;
+      return {
+        ...g,
+        homeTeam: home ? { ...g.homeTeam, id: g.homeTeam.id || home.id, logoUrl: home.logoUrl } : g.homeTeam,
+        awayTeam: away ? { ...g.awayTeam, id: g.awayTeam.id || away.id, logoUrl: away.logoUrl } : g.awayTeam,
+      };
+    })
+  );
+}
+
+async function syncGamesToLocal(sport: SportSlug, league: string, rawGames: SportsGameSummary[]) {
+  const games = await enrichMissingTeamLogos(sport, rawGames);
   const rows = await Promise.all(
     games.map((g) =>
       prisma.sportsGame.upsert({
