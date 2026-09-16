@@ -7,7 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { withCache, cacheKeyFor } from "../cache";
-import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, fetchRawTeamsResponseDiagnostic, fetchRawTeamsArraysForDiagnostic, findForensicTeamMatches, summarizeTeamCatalogShape, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic, type RawTeamsResponseDiagnostic, type ForensicTeamMatch, type TeamCatalogShapeSummary } from "../providers/sports";
+import { ApiSportsProvider, HighSchoolPendingProvider, MATCHUP_SPORTS, fetchLeagueLogo, fetchFirstPreseasonGame, fetchFirstRegularSeasonGame, fetchFirstPostseasonGame, fetchSeasonGames, fetchTeamRoster, fetchTeamsForLeague, rankTeamMatches, seasonParam, previousSeasonParam, defaultLeagueId, resolveNcaaBaseballLeagueId, fetchGameTeamStats, fetchGamePlayerStats, classifySeasonPhase, POSTSEASON_STAGE_PATTERN, fetchLeagueDetailDiagnostic, type SportSlug, type SportsGameSummary, type SportsStanding, type SportsRosterPlayer, type SportsTeam, type TeamGameStats, type TeamPlayerGameStats, type LeagueDetailDiagnostic } from "../providers/sports";
 import { fetchNbaFirstGame, fetchGamesByDate as fetchSdioGamesByDate, fetchStandings as fetchSdioStandings, fetchAllPlayers, fetchInjuries, type SdioLeague, type SdioInjury } from "../providers/sportsdata";
 import { resolveOfficialDate, type SourceAttempt } from "./officialSource";
 import { resolveSdioTeamId, resolveSdioTeamIdentity, getSdioTeamDirectory } from "./team-identity";
@@ -28,6 +28,7 @@ const TTL_STANDINGS = 720; // 12h
 const TTL_LEAGUE_LOGO = 10080; // 1 week — league marks don't change
 const TTL_ROSTER = 10080; // 1 week — a team's active roster barely moves day to day
 const TTL_TEAM_LOOKUP = 10080; // 1 week — team identity/logo rarely changes
+const TTL_SEASON_TEAM_IDS = 720; // 12h — which real teams appear in this season's games barely moves hour to hour
 
 // Explore All Sports grid grouping — "pro" leagues, "college" sports, and
 // "world" for broad international/other-sport categories that span many
@@ -522,67 +523,40 @@ export function mergeCatalogWithPriorSeason(current: SportsTeam[], prior: Sports
   return result.length > current.length ? result : current;
 }
 
-// ── TEMPORARY Owner-only diagnostic: College Football (ncaaf) live catalog
-// membership — see the module comment above findForensicTeamMatches in
-// providers/sports.ts for the full context. Hardcoded to sport="ncaaf" on
-// purpose (this is a one-league investigation, not a general-purpose
-// tool) — mirrors the shape of the NHL live diagnostic (getNhlLiveDiagnostic,
-// a separate, still-open diagnostic PR) without depending on it, since that
-// PR isn't merged yet and this one must stand alone on top of main. Every
-// number here comes straight from a real provider call or a real production
-// function (fetchTeamsForLeague, getLeagueTeamCatalogWithOffSeasonFallback,
-// mergeCatalogWithPriorSeason) — never recomputed or approximated
-// separately, so this diagnostic can never disagree with what the ncaaf
-// page itself actually shows. TEMPORARY: remove once the live evidence
-// resolves the contamination question and the real fix ships.
-export interface NcaafLiveDiagnostic {
-  configured: boolean;
-  league: string;
-  currentSeason: string;
-  previousSeason: string;
-  leagueDetail: LeagueDetailDiagnostic;
-  rawCurrent: RawTeamsResponseDiagnostic;
-  rawPrevious: RawTeamsResponseDiagnostic;
-  /** The real, production-identical merged catalog
-   *  (getLeagueTeamCatalogWithOffSeasonFallback's own output for ncaaf) —
-   *  the exact same team list the live page's directory renders from. */
-  mergedCatalogNames: string[];
-  mergedCatalogCount: number;
-  forensicMatches: ForensicTeamMatch[];
-  shapeSummary: TeamCatalogShapeSummary;
-}
-
-export async function getNcaafLiveDiagnostic(league: string, isOffSeasonPhase: boolean, minimumExpectedCount: number): Promise<NcaafLiveDiagnostic> {
-  const sport: SportSlug = "ncaaf";
-  const configured = ApiSportsProvider.isConfigured(sport);
-  const nowISO = new Date().toISOString();
-  const currentSeason = seasonParam(sport, nowISO);
-  const previousSeason = previousSeasonParam(sport, nowISO);
-
-  const [leagueDetail, rawCurrent, rawPrevious, rawArrays, mergedCatalog] = await Promise.all([
-    fetchLeagueDetailDiagnostic(sport, league),
-    fetchRawTeamsResponseDiagnostic(sport, league, currentSeason),
-    fetchRawTeamsResponseDiagnostic(sport, league, previousSeason),
-    fetchRawTeamsArraysForDiagnostic(sport, league, currentSeason, previousSeason),
-    getLeagueTeamCatalogWithOffSeasonFallback(sport, league, isOffSeasonPhase, minimumExpectedCount),
-  ]);
-
-  const forensicMatches = findForensicTeamMatches(rawArrays.current, rawArrays.previous);
-  const shapeSummary = summarizeTeamCatalogShape([...rawArrays.current, ...rawArrays.previous]);
-
-  return {
-    configured,
-    league,
-    currentSeason,
-    previousSeason,
-    leagueDetail,
-    rawCurrent,
-    rawPrevious,
-    mergedCatalogNames: mergedCatalog.map((t) => t.name).sort((a, b) => a.localeCompare(b)),
-    mergedCatalogCount: mergedCatalog.length,
-    forensicMatches,
-    shapeSummary,
-  };
+/** Real, distinct team ids appearing in this season's real games — a real,
+ *  self-updating scoping signal for a raw team catalog that spans multiple
+ *  real divisions, generic across sports (not ncaaf-specific) so it can be
+ *  reused the moment another sport's live evidence confirms the same
+ *  pattern. Confirmed live evidence for ncaaf (from the Owner-only
+ *  live-verification diagnostic, getLeagueLiveDiagnostic below): the raw
+ *  /teams catalog for league id "2" returns 702 rows spanning multiple real
+ *  divisions, while only 238 of those teams actually appear in this
+ *  season's real games — every one of which reports the identical real
+ *  stage string "FBS (Division I-A)". That is real signal a raw catalog
+ *  alone can't provide. Honest limitation this deliberately does not paper
+ *  over: a real FBS team's real non-conference opponent can itself be a
+ *  real FCS/D2/D3 school, so this set can still include a small number of
+ *  real non-FBS teams — a much tighter, evidence-based boundary than the
+ *  raw catalog, never claimed as a perfectly clean single-division
+ *  boundary. Returns null (never an empty-set false signal) when the
+ *  provider isn't configured, no league is resolved, or the season-games
+ *  call itself fails — callers must treat null as "no evidence available,"
+ *  the same honest gate every other real-data fallback in this file
+ *  uses, never treat it as "zero real teams this season." */
+export async function getSeasonGamesDerivedTeamIds(sport: SportSlug, league: string): Promise<Set<string> | null> {
+  if (!league || !ApiSportsProvider.isConfigured(sport)) return null;
+  const season = seasonParam(sport, new Date().toISOString());
+  const cached = await withCache("sports", ApiSportsProvider.slug, cacheKeyFor({ sport, league, season, kind: "season_games_team_ids" }), TTL_SEASON_TEAM_IDS, async () => {
+    const games = await fetchSeasonGames(sport, season, league);
+    if (!games) return null;
+    const ids = new Set<string>();
+    for (const g of games) {
+      if (g.homeTeam.id) ids.add(g.homeTeam.id);
+      if (g.awayTeam.id) ids.add(g.awayTeam.id);
+    }
+    return Array.from(ids);
+  });
+  return cached?.data ? new Set(cached.data) : null;
 }
 
 // A local mirror of the tournament-round vocabulary a sibling PR adds to
@@ -596,18 +570,20 @@ const LIVE_DIAGNOSTIC_POSTSEASON_PATTERN = /post.?season|play.?offs?|championshi
 
 /** TEMPORARY Owner-only diagnostic: real, live evidence for whether a
  *  sport's configured league id actually resolves to a real competition
- *  with real games — for the 5 sports whose default league id has never
- *  been confirmed against a live key (ncaaf "2", ncaab "116", ncaabaseball
- *  — no static id at all, rugby "1", volleyball "1"; see
- *  docs/DISCOVERY_SPORTS.md's own caveat). Sport-agnostic (unlike
- *  getNcaafLiveDiagnostic above, which is deliberately ncaaf-only and
- *  scoped to the separate FBS-contamination question) — every field here
- *  comes straight from real production functions (ApiSportsProvider,
+ *  with real games — for the sports whose default league id has never
+ *  been confirmed against a live key (ncaab "116", ncaabaseball — no
+ *  static id at all, rugby "1", volleyball "1"; see
+ *  docs/DISCOVERY_SPORTS.md's own caveat). ncaaf ("2") used to be part of
+ *  this same set — its own open question (raw-catalog contamination, not
+ *  the league id itself) was resolved via real games-based evidence, now
+ *  acted on directly by getSeasonGamesDerivedTeamIds above, so ncaaf no
+ *  longer needs this diagnostic. Sport-agnostic — every field here comes
+ *  straight from real production functions (ApiSportsProvider,
  *  fetchLeagueDetailDiagnostic, fetchTeamsForLeague, fetchSeasonGames),
  *  never a separate/guessed source, and every field is safe to show the
  *  Owner: league metadata, counts, and real stage strings — no secrets, no
- *  API keys. TEMPORARY: remove once each sport's league id has been
- *  live-verified and, where needed, corrected. */
+ *  API keys. TEMPORARY: remove once each remaining sport's league id has
+ *  been live-verified and, where needed, corrected. */
 export interface LeagueLiveDiagnostic {
   sport: SportSlug;
   configured: boolean;

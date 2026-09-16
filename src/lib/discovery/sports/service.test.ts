@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getNcaafLiveDiagnostic, getLeagueLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
+import { resolveWithFailureIsolation, getTeamRoster, resolveFollowedTeamRosters, getLeagueTeamCatalogWithOffSeasonFallback, mergeCatalogWithPriorSeason, getLeagueTeamRosterMap, getSeasonGamesDerivedTeamIds, getLeagueLiveDiagnostic, playerNeedsEnrichment, mergeRosterPlayerFields, getCfpPlayoffBracket, getMarchMadnessPlayoffBracket } from "./service";
 import type { SportsTeam, SportsRosterPlayer } from "../providers/sports";
 
 // ── getLeagueTeamCatalogWithOffSeasonFallback: no provider key configured —
@@ -19,40 +19,33 @@ test("getLeagueTeamCatalogWithOffSeasonFallback: no configured provider — retu
   }
 });
 
-// ── getNcaafLiveDiagnostic: TEMPORARY Owner-only diagnostic — with no
-// provider key configured, every real-provider-backed field degrades
-// honestly (never throws, never fabricates), while the merged-catalog field
-// still reflects the real (empty) output of the same production function
-// the ncaaf page itself calls.
+// ── getSeasonGamesDerivedTeamIds: real, evidence-based catalog-scoping
+// signal (see its own doc comment in service.ts) — with no provider key
+// configured, this must degrade to null (no evidence available), never an
+// empty Set (which would mean "zero real teams this season," a real,
+// different claim), and never throw.
 
-test("getNcaafLiveDiagnostic: no configured provider — every field degrades honestly, never throws", async () => {
+test("getSeasonGamesDerivedTeamIds: no configured provider — returns null (no evidence), never throws", async () => {
   const originalKey = process.env.API_SPORTS_KEY;
   delete process.env.API_SPORTS_KEY;
   try {
-    const result = await getNcaafLiveDiagnostic("2", false, 1);
-    assert.equal(result.configured, false);
-    assert.equal(result.league, "2");
-    assert.equal(result.leagueDetail.attempted, false);
-    assert.deepEqual(result.rawCurrent, { hasResponseField: false, responseIsArray: false, responseLength: 0, pagingPresent: false, pagingCurrent: null, pagingTotal: null, errorsFieldPresent: false, mappedTeamCount: 0 });
-    assert.deepEqual(result.rawPrevious, { hasResponseField: false, responseIsArray: false, responseLength: 0, pagingPresent: false, pagingCurrent: null, pagingTotal: null, errorsFieldPresent: false, mappedTeamCount: 0 });
-    assert.deepEqual(result.mergedCatalogNames, []);
-    assert.equal(result.mergedCatalogCount, 0);
-    assert.equal(result.forensicMatches.length, 7);
-    for (const m of result.forensicMatches) {
-      assert.equal(m.foundInCurrentSeason, false);
-      assert.equal(m.fields, null);
-    }
-    assert.deepEqual(result.shapeSummary, { rowCount: 0, anyRowHasMembershipKey: false, sampleRootKeys: [], sampleTeamKeys: [] });
+    assert.equal(await getSeasonGamesDerivedTeamIds("ncaaf", "2"), null);
   } finally {
     if (originalKey !== undefined) process.env.API_SPORTS_KEY = originalKey;
   }
 });
 
-// ── getLeagueLiveDiagnostic: the 5-sport live-verification diagnostic —
-// no configured provider (this sandbox's real state) degrades every field
-// honestly, same discipline as getNcaafLiveDiagnostic above. Also confirms
-// the "no league id at all" branch (ncaabaseball's real unresolved-id
-// case, when resolveDefaultLeagueId comes back "") degrades the same way.
+test("getSeasonGamesDerivedTeamIds: no league id at all — returns null (no evidence), never throws", async () => {
+  assert.equal(await getSeasonGamesDerivedTeamIds("ncaaf", ""), null);
+});
+
+// ── getLeagueLiveDiagnostic: the live-verification diagnostic for sports
+// whose league id has never been confirmed against a live key — no
+// configured provider (this sandbox's real state) degrades every field
+// honestly, same discipline as getSeasonGamesDerivedTeamIds above. Also
+// confirms the "no league id at all" branch (ncaabaseball's real
+// unresolved-id case, when resolveDefaultLeagueId comes back "") degrades
+// the same way.
 
 test("getLeagueLiveDiagnostic: no configured provider — every field degrades honestly, never throws", async () => {
   const originalKey = process.env.API_SPORTS_KEY;
